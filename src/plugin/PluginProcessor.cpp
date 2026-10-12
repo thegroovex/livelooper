@@ -513,6 +513,7 @@ bool LiveLooperProcessor::exportTrack (int track, const juce::File& file)
     if (audio.getNumSamples() == 0)
         return false;
 
+    file.getParentDirectory().createDirectory();
     file.deleteFile();
     auto stream = std::unique_ptr<juce::OutputStream> (file.createOutputStream());
     if (stream == nullptr)
