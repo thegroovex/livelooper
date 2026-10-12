@@ -138,6 +138,32 @@ public:
             expect (! editor->keyPressed (key ('N')));
         }
 
+        beginTest ("A track clear key must be held like the STOP button");
+        {
+            LiveLooperProcessor p;
+            p.setKeyboardControlAvailable (true);
+            p.prepareToPlay (48000.0, 512);
+            std::unique_ptr<juce::AudioProcessorEditor> ed (p.createEditor());
+            auto* editor = dynamic_cast<LiveLooperEditor*> (ed.get());
+            auto cleared = [&p] (int t) { return p.getState().getParameter (juce::String ("t") + juce::String (t) + "_clear")->getValue() >= 0.5f; };
+
+            expect (editor->keyPressed (key ('W', true)));             // Shift+W: clear track 2
+            expectEquals (editor->getPendingKeyClearTrack(), 1);
+            expect (! cleared (2));                                    // nothing happens on the press itself
+            const auto now = juce::Time::getMillisecondCounter();
+            editor->updateKeyClearHold (now + 400, false);             // released too early
+            expect (! cleared (2));
+            expectEquals (editor->getPendingKeyClearTrack(), -1);
+
+            editor->keyStateChanged (false);
+            expect (editor->keyPressed (key ('E', true)));             // Shift+E: clear track 3, held
+            editor->updateKeyClearHold (juce::Time::getMillisecondCounter() + 700, true);
+            expect (! cleared (3));
+            editor->updateKeyClearHold (juce::Time::getMillisecondCounter() + LiveLooperEditor::kClearHoldMs + 10, true);
+            expect (cleared (3));
+            expectEquals (editor->getPendingKeyClearTrack(), -1);
+        }
+
         beginTest ("Tempo can be typed in");
         {
             LiveLooperProcessor p;

@@ -238,7 +238,8 @@ void RecPlayButton::paint (juce::Graphics& g)
     g.fillPath (tri);
     g.setColour (colours::text.withAlpha (0.6f));
     g.setFont (LooperLookAndFeel::font (padR * 0.17f, true));
-    g.drawText (tr ("DUB / PLAY"), juce::Rectangle<float> (centre.x - padR, centre.y + padR * 0.25f, padR * 2.0f, padR * 0.3f),
+    const bool recPlayMode = juce::roundToInt (proc.getState().getRawParameterValue (gRecAction)->load()) == 1;
+    g.drawText (tr (recPlayMode ? "PLAY / DUB" : "DUB / PLAY"), juce::Rectangle<float> (centre.x - padR, centre.y + padR * 0.25f, padR * 2.0f, padR * 0.3f),
                 juce::Justification::centred);
 }
 
@@ -288,6 +289,11 @@ void StopButton::paint (juce::Graphics& g)
     g.setColour (juce::Colours::black);
     g.drawRoundedRectangle (b, 6.0f, 1.0f);
 
+    if (keyHold > 0.0f && ! (down && ! cleared))
+    {
+        g.setColour (colours::red.withAlpha (0.35f));
+        g.fillRoundedRectangle (b.withWidth (b.getWidth() * juce::jmin (1.0f, keyHold)), 6.0f);
+    }
     if (down && ! cleared)
     {
         const float held = juce::jlimit (0.0f, 1.0f, (float) (juce::Time::getMillisecondCounter() - downTime) / 1500.0f);

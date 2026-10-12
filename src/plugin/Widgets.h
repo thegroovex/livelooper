@@ -108,11 +108,15 @@ public:
     void paint (juce::Graphics& g) override;
     void mouseDown (const juce::MouseEvent& e) override;
     void mouseUp (const juce::MouseEvent& e) override;
+    /** Progress (0..1) of a clear held on the computer keyboard; 0 = none. */
+    void setKeyHoldProgress (float p) { if (p != keyHold) { keyHold = p; repaint(); } }
+    float getKeyHoldProgress() const noexcept { return keyHold; }
 
 private:
     void timerCallback() override;
     LiveLooperProcessor& proc;
     int track;
+    float keyHold = 0.0f;
     bool down = false;
     bool cleared = false;
     juce::uint32 downTime = 0;
@@ -172,6 +176,7 @@ public:
     void paint (juce::Graphics& g) override;
     void refresh (bool blinkPhase);
     int getTrackIndex() const noexcept { return track; }
+    StopButton& getStopButton() noexcept { return stop; }
 
 private:
     LiveLooperProcessor& proc;

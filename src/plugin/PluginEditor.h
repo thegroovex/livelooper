@@ -53,6 +53,11 @@ public:
     void showTempoEntry();
     bool isTempoEntryVisible() const { return tempoEntry.isVisible(); }
     juce::TextEditor& getTempoEntry() noexcept { return tempoEntry; }
+    /** A track clear on the computer keyboard must be held like the STOP button (1.5 s). */
+    static constexpr juce::uint32 kClearHoldMs = 1500;
+    int getPendingKeyClearTrack() const noexcept { return keyClear.track; }
+    /** Checks a held clear key; called from the timer (public for tests). */
+    void updateKeyClearHold (juce::uint32 now, bool keyStillDown);
 
 private:
     class Surface : public juce::Component
@@ -114,6 +119,8 @@ private:
 
     juce::TextEditor tempoEntry;
     juce::Array<int> heldKeys;
+    struct KeyClear { int track = -1; int keyCode = 0; juce::uint32 start = 0; } keyClear;
+    int lastRecAction = -1;
 
     std::unique_ptr<juce::FileChooser> chooser;
     juce::String statusText;

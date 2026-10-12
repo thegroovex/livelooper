@@ -331,6 +331,15 @@ void LiveLooperEditor::timerCallback()
     if (learnMode || learning)
         overlay.repaint();
 
+    // REC button mode changed (setup menu, host automation, MIDI): show it on the display
+    const int recMode = juce::roundToInt (proc.getState().getRawParameterValue (gRecAction)->load());
+    if (lastRecAction >= 0 && recMode != lastRecAction)
+        showStatus (tr ("REC BUTTON: %1", tr (recMode == 1 ? "REC > PLAY > DUB" : "REC > DUB > PLAY")));
+    lastRecAction = recMode;
+
+    if (keyClear.track >= 0)
+        updateKeyClearHold (juce::Time::getMillisecondCounter(), juce::KeyPress::isKeyCurrentlyDown (keyClear.keyCode));
+
     updateLcd();
 
     // computer keyboard: forget keys that were released, keep the focus on the surface
@@ -380,7 +389,11 @@ void LiveLooperEditor::updateLcd()
     else if (statusText.isNotEmpty() && juce::Time::getMillisecondCounter() - statusTime < 4000)
         lines.add (statusText);
     else
-        lines.add (tr ("MEMORY %1 S / TRACK", juce::String ((int) proc.getMaxLoopSeconds())));
+    {
+        const int recMode = juce::roundToInt (proc.getState().getRawParameterValue (gRecAction)->load());
+        lines.add (tr (recMode == 1 ? "REC > PLAY > DUB" : "REC > DUB > PLAY") + "     "
+                   + tr ("MEMORY %1 S / TRACK", juce::String ((int) proc.getMaxLoopSeconds())));
+    }
 
     lcd.setContent (juce::String (bpm, 1), lines, accent, midiLedFrames > 0);
 }
@@ -442,6 +455,15 @@ bool LiveLooperEditor::keyPressed (const juce::KeyPress& key)
         return true;
     heldKeys.addIfNotAlreadyThere (key.getKeyCode());
 
+    for (int t = 0; t < kNumTracks; ++t)
+        if (action == trackId (t, kClear))
+        {
+            // like the STOP button: hold the key to clear, a short tap does nothing
+            keyClear = { t, key.getKeyCode(), juce::Time::getMillisecondCounter() };
+            showStatus (tr ("HOLD KEY TO CLEAR TRACK %1", juce::String (t + 1)));
+            return true;
+        }
+
     performKeyAction (action);
     if (! KeyMap::isSpecialAction (action) && action != gClearAll)
         showStatus (tr ("KEY %1 > %2", KeyMap::describeKey (key).toUpperCase(), paramName (action).toUpperCase()));
@@ -455,6 +477,30 @@ bool LiveLooperEditor::keyStateChanged (bool isKeyDown)
             if (! juce::KeyPress::isKeyCurrentlyDown (heldKeys[i]))
                 heldKeys.remove (i);
     return false;
+}
+
+void LiveLooperEditor::updateKeyClearHold (juce::uint32 now, bool keyStillDown)
+{
+    const int t = keyClear.track;
+    if (t < 0)
+        return;
+    auto& stop = strips[(size_t) t]->getStopButton();
+    const auto held = now - keyClear.start;
+    if (! keyStillDown)
+    {
+        keyClear.track = -1;
+        stop.setKeyHoldProgress (0.0f);
+        showStatus (tr ("CLEAR CANCELLED - HOLD THE KEY 1.5 S"));
+    }
+    else if (held >= kClearHoldMs)
+    {
+        keyClear.track = -1;
+        stop.setKeyHoldProgress (0.0f);
+        proc.pressTrigger (trackId (t, kClear));
+        showStatus (tr ("TRACK %1 CLEARED", juce::String (t + 1)));
+    }
+    else
+        stop.setKeyHoldProgress ((float) held / (float) kClearHoldMs);
 }
 
 void LiveLooperEditor::performKeyAction (const juce::String& action)

@@ -144,7 +144,7 @@ Switching on and off is crossfaded without clicks.
 
 | Entry | Meaning |
 |---|---|
-| Record action | "Rec > Dub > Play" (default) or "Rec > Play > Dub" |
+| Record action | "Rec > Dub > Play" (default) or "Rec > Play > Dub". The REC button legend ("DUB / PLAY" or "PLAY / DUB") and the bottom display line show the active mode. |
 | Follow host transport | loops start/stop with Live |
 | Maximum loop length | 30 · 60 · 120 · 240 · 480 seconds per track (determines memory use; existing loops are kept) |
 | Save loops with the project | store loops in the Live set (on by default). Off = smaller sets, loops are gone after loading |
@@ -191,7 +191,7 @@ Default mapping – one keyboard column per track:
 |---|---|
 | **1 2 3 4 5** | REC/PLAY of track 1–5 |
 | **Q W E R T** | STOP track 1–5 |
-| **Shift + Q … T** | CLEAR track 1–5 |
+| **Shift + Q … T** | CLEAR track 1–5 – hold the key for 1.5 s, like the STOP button (a short tap does nothing) |
 | **A S D F G** | UNDO track 1–5 |
 | **Shift + A … G** | REDO track 1–5 |
 | **Space** | ALL START / STOP |

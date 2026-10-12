@@ -144,7 +144,7 @@ Ein- und Ausschalten wird ohne Knackser überblendet.
 
 | Eintrag | Bedeutung |
 |---|---|
-| Aufnahme-Aktion (Record action) | „Rec > Dub > Play" (Standard) oder „Rec > Play > Dub" |
+| Aufnahme-Aktion (Record action) | „Rec > Dub > Play" (Standard) oder „Rec > Play > Dub". Die Beschriftung der REC-Taste („DUB / PLAY" bzw. „PLAY / DUB") und die unterste Displayzeile zeigen den aktiven Modus. |
 | Host-Transport folgen | Loops starten/stoppen mit Live |
 | Maximale Loop-Länge | 30 · 60 · 120 · 240 · 480 Sekunden pro Spur (bestimmt den Speicherbedarf; vorhandene Loops bleiben erhalten) |
 | Loops im Projekt speichern | Loops im Live-Set speichern (Standard an). Aus = kleinere Sets, die Loops sind nach dem Laden weg |
@@ -191,7 +191,7 @@ Standardbelegung – eine Tastaturspalte pro Spur:
 |---|---|
 | **1 2 3 4 5** | REC/PLAY Spur 1–5 |
 | **Q W E R T** | STOP Spur 1–5 |
-| **Shift + Q … T** | Spur 1–5 LÖSCHEN |
+| **Shift + Q … T** | Spur 1–5 LÖSCHEN – Taste 1,5 s halten, wie die STOP-Taste (kurzes Antippen löscht nicht) |
 | **A S D F G** | ZURÜCK (Undo) Spur 1–5 |
 | **Shift + A … G** | VOR (Redo) Spur 1–5 |
 | **Leertaste** | ALLE START / STOP |
