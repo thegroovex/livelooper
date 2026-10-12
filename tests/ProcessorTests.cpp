@@ -36,7 +36,23 @@ struct ProcHarness
     /** Lets the processor's timer reset the momentary parameters (normally the message thread does this). */
     void pumpMessages()
     {
-        juce::MessageManager::getInstance()->runDispatchLoopUntil (60);
+        // CI machines can be slow: keep the message loop running until every momentary
+        // parameter has been reset by the processor's timer (at most 3 s)
+        const auto start = juce::Time::getMillisecondCounter();
+        do
+        {
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (40);
+        }
+        while (anyTriggerOn() && juce::Time::getMillisecondCounter() - start < 3000);
+    }
+
+    bool anyTriggerOn()
+    {
+        for (auto* p : proc.getParameters())
+            if (auto* wp = dynamic_cast<juce::AudioProcessorParameterWithID*> (p))
+                if (params::isTrigger (wp->paramID) && wp->getValue() >= 0.5f)
+                    return true;
+        return false;
     }
 };
 } // namespace
