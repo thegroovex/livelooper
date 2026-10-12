@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(livelooper VERSION 1.1.1 LANGUAGES C CXX)
+project(livelooper VERSION 1.2.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -52,6 +52,8 @@ endif()
 
 juce_add_plugin(livelooper
     PRODUCT_NAME "livelooper"
+    ICON_BIG "${CMAKE_CURRENT_SOURCE_DIR}/resources/livelooper-icon-1024.png"
+    ICON_SMALL "${CMAKE_CURRENT_SOURCE_DIR}/resources/livelooper-icon-256.png"
     COMPANY_NAME "groovex"
     BUNDLE_ID "com.groovex.livelooper"
     PLUGIN_MANUFACTURER_CODE Grvx
@@ -95,6 +97,7 @@ if(LIVELOOPER_BUILD_TESTS)
         tests/ProcessorTests.cpp
         tests/LocalisationTests.cpp
         tests/KeyboardTests.cpp
+        tests/FeatureTests.cpp
         ${LIVELOOPER_ENGINE_SOURCES} ${LIVELOOPER_PLUGIN_SOURCES})
     target_include_directories(livelooper_tests PRIVATE src)
     target_compile_definitions(livelooper_tests PRIVATE ${LIVELOOPER_DEFINES} LIVELOOPER_NO_PLUGIN_ENTRY=1 JUCE_MODAL_LOOPS_PERMITTED=1)

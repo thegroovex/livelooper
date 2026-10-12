@@ -23,6 +23,13 @@ void LoopTrack::allocate (int maxLengthSamples)
 
     chunkOwner.assign (numChunks, 0);
     chunkTouched.assign (numChunks, 0);
+    this->numChunks = numChunks;
+    for (auto& cp : chunkPeak)
+    {
+        cp.reset (new std::atomic<float>[numChunks]);
+        for (size_t i = 0; i < numChunks; ++i)
+            cp[i].store (0.0f);
+    }
     clear();
 }
 
@@ -65,6 +72,8 @@ void LoopTrack::startRecording (double ppqNow, double samplesPerPpq, int autoFin
 
     std::fill (chunkOwner.begin(), chunkOwner.end(), (uint8_t) 0);
     std::fill (chunkTouched.begin(), chunkTouched.end(), (uint8_t) 0);
+    for (size_t c = 0; c < numChunks; ++c)
+        chunkPeak[0][c].store (0.0f, std::memory_order_relaxed);
 
     state = State::Recording;
     recPos = 0;
@@ -117,6 +126,17 @@ void LoopTrack::finishRecording (RecAction next, int trimSamples)
                 d[length + i] = 0.0f;
             }
         }
+
+    // the seam fades and the moved tail changed the first and last chunks
+    {
+        const size_t last = (size_t) ((length - 1) >> kChunkShift);
+        const size_t firstEnd = std::min (last, (size_t) ((std::max (seam, trimSamples) + kChunkSize - 1) >> kChunkShift));
+        for (size_t c = 0; c <= firstEnd; ++c)
+            recomputeChunkPeak (0, c);
+        recomputeChunkPeak (0, last);
+        for (size_t c = last + 1; c < numChunks; ++c)
+            chunkPeak[0][c].store (0.0f, std::memory_order_relaxed);
+    }
 
     playPos = trimSamples % length;
     undoKind = UndoKind::Recording;
@@ -331,6 +351,8 @@ void LoopTrack::touchChunkForWrite (int index) noexcept
     for (int ch = 0; ch < 2; ++ch)
         std::memcpy (layers[to][ch].data() + offset, layers[from][ch].data() + offset, sizeof (float) * kChunkSize);
 
+    chunkPeak[to][c].store (settings.dubMode == DubMode::Replace ? 0.0f : chunkPeak[from][c].load (std::memory_order_relaxed),
+                            std::memory_order_relaxed);
     chunkOwner[c] = to;
     chunkTouched[c] = 1;
 }
@@ -351,6 +373,9 @@ void LoopTrack::process (const float* inL, const float* inR,
             routeInput (inL[i], inR[i], l, r);
             dL[recPos] = l;
             dR[recPos] = r;
+            notePeak (0, recPos, l, r);
+            inPeakL = std::max (inPeakL, std::abs (l));
+            inPeakR = std::max (inPeakR, std::abs (r));
             ++recPos;
 
             if ((autoFinish > 0 && recPos >= autoFinish) || recPos >= maxLength)
@@ -384,16 +409,13 @@ void LoopTrack::process (const float* inL, const float* inR,
             routeInput (inL[i], inR[i], il, ir);
             touchChunkForWrite (index);
             const auto owner = chunkOwner[(size_t) (index >> kChunkShift)];
-            if (settings.dubMode == DubMode::Replace)
-            {
-                layers[owner][0][(size_t) index] = il;
-                layers[owner][1][(size_t) index] = ir;
-            }
-            else
-            {
-                layers[owner][0][(size_t) index] = l + il;
-                layers[owner][1][(size_t) index] = r + ir;
-            }
+            const float nl = settings.dubMode == DubMode::Replace ? il : l + il;
+            const float nr = settings.dubMode == DubMode::Replace ? ir : r + ir;
+            layers[owner][0][(size_t) index] = nl;
+            layers[owner][1][(size_t) index] = nr;
+            notePeak (owner, index, nl, nr);
+            inPeakL = std::max (inPeakL, std::abs (il));
+            inPeakR = std::max (inPeakR, std::abs (ir));
         }
 
         if (gainRampLeft > 0)
@@ -409,6 +431,8 @@ void LoopTrack::process (const float* inL, const float* inR,
         busL[i] += oL;
         busR[i] += oR;
         peak = std::max (peak, std::max (std::abs (oL), std::abs (oR)));
+        outPeakL = std::max (outPeakL, std::abs (oL));
+        outPeakR = std::max (outPeakR, std::abs (oR));
 
         if (stopping && gainRampLeft == 0 && gain <= 0.0f)
         {
@@ -428,6 +452,43 @@ void LoopTrack::process (const float* inL, const float* inR,
             }
         }
     }
+}
+
+//==============================================================================
+void LoopTrack::recomputeChunkPeak (int layer, size_t chunk) noexcept
+{
+    if (chunk >= numChunks)
+        return;
+    const size_t start = chunk << kChunkShift;
+    float m = 0.0f;
+    for (size_t i = start; i < start + (size_t) kChunkSize; ++i)
+        m = std::max (m, std::max (std::abs (layers[layer][0][i]), std::abs (layers[layer][1][i])));
+    chunkPeak[layer][chunk].store (m, std::memory_order_relaxed);
+}
+
+bool LoopTrack::getWaveform (float* bins, int numBins, int maxSpanSamples) const noexcept
+{
+    std::fill (bins, bins + numBins, 0.0f);
+    const auto st = state;
+    const int len = st == State::Recording ? recPos : length;
+    if (st == State::Empty || len <= 0 || numBins <= 0 || numChunks == 0)
+        return false;
+
+    const int span = (st == State::Recording && maxSpanSamples > len) ? maxSpanSamples : len;
+    const int usedChunks = std::min ((int) numChunks, (len + kChunkSize - 1) >> kChunkShift);
+    const int binsUsed = std::clamp ((int) ((long long) len * numBins / span), 1, numBins);
+    for (int b = 0; b < binsUsed; ++b)
+    {
+        int c0 = (int) ((long long) b * usedChunks / binsUsed);
+        int c1 = (int) ((long long) (b + 1) * usedChunks / binsUsed);
+        c1 = std::max (c1, c0 + 1);
+        float m = 0.0f;
+        for (int c = c0; c < c1 && c < usedChunks; ++c)
+            m = std::max (m, chunkPeak[chunkOwner[(size_t) c] & 1][(size_t) c].load (std::memory_order_relaxed));
+        const int dst = (settings.reverse && st != State::Recording) ? binsUsed - 1 - b : b;
+        bins[dst] = std::min (1.0f, m);
+    }
+    return true;
 }
 
 //==============================================================================
@@ -452,6 +513,13 @@ void LoopTrack::loadLoop (const float* srcL, const float* srcR, int numSamples, 
     std::memcpy (layers[0][0].data(), srcL, sizeof (float) * (size_t) numSamples);
     std::memcpy (layers[0][1].data(), srcR, sizeof (float) * (size_t) numSamples);
     length = recPos = numSamples;
+    for (size_t c = 0; c < numChunks; ++c)
+    {
+        chunkPeak[0][c].store (0.0f);
+        chunkPeak[1][c].store (0.0f);
+    }
+    for (size_t c = 0; c <= (size_t) ((numSamples - 1) >> kChunkShift) && c < numChunks; ++c)
+        recomputeChunkPeak (0, c);
     recSamplesPerPpq = samplesPerPpq;
     anchorValid = false;
     state = State::Stopped;

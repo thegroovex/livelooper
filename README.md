@@ -14,12 +14,17 @@
 - **Input FX and track FX**: four slots each (A–D) with 12 effects – LPF, HPF, BPF, phaser, flanger, delay (tempo-synced), reverb, slicer, tremolo, auto pan, lo-fi, overdrive
 - **Rhythm**: built-in drum machine with metronome and 11 patterns, always in sync
 - **Start/stop modes**: immediate, fade in/fade out, stop at loop end; dub mode overdub or replace
-- **Full MIDI control**: all 136 functions are host parameters (Live's MIDI map) and also have their own MIDI learn via right-click
+- **Full MIDI control**: all 137 functions are host parameters (Live's MIDI map) and also have their own MIDI learn via right-click
 - **Follow transport**: loops start and stop with Live
 - **Saved with your project**: loops are stored losslessly (FLAC, 24 bit) inside the Live set
 - **Import/export**: export loops as WAV, drag & drop audio files onto a track
 - **Computer keyboard control** in the standalone app: logical default keys (1–5 REC/PLAY, Q–T STOP, A–G UNDO, Space, Return = TAP) and your own key mapping in *SETUP → Keyboard mapping …*
 - **Type in the tempo**: click the BPM on the display (or press B) and enter it
+- **Looper sets**: save and load the whole looper (loops, settings, effects) as a `.llset` file
+- **Meters and waveform**: stereo meter per track (input while recording, output while playing), master meter in the display, waveform overview with play position, clip LED per track
+- **Cue output** in the standalone app: send the rhythm / metronome to a separate output pair (e.g. headphones) instead of, or in addition to, the main output
+- **Two metronome sounds** (beep, woodblock) and modern synthesised drum sounds
+- **App icon** for the standalone app (macOS Dock, Windows)
 - **English and German user interface**: switch under *SETUP → Language / Sprache* (automatic follows your system language)
 
 ## Why VST3/AU?

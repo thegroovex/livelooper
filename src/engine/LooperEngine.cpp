@@ -34,7 +34,7 @@ void LooperEngine::prepare (double newSampleRate, int maxBlockSize, double newMa
     trackFx.prepare (sampleRate);
     rhythm.prepare (sampleRate);
 
-    for (auto* v : { &inProcL, &inProcR, &fxBusL, &fxBusR })
+    for (auto* v : { &inProcL, &inProcR, &fxBusL, &fxBusR, &clickBuf })
         v->assign ((size_t) maxBlock, 0.0f);
 
     numQueued = 0;
@@ -332,21 +332,24 @@ void LooperEngine::executeCommand (const QueuedCommand& c) noexcept
 }
 
 //==============================================================================
-void LooperEngine::process (const float* inL, const float* inR, float* outL, float* outR, int numSamples, const TimeInfo& time) noexcept
+void LooperEngine::process (const float* inL, const float* inR, float* outL, float* outR, float* cueL, float* cueR,
+                            int numSamples, const TimeInfo& time) noexcept
 {
     int done = 0;
     TimeInfo t = time;
     while (done < numSamples)
     {
         const int n = std::min (maxBlock, numSamples - done);
-        processChunk (inL + done, inR + done, outL + done, outR + done, n, t);
+        processChunk (inL + done, inR + done, outL + done, outR + done,
+                      cueL != nullptr ? cueL + done : nullptr, cueR != nullptr ? cueR + done : nullptr, n, t);
         done += n;
         if (t.hostPlaying)
             t.ppq += n * (t.bpm / (60.0 * sampleRate));
     }
 }
 
-void LooperEngine::processChunk (const float* inL, const float* inR, float* outL, float* outR, int n, const TimeInfo& time) noexcept
+void LooperEngine::processChunk (const float* inL, const float* inR, float* outL, float* outR, float* cueL, float* cueR,
+                                 int n, const TimeInfo& time) noexcept
 {
     // ---------------------------------------------------------------- timeline
     bpm = (global.syncToHost && time.bpm > 0.0) ? time.bpm : global.internalTempo;
@@ -477,16 +480,43 @@ void LooperEngine::processChunk (const float* inL, const float* inR, float* outL
 
     // ---------------------------------------------------------------- track FX, rhythm, monitor, master
     trackFx.process (fxBusL.data(), fxBusR.data(), n, chunkStartPpq, ppqPerSample, bpm);
-    rhythm.process (outL, outR, n, chunkStartPpq, ppqPerSample,
+    // The rhythm is mono: render it once, then send it to the main and / or the cue output.
+    std::fill (clickBuf.begin(), clickBuf.begin() + n, 0.0f);
+    rhythm.process (clickBuf.data(), clickBuf.data(), n, chunkStartPpq, ppqPerSample,
                     (int) std::lround (measurePpq), running && rhythmOn);
+    // process() adds to both pointers: they are the same buffer, so halve it again
+    for (int i = 0; i < n; ++i)
+        clickBuf[(size_t) i] *= 0.5f;
+
+    const bool hasCue = cueL != nullptr && cueR != nullptr;
+    const bool clickToMain = ! hasCue || global.clickRoute != ClickRoute::Cue;
+    const bool clickToCue = hasCue && global.clickRoute != ClickRoute::Main;
 
     const float mon = global.monitorLevel;
     const float master = global.masterLevel;
+    float pl = 0.0f, pr = 0.0f, pc = 0.0f;
     for (int i = 0; i < n; ++i)
     {
-        outL[i] = (outL[i] + fxBusL[(size_t) i] + inProcL[(size_t) i] * mon) * master;
-        outR[i] = (outR[i] + fxBusR[(size_t) i] + inProcR[(size_t) i] * mon) * master;
+        const float click = clickBuf[(size_t) i];
+        const float cm = clickToMain ? click : 0.0f;
+        outL[i] = (outL[i] + cm + fxBusL[(size_t) i] + inProcL[(size_t) i] * mon) * master;
+        outR[i] = (outR[i] + cm + fxBusR[(size_t) i] + inProcR[(size_t) i] * mon) * master;
+        pl = std::max (pl, std::abs (outL[i]));
+        pr = std::max (pr, std::abs (outR[i]));
     }
+    if (hasCue)
+    {
+        for (int i = 0; i < n; ++i)
+        {
+            const float c = clickToCue ? clickBuf[(size_t) i] : 0.0f;
+            cueL[i] = c;
+            cueR[i] = c;
+            pc = std::max (pc, std::abs (c));
+        }
+    }
+    if (pl > masterPeakL.load (std::memory_order_relaxed)) masterPeakL.store (pl, std::memory_order_relaxed);
+    if (pr > masterPeakR.load (std::memory_order_relaxed)) masterPeakR.store (pr, std::memory_order_relaxed);
+    if (pc > cuePeak.load (std::memory_order_relaxed))     cuePeak.store (pc, std::memory_order_relaxed);
 
     // ---------------------------------------------------------------- advance
     const double endPpq = chunkStartPpq + n * ppqPerSample;
@@ -509,6 +539,15 @@ void LooperEngine::updateStatus() noexcept
         st.pending.store ((int) pending[(size_t) t].type);
         st.progress.store (tr.getProgress());
         st.peak.store (std::max (st.peak.load() * 0.9f, tr.getPeak()));
+        {
+            float ml, mr;
+            bool in;
+            tr.takeMeter (ml, mr, in);
+            // hold the maximum until the UI reads it (exchange in the UI)
+            if (ml > st.meterL.load (std::memory_order_relaxed)) st.meterL.store (ml, std::memory_order_relaxed);
+            if (mr > st.meterR.load (std::memory_order_relaxed)) st.meterR.store (mr, std::memory_order_relaxed);
+            st.meterIsInput.store (in, std::memory_order_relaxed);
+        }
         st.lengthSamples.store (tr.getLength());
         st.lengthPpq.store (tr.getSamplesPerPpq() > 0.0 ? tr.getLength() / tr.getSamplesPerPpq() : 0.0);
         st.canUndo.store (tr.canUndo());

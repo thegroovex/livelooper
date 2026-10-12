@@ -13,13 +13,21 @@ namespace
 {
 void runBlocks (LiveLooperProcessor& proc, int blocks, float input)
 {
+    // a pulsing tone, so the waveform overview shows something like a played phrase
+    static long long pos = 0;
     juce::AudioBuffer<float> buffer (2, 512);
     juce::MidiBuffer midi;
     for (int b = 0; b < blocks; ++b)
     {
-        for (int ch = 0; ch < 2; ++ch)
-            for (int i = 0; i < 512; ++i)
-                buffer.setSample (ch, i, input * (float) std::sin ((b * 512 + i) * 0.03));
+        for (int i = 0; i < 512; ++i, ++pos)
+        {
+            const double t = (double) pos / 48000.0;
+            const double beat = std::fmod (t * 2.0, 1.0);                     // 120 BPM
+            const double env = std::exp (-beat * 5.0) * (0.55 + 0.45 * std::sin (t * 1.7));
+            const float v = input * (float) (env * std::sin (t * 2.0 * 3.14159265 * 220.0));
+            buffer.setSample (0, i, v);
+            buffer.setSample (1, i, v);
+        }
         proc.processBlock (buffer, midi);
     }
 }
@@ -82,6 +90,12 @@ int main (int argc, char* argv[])
     runBlocks (proc, 1, 0.0f);
 
     std::unique_ptr<juce::AudioProcessorEditor> editor (proc.createEditor());
+    // feed the meters: a few frames with audio running
+    for (int f = 0; f < 4; ++f)
+    {
+        runBlocks (proc, 3, 0.5f);
+        juce::MessageManager::getInstance()->runDispatchLoopUntil (40);
+    }
     editor->setSize (LiveLooperEditor::kBaseWidth, LiveLooperEditor::kBaseHeight);
     auto* ed = dynamic_cast<LiveLooperEditor*> (editor.get());
 

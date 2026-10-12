@@ -48,6 +48,7 @@ inline const juce::String gFade         { "fade" };
 inline const juce::String gRhythmOn     { "rhythm_on" };
 inline const juce::String gRhythmLevel  { "rhythm_level" };
 inline const juce::String gRhythmPattern{ "rhythm_pattern" };
+inline const juce::String gClickSound   { "click_sound" };
 inline const juce::String gAllStartStop { "allstartstop" };
 inline const juce::String gAllStart     { "allstart" };
 inline const juce::String gAllStop      { "allstop" };
@@ -61,6 +62,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
 
 juce::StringArray quantizeChoices();
 juce::StringArray recActionChoices();
+juce::StringArray clickSoundChoices();
 juce::StringArray inputChoices();
 juce::StringArray startModeChoices();
 juce::StringArray stopModeChoices();

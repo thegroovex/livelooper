@@ -4,7 +4,7 @@
 
 ![Oberfläche](../images/livelooper-de.png)
 
-Die Oberfläche ist wie ein Hardware-Looper aufgebaut. Die Bezeichnungen in dieser Anleitung entsprechen der deutschen Oberfläche; bei englischer Oberfläche steht die englische Bezeichnung in Klammern (siehe auch [Kapitel 7](#7-sprache) und die [Übersicht am Ende](#10-bezeichnungen-deutsch--englisch)).
+Die Oberfläche ist wie ein Hardware-Looper aufgebaut. Die Bezeichnungen in dieser Anleitung entsprechen der deutschen Oberfläche; bei englischer Oberfläche steht die englische Bezeichnung in Klammern (siehe auch [Kapitel 7](#7-sprache) und die [Übersicht am Ende](#16-bezeichnungen-deutsch--englisch)).
 
 | Bereich | Inhalt |
 |---|---|
@@ -217,7 +217,35 @@ Auf die große Tempo-Zahl im Display klicken (oder **B** drücken, oder Rechtskl
 
 ---
 
-## 12. Bezeichnungen Deutsch / Englisch
+## 12. Pegelanzeigen, Wellenform und Clip-LED
+
+- **Spur-Pegel** (Stereo, neben dem Fader): Während eine Spur aufnimmt oder overdubbt, zeigt er den **Eingangspegel** (orange, Beschriftung **IN**), sonst den **Ausgangspegel** der Spur (grün, **OUT**). Gelb ab -12 dB, rot ab -1 dB; der dünne Strich hält die Spitze etwa eine Sekunde.
+- **Master-Pegel**: Die oberste Zeile im Display (**MASTER**) zeigt den Pegel des Hauptausgangs, links und rechts.
+- **Wellenform**: Das Spur-Display zeigt statt eines Fortschrittsbalkens eine Übersicht des Loops. Der schon gespielte Teil ist hell, ein weißer Strich markiert die Abspielposition. Bei der Aufnahme wächst die Wellenform von links nach rechts; Overdubs und Undo sind sofort sichtbar. Bei REVERSE wird sie gespiegelt.
+- **Clip-LED** (oben rechts an jeder Spur): aus = leer, grün = Spur enthält einen Loop, rot = erste Aufnahme läuft, rot blinkend = wartet auf den nächsten Takt, um aufzunehmen.
+
+## 13. Looper-Sets
+
+Ein Set speichert den kompletten Looper in einer Datei (`.llset`): alle fünf Loops, Pegel, Pan, Spur-Einstellungen, Effekte, Rhythmus, Tempo und Quantisierung.
+
+- **SETUP → Set speichern ...** schreibt ein Set (ein Set enthält immer seine Loops, auch wenn *Loops mit dem Projekt speichern* aus ist).
+- **SETUP → Set laden ...** lädt eins; alternativ eine `.llset`-Datei auf das Fenster ziehen.
+- MIDI-Zuweisungen, Tastatur-Belegung und Cue-Routing gehören zur App und bleiben beim Laden eines Sets erhalten.
+
+## 14. Cue-Ausgang (Standalone-App)
+
+Die Standalone-App hat einen zweiten Ausgangsbus für **Rhythmus und Metronom**: Du hörst den Click im Kopfhörer, das Publikum nicht.
+
+1. Unter **Options → Audio/MIDI Settings** die zusätzlichen Ausgänge des Audio-Interfaces aktivieren (Ausgang 3 und höher).
+2. **SETUP → Cue-Ausgang (Click / Rhythmus)**: Ausgangspaar wählen (z. B. *Ausgänge 3 / 4*) und festlegen, wo der Rhythmus spielt: **Hauptausgang**, **Nur Cue-Ausgang** oder **Haupt- und Cue-Ausgang**.
+
+Ohne Cue-Paar (und im Plug-in) spielt der Rhythmus immer auf dem Hauptausgang – der Click geht also nie verloren. Die Einstellung wird mit der App gespeichert.
+
+## 15. Metronomklang
+
+**SETUP → Metronomklang** wechselt zwischen **Piep** (klassisch) und **Holzblock**. Die Drum-Patterns nutzen synthetisierte Kick, Snare, Handclap und metallische Hi-Hats.
+
+## 16. Bezeichnungen Deutsch / Englisch
 
 | Deutsch | English |
 |---|---|

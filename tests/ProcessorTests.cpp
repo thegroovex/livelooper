@@ -73,8 +73,8 @@ public:
             juce::StringArray unique (ids);
             unique.removeDuplicates (false);
             expectEquals (unique.size(), ids.size());
-            // 5 tracks x 16 + 16 global + 2 x 4 slots x 5
-            expectEquals (ids.size(), 5 * 16 + 16 + 40);
+            // 5 tracks x 16 + 17 global + 2 x 4 slots x 5
+            expectEquals (ids.size(), 5 * 16 + 17 + 40);
             expectEquals (proc.getMidiMap().getNumParams(), ids.size(), "every parameter can be MIDI mapped");
             expect (ids.contains ("t3_recplay") && ids.contains ("allstartstop") && ids.contains ("trD_mix"));
         }

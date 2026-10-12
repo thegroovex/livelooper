@@ -337,6 +337,12 @@ void LiveLooperEditor::timerCallback()
         showStatus (tr ("REC BUTTON: %1", tr (recMode == 1 ? "REC > PLAY > DUB" : "REC > DUB > PLAY")));
     lastRecAction = recMode;
 
+    {
+        float ml = 0.0f, mr = 0.0f;
+        proc.getEngine().takeMasterMeter (ml, mr);
+        lcd.pushMasterMeter (ml, mr);
+    }
+
     if (keyClear.track >= 0)
         updateKeyClearHold (juce::Time::getMillisecondCounter(), juce::KeyPress::isKeyCurrentlyDown (keyClear.keyCode));
 
@@ -761,12 +767,38 @@ void LiveLooperEditor::showSetupMenu()
     language.addSeparator();
     language.addItem (39, tr ("Parameter names in the host change after reloading the plug-in"), false);
 
+    auto* clickSound = dynamic_cast<juce::AudioParameterChoice*> (st.getParameter (gClickSound));
+    juce::PopupMenu click;
+    for (int i = 0; i < clickSound->choices.size(); ++i)
+        click.addItem (40 + i, tr (clickSoundChoices()[i]), true, clickSound->getIndex() == i);
+
+    juce::PopupMenu cue;
+    if (proc.hasCueOutput())
+    {
+        cue.addSectionHeader (tr ("Cue output (outputs of the audio interface)"));
+        for (int p = 0; p <= LiveLooperProcessor::kNumCuePairs; ++p)
+            cue.addItem (50 + p, LiveLooperProcessor::getCuePairName (p), true, proc.getCuePair() == p);
+        cue.addSectionHeader (tr ("Rhythm / metronome on"));
+        const auto route = proc.getClickRoute();
+        cue.addItem (60, tr ("Main output"), true, route == ClickRoute::Main);
+        cue.addItem (61, tr ("Cue output only"), true, route == ClickRoute::Cue);
+        cue.addItem (62, tr ("Main and cue output"), true, route == ClickRoute::MainAndCue);
+        cue.addSeparator();
+        cue.addItem (69, tr ("Enable the outputs in Options > Audio/MIDI Settings"), false);
+    }
+
     juce::PopupMenu menu;
     menu.addSectionHeader (tr ("livelooper setup"));
+    menu.addItem (8, tr ("Save set ..."));
+    menu.addItem (9, tr ("Load set ..."));
+    menu.addSeparator();
     menu.addSubMenu (tr ("Record action"), rec);
     menu.addItem (3, tr ("Follow host transport (start / stop with the host)"), true, follow->get());
     menu.addSubMenu (tr ("Maximum loop length"), memory);
     menu.addItem (4, tr ("Save loops with the project"), true, proc.getSaveLoopsWithProject());
+    menu.addSubMenu (tr ("Metronome sound"), click);
+    if (proc.hasCueOutput())
+        menu.addSubMenu (tr ("Cue output (click / rhythm)"), cue);
     if (proc.isKeyboardControlAvailable())
     {
         menu.addSeparator();
@@ -779,7 +811,7 @@ void LiveLooperEditor::showSetupMenu()
 
     juce::Component::SafePointer<LiveLooperEditor> safe (this);
     menu.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&setupBtn),
-                        [safe, recAction, follow, lengths] (int r) {
+                        [safe, recAction, follow, lengths, clickSound] (int r) {
         if (safe == nullptr || r == 0)
             return;
         if (r == 1 || r == 2)
@@ -800,6 +832,24 @@ void LiveLooperEditor::showSetupMenu()
             KeyMapEditor::show (safe->proc, *safe);
         else if (r == 7)
             safe->showTempoEntry();
+        else if (r == 8)
+            safe->saveSet();
+        else if (r == 9)
+            safe->loadSet();
+        else if (r >= 40 && r < 40 + clickSound->choices.size())
+        {
+            clickSound->beginChangeGesture();
+            clickSound->setValueNotifyingHost (clickSound->convertTo0to1 ((float) (r - 40)));
+            clickSound->endChangeGesture();
+            safe->showStatus (tr ("METRONOME: %1", tr (clickSoundChoices()[r - 40]).toUpperCase()));
+        }
+        else if (r >= 50 && r <= 50 + LiveLooperProcessor::kNumCuePairs)
+        {
+            safe->proc.setCuePair (r - 50);
+            safe->showStatus (tr ("CUE: %1", LiveLooperProcessor::getCuePairName (r - 50).toUpperCase()));
+        }
+        else if (r >= 60 && r <= 62)
+            safe->proc.setClickRoute ((ClickRoute) (r - 60));
         else if (r >= 20 && r < 25)
         {
             safe->proc.setMaxLoopSeconds (lengths[r - 20]);
@@ -811,6 +861,42 @@ void LiveLooperEditor::showSetupMenu()
             safe->showStatus (tr ("LANGUAGE: ENGLISH"));
         }
     });
+}
+
+//============================================================================== looper sets
+void LiveLooperEditor::saveSet()
+{
+    const auto dir = juce::File::getSpecialLocation (juce::File::userMusicDirectory);
+    chooser = std::make_unique<juce::FileChooser> (tr ("Save set"), dir.getChildFile ("livelooper-set.llset"), "*.llset");
+    juce::Component::SafePointer<LiveLooperEditor> safe (this);
+    chooser->launchAsync (juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles
+                              | juce::FileBrowserComponent::warnAboutOverwriting,
+                          [safe] (const juce::FileChooser& fc) {
+        if (safe == nullptr || fc.getResult() == juce::File())
+            return;
+        const auto file = fc.getResult().withFileExtension ("llset");
+        const bool ok = safe->proc.saveSet (file);
+        safe->showStatus (ok ? tr ("SET SAVED: %1", file.getFileNameWithoutExtension().toUpperCase()) : tr ("SET COULD NOT BE SAVED"));
+    });
+}
+
+void LiveLooperEditor::loadSet()
+{
+    const auto dir = juce::File::getSpecialLocation (juce::File::userMusicDirectory);
+    chooser = std::make_unique<juce::FileChooser> (tr ("Load set"), dir, "*.llset");
+    juce::Component::SafePointer<LiveLooperEditor> safe (this);
+    chooser->launchAsync (juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+                          [safe] (const juce::FileChooser& fc) {
+        if (safe != nullptr && fc.getResult() != juce::File())
+            safe->loadSetFile (fc.getResult());
+    });
+}
+
+void LiveLooperEditor::loadSetFile (const juce::File& file)
+{
+    juce::String error;
+    const bool ok = proc.loadSet (file, error);
+    showStatus (ok ? tr ("SET LOADED: %1", file.getFileNameWithoutExtension().toUpperCase()) : tr ("LOAD FAILED: %1", error));
 }
 
 //============================================================================== track settings / files
@@ -857,13 +943,18 @@ void LiveLooperEditor::importTrack (int track)
 bool LiveLooperEditor::isInterestedInFileDrag (const juce::StringArray& files)
 {
     for (const auto& f : files)
-        if (juce::File (f).hasFileExtension ("wav;aif;aiff;flac;ogg;mp3"))
+        if (juce::File (f).hasFileExtension ("wav;aif;aiff;flac;ogg;mp3;llset"))
             return true;
     return false;
 }
 
 void LiveLooperEditor::filesDropped (const juce::StringArray& files, int x, int y)
 {
+    if (juce::File (files[0]).hasFileExtension ("llset"))
+    {
+        loadSetFile (juce::File (files[0]));
+        return;
+    }
     const auto pos = surface.getLocalPoint (this, juce::Point<int> (x, y));
     for (auto& s : strips)
         if (s->getBounds().contains (pos))

@@ -27,6 +27,8 @@ enum class StartMode  { Immediate = 0, FadeIn };
 enum class StopMode   { Immediate = 0, FadeOut, LoopEnd };
 enum class DubMode    { Overdub = 0, Replace };
 enum class InputRoute { Stereo = 0, Left, Right };
+/** Where the rhythm / metronome is heard (cue = separate output pair of the standalone app). */
+enum class ClickRoute { Main = 0, Cue, MainAndCue };
 
 /** Measures for the first recording of a track: Auto = free / rounded by quantize, otherwise
     the recording finishes by itself after the given number of measures. */
@@ -57,6 +59,7 @@ struct GlobalSettings
     float     fadeMs        = 500.0f;
     float     masterLevel   = 1.0f;
     float     monitorLevel  = 1.0f;  // input pass-through (after input FX)
+    ClickRoute clickRoute   = ClickRoute::Main;
 };
 
 inline double positiveModulo (double a, double b) noexcept

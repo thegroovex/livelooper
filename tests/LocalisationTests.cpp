@@ -52,7 +52,8 @@ public:
         {
             juce::StringArray all;
             for (auto list : { params::quantizeChoices(), params::inputChoices(), params::startModeChoices(),
-                               params::stopModeChoices(), params::dubModeChoices(), params::fxTypeChoices() })
+                               params::stopModeChoices(), params::dubModeChoices(), params::fxTypeChoices(),
+                               params::clickSoundChoices() })
                 all.addArray (list);
             for (int i = 0; i < (int) FxType::NumTypes; ++i)
             {

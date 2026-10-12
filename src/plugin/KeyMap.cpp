@@ -21,7 +21,7 @@ juce::StringArray KeyMap::getAvailableActions()
 
     a.addArray ({ gAllStartStop, gAllStart, gAllStop, gClearAll, gTap,
                   actEnterTempo, actTempoUp, actTempoDown, actTempoUpFine, actTempoDownFine,
-                  gRhythmOn, gRhythmPattern, gQuantize, gSync, gFollow });
+                  gRhythmOn, gRhythmPattern, gClickSound, gQuantize, gSync, gFollow });
 
     for (int pass = 0; pass < 2; ++pass)
         for (int s = 0; s < kNumFxSlots; ++s)

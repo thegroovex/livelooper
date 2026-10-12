@@ -14,12 +14,17 @@
 - **Input-FX und Track-FX**: je vier Slots (A–D) mit 12 Effekten – LPF, HPF, BPF, Phaser, Flanger, Delay (tempo-synchron), Reverb, Slicer, Tremolo, Auto Pan, Lo-Fi, Overdrive
 - **Rhythmus**: eingebauter Drumcomputer mit Metronom und 11 Pattern, immer tempo-synchron
 - **Start-/Stop-Modi**: sofort, Fade-In/Fade-Out, Stopp am Loop-Ende; Dub-Modus Overdub oder Replace
-- **Volle MIDI-Steuerung**: alle 136 Funktionen sind Host-Parameter (Live-MIDI-Map) und haben zusätzlich ein eigenes MIDI-Learn per Rechtsklick
+- **Volle MIDI-Steuerung**: alle 137 Funktionen sind Host-Parameter (Live-MIDI-Map) und haben zusätzlich ein eigenes MIDI-Learn per Rechtsklick
 - **Follow Transport**: Loops starten und stoppen mit Live
 - **Projekt-Speicherung**: die Loops werden verlustfrei (FLAC, 24 Bit) im Live-Set gespeichert
 - **Import/Export**: Loops als WAV exportieren, Audiodateien per Drag & Drop auf eine Spur laden
 - **Steuerung per Computertastatur** in der Standalone-App: logische Standardbelegung (1–5 REC/PLAY, Q–T STOP, A–G ZURÜCK, Leertaste, Eingabe = TAP) und eigene Belegung unter *SETUP → Tastaturbelegung …*
 - **Tempo eintippen**: auf die BPM im Display klicken (oder B drücken) und eingeben
+- **Looper-Sets**: den kompletten Looper (Loops, Einstellungen, Effekte) als `.llset`-Datei speichern und laden
+- **Pegel und Wellenform**: Stereo-Pegel pro Spur (Eingang bei Aufnahme, Ausgang bei Wiedergabe), Master-Pegel im Display, Wellenform mit Abspielposition, Clip-LED pro Spur
+- **Cue-Ausgang** in der Standalone-App: Rhythmus/Metronom auf ein eigenes Ausgangspaar (z. B. Kopfhörer) statt oder zusätzlich zum Hauptausgang
+- **Zwei Metronomklänge** (Piep, Holzblock) und moderne synthetisierte Drum-Sounds
+- **App-Icon** für die Standalone-App (macOS-Dock, Windows)
 - **Oberfläche auf Deutsch und Englisch**: umschaltbar unter *SETUP → Language / Sprache* (Automatisch folgt der Systemsprache)
 
 ## Warum VST3/AU?

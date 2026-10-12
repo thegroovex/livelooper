@@ -32,6 +32,7 @@ bool isTrigger (const juce::String& id)
 
 juce::StringArray quantizeChoices()  { return { "Off", "Beat", "Measure" }; }
 juce::StringArray recActionChoices() { return { "Rec > Dub", "Rec > Play" }; }
+juce::StringArray clickSoundChoices() { return { "Beep", "Woodblock" }; }
 juce::StringArray inputChoices()     { return { "Stereo", "Left", "Right" }; }
 juce::StringArray startModeChoices() { return { "Immediate", "Fade In" }; }
 juce::StringArray stopModeChoices()  { return { "Immediate", "Fade Out", "Loop End" }; }
@@ -80,7 +81,7 @@ namespace
         { "monitor", "Input Monitor" }, { "quantize", "Quantize" }, { "recaction", "Rec Action" },
         { "sync", "Sync to Host" }, { "follow", "Follow Transport" }, { "tempo", "Internal Tempo" },
         { "fade", "Fade Time" }, { "rhythm_on", "Rhythm On" }, { "rhythm_level", "Rhythm Level" },
-        { "rhythm_pattern", "Rhythm Pattern" }
+        { "rhythm_pattern", "Rhythm Pattern" }, { "click_sound", "Metronome Sound" }
     };
 
     template <size_t N>
@@ -203,6 +204,8 @@ APVTS::ParameterLayout createLayout()
         group->addChild (boolParam (gRhythmOn, localisedName (gRhythmOn), false));
         group->addChild (percentParam (gRhythmLevel, localisedName (gRhythmLevel), 1.0f, 0.6f));
         group->addChild (choiceParam (gRhythmPattern, localisedName (gRhythmPattern), translated (rhythmChoices()), 1));
+        group->addChild (std::make_unique<juce::AudioParameterChoice> (PID { gClickSound, 2 }, localisedName (gClickSound),
+                                                                       translated (clickSoundChoices()), 0));
         layout.add (std::move (group));
     }
 

@@ -36,6 +36,9 @@ public:
         std::atomic<bool>  canUndo { false };
         std::atomic<bool>  canRedo { false };
         std::atomic<bool>  stopping { false };
+        // meter: input level while recording / overdubbing, output level otherwise
+        mutable std::atomic<float> meterL { 0.0f }, meterR { 0.0f };   // UI takes them with exchange()
+        std::atomic<bool>  meterIsInput { false };
     };
 
     LooperEngine();
@@ -51,13 +54,21 @@ public:
     void setInputFx (int slot, const FxSettings& s) noexcept     { inputFx.setSlot (slot, s); }
     void setTrackFx (int slot, const FxSettings& s) noexcept     { trackFx.setSlot (slot, s); }
     void setRhythm (bool on, int pattern, float level) noexcept;
+    void setClickSound (int sound) noexcept                     { rhythm.setClickSound (sound); }
     void setFollowHostTransport (bool f) noexcept               { followHostTransport = f; }
 
     // ---- commands (audio thread). Executed at the start of the next process() call.
     void queueCommand (Command c, int track = -1) noexcept;
 
     // ---- processing
-    void process (const float* inL, const float* inR, float* outL, float* outR, int numSamples, const TimeInfo& time) noexcept;
+    void process (const float* inL, const float* inR, float* outL, float* outR, int numSamples, const TimeInfo& time) noexcept
+    {
+        process (inL, inR, outL, outR, nullptr, nullptr, numSamples, time);
+    }
+    /** cueL / cueR (may be null): separate output for the rhythm / metronome (GlobalSettings::clickRoute).
+        Without a cue output the rhythm always goes to the main output. */
+    void process (const float* inL, const float* inR, float* outL, float* outR, float* cueL, float* cueR,
+                  int numSamples, const TimeInfo& time) noexcept;
 
     // ---- status for the UI (any thread)
     const TrackStatus& getTrackStatus (int t) const noexcept { return status[(size_t) t]; }
@@ -66,6 +77,10 @@ public:
     bool   isTimelineRunning() const noexcept { return statusRunning.load(); }
     bool   isHostDriven() const noexcept     { return statusHost.load(); }
     double getMeasurePpq() const noexcept    { return statusMeasurePpq.load(); }
+    /** Peak of the main output since the last call (left / right), resets it. */
+    void   takeMasterMeter (float& l, float& r) noexcept { l = masterPeakL.exchange (0.0f); r = masterPeakR.exchange (0.0f); }
+    /** Peak of the cue output since the last call, resets it. */
+    float  takeCueMeter() noexcept           { return cuePeak.exchange (0.0f); }
 
     // ---- direct access for tests and import/export (lock the track first when not on the audio thread)
     LoopTrack& getTrack (int t) noexcept      { return tracks[(size_t) t]; }
@@ -77,7 +92,8 @@ private:
     struct PendingAction { Pending type = Pending::None; double targetPpq = 0.0; };
     struct QueuedCommand { Command command; int track; };
 
-    void processChunk (const float* inL, const float* inR, float* outL, float* outR, int n, const TimeInfo& time) noexcept;
+    void processChunk (const float* inL, const float* inR, float* outL, float* outR, float* cueL, float* cueR,
+                       int n, const TimeInfo& time) noexcept;
     void executeCommand (const QueuedCommand& c) noexcept;
     void trackRecPlay (int t) noexcept;
     void trackStop (int t) noexcept;
@@ -122,7 +138,8 @@ private:
     bool   wasHostPlaying = false;
     double expectedHostPpq = 0.0;
 
-    std::vector<float> inProcL, inProcR, fxBusL, fxBusR;
+    std::vector<float> inProcL, inProcR, fxBusL, fxBusR, clickBuf;
+    std::atomic<float> masterPeakL { 0.0f }, masterPeakR { 0.0f }, cuePeak { 0.0f };
 
     std::atomic<double> statusPpq { 0.0 }, statusBpm { 120.0 }, statusMeasurePpq { 4.0 };
     std::atomic<bool> statusRunning { false }, statusHost { false };

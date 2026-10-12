@@ -51,6 +51,10 @@ public:
     void performKeyAction (const juce::String& action);
     /** Opens the text field on the display to type in the tempo. */
     void showTempoEntry();
+    /** Looper sets (.llset): file dialogs and loading (also by drag and drop). */
+    void saveSet();
+    void loadSet();
+    void loadSetFile (const juce::File& file);
     bool isTempoEntryVisible() const { return tempoEntry.isVisible(); }
     juce::TextEditor& getTempoEntry() noexcept { return tempoEntry; }
     /** A track clear on the computer keyboard must be held like the STOP button (1.5 s). */

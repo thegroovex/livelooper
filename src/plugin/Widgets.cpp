@@ -264,7 +264,9 @@ void StopButton::mouseDown (const juce::MouseEvent& e)
 
 void StopButton::mouseUp (const juce::MouseEvent&)
 {
+    // after a clear the button returns to STOP as soon as it is released
     down = false;
+    cleared = false;
     stopTimer();
     repaint();
 }
@@ -313,6 +315,62 @@ void StopButton::paint (juce::Graphics& g)
     g.drawText (tr (cleared ? "CLEARED" : "STOP"), b.withTrimmedLeft (12.0f + s), juce::Justification::centred);
 }
 
+//============================================================================== meters
+void MeterBallistics::push (float peak, float frameRateHz) noexcept
+{
+    const float fall = std::pow (10.0f, -26.0f / 20.0f / frameRateHz);   // about 26 dB per second
+    level = std::max (peak, level * fall);
+    if (level < 1.0e-5f)
+        level = 0.0f;
+    if (peak >= hold)
+    {
+        hold = peak;
+        holdFrames = (int) (1.2f * frameRateHz);
+    }
+    else if (--holdFrames <= 0)
+        hold = std::max (level, hold * fall);
+}
+
+float MeterBallistics::toPosition (float gain) noexcept
+{
+    if (gain <= 0.001f)
+        return 0.0f;
+    const float db = 20.0f * std::log10 (gain);
+    return juce::jlimit (0.0f, 1.0f, (db + 60.0f) / 66.0f);
+}
+
+void drawMeterBar (juce::Graphics& g, juce::Rectangle<float> area, const MeterBallistics& m, bool vertical, juce::Colour base)
+{
+    g.setColour (juce::Colours::black.withAlpha (0.55f));
+    g.fillRect (area);
+    const float pos = MeterBallistics::toPosition (m.level);
+    const float yellowPos = MeterBallistics::toPosition (juce::Decibels::decibelsToGain (-12.0f));
+    const float redPos = MeterBallistics::toPosition (juce::Decibels::decibelsToGain (-1.0f));
+    auto segment = [&] (float from, float to, juce::Colour c) {
+        const float a = juce::jmin (from, pos), b = juce::jmin (to, pos);
+        if (b <= a)
+            return;
+        g.setColour (c);
+        if (vertical)
+            g.fillRect (area.getX(), area.getBottom() - area.getHeight() * b, area.getWidth(), area.getHeight() * (b - a));
+        else
+            g.fillRect (area.getX() + area.getWidth() * a, area.getY(), area.getWidth() * (b - a), area.getHeight());
+    };
+    segment (0.0f, yellowPos, base);
+    segment (yellowPos, redPos, colours::yellow);
+    segment (redPos, 1.0f, colours::red);
+
+    const float hp = MeterBallistics::toPosition (m.hold);
+    if (hp > 0.0f)
+    {
+        g.setColour (hp >= redPos ? colours::red : colours::text.withAlpha (0.8f));
+        if (vertical)
+            g.fillRect (area.getX(), area.getBottom() - area.getHeight() * hp, area.getWidth(), 1.5f);
+        else
+            g.fillRect (area.getX() + area.getWidth() * hp - 1.0f, area.getY(), 1.5f, area.getHeight());
+    }
+}
+
 //============================================================================== Lcd
 void Lcd::setContent (const juce::String& big, const juce::StringArray& small, juce::Colour accent, bool midiActivity)
 {
@@ -325,9 +383,17 @@ void Lcd::setContent (const juce::String& big, const juce::StringArray& small, j
     repaint();
 }
 
+void Lcd::pushMasterMeter (float peakL, float peakR)
+{
+    master[0].push (peakL);
+    master[1].push (peakR);
+    repaint (getLocalBounds().removeFromTop (16));
+}
+
 juce::Rectangle<int> Lcd::getTempoArea() const
 {
     auto content = getLocalBounds().toFloat().reduced (3.0f).reduced (10.0f, 4.0f);
+    content.removeFromTop (10.0f);   // master meter row
     return content.removeFromLeft (content.getWidth() * 0.36f).toNearestInt();
 }
 
@@ -359,6 +425,19 @@ void Lcd::paint (juce::Graphics& g)
     g.fillRoundedRectangle (inner, 4.0f);
 
     auto content = inner.reduced (10.0f, 4.0f);
+
+    // master meter: top row of the display
+    {
+        auto row = content.removeFromTop (9.0f).withTrimmedRight (14.0f);
+        g.setColour (colours::lcdText.withAlpha (0.55f));
+        g.setFont (LooperLookAndFeel::font (8.5f, true));
+        const float labelW = 46.0f;
+        g.drawText (tr ("MASTER"), row.removeFromLeft (labelW), juce::Justification::centredLeft);
+        auto bars = row.reduced (0.0f, 0.5f);
+        drawMeterBar (g, bars.removeFromTop (bars.getHeight() * 0.5f).reduced (0.0f, 0.5f), master[0], false, colours::lcdText);
+        drawMeterBar (g, bars.reduced (0.0f, 0.5f), master[1], false, colours::lcdText);
+        content.removeFromTop (1.0f);
+    }
     const bool hasBig = bigText.isNotEmpty();
     if (hasBig)
     {
@@ -478,8 +557,8 @@ TrackStrip::TrackStrip (LiveLooperProcessor& p, int t)
 void TrackStrip::resized()
 {
     auto b = getLocalBounds().reduced (8, 6);
-    b.removeFromTop (24);                             // title
-    lcdArea = b.removeFromTop (52);
+    ledArea = b.removeFromTop (24).removeFromRight (16).withSizeKeepingCentre (10, 10).translated (0, -2);   // clip LED in the title row
+    lcdArea = b.removeFromTop (66);
     b.removeFromTop (6);
 
     auto row = b.removeFromTop (24);
@@ -490,8 +569,9 @@ void TrackStrip::resized()
     b.removeFromTop (8);
 
     auto mid = b.removeFromTop (150);
-    level.setBounds (mid.removeFromLeft (46));
-    mid.removeFromLeft (6);
+    level.setBounds (mid.removeFromLeft (38));
+    meterArea = mid.removeFromLeft (12).withTrimmedTop (6).withTrimmedBottom (16);   // stereo meter + IN / OUT caption
+    mid.removeFromLeft (4);
     pan.setBounds (mid.removeFromTop (54).withSizeKeepingCentre (54, 54));
     mid.removeFromTop (14);                           // "PAN" caption
     undo.setBounds (mid.removeFromTop (24).reduced (0, 1));
@@ -565,24 +645,72 @@ void TrackStrip::paint (juce::Graphics& g)
     g.drawText (tr ("LVL %1", juce::String (juce::roundToInt (level.getValue() * 100.0))), line2, juce::Justification::centredRight);
 
     const float prog = state == LoopTrack::State::Empty ? 0.0f : juce::jlimit (0.0f, 1.0f, st.progress.load());
-    auto bar = text.removeFromBottom (4.0f);
-    g.setColour (colours::lcdText.withAlpha (0.15f));
-    g.fillRect (bar);
-    g.setColour (stateColour);
-    g.fillRect (bar.withWidth (bar.getWidth() * prog));
+    auto waveArea = text.removeFromBottom (juce::jmin (22.0f, text.getHeight()));
+    if (waveValid)
+    {
+        // waveform overview: played part bright, the rest dimmed, play head line
+        const float w = waveArea.getWidth() / (float) kWaveBins;
+        const float mid = waveArea.getCentreY();
+        const bool recording = state == LoopTrack::State::Recording;
+        for (int i = 0; i < kWaveBins; ++i)
+        {
+            const float v = std::sqrt (juce::jlimit (0.0f, 1.0f, wave[(size_t) i]));   // sqrt: quiet parts stay visible
+            const float h = juce::jmax (1.0f, v * waveArea.getHeight() * 0.5f);
+            const bool played = recording || ((float) i + 0.5f) / (float) kWaveBins <= prog;
+            g.setColour (stateColour.withAlpha (played ? 0.95f : 0.35f));
+            g.fillRect (waveArea.getX() + w * (float) i, mid - h, juce::jmax (1.0f, w - 0.6f), h * 2.0f);
+        }
+        if (! recording && state != LoopTrack::State::Empty)
+        {
+            g.setColour (colours::text);
+            g.fillRect (waveArea.getX() + waveArea.getWidth() * prog - 0.75f, waveArea.getY(), 1.5f, waveArea.getHeight());
+        }
+    }
+    else
+    {
+        auto bar = waveArea.withSizeKeepingCentre (waveArea.getWidth(), 4.0f);
+        g.setColour (colours::lcdText.withAlpha (0.15f));
+        g.fillRect (bar);
+        g.setColour (stateColour);
+        g.fillRect (bar.withWidth (bar.getWidth() * prog));
+    }
 
     // captions
     g.setColour (colours::textDim);
     g.setFont (LooperLookAndFeel::font (11.0f, true));
     g.drawText (tr ("PAN"), pan.getBounds().translated (0, pan.getHeight() - 2).withHeight (14), juce::Justification::centred);
 
-    // level meter next to the fader
-    const float peak = juce::jlimit (0.0f, 1.0f, st.peak.load());
-    auto meter = juce::Rectangle<float> ((float) level.getRight() + 1.0f, (float) level.getY(), 3.0f, (float) level.getHeight());
-    g.setColour (juce::Colours::black);
-    g.fillRect (meter);
-    g.setColour (peak > 0.98f ? colours::red : colours::green);
-    g.fillRect (meter.withTop (meter.getBottom() - meter.getHeight() * peak));
+    // stereo meter next to the fader: input while recording / overdubbing, output otherwise
+    {
+        auto m = meterArea.toFloat();
+        const float bw = (m.getWidth() - 2.0f) * 0.5f;
+        const auto base = meterInput ? colours::orange : colours::green;
+        drawMeterBar (g, m.withWidth (bw), meter[0], true, base);
+        drawMeterBar (g, m.withTrimmedLeft (bw + 2.0f), meter[1], true, base);
+        g.setColour (meterInput ? colours::orange : colours::textDim);
+        g.setFont (LooperLookAndFeel::font (9.0f, true));
+        g.drawText (tr (meterInput ? "IN" : "OUT"), meterArea.withY (meterArea.getBottom() + 2).withHeight (12).expanded (6, 0),
+                    juce::Justification::centred);
+    }
+
+    // clip LED: green = the track holds a loop, red = first recording, blinking = waiting
+    {
+        auto led = ledArea.toFloat();
+        juce::Colour c = juce::Colour (0xff2b2e33);
+        bool lit = false;
+        if (state == LoopTrack::State::Recording)                           { c = colours::red; lit = true; }
+        else if (state != LoopTrack::State::Empty)                          { c = colours::green; lit = true; }
+        if (pending == LooperEngine::Pending::Record && blink)              { c = colours::red; lit = true; }
+        if (lit)
+        {
+            g.setColour (c.withAlpha (0.25f));
+            g.fillEllipse (led.expanded (3.0f));
+        }
+        g.setColour (c);
+        g.fillEllipse (led);
+        g.setColour (juce::Colours::black.withAlpha (0.7f));
+        g.drawEllipse (led, 1.0f);
+    }
 }
 
 void TrackStrip::refresh (bool blinkPhase)
@@ -592,8 +720,26 @@ void TrackStrip::refresh (bool blinkPhase)
     redo.setEnabled (st.canRedo.load());
     recPlay.setBlinkPhase (blinkPhase);
     recPlay.repaint();
+    blink = blinkPhase;
+
+    auto& eng = proc.getEngine();
+    meter[0].push (st.meterL.exchange (0.0f));
+    meter[1].push (st.meterR.exchange (0.0f));
+    meterInput = st.meterIsInput.load();
+
+    // waveform: refreshed about 10 times per second (every frame while recording / overdubbing)
+    const auto state = (LoopTrack::State) st.state.load();
+    if (++waveCounter >= 3 || state == LoopTrack::State::Recording || state == LoopTrack::State::Overdubbing)
+    {
+        waveCounter = 0;
+        auto& tr = eng.getTrack (track);
+        const int span = tr.getRecordingSpan();
+        waveValid = tr.getWaveform (wave.data(), kWaveBins, span);
+    }
+
     repaint (lcdArea);
-    repaint (level.getBounds().withWidth (level.getWidth() + 6));
+    repaint (ledArea.expanded (4));
+    repaint (meterArea.expanded (8, 0).withBottom (meterArea.getBottom() + 14));
 }
 
 //============================================================================== TrackSettingsPanel

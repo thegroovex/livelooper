@@ -22,8 +22,28 @@ class LiveLooperProcessor : public juce::AudioProcessor,
                             private juce::Timer
 {
 public:
-    LiveLooperProcessor();
+    /** withCueOutput: adds the "Cue" output bus (outputs 3 - 16) for the rhythm / metronome.
+        Used by the standalone app only; plug-ins keep a plain stereo effect layout. */
+    explicit LiveLooperProcessor (bool withCueOutput = juce::PluginHostType::getPluginLoadedAs() == juce::AudioProcessor::wrapperType_Standalone);
     ~LiveLooperProcessor() override;
+
+    //============================================================================== cue output (standalone)
+    static constexpr int kCueBusChannels = 14;          // physical outputs 3 .. 16
+    static constexpr int kNumCuePairs = kCueBusChannels / 2;
+    bool hasCueOutput() const noexcept { return cueBusAvailable; }
+    /** 0 = off, 1 = outputs 3/4, 2 = 5/6 ... */
+    int  getCuePair() const noexcept { return cuePair.load(); }
+    void setCuePair (int p) noexcept { cuePair.store (juce::jlimit (0, kNumCuePairs, p)); }
+    ClickRoute getClickRoute() const noexcept { return (ClickRoute) clickRoute.load(); }
+    void setClickRoute (ClickRoute r) noexcept { clickRoute.store ((int) r); }
+    static juce::String getCuePairName (int pair);
+
+    //============================================================================== looper sets
+    /** Saves the complete looper (loops, settings, FX, rhythm) to a set file (.llset).
+        MIDI mapping, keyboard mapping and the cue routing stay with the app, not the set. */
+    bool saveSet (const juce::File& file);
+    bool loadSet (const juce::File& file, juce::String& error);
+    static constexpr const char* kSetExtension = ".llset";
 
     //============================================================================== AudioProcessor
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
@@ -90,6 +110,7 @@ public:
 
     // for tests: process MIDI learn/mapping as if it came from the host
     void handleMidiMessage (const juce::MidiMessage& m);
+    static BusesProperties makeBuses (bool withCue);
 
 private:
     struct Trigger
@@ -147,7 +168,9 @@ private:
     std::atomic<float>* master {}; std::atomic<float>* monitor {}; std::atomic<float>* quantize {};
     std::atomic<float>* recAction {}; std::atomic<float>* sync {}; std::atomic<float>* follow {};
     std::atomic<float>* tempo {}; std::atomic<float>* fade {}; std::atomic<float>* rhythmOn {};
-    std::atomic<float>* rhythmLevel {}; std::atomic<float>* rhythmPattern {};
+    std::atomic<float>* rhythmLevel {}; std::atomic<float>* rhythmPattern {}; std::atomic<float>* clickSound {};
+    bool cueBusAvailable = false;
+    std::atomic<int> cuePair { 0 }, clickRoute { 0 };
 
     juce::Array<juce::RangedAudioParameter*> paramList;
     juce::HashMap<juce::String, int> paramIndexById;

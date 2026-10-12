@@ -1,5 +1,6 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "Localisation.h"
 
 namespace livelooper
 {
@@ -17,12 +18,23 @@ namespace
     }
 }
 
-LiveLooperProcessor::LiveLooperProcessor()
-    : AudioProcessor (BusesProperties()
-                          .withInput ("Input", juce::AudioChannelSet::stereo(), true)
-                          .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
+juce::AudioProcessor::BusesProperties LiveLooperProcessor::makeBuses (bool withCue)
+{
+    {
+        auto b = BusesProperties()
+                     .withInput ("Input", juce::AudioChannelSet::stereo(), true)
+                     .withOutput ("Output", juce::AudioChannelSet::stereo(), true);
+        if (withCue)
+            b = b.withOutput ("Cue", juce::AudioChannelSet::discreteChannels (kCueBusChannels), true);
+        return b;
+    }
+}
+
+LiveLooperProcessor::LiveLooperProcessor (bool withCueOutput)
+    : AudioProcessor (makeBuses (withCueOutput)),
       apvts (*this, nullptr, "LIVELOOPER", createLayout())
 {
+    cueBusAvailable = withCueOutput;
     // ---- parameter index table + MIDI kinds
     std::vector<MidiMap::ParamKind> kinds;
     for (auto* p : getParameters())
@@ -106,6 +118,7 @@ LiveLooperProcessor::LiveLooperProcessor()
     rhythmOn      = apvts.getRawParameterValue (gRhythmOn);
     rhythmLevel   = apvts.getRawParameterValue (gRhythmLevel);
     rhythmPattern = apvts.getRawParameterValue (gRhythmPattern);
+    clickSound    = apvts.getRawParameterValue (gClickSound);
 
     keyboardAvailable = wrapperType == wrapperType_Standalone;
     startTimerHz (30);
@@ -123,6 +136,12 @@ bool LiveLooperProcessor::isBusesLayoutSupported (const BusesLayout& layouts) co
     const auto in = layouts.getMainInputChannelSet();
     if (out != juce::AudioChannelSet::stereo())
         return false;
+    if (layouts.outputBuses.size() > 1)
+    {
+        const auto cue = layouts.getChannelSet (false, 1);
+        if (! cue.isDisabled() && cue.size() != kCueBusChannels)
+            return false;
+    }
     return in == juce::AudioChannelSet::stereo() || in == juce::AudioChannelSet::mono();
 }
 
@@ -225,9 +244,11 @@ void LiveLooperProcessor::pushSettingsToEngine() noexcept
     g.fadeMs        = fade->load();
     g.masterLevel   = master->load();
     g.monitorLevel  = monitor->load();
+    g.clickRoute    = (ClickRoute) clickRoute.load();
     engine.setGlobalSettings (g);
     engine.setFollowHostTransport (follow->load() >= 0.5f);
     engine.setRhythm (rhythmOn->load() >= 0.5f, juce::roundToInt (rhythmPattern->load()), rhythmLevel->load());
+    engine.setClickSound (juce::roundToInt (clickSound->load()));
 
     for (int t = 0; t < kNumTracks; ++t)
     {
@@ -393,7 +414,25 @@ void LiveLooperProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::
         inL = inR = silence.getReadPointer (0);
     }
 
-    engine.process (inL, inR, buffer.getWritePointer (0), buffer.getWritePointer (1), numSamples, time);
+    // ---- cue output (standalone): the chosen pair of the cue bus, everything else silent
+    float* cueL = nullptr;
+    float* cueR = nullptr;
+    if (cueBusAvailable && getBusCount (false) > 1)
+    {
+        if (auto* bus = getBus (false, 1); bus != nullptr && bus->isEnabled())
+        {
+            auto cueBuffer = getBusBuffer (buffer, false, 1);
+            cueBuffer.clear();
+            const int pair = cuePair.load();
+            if (pair > 0 && pair * 2 <= cueBuffer.getNumChannels())
+            {
+                cueL = cueBuffer.getWritePointer ((pair - 1) * 2);
+                cueR = cueBuffer.getWritePointer ((pair - 1) * 2 + 1);
+            }
+        }
+    }
+
+    engine.process (inL, inR, buffer.getWritePointer (0), buffer.getWritePointer (1), cueL, cueR, numSamples, time);
     sampleCounter += numSamples;
 }
 
@@ -584,6 +623,8 @@ void LiveLooperProcessor::getStateInformation (juce::MemoryBlock& destData)
     root.setAttribute ("version", 1);
     root.setAttribute ("maxLoopSeconds", maxLoopSeconds);
     root.setAttribute ("saveLoops", saveLoops);
+    root.setAttribute ("cuePair", cuePair.load());
+    root.setAttribute ("clickRoute", clickRoute.load());
 
     if (auto xml = state.createXml())
         root.addChildElement (xml.release());
@@ -627,6 +668,10 @@ void LiveLooperProcessor::setStateInformation (const void* data, int sizeInBytes
         return;
 
     saveLoops = root->getBoolAttribute ("saveLoops", true);
+    if (root->hasAttribute ("cuePair"))
+        setCuePair (root->getIntAttribute ("cuePair", 0));
+    if (root->hasAttribute ("clickRoute"))
+        setClickRoute ((ClickRoute) juce::jlimit (0, 2, root->getIntAttribute ("clickRoute", 0)));
     setMaxLoopSeconds (root->getDoubleAttribute ("maxLoopSeconds", 60.0));
 
     if (auto* params = root->getChildByName (apvts.state.getType()))
@@ -678,6 +723,60 @@ void LiveLooperProcessor::setStateInformation (const void* data, int sizeInBytes
         applyPendingLoops();
     }
     sendChangeMessage();
+}
+
+//============================================================================== cue + sets
+juce::String LiveLooperProcessor::getCuePairName (int pair)
+{
+    if (pair <= 0)
+        return i18n::tr ("Off");
+    return i18n::tr ("Outputs %1 / %2", juce::String (pair * 2 + 1), juce::String (pair * 2 + 2));
+}
+
+bool LiveLooperProcessor::saveSet (const juce::File& file)
+{
+    const bool keepSaveLoops = saveLoops;
+    saveLoops = true;                       // a set always contains its loops
+    juce::MemoryBlock block;
+    getStateInformation (block);
+    saveLoops = keepSaveLoops;
+
+    auto xml = getXmlFromBinary (block.getData(), (int) block.getSize());
+    if (xml == nullptr)
+        return false;
+    xml->setTagName ("LIVELOOPER_SET");
+    xml->setAttribute ("saveLoops", keepSaveLoops);
+    xml->removeAttribute ("cuePair");
+    xml->removeAttribute ("clickRoute");
+    if (auto* mm = xml->getChildByName ("MIDIMAP")) xml->removeChildElement (mm, true);
+    if (auto* km = xml->getChildByName ("KEYMAP"))  xml->removeChildElement (km, true);
+
+    auto target = file.hasFileExtension (kSetExtension) ? file : file.withFileExtension (kSetExtension);
+    return xml->writeTo (target);
+}
+
+bool LiveLooperProcessor::loadSet (const juce::File& file, juce::String& error)
+{
+    auto xml = juce::XmlDocument::parse (file);
+    if (xml == nullptr || ! xml->hasTagName ("LIVELOOPER_SET"))
+    {
+        error = i18n::tr ("This is not a livelooper set.");
+        return false;
+    }
+    // the app keeps its own MIDI / keyboard mapping and cue routing
+    xml->setTagName ("LIVELOOPER_STATE");
+    xml->setAttribute ("cuePair", cuePair.load());
+    xml->setAttribute ("clickRoute", clickRoute.load());
+    xml->setAttribute ("saveLoops", saveLoops);
+    if (auto* mm = xml->getChildByName ("MIDIMAP")) xml->removeChildElement (mm, true);
+    xml->addChildElement (midiMap.toXml ([this] (int i) { return getParamIdForIndex (i); }).release());
+    if (auto* km = xml->getChildByName ("KEYMAP")) xml->removeChildElement (km, true);
+    xml->addChildElement (keyMap.toXml().release());
+
+    juce::MemoryBlock block;
+    copyXmlToBinary (*xml, block);
+    setStateInformation (block.getData(), (int) block.getSize());
+    return true;
 }
 
 //==============================================================================

@@ -214,3 +214,31 @@ The display briefly shows which key did what (e.g. `KEY Q > T1 STOP`). Holding a
 Click the big tempo number on the display (or press **B**, or right-click the TEMPO knob → *Type in tempo (BPM) …*, or *SETUP → Type in tempo (BPM) …*), type the BPM and press Return. Decimals work with a point or a comma (`97.5`, `97,5`); the range is 40–300 BPM, Esc cancels. The value sets the internal tempo – while HOST SYNC follows a running host, the host tempo stays in charge.
 
 ![Typing in the tempo](../images/livelooper-tempo-entry.png)
+
+## 12. Meters, waveform and clip LED
+
+- **Track meter** (stereo, next to the level fader): while a track records or overdubs it shows the **input** level (orange, caption **IN**), otherwise the track's **output** level (green, **OUT**). Yellow from -12 dB, red from -1 dB; the thin line holds the peak for about a second.
+- **Master meter**: the top row of the display (**MASTER**) shows the level of the main output, left and right.
+- **Waveform**: the track display shows an overview of the loop instead of a plain progress bar. The part already played is bright, a white line marks the play position. While recording, the waveform grows from left to right; overdubs and undo show up right away. Reversed tracks show the waveform mirrored.
+- **Clip LED** (top right of every track): off = empty, green = the track holds a loop, red = first recording, blinking red = waiting for the next bar to start recording.
+
+## 13. Looper sets
+
+A set stores the whole looper in one file (`.llset`): all five loops, levels, pan, track settings, effects, rhythm, tempo and quantize settings.
+
+- **SETUP → Save set ...** writes a set (a set always contains its loops, even if *Save loops with the project* is off).
+- **SETUP → Load set ...** loads one; you can also drop a `.llset` file onto the window.
+- Your MIDI mapping, keyboard mapping and cue routing belong to the app and stay as they are when you load a set.
+
+## 14. Cue output (standalone app)
+
+The standalone app has a second output bus for the **rhythm and metronome**, so you can hear the click on headphones without it reaching the audience.
+
+1. Open **Options → Audio/MIDI Settings** and enable the extra outputs of your audio interface (outputs 3 and up).
+2. **SETUP → Cue output (click / rhythm)**: choose the output pair (e.g. *Outputs 3 / 4*) and where the rhythm plays: **Main output**, **Cue output only** or **Main and cue output**.
+
+Without a cue pair (or in a plug-in) the rhythm always plays on the main output, so the click is never lost. The setting is saved with the app.
+
+## 15. Metronome sound
+
+**SETUP → Metronome sound** switches between **Beep** (classic) and **Woodblock**. The drum patterns use synthesised kick, snare, hand clap and metallic hi-hats.

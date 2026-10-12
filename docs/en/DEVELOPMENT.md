@@ -35,7 +35,7 @@ ctest --test-dir build -C Release --output-on-failure      # Linux without a dis
 
 | Test | What is checked |
 |---|---|
-| `unit_tests` (`livelooper_tests`) | Engine: free and quantized recording (bar, beat), retroactive ending, fixed bar count, cancelling, large host blocks, input routing, overdub, replace, undo/redo (including the first recording), clear, reverse, one shot, stop modes, level/pan, all start/stop, track FX routing, loop sync after transport jumps, quantized start in phase, follow transport, internal clock, rhythm. Effects: all 12 types stable, bypass bit-exact, filter response, delay time, slicer grid. MIDI: learn, button/switch/selector/continuous, CC edges, uniqueness, saving. Processor: 136 unique MIDI-capable parameters, button parameters, MIDI via processBlock, learn, project save including loop audio, sample rate change, WAV export/import, editor. Localisation: English/German texts, every choice/effect has a translation, parameter names, live switching |
+| `unit_tests` (`livelooper_tests`) | Engine: free and quantized recording (bar, beat), retroactive ending, fixed bar count, cancelling, large host blocks, input routing, overdub, replace, undo/redo (including the first recording), clear, reverse, one shot, stop modes, level/pan, all start/stop, track FX routing, loop sync after transport jumps, quantized start in phase, follow transport, internal clock, rhythm. Effects: all 12 types stable, bypass bit-exact, filter response, delay time, slicer grid. MIDI: learn, button/switch/selector/continuous, CC edges, uniqueness, saving. Processor: 137 unique MIDI-capable parameters, button parameters, MIDI via processBlock, learn, project save including loop audio, sample rate change, WAV export/import, editor. Features 1.2: cue routing (main / cue / both, no cue → main), both metronome sounds, all drum patterns in range, track meter input/output, master meter, waveform incl. overdub/undo, standalone cue bus channel pairs, sets save/load keeping mappings, STOP button release. Localisation: English/German texts, every choice/effect has a translation, parameter names, live switching |
 | `vst3_host_test` (`livelooper_hosttest`) | loads the built `livelooper.vst3` through JUCE's VST3 hosting like a DAW: name, effect category, MIDI input, parameter count, recording and playback via parameters, stop, saving/loading state in a second instance, editor |
 
 Single group: `livelooper_tests engine`, or `midi`, `plugin`.
@@ -57,7 +57,7 @@ src/
     MidiMap.*             MIDI learn table (lock-free)
   plugin/
     Localisation.*        English/German texts, language setting
-    Parameters.*          all 136 parameters (IDs, ranges, groups, English and localised names)
+    Parameters.*          all 137 parameters (IDs, ranges, groups, English and localised names)
     PluginProcessor.*     AudioProcessor: parameters → engine, buttons, MIDI, state, import/export
     PluginEditor.*        interface, MIDI learn mode, menus, drag & drop
     Widgets.*             REC/PLAY pad, STOP pad, display, FX slot, track, track setup

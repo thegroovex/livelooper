@@ -2,6 +2,9 @@
 
 #include "Types.h"
 
+#include <algorithm>
+#include <memory>
+
 namespace livelooper
 {
 /**
@@ -72,6 +75,8 @@ public:
     bool     isStopping() const noexcept     { return stopping; }
     int      getLength() const noexcept      { return length; }
     int      getRecordedSamples() const noexcept { return recPos; }
+    /** Planned length of the running first recording (0 = open end). */
+    int      getRecordingSpan() const noexcept { return state == State::Recording ? autoFinish : 0; }
     int      getPlayPosition() const noexcept { return playPos; }
     double   getSamplesPerPpq() const noexcept { return recSamplesPerPpq; }
     double   getAnchorPpq() const noexcept   { return anchorPpq; }
@@ -79,6 +84,20 @@ public:
     bool     canUndo() const noexcept        { return undoKind != UndoKind::None; }
     bool     canRedo() const noexcept        { return redoKind != UndoKind::None; }
     float    getPeak() noexcept              { auto p = peak; peak = 0.0f; return p; }
+    /** Level for the track meter: the input while recording / overdubbing, else the output.
+        Returns and resets the peaks since the last call. */
+    void     takeMeter (float& l, float& r, bool& isInput) noexcept
+    {
+        isInput = state == State::Recording || state == State::Overdubbing;
+        l = isInput ? inPeakL : outPeakL;
+        r = isInput ? inPeakR : outPeakR;
+        inPeakL = inPeakR = outPeakL = outPeakR = 0.0f;
+    }
+
+    /** Waveform overview for the display (any thread; reads may race harmlessly with the
+        audio thread). Fills numBins peak values 0..1 over the loop (or the recording so far,
+        spread over maxSpanSamples when > 0). Returns false when there is nothing to show. */
+    bool getWaveform (float* bins, int numBins, int maxSpanSamples = 0) const noexcept;
 
     /** Normalised playback/record position 0..1 (recording: grows with recorded length). */
     float getProgress() const noexcept;
@@ -101,10 +120,20 @@ private:
     void setGainRamp (float target, int samples) noexcept;
     void finishStop() noexcept;
     void routeInput (float l, float r, float& outL, float& outR) const noexcept;
+    inline void notePeak (int layer, int index, float l, float r) noexcept
+    {
+        auto& a = chunkPeak[layer][(size_t) (index >> kChunkShift)];
+        const float v = std::max (std::abs (l), std::abs (r));
+        if (v > a.load (std::memory_order_relaxed))
+            a.store (v, std::memory_order_relaxed);
+    }
+    void recomputeChunkPeak (int layer, size_t chunk) noexcept;
 
     std::vector<float> layers[2][2];          // [layer][channel]
     std::vector<uint8_t> chunkOwner;          // which layer holds the chunk
     std::vector<uint8_t> chunkTouched;        // chunk was modified by the current/last overdub
+    std::unique_ptr<std::atomic<float>[]> chunkPeak[2];   // waveform overview per layer and chunk
+    size_t numChunks = 0;
 
     TrackSettings settings;
     State state = State::Empty;
@@ -132,5 +161,6 @@ private:
     bool  stopAtWrap = false;
 
     float peak = 0.0f;
+    float inPeakL = 0.0f, inPeakR = 0.0f, outPeakL = 0.0f, outPeakR = 0.0f;
 };
 } // namespace livelooper

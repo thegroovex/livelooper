@@ -111,6 +111,9 @@ public:
     /** Progress (0..1) of a clear held on the computer keyboard; 0 = none. */
     void setKeyHoldProgress (float p) { if (p != keyHold) { keyHold = p; repaint(); } }
     float getKeyHoldProgress() const noexcept { return keyHold; }
+    // for tests
+    void simulateLongPressForTests() { down = true; cleared = true; }
+    bool isShowingCleared() const noexcept { return cleared; }
 
 private:
     void timerCallback() override;
@@ -121,6 +124,20 @@ private:
     bool cleared = false;
     juce::uint32 downTime = 0;
 };
+
+//==============================================================================
+/** Meter ballistics for the UI: fast attack, about 26 dB/s release, 1.2 s peak hold. */
+struct MeterBallistics
+{
+    float level = 0.0f, hold = 0.0f;
+    int holdFrames = 0;
+    void push (float peak, float frameRateHz = 30.0f) noexcept;
+    /** 0..1 position of a linear gain on the -60..+6 dB scale. */
+    static float toPosition (float gain) noexcept;
+};
+
+/** Draws a vertical or horizontal stereo meter (green, yellow from -12 dB, red from -1 dB). */
+void drawMeterBar (juce::Graphics& g, juce::Rectangle<float> area, const MeterBallistics& m, bool vertical, juce::Colour base);
 
 //==============================================================================
 /** Display with several text lines in hardware LCD style. */
@@ -137,7 +154,12 @@ public:
     juce::Rectangle<int> getTempoArea() const;
     std::function<void()> onTempoClicked;
 
+    /** Master output meter in the top row of the display (peaks since the last frame). */
+    void pushMasterMeter (float peakL, float peakR);
+    const MeterBallistics& getMasterMeter (int ch) const noexcept { return master[(size_t) (ch & 1)]; }
+
 private:
+    std::array<MeterBallistics, 2> master;
     juce::String bigText;
     juce::StringArray lines;
     juce::Colour accentColour = colours::lcdText;
@@ -177,6 +199,11 @@ public:
     void refresh (bool blinkPhase);
     int getTrackIndex() const noexcept { return track; }
     StopButton& getStopButton() noexcept { return stop; }
+    static constexpr int kWaveBins = 96;
+    const std::array<float, kWaveBins>& getWaveform() const noexcept { return wave; }
+    bool hasWaveform() const noexcept { return waveValid; }
+    const MeterBallistics& getMeter (int ch) const noexcept { return meter[(size_t) (ch & 1)]; }
+    bool isMeteringInput() const noexcept { return meterInput; }
 
 private:
     LiveLooperProcessor& proc;
@@ -192,6 +219,14 @@ private:
 
     std::unique_ptr<APVTS::ButtonAttachment> reverseAtt, oneShotAtt, fxAtt;
     std::unique_ptr<APVTS::SliderAttachment> levelAtt, panAtt;
+
+    std::array<float, kWaveBins> wave {};
+    bool waveValid = false;
+    int waveCounter = 0;
+    std::array<MeterBallistics, 2> meter;
+    bool meterInput = false;
+    bool blink = false;
+    juce::Rectangle<int> meterArea, ledArea;
 };
 
 //==============================================================================
