@@ -15,7 +15,8 @@ class LiveLooperEditor : public juce::AudioProcessorEditor,
                          public MidiMenuHost,
                          public juce::FileDragAndDropTarget,
                          private juce::Timer,
-                         private juce::ChangeListener
+                         private juce::ChangeListener,
+                         private i18n::Listener
 {
 public:
     static constexpr int kBaseWidth = 1180;
@@ -63,6 +64,7 @@ private:
 
     void timerCallback() override;
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
+    void languageChanged() override;
     void paintSurface (juce::Graphics& g);
     void layoutSurface();
     void updateLcd();

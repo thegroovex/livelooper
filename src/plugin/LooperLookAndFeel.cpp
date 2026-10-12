@@ -1,4 +1,5 @@
 #include "LooperLookAndFeel.h"
+#include "Localisation.h"
 
 namespace livelooper
 {
@@ -153,7 +154,7 @@ void LooperLookAndFeel::drawButtonText (juce::Graphics& g, juce::TextButton& but
                          : colours::orange;
     g.setFont (getTextButtonFont (button, button.getHeight()));
     g.setColour (on ? led.brighter (0.4f) : (button.isEnabled() ? colours::text : colours::textDim));
-    g.drawFittedText (button.getButtonText(), button.getLocalBounds().reduced (3, 1), juce::Justification::centred, 2, 0.8f);
+    g.drawFittedText (i18n::tr (button.getButtonText()), button.getLocalBounds().reduced (3, 1), juce::Justification::centred, 2, 0.8f);
 }
 
 juce::Font LooperLookAndFeel::getTextButtonFont (juce::TextButton&, int buttonHeight)
@@ -192,5 +193,16 @@ juce::Label* LooperLookAndFeel::createSliderTextBox (juce::Slider& slider)
     l->setFont (font (11.0f, true));
     l->setJustificationType (juce::Justification::centred);
     return l;
+}
+
+void LooperLookAndFeel::drawTooltip (juce::Graphics& g, const juce::String& text, int width, int height)
+{
+    LookAndFeel_V4::drawTooltip (g, i18n::tr (text), width, height);
+}
+
+juce::Rectangle<int> LooperLookAndFeel::getTooltipBounds (const juce::String& tipText, juce::Point<int> screenPos,
+                                                          juce::Rectangle<int> parentArea)
+{
+    return LookAndFeel_V4::getTooltipBounds (i18n::tr (tipText), screenPos, parentArea);
 }
 } // namespace livelooper

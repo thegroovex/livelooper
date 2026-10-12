@@ -1,8 +1,10 @@
 // Renders the livelooper editor into PNG files for the documentation.
 // usage: livelooper_screenshot <output directory>
+// Writes every picture in English (livelooper*.png) and German (livelooper*-de.png).
 
 #include "plugin/PluginEditor.h"
 #include "plugin/PluginProcessor.h"
+#include "plugin/Localisation.h"
 
 using namespace livelooper;
 
@@ -42,6 +44,7 @@ void save (juce::Component& c, const juce::File& file, float scale = 1.0f)
 int main (int argc, char* argv[])
 {
     juce::ScopedJuceInitialiser_GUI gui;
+    i18n::setSetting (i18n::Language::English, false);
     const juce::File outDir (argc > 1 ? juce::File::getCurrentWorkingDirectory().getChildFile (argv[1])
                                       : juce::File::getCurrentWorkingDirectory());
     outDir.createDirectory();
@@ -79,21 +82,29 @@ int main (int argc, char* argv[])
 
     std::unique_ptr<juce::AudioProcessorEditor> editor (proc.createEditor());
     editor->setSize (LiveLooperEditor::kBaseWidth, LiveLooperEditor::kBaseHeight);
-    juce::MessageManager::getInstance()->runDispatchLoopUntil (200);
-    save (*editor, outDir.getChildFile ("livelooper.png"));
-
     auto* ed = dynamic_cast<LiveLooperEditor*> (editor.get());
-    ed->setLearnMode (true);
-    proc.startMidiLearn ("t5_recplay");
-    juce::MessageManager::getInstance()->runDispatchLoopUntil (200);
-    save (*editor, outDir.getChildFile ("livelooper-midi-learn.png"));
-    proc.cancelMidiLearn();
-    ed->setLearnMode (false);
 
-    // track setup panel on its own
-    TrackSettingsPanel panel (proc, *ed, 0);
-    panel.setLookAndFeel (&editor->getLookAndFeel());
-    save (panel, outDir.getChildFile ("livelooper-track-setup.png"), 2.0f);
-    panel.setLookAndFeel (nullptr);
+    for (const auto& [language, suffix] : { std::pair<i18n::Language, const char*> { i18n::Language::English, "" },
+                                            std::pair<i18n::Language, const char*> { i18n::Language::German, "-de" } })
+    {
+        i18n::setSetting (language, false);
+        const juce::String sfx (suffix);
+        juce::MessageManager::getInstance()->runDispatchLoopUntil (200);
+        save (*editor, outDir.getChildFile ("livelooper" + sfx + ".png"));
+
+        ed->setLearnMode (true);
+        proc.startMidiLearn ("t5_recplay");
+        juce::MessageManager::getInstance()->runDispatchLoopUntil (200);
+        save (*editor, outDir.getChildFile ("livelooper-midi-learn" + sfx + ".png"));
+        proc.cancelMidiLearn();
+        ed->setLearnMode (false);
+
+        // track setup panel on its own
+        TrackSettingsPanel panel (proc, *ed, 0);
+        panel.setLookAndFeel (&editor->getLookAndFeel());
+        save (panel, outDir.getChildFile ("livelooper-track-setup" + sfx + ".png"), 2.0f);
+        panel.setLookAndFeel (nullptr);
+    }
+    i18n::setSetting (i18n::Language::English, false);
     return 0;
 }

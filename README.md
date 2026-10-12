@@ -1,44 +1,49 @@
 # livelooper
 
-**livelooper** ist eine Loop-Station mit fünf Spuren als Plug-in für Ableton Live (VST3 und Audio Unit, zusätzlich als Standalone-App). Aufnehmen, Overdubben, Effekte, Rhythmus und alles frei per MIDI steuerbar – gebaut für das Live-Looping auf der Bühne und im Studio.
+**English** | [Deutsch](README.de.md)
+
+**livelooper** is a five-track loop station plug-in for Ableton Live (VST3 and Audio Unit, plus a standalone app). Record, overdub, effects, rhythm, and every single function freely mappable to MIDI – built for live looping on stage and in the studio.
 
 ![livelooper](docs/images/livelooper.png)
 
-## Funktionen
+## Features
 
-- **5 Loop-Spuren** mit REC → DUB → PLAY, STOP (halten = löschen), Undo/Redo des letzten Overdubs, Level, Pan, Reverse, One-Shot, Loop-Sync
-- **Quantisierung** auf Takt oder Schlag, synchron zu Tempo, Taktart und Transport von Live (oder interne Clock mit Tap-Tempo)
-- **Feste Loop-Längen** (1, 2, 4, 8, 16 Takte) oder freie Länge; „zu spät gedrückt" wird bis 15 % nach dem Taktstrich rückwirkend korrigiert
-- **Input-FX und Track-FX**: je vier Slots (A–D) mit 12 Effekten – LPF, HPF, BPF, Phaser, Flanger, Delay (tempo-synchron), Reverb, Slicer, Tremolo, Auto Pan, Lo-Fi, Overdrive
-- **Rhythmus**: eingebauter Drumcomputer mit Metronom und 11 Pattern, immer tempo-synchron
-- **Start-/Stop-Modi**: sofort, Fade-In/Fade-Out, Stopp am Loop-Ende; Dub-Modus Overdub oder Replace
-- **Volle MIDI-Steuerung**: alle 136 Funktionen sind Host-Parameter (Live-MIDI-Map) und haben zusätzlich ein eigenes MIDI-Learn per Rechtsklick
-- **Follow Transport**: Loops starten und stoppen mit Live
-- **Projekt-Speicherung**: die Loops werden verlustfrei (FLAC, 24 Bit) im Live-Set gespeichert
-- **Import/Export**: Loops als WAV exportieren, Audiodateien per Drag & Drop auf eine Spur laden
+- **5 loop tracks** with REC → DUB → PLAY, STOP (hold = clear), undo/redo of the last overdub, level, pan, reverse, one shot, loop sync
+- **Quantization** to the bar or beat, locked to Live's tempo, time signature and transport (or an internal clock with tap tempo)
+- **Fixed loop lengths** (1, 2, 4, 8, 16 bars) or free length; pressing "too late" is corrected retroactively up to 15 % after the bar line
+- **Input FX and track FX**: four slots each (A–D) with 12 effects – LPF, HPF, BPF, phaser, flanger, delay (tempo-synced), reverb, slicer, tremolo, auto pan, lo-fi, overdrive
+- **Rhythm**: built-in drum machine with metronome and 11 patterns, always in sync
+- **Start/stop modes**: immediate, fade in/fade out, stop at loop end; dub mode overdub or replace
+- **Full MIDI control**: all 136 functions are host parameters (Live's MIDI map) and also have their own MIDI learn via right-click
+- **Follow transport**: loops start and stop with Live
+- **Saved with your project**: loops are stored losslessly (FLAC, 24 bit) inside the Live set
+- **Import/export**: export loops as WAV, drag & drop audio files onto a track
+- **English and German user interface**: switch under *SETUP → Language / Sprache* (automatic follows your system language)
 
-## Warum VST3/AU?
+## Why VST3/AU?
 
-livelooper ist ein JUCE-Plug-in (C++). Gegenüber einem Max-for-Live-Gerät hat das drei Vorteile: es läuft in jeder Live-Edition (nicht nur in Suite), die Audio-Engine läuft sample-genau und echtzeitsicher in nativem Code, und es ist automatisiert testbar. Dasselbe Plug-in funktioniert auch in anderen DAWs und als eigenständige App.
+livelooper is a JUCE plug-in (C++). Compared with a Max for Live device this has three advantages: it runs in every edition of Live (not only Suite), the audio engine runs sample-accurate and real-time safe in native code, and it can be tested automatically. The same plug-in also works in other DAWs and as a standalone app.
 
-## Schnellstart
+## Quick start
 
-1. Plug-in installieren – siehe [Installation](docs/INSTALLATION.md)
-2. In Live eine Audiospur mit deinem Mikro/Instrument als Eingang anlegen, Monitor auf **In** stellen und **livelooper** aus *Plug-ins → Audio Units / VST3* auf die Spur ziehen
-3. Den großen REC/PLAY-Pad von Track 1 klicken: Aufnahme startet auf dem nächsten Takt, nochmal klicken: Loop läuft
+1. Install the plug-in – see [Installation](docs/en/INSTALLATION.md)
+2. In Live, create an audio track with your mic/instrument as input, set Monitor to **In** and drag **livelooper** from *Plug-ins → Audio Units / VST3* onto the track
+3. Click the big REC/PLAY pad of track 1: recording starts on the next bar; click again: the loop plays
 
-Alles Weitere steht in der **[Bedienungsanleitung](docs/BEDIENUNGSANLEITUNG.md)**, die MIDI-Steuerung in **[MIDI](docs/MIDI.md)**.
+Everything else is in the **[User Guide](docs/en/USER-GUIDE.md)**, MIDI control in **[MIDI](docs/en/MIDI.md)**.
 
-## Dokumentation
+## Documentation
 
-| Dokument | Inhalt |
+| Document | Contents |
 |---|---|
-| [INSTALLATION.md](docs/INSTALLATION.md) | Download, Installation auf macOS und Windows, Einrichtung in Live |
-| [BEDIENUNGSANLEITUNG.md](docs/BEDIENUNGSANLEITUNG.md) | Oberfläche, alle Funktionen, Effekte, Rhythmus, Setup |
-| [MIDI.md](docs/MIDI.md) | MIDI-Learn, Live-MIDI-Map, Standard-Belegung, Parameterliste |
-| [ENTWICKLUNG.md](docs/ENTWICKLUNG.md) | Bauen aus dem Quellcode, Architektur, Tests, CI |
+| [INSTALLATION.md](docs/en/INSTALLATION.md) | Download, installation on macOS and Windows, setup in Live |
+| [USER-GUIDE.md](docs/en/USER-GUIDE.md) | Interface, all functions, effects, rhythm, setup, language |
+| [MIDI.md](docs/en/MIDI.md) | MIDI learn, Live's MIDI map, default mapping, parameter list |
+| [DEVELOPMENT.md](docs/en/DEVELOPMENT.md) | Building from source, architecture, tests, CI, translations |
 
-## Selbst bauen
+German documentation: [docs/de](docs/de/).
+
+## Build it yourself
 
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
@@ -46,8 +51,8 @@ cmake --build build --config Release
 ctest --test-dir build -C Release --output-on-failure
 ```
 
-JUCE 8 wird beim Konfigurieren automatisch geladen. Details in [ENTWICKLUNG.md](docs/ENTWICKLUNG.md).
+JUCE 8 is downloaded automatically during configuration. Details in [DEVELOPMENT.md](docs/en/DEVELOPMENT.md).
 
-## Lizenz
+## License
 
-Für den livelooper-Quellcode ist noch keine Lizenz festgelegt. livelooper basiert auf dem JUCE-Framework, das unter AGPLv3 oder einer kommerziellen JUCE-Lizenz steht – bei Weitergabe von Binärdateien gelten deren Bedingungen.
+No license has been chosen for the livelooper source code yet. livelooper is based on the JUCE framework, which is available under AGPLv3 or a commercial JUCE license – its terms apply when distributing binaries.

@@ -1,5 +1,7 @@
 # Installation
 
+[English](../en/INSTALLATION.md) | **Deutsch**
+
 ## Download
 
 Fertige Plug-ins gibt es auf der GitHub-Seite unter **Releases** (`livelooper-macOS.zip`, `livelooper-Windows.zip`). Ein Release entsteht automatisch, wenn ein Versions-Tag (`v1.0.0` …) gepusht wird. Ohne Release: unter **Actions → CI → Run workflow** einen Build starten und das Artefakt herunterladen – oder selbst bauen ([ENTWICKLUNG.md](ENTWICKLUNG.md)).
@@ -32,7 +34,7 @@ Universal Binary: läuft nativ auf Apple Silicon und Intel.
 
 1. Audiospur anlegen, *Audio From* = dein Interface-Eingang (Mono oder Stereo).
 2. *Monitor* auf **In** (dauerhaft mithören, auch wenn die Spur nicht scharf ist).
-3. livelooper auf die Spur ziehen. Das Eingangssignal läuft durch die Input-FX in die Loops und – mit dem Regler **INPUT** – direkt auf den Ausgang. Wer das Direktsignal schon über das Interface hört, dreht **INPUT** auf 0.
+3. livelooper auf die Spur ziehen. Das Eingangssignal läuft durch die Input-FX in die Loops und – mit dem Regler **EINGANG** – direkt auf den Ausgang. Wer das Direktsignal schon über das Interface hört, dreht **EINGANG** auf 0.
 
 **MIDI-Controller / Fußschalter** – zwei Wege, beide gleichzeitig nutzbar:
 
@@ -41,10 +43,14 @@ Universal Binary: läuft nativ auf Apple Silicon und Intel.
 
 Mehr dazu in [MIDI.md](MIDI.md).
 
-**Tempo**: Mit **HOST SYNC** (Standard) folgt livelooper dem Tempo, der Taktart und der Position von Live. Läuft Lives Transport nicht, zählt eine interne Clock im Live-Tempo weiter.
+**Tempo**: Mit **HOST-SYNC** (Standard) folgt livelooper dem Tempo, der Taktart und der Position von Live. Läuft Lives Transport nicht, zählt eine interne Clock im Live-Tempo weiter.
+
+## Sprache
+
+livelooper spricht Deutsch und Englisch. Standardmäßig folgt es der Sprache des Betriebssystems; umstellen unter **SETUP → Language / Sprache**. Die Wahl gilt für alle livelooper-Instanzen auf diesem Rechner. Die Parameternamen, die Live anzeigt, wechseln nach dem Neuladen des Plug-ins (z. B. Set neu öffnen).
 
 ## Systemanforderungen
 
 - macOS 11 oder neuer, Windows 10/11 (64 Bit)
 - Ableton Live 10.1 oder neuer (VST3), jede Edition
-- Arbeitsspeicher: pro Spur werden `2 × Max. Loop-Länge` Stereo-Audio reserviert (für Undo). Bei 48 kHz und 60 s (Standard) sind das rund 230 MB für alle fünf Spuren; einstellbar unter **SETUP → Maximum loop length**.
+- Arbeitsspeicher: pro Spur werden `2 × Max. Loop-Länge` Stereo-Audio reserviert (für Undo). Bei 48 kHz und 60 s (Standard) sind das rund 230 MB für alle fünf Spuren; einstellbar unter **SETUP → Maximale Loop-Länge**.

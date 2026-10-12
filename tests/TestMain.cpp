@@ -4,9 +4,14 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
+#include "plugin/Localisation.h"
+
 int main (int argc, char* argv[])
 {
     juce::ScopedJuceInitialiser_GUI gui;
+
+    // tests expect the English texts unless they switch the language themselves (never saved)
+    livelooper::i18n::setSetting (livelooper::i18n::Language::English, false);
 
     juce::UnitTestRunner runner;
     runner.setAssertOnFailure (false);

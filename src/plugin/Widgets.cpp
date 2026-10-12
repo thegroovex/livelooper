@@ -3,6 +3,7 @@
 namespace livelooper
 {
 using namespace params;
+using i18n::tr;
 
 //============================================================================== helpers
 void setParamId (juce::Component& c, const juce::String& paramId)
@@ -52,6 +53,15 @@ void LLSlider::mouseDown (const juce::MouseEvent& e)
         juce::Slider::mouseDown (e);
 }
 
+juce::String LLSlider::getTooltip()
+{
+    const auto explicitTip = juce::Slider::getTooltip();
+    if (explicitTip.isNotEmpty())
+        return explicitTip;
+    const auto id = getParamId (*this);
+    return id.isNotEmpty() ? localisedName (id) : juce::String();
+}
+
 LLButton::LLButton (const juce::String& buttonText, juce::Colour led) : juce::TextButton (buttonText)
 {
     getProperties().set ("ledColour", (juce::int64) led.getARGB());
@@ -63,10 +73,31 @@ void LLButton::mouseDown (const juce::MouseEvent& e)
         juce::TextButton::mouseDown (e);
 }
 
+LLCombo::LLCombo()  { i18n::addListener (this); }
+LLCombo::~LLCombo() { i18n::removeListener (this); }
+
 void LLCombo::mouseDown (const juce::MouseEvent& e)
 {
     if (! handleMidiRightClick (*this, e))
         juce::ComboBox::mouseDown (e);
+}
+
+void LLCombo::setEnglishItems (const juce::StringArray& items)
+{
+    englishItems = items;
+    clear (juce::dontSendNotification);
+    addItemList (translated (items), 1);
+}
+
+void LLCombo::languageChanged()
+{
+    // read the selection first: getSelectedId() compares the shown text with the item text
+    const int id = getSelectedId();
+    for (int i = 0; i < englishItems.size(); ++i)
+        changeItemText (i + 1, tr (englishItems[i]));
+    // refresh the text of the selected item
+    setSelectedId (0, juce::dontSendNotification);
+    setSelectedId (id, juce::dontSendNotification);
 }
 
 //============================================================================== Knob
@@ -82,8 +113,6 @@ void Knob::rebind (APVTS& state, const juce::String& paramId)
     attachment.reset();
     attachment = std::make_unique<APVTS::SliderAttachment> (state, paramId, slider);
     setParamId (slider, paramId);
-    if (auto* p = state.getParameter (paramId))
-        slider.setTooltip (p->getName (64));
 }
 
 void Knob::resized()
@@ -97,7 +126,7 @@ void Knob::paint (juce::Graphics& g)
 {
     g.setColour (colours::textDim);
     g.setFont (LooperLookAndFeel::font (11.0f, true));
-    g.drawFittedText (caption.toUpperCase(), getLocalBounds().removeFromBottom (16), juce::Justification::centred, 1);
+    g.drawFittedText (tr (caption).toUpperCase(), getLocalBounds().removeFromBottom (16), juce::Justification::centred, 1);
 }
 
 //============================================================================== RecPlayButton
@@ -198,7 +227,7 @@ void RecPlayButton::paint (juce::Graphics& g)
     // legend
     g.setColour (colours::text.withAlpha (0.85f));
     g.setFont (LooperLookAndFeel::font (padR * 0.24f, true));
-    g.drawText ("REC", juce::Rectangle<float> (centre.x - padR, centre.y - padR * 0.55f, padR * 2.0f, padR * 0.4f),
+    g.drawText (tr ("REC"), juce::Rectangle<float> (centre.x - padR, centre.y - padR * 0.55f, padR * 2.0f, padR * 0.4f),
                 juce::Justification::centred);
     g.setColour (colours::red);
     g.fillEllipse (centre.x - padR * 0.32f, centre.y - padR * 0.02f, padR * 0.2f, padR * 0.2f);
@@ -209,7 +238,7 @@ void RecPlayButton::paint (juce::Graphics& g)
     g.fillPath (tri);
     g.setColour (colours::text.withAlpha (0.6f));
     g.setFont (LooperLookAndFeel::font (padR * 0.17f, true));
-    g.drawText ("DUB / PLAY", juce::Rectangle<float> (centre.x - padR, centre.y + padR * 0.25f, padR * 2.0f, padR * 0.3f),
+    g.drawText (tr ("DUB / PLAY"), juce::Rectangle<float> (centre.x - padR, centre.y + padR * 0.25f, padR * 2.0f, padR * 0.3f),
                 juce::Justification::centred);
 }
 
@@ -275,7 +304,7 @@ void StopButton::paint (juce::Graphics& g)
     const float s = b.getHeight() * 0.32f;
     g.fillRect (b.getX() + 12.0f, b.getCentreY() - s * 0.5f, s, s);
     g.setFont (LooperLookAndFeel::font (b.getHeight() * 0.4f, true));
-    g.drawText (cleared ? "CLEARED" : "STOP", b.withTrimmedLeft (12.0f + s), juce::Justification::centred);
+    g.drawText (tr (cleared ? "CLEARED" : "STOP"), b.withTrimmedLeft (12.0f + s), juce::Justification::centred);
 }
 
 //============================================================================== Lcd
@@ -335,7 +364,9 @@ FxSlot::FxSlot (APVTS& s, bool inputFx, int sl, std::function<void (bool, int)> 
     onButton.setClickingTogglesState (true);
     attachment = std::make_unique<APVTS::ButtonAttachment> (state, fxId (input, slot, kFxOn), onButton);
     setParamId (onButton, fxId (input, slot, kFxOn));
-    onButton.setTooltip (juce::String (input ? "Input" : "Track") + " FX " + onButton.getButtonText() + " on/off");
+    onButton.tooltipFn = [this] {
+        return tr (input ? "Input FX %1 on/off" : "Track FX %1 on/off", juce::String::charToString ((juce::juce_wchar) ('A' + slot)));
+    };
     onButton.onClick = [this] { if (onSelect) onSelect (input, slot); };
     addAndMakeVisible (onButton);
 }
@@ -356,7 +387,7 @@ void FxSlot::paint (juce::Graphics& g)
     }
     juce::String typeName = "?";
     if (auto* p = dynamic_cast<juce::AudioParameterChoice*> (state.getParameter (fxId (input, slot, kFxType))))
-        typeName = p->getCurrentChoiceName();
+        typeName = tr (fxTypeChoices()[p->getIndex()]);
     g.setColour (selected ? colours::text : colours::textDim);
     g.setFont (LooperLookAndFeel::font (11.0f, true));
     g.drawFittedText (typeName.toUpperCase(), label, juce::Justification::centred, 1, 0.7f);
@@ -407,6 +438,8 @@ TrackStrip::TrackStrip (LiveLooperProcessor& p, int t)
             host->showTrackSettings (track, settings);
     };
     settings.setTooltip ("Track settings, clear, import / export");
+    undo.setTooltip ("Undo the last recording / overdub");
+    redo.setTooltip ("Redo");
     for (auto* b : { &undo, &redo, &settings })
         addAndMakeVisible (b);
 
@@ -456,7 +489,7 @@ void TrackStrip::paint (juce::Graphics& g)
     // title
     g.setColour (colours::text);
     g.setFont (LooperLookAndFeel::font (15.0f, true));
-    g.drawText ("TRACK " + juce::String (track + 1), getLocalBounds().reduced (12, 6).removeFromTop (22),
+    g.drawText (tr ("TRACK %1", juce::String (track + 1)), getLocalBounds().reduced (12, 6).removeFromTop (22),
                 juce::Justification::centredLeft);
 
     // mini LCD
@@ -484,8 +517,8 @@ void TrackStrip::paint (juce::Graphics& g)
     if (state != LoopTrack::State::Empty && state != LoopTrack::State::Recording && bars > 0.0)
     {
         const bool whole = std::abs (bars - std::round (bars)) < 0.02;
-        lengthText = (whole ? juce::String ((int) std::round (bars)) : juce::String (bars, 1))
-                     + (std::abs (bars - 1.0) < 0.02 ? " BAR" : " BARS");
+        lengthText = tr (std::abs (bars - 1.0) < 0.02 ? "%1 BAR" : "%1 BARS",
+                         whole ? juce::String ((int) std::round (bars)) : juce::String (bars, 1));
     }
 
     auto lcd = lcdArea.toFloat();
@@ -496,12 +529,12 @@ void TrackStrip::paint (juce::Graphics& g)
     auto text = lcd.reduced (7.0f, 4.0f);
     g.setColour (stateColour);
     g.setFont (LooperLookAndFeel::font (15.0f, true));
-    g.drawText (stateText, text.removeFromTop (18.0f), juce::Justification::centredLeft);
+    g.drawText (tr (stateText), text.removeFromTop (18.0f), juce::Justification::centredLeft);
     g.setColour (colours::lcdText.withAlpha (0.8f));
     g.setFont (LooperLookAndFeel::font (12.0f, true));
     auto line2 = text.removeFromTop (15.0f);
     g.drawText (lengthText, line2, juce::Justification::centredLeft);
-    g.drawText ("LVL " + juce::String (juce::roundToInt (level.getValue() * 100.0)), line2, juce::Justification::centredRight);
+    g.drawText (tr ("LVL %1", juce::String (juce::roundToInt (level.getValue() * 100.0))), line2, juce::Justification::centredRight);
 
     const float prog = state == LoopTrack::State::Empty ? 0.0f : juce::jlimit (0.0f, 1.0f, st.progress.load());
     auto bar = text.removeFromBottom (4.0f);
@@ -513,7 +546,7 @@ void TrackStrip::paint (juce::Graphics& g)
     // captions
     g.setColour (colours::textDim);
     g.setFont (LooperLookAndFeel::font (11.0f, true));
-    g.drawText ("PAN", pan.getBounds().translated (0, pan.getHeight() - 2).withHeight (14), juce::Justification::centred);
+    g.drawText (tr ("PAN"), pan.getBounds().translated (0, pan.getHeight() - 2).withHeight (14), juce::Justification::centred);
 
     // level meter next to the fader
     const float peak = juce::jlimit (0.0f, 1.0f, st.peak.load());
@@ -539,16 +572,18 @@ void TrackStrip::refresh (bool blinkPhase)
 TrackSettingsPanel::TrackSettingsPanel (LiveLooperProcessor& p, MidiMenuHost& host, int t) : proc (p), track (t)
 {
     auto& st = proc.getState();
-    const std::pair<const char*, const char*> defs[] = {
-        { kInput, "Input" }, { kStartMode, "Start" }, { kStopMode, "Stop" }, { kDubMode, "Dub mode" }, { kMeasure, "Measures" }
+    struct Def { const char* id; const char* caption; juce::StringArray choices; };
+    const Def defs[] = {
+        { kInput, "Input", inputChoices() }, { kStartMode, "Start", startModeChoices() },
+        { kStopMode, "Stop", stopModeChoices() }, { kDubMode, "Dub mode", dubModeChoices() },
+        { kMeasure, "Measures", measureChoices() }
     };
-    for (const auto& [id, caption] : defs)
+    for (const auto& [id, caption, choices] : defs)
     {
         Row r;
         r.caption = caption;
         r.combo = std::make_unique<LLCombo>();
-        if (auto* choice = dynamic_cast<juce::AudioParameterChoice*> (st.getParameter (trackId (track, id))))
-            r.combo->addItemList (choice->choices, 1);
+        r.combo->setEnglishItems (choices);
         r.attachment = std::make_unique<APVTS::ComboBoxAttachment> (st, trackId (track, id), *r.combo);
         setParamId (*r.combo, trackId (track, id));
         addAndMakeVisible (*r.combo);
@@ -596,11 +631,11 @@ void TrackSettingsPanel::paint (juce::Graphics& g)
     auto b = getLocalBounds().reduced (12);
     g.setColour (colours::text);
     g.setFont (LooperLookAndFeel::font (15.0f, true));
-    g.drawText ("TRACK " + juce::String (track + 1) + " SETUP", b.removeFromTop (24), juce::Justification::centredLeft);
+    g.drawText (tr ("TRACK %1 SETUP", juce::String (track + 1)), b.removeFromTop (24), juce::Justification::centredLeft);
     b.removeFromTop (4);
     g.setFont (LooperLookAndFeel::font (12.0f, true));
     g.setColour (colours::textDim);
     for (auto& r : rows)
-        g.drawText (r.caption.toUpperCase(), b.removeFromTop (30).removeFromLeft (100), juce::Justification::centredLeft);
+        g.drawText (tr (r.caption).toUpperCase(), b.removeFromTop (30).removeFromLeft (100), juce::Justification::centredLeft);
 }
 } // namespace livelooper

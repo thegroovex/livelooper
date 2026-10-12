@@ -2,6 +2,7 @@
 
 #include "LooperLookAndFeel.h"
 #include "PluginProcessor.h"
+#include "Localisation.h"
 
 #include <juce_audio_utils/juce_audio_utils.h>
 
@@ -33,20 +34,35 @@ class LLSlider : public juce::Slider
 public:
     LLSlider (juce::Slider::SliderStyle style, juce::Colour accent);
     void mouseDown (const juce::MouseEvent& e) override;
+    /** Without an explicit tooltip the (localised) name of the bound parameter is shown. */
+    juce::String getTooltip() override;
 };
 
 class LLButton : public juce::TextButton
 {
 public:
+    /** text is English; the look-and-feel draws it in the current UI language. */
     explicit LLButton (const juce::String& text, juce::Colour led = colours::orange);
     void mouseDown (const juce::MouseEvent& e) override;
+    juce::String getTooltip() override { return tooltipFn ? tooltipFn() : juce::TextButton::getTooltip(); }
+
+    /** Optional: computes the tooltip on demand (for texts with numbers / names in them). */
+    std::function<juce::String()> tooltipFn;
 };
 
-class LLCombo : public juce::ComboBox
+/** Combo box whose items are given in English and shown in the current UI language
+    (switches live when the language changes). Item ids are 1..n. */
+class LLCombo : public juce::ComboBox, private i18n::Listener
 {
 public:
-    LLCombo() = default;
+    LLCombo();
+    ~LLCombo() override;
     void mouseDown (const juce::MouseEvent& e) override;
+    void setEnglishItems (const juce::StringArray& items);
+
+private:
+    void languageChanged() override;
+    juce::StringArray englishItems;
 };
 
 /** A labelled knob: knob + caption underneath. */

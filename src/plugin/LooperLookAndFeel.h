@@ -43,6 +43,11 @@ public:
     juce::Font getPopupMenuFont() override;
     juce::Label* createSliderTextBox (juce::Slider&) override;
 
+    // button texts and tooltips are written in English in the code and translated here
+    void drawTooltip (juce::Graphics&, const juce::String& text, int width, int height) override;
+    juce::Rectangle<int> getTooltipBounds (const juce::String& tipText, juce::Point<int> screenPos,
+                                           juce::Rectangle<int> parentArea) override;
+
     static juce::Font font (float height, bool bold = false);
 };
 } // namespace livelooper

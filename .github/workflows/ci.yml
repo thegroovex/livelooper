@@ -76,7 +76,14 @@ jobs:
         run: cmake --build build --config Release --parallel 4
 
       - name: Unit tests
-        run: ctest --test-dir build -C Release --output-on-failure
+        shell: bash
+        run: |
+          set -o pipefail
+          ctest --test-dir build -C Release --output-on-failure 2>&1 | tee ctest.log || {
+            # make the failing checks visible as annotations on the run
+            grep -E '!!!|FAILED|failed' ctest.log | head -n 40 | while IFS= read -r line; do echo "::error title=Unit test::$line"; done
+            exit 1
+          }
 
       - name: pluginval (strictness 5)
         shell: bash
@@ -97,7 +104,8 @@ jobs:
           else
             cp build/livelooper_artefacts/Release/Standalone/livelooper.exe dist/livelooper/
           fi
-          cp docs/INSTALLATION.md dist/livelooper/
+          cp docs/en/INSTALLATION.md dist/livelooper/INSTALLATION.md
+          cp docs/de/INSTALLATION.md dist/livelooper/INSTALLATION-DE.md
           cd dist && 7z a -tzip ../livelooper-${{ matrix.name }}.zip livelooper > /dev/null || zip -qr ../livelooper-${{ matrix.name }}.zip livelooper
 
       - uses: actions/upload-artifact@v4

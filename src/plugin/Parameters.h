@@ -68,4 +68,12 @@ juce::StringArray dubModeChoices();
 juce::StringArray measureChoices();
 juce::StringArray fxTypeChoices();
 juce::StringArray rhythmChoices();
+
+/** The choice lists above are English; this translates a list into the current UI language. */
+juce::StringArray translated (const juce::StringArray& englishChoices);
+
+/** English name of a parameter ("T1 Level", "In FX A Mix", "Master Level"). */
+juce::String englishName (const juce::String& paramId);
+/** Name of a parameter in the current UI language ("S1 Pegel" in German). */
+juce::String localisedName (const juce::String& paramId);
 } // namespace livelooper::params

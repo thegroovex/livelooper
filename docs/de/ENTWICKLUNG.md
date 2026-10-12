@@ -1,5 +1,7 @@
 # Entwicklung
 
+[English](../en/DEVELOPMENT.md) | **Deutsch**
+
 ## Voraussetzungen
 
 | Plattform | Werkzeuge |
@@ -33,14 +35,14 @@ ctest --test-dir build -C Release --output-on-failure      # Linux ohne Bildschi
 
 | Test | Was geprüft wird |
 |---|---|
-| `unit_tests` (`livelooper_tests`) | Engine: freie und quantisierte Aufnahme (Takt, Schlag), rückwirkendes Beenden, feste Taktanzahl, Abbrechen, große Host-Blöcke, Eingangs-Routing, Overdub, Replace, Undo/Redo (inkl. erster Aufnahme), Clear, Reverse, One-Shot, Stop-Modi, Pegel/Pan, All Start/Stop, Track-FX-Routing, Loop-Sync nach Transportsprung, quantisierter Start in Phase, Follow Transport, interne Clock, Rhythmus. Effekte: alle 12 Typen stabil, Bypass bit-genau, Filterwirkung, Delay-Zeit, Slicer-Raster. MIDI: Learn, Taster/Schalter/Auswahl/Regler, CC-Flanken, Eindeutigkeit, Speichern. Processor: 136 eindeutige, MIDI-fähige Parameter, Taster-Parameter, MIDI über processBlock, Learn, Projekt-Speichern inkl. Loop-Audio, Samplerate-Wechsel, WAV-Export/-Import, Editor |
+| `unit_tests` (`livelooper_tests`) | Engine: freie und quantisierte Aufnahme (Takt, Schlag), rückwirkendes Beenden, feste Taktanzahl, Abbrechen, große Host-Blöcke, Eingangs-Routing, Overdub, Replace, Undo/Redo (inkl. erster Aufnahme), Clear, Reverse, One-Shot, Stop-Modi, Pegel/Pan, All Start/Stop, Track-FX-Routing, Loop-Sync nach Transportsprung, quantisierter Start in Phase, Follow Transport, interne Clock, Rhythmus. Effekte: alle 12 Typen stabil, Bypass bit-genau, Filterwirkung, Delay-Zeit, Slicer-Raster. MIDI: Learn, Taster/Schalter/Auswahl/Regler, CC-Flanken, Eindeutigkeit, Speichern. Processor: 136 eindeutige, MIDI-fähige Parameter, Taster-Parameter, MIDI über processBlock, Learn, Projekt-Speichern inkl. Loop-Audio, Samplerate-Wechsel, WAV-Export/-Import, Editor. Lokalisierung: deutsche/englische Texte, Übersetzung für jede Auswahl und jeden Effekt, Parameternamen, Umschalten im laufenden Betrieb |
 | `vst3_host_test` (`livelooper_hosttest`) | lädt das fertige `livelooper.vst3` über JUCEs VST3-Hosting wie eine DAW: Name, Effekt-Kategorie, MIDI-Eingang, Parameteranzahl, Aufnahme und Wiedergabe über Parameter, Stop, Zustand speichern/laden in zweiter Instanz, Editor |
 
 Einzelne Gruppe: `livelooper_tests engine` bzw. `midi`, `plugin`.
 
 In der CI läuft zusätzlich [pluginval](https://github.com/Tracktion/pluginval) mit Strenge 5 auf Linux, macOS und Windows.
 
-Screenshots für die Doku: `livelooper_screenshot docs/images` (unter Linux mit `xvfb-run -a`).
+Screenshots für die Doku: `livelooper_screenshot docs/images` (unter Linux mit `xvfb-run -a`). Es schreibt jedes Bild auf Englisch (`livelooper*.png`) und Deutsch (`livelooper*-de.png`).
 
 ## Architektur
 
@@ -54,7 +56,8 @@ src/
     RhythmGenerator.*     synthetischer Drumcomputer, 12 Pattern
     MidiMap.*             MIDI-Learn-Tabelle (lock-frei)
   plugin/
-    Parameters.*          alle 136 Parameter (IDs, Bereiche, Gruppen)
+    Localisation.*        deutsche/englische Texte, Spracheinstellung
+    Parameters.*          alle 136 Parameter (IDs, Bereiche, Gruppen, englische und lokalisierte Namen)
     PluginProcessor.*     AudioProcessor: Parameter → Engine, Taster, MIDI, Zustand, Import/Export
     PluginEditor.*        Oberfläche, MIDI-Learn-Modus, Menüs, Drag & Drop
     Widgets.*             REC/PLAY-Pad, STOP-Pad, Display, FX-Slot, Spur, Spur-Setup
@@ -79,6 +82,14 @@ Die Position in Viertelnoten (ppq) kommt vom Host, solange dessen Transport läu
 
 Momentfunktionen sind Bool-Parameter. Der Processor reagiert auf die steigende Flanke und setzt den Parameter über einen Timer auf dem Message-Thread wieder auf 0. So ist jede Funktion automatisierbar und über Lives MIDI-Map zuweisbar.
 
+### Übersetzungen
+
+- Alle Texte im Code sind Englisch. Alles, was der Nutzer sieht, läuft durch `i18n::tr()` (`src/plugin/Localisation.cpp`), das den englischen Text in der deutschen Tabelle nachschlägt. Texte mit Zahlen oder Namen nutzen Platzhalter: `tr ("TRACK %1", "3")` → „SPUR 3".
+- Knopftexte und Hinweise stehen englisch im Code und werden beim Zeichnen übersetzt (`LooperLookAndFeel`); Auswahlfelder (`LLCombo::setEnglishItems`) und der Editor wechseln sofort, wenn die Sprache umgestellt wird.
+- Parameternamen werden aus der Parameter-ID gebildet (`params::englishName`, `params::localisedName`) und beim Erzeugen des Plug-ins festgelegt. Die IDs ändern sich nie – Projekte und MIDI-Maps funktionieren in beiden Sprachen.
+- Die Spracheinstellung liegt in der Datei `livelooper.settings` (macOS `~/Library/Application Support/livelooper/`, Windows `%APPDATA%\livelooper\`, Linux `~/.config/livelooper/`). Die Umgebungsvariable `LIVELOOPER_LANGUAGE=en|de` hat Vorrang (nutzt der Host-Test).
+- Neuer Text: englisch mit `tr()` in den Code schreiben und die deutsche Übersetzung in die Tabelle in `Localisation.cpp` eintragen; der Test „Every choice, effect and effect parameter has a German text" findet fehlende Auswahlwerte und Effekte.
+
 ## CI / Releases
 
 `.github/workflows/ci.yml`
@@ -100,3 +111,4 @@ git tag v1.0.0 && git push origin v1.0.0
 - Ein Undo-Schritt pro Spur (der letzte Overdub-Durchgang).
 - Wechselt die Samplerate oder die maximale Loop-Länge, werden die Loops umgerechnet; laufende Aufnahmen gehen dabei verloren.
 - Die macOS-Builds sind nicht signiert/notarisiert (siehe INSTALLATION.md).
+- Parameternamen im Host wechseln die Sprache erst nach dem Neuladen des Plug-ins.

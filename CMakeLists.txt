@@ -33,6 +33,7 @@ set(LIVELOOPER_ENGINE_SOURCES
     src/engine/RhythmGenerator.cpp
     src/engine/MidiMap.cpp)
 set(LIVELOOPER_PLUGIN_SOURCES
+    src/plugin/Localisation.cpp
     src/plugin/Parameters.cpp
     src/plugin/PluginProcessor.cpp
     src/plugin/PluginEditor.cpp
@@ -88,6 +89,7 @@ if(LIVELOOPER_BUILD_TESTS)
         tests/EffectsTests.cpp
         tests/MidiMapTests.cpp
         tests/ProcessorTests.cpp
+        tests/LocalisationTests.cpp
         ${LIVELOOPER_ENGINE_SOURCES} ${LIVELOOPER_PLUGIN_SOURCES})
     target_include_directories(livelooper_tests PRIVATE src)
     target_compile_definitions(livelooper_tests PRIVATE ${LIVELOOPER_DEFINES} LIVELOOPER_NO_PLUGIN_ENTRY=1 JUCE_MODAL_LOOPS_PERMITTED=1)
@@ -107,6 +109,7 @@ if(LIVELOOPER_BUILD_TESTS)
     add_dependencies(livelooper_hosttest livelooper_VST3)
     add_test(NAME vst3_host_test
              COMMAND livelooper_hosttest "${CMAKE_BINARY_DIR}/livelooper_artefacts/$<CONFIG>/VST3/livelooper.vst3")
+    set_tests_properties(vst3_host_test PROPERTIES ENVIRONMENT "LIVELOOPER_LANGUAGE=en")
 
     # Renders the editor into a PNG (used for the documentation screenshots)
     juce_add_console_app(livelooper_screenshot PRODUCT_NAME "livelooper_screenshot")
