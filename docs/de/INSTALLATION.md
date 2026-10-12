@@ -45,6 +45,10 @@ Mehr dazu in [MIDI.md](MIDI.md).
 
 **Tempo**: Mit **HOST-SYNC** (Standard) folgt livelooper dem Tempo, der Taktart und der Position von Live. Läuft Lives Transport nicht, zählt eine interne Clock im Live-Tempo weiter.
 
+## Standalone-App: kein Eingang / Aufnahmen bleiben stumm
+
+Die Standalone-App schaltet den Audio-Eingang standardmäßig stumm, um Rückkopplungen zu vermeiden. Öffne **Options → Audio/MIDI Settings**, wähle dein Eingangsgerät (z. B. das eingebaute Mikrofon), aktiviere dessen Eingangskanäle und entferne den Haken bei **Mute audio input**. Nimm mit dem eingebauten Mikrofon am besten mit Kopfhörern auf. Unter macOS zusätzlich das Mikrofon erlauben: **Systemeinstellungen → Datenschutz & Sicherheit → Mikrofon → livelooper**.
+
 ## Sprache
 
 livelooper spricht Deutsch und Englisch. Standardmäßig folgt es der Sprache des Betriebssystems; umstellen unter **SETUP → Language / Sprache**. Die Wahl gilt für alle livelooper-Instanzen auf diesem Rechner. Die Parameternamen, die Live anzeigt, wechseln nach dem Neuladen des Plug-ins (z. B. Set neu öffnen).

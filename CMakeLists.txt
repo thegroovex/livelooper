@@ -60,6 +60,8 @@ juce_add_plugin(livelooper
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
+    MICROPHONE_PERMISSION_ENABLED TRUE
+    MICROPHONE_PERMISSION_TEXT "livelooper records audio from your microphone or audio interface into its loop tracks."
     VST3_CATEGORIES Fx Tools
     AU_MAIN_TYPE kAudioUnitType_MusicEffect
     COPY_PLUGIN_AFTER_BUILD ${LIVELOOPER_COPY_PLUGIN}

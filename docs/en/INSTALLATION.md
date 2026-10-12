@@ -45,6 +45,10 @@ More in [MIDI.md](MIDI.md).
 
 **Tempo**: with **HOST SYNC** (default) livelooper follows Live's tempo, time signature and position. When Live's transport is stopped, an internal clock keeps counting at Live's tempo.
 
+## Standalone app: no input / recordings stay silent
+
+The standalone app mutes the audio input by default to avoid feedback. Open **Options → Audio/MIDI Settings**, select your input device (e.g. the built-in microphone), enable its input channels and untick **Mute audio input**. Use headphones when recording with the built-in microphone. On macOS also allow the microphone under **System Settings → Privacy & Security → Microphone → livelooper**.
+
 ## Language
 
 livelooper speaks English and German. By default it follows the language of your operating system; change it under **SETUP → Language / Sprache**. The choice is saved for all livelooper instances on this computer. Parameter names shown by Live switch after the plug-in is reloaded (e.g. reopen the set).
