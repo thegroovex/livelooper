@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+  <stop offset="0" stop-color="#FF7A18"/><stop offset="0.55" stop-color="#FF2D6F"/><stop offset="1" stop-color="#B14BFF"/></linearGradient></defs><rect x="16" y="16" width="480" height="480" rx="72.0" fill="url(#g)"/>
+<path d="M323.20,139.61 A134.4,134.4 0 1 1 160.96,160.96" fill="none" stroke="#FFFFFF" stroke-width="36.00" stroke-linecap="round"/>
+<path d="M183.37,138.56 L121.46,149.97 L171.96,200.47 Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="12.00" stroke-linejoin="round"/>
+<circle cx="256" cy="256" r="40.80" fill="#FFFFFF"/>
+<line x1="306.91" y1="306.91" x2="323.88" y2="323.88" stroke="#FFFFFF" stroke-width="16.80" stroke-linecap="round" opacity="0.85"/>
+<line x1="205.09" y1="306.91" x2="188.12" y2="323.88" stroke="#FFFFFF" stroke-width="16.80" stroke-linecap="round" opacity="0.85"/>
+<line x1="205.09" y1="205.09" x2="188.12" y2="188.12" stroke="#FFFFFF" stroke-width="16.80" stroke-linecap="round" opacity="0.85"/>
+<line x1="306.91" y1="205.09" x2="323.88" y2="188.12" stroke="#FFFFFF" stroke-width="16.80" stroke-linecap="round" opacity="0.85"/></svg>
