@@ -18,6 +18,8 @@
 - **Follow Transport**: Loops starten und stoppen mit Live
 - **Projekt-Speicherung**: die Loops werden verlustfrei (FLAC, 24 Bit) im Live-Set gespeichert
 - **Import/Export**: Loops als WAV exportieren, Audiodateien per Drag & Drop auf eine Spur laden
+- **Steuerung per Computertastatur** in der Standalone-App: logische Standardbelegung (1–5 REC/PLAY, Q–T STOP, A–G ZURÜCK, Leertaste, Eingabe = TAP) und eigene Belegung unter *SETUP → Tastaturbelegung …*
+- **Tempo eintippen**: auf die BPM im Display klicken (oder B drücken) und eingeben
 - **Oberfläche auf Deutsch und Englisch**: umschaltbar unter *SETUP → Language / Sprache* (Automatisch folgt der Systemsprache)
 
 ## Warum VST3/AU?

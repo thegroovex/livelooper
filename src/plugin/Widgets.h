@@ -120,11 +120,18 @@ private:
 
 //==============================================================================
 /** Display with several text lines in hardware LCD style. */
-class Lcd : public juce::Component
+class Lcd : public juce::Component, public juce::SettableTooltipClient
 {
 public:
     void setContent (const juce::String& big, const juce::StringArray& small, juce::Colour accent, bool midiActivity);
     void paint (juce::Graphics& g) override;
+    void mouseDown (const juce::MouseEvent& e) override;
+    void mouseMove (const juce::MouseEvent& e) override;
+    juce::String getTooltip() override;
+
+    /** Area of the big tempo number; a click there calls onTempoClicked (type in the BPM). */
+    juce::Rectangle<int> getTempoArea() const;
+    std::function<void()> onTempoClicked;
 
 private:
     juce::String bigText;

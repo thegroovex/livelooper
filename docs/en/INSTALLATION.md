@@ -49,6 +49,10 @@ More in [MIDI.md](MIDI.md).
 
 The standalone app mutes the audio input by default to avoid feedback. Open **Options → Audio/MIDI Settings**, select your input device (e.g. the built-in microphone), enable its input channels and untick **Mute audio input**. Use headphones when recording with the built-in microphone. On macOS also allow the microphone under **System Settings → Privacy & Security → Microphone → livelooper**.
 
+## Standalone app: computer keyboard
+
+The standalone app can be played with the computer keyboard (1–5 REC/PLAY, Q–T STOP, Space ALL START/STOP, Return TAP …). The livelooper window must be the active window. The mapping can be changed under **SETUP → Keyboard mapping …** – see the user guide, section 10.
+
 ## Language
 
 livelooper speaks English and German. By default it follows the language of your operating system; change it under **SETUP → Language / Sprache**. The choice is saved for all livelooper instances on this computer. Parameter names shown by Live switch after the plug-in is reloaded (e.g. reopen the set).

@@ -86,7 +86,7 @@ Der LED-Ring zeigt den Zustand und die Position im Loop:
 
 **Rückwirkendes Beenden**: Wer das Ende einer Aufnahme bis zu 15 % eines Rasterschritts *nach* dem Taktstrich drückt, bekommt den Loop trotzdem exakt am Taktstrich beendet – das Gespielte nach dem Taktstrich wird an den Anfang des Loops (in den Overdub) übernommen. Wer zu früh drückt, wartet einfach auf den Taktstrich.
 
-**HOST-SYNC** (Standard an): Tempo, Taktart und Position kommen von Live. Läuft Lives Transport nicht, läuft eine interne Clock im aktuellen Live-Tempo weiter, sobald eine Spur aufnimmt oder spielt. Ohne Host-Sync gilt das interne Tempo (Regler **TEMPO**, oder **TAP** mehrfach im Takt antippen).
+**HOST-SYNC** (Standard an): Tempo, Taktart und Position kommen von Live. Läuft Lives Transport nicht, läuft eine interne Clock im aktuellen Live-Tempo weiter, sobald eine Spur aufnimmt oder spielt. Ohne Host-Sync gilt das interne Tempo (Regler **TEMPO**, **TAP** mehrfach im Takt antippen, oder auf das Tempo im Display klicken und eintippen – siehe Abschnitt 11).
 
 **Host-Transport folgen** (SETUP-Menü): Loops starten mit Lives Play-Taste und stoppen mit Lives Stop-Taste.
 
@@ -148,6 +148,9 @@ Ein- und Ausschalten wird ohne Knackser überblendet.
 | Host-Transport folgen | Loops starten/stoppen mit Live |
 | Maximale Loop-Länge | 30 · 60 · 120 · 240 · 480 Sekunden pro Spur (bestimmt den Speicherbedarf; vorhandene Loops bleiben erhalten) |
 | Loops im Projekt speichern | Loops im Live-Set speichern (Standard an). Aus = kleinere Sets, die Loops sind nach dem Laden weg |
+| Steuerung mit der Computertastatur | nur Standalone-App: Tasten an/aus (Abschnitt 10) |
+| Tastaturbelegung … | nur Standalone-App: eigene Tastenbelegung (Abschnitt 10) |
+| Tempo eintippen (BPM) … | internes Tempo eintippen (Abschnitt 11) |
 | Language / Sprache | Automatisch (Systemsprache) · English · Deutsch |
 
 ---
@@ -170,13 +173,51 @@ Mit dem Live-Set werden gespeichert: alle Parameter, die MIDI-Zuweisungen und �
 
 ## 9. Display
 
-- große Zahl: aktuelles Tempo
+- große Zahl: aktuelles Tempo – anklicken, um die BPM einzutippen
 - Zeile 1: Tempoquelle (HOST, INTERN, interne Clock)
 - Zeile 2: Takt . Schlag und Quantisierung
 - Zeile 3: Meldungen (Export, Import, MIDI Learn) oder der Speicher pro Spur
 - Punkt oben rechts: leuchtet gelb bei eingehenden MIDI-Daten
 
-## 10. Bezeichnungen Deutsch / Englisch
+---
+
+## 10. Computertastatur (Standalone-App)
+
+In der Standalone-App spielt die Computertastatur livelooper wie ein Hardware-Gerät – ideal am MacBook ohne Controller. In Live gehört die Tastatur Live selbst, deshalb ist das eine Standalone-Funktion (dort gibt es MIDI und Lives eigene Tastaturzuweisung).
+
+Standardbelegung – eine Tastaturspalte pro Spur:
+
+| Taste | Funktion |
+|---|---|
+| **1 2 3 4 5** | REC/PLAY Spur 1–5 |
+| **Q W E R T** | STOP Spur 1–5 |
+| **Shift + Q … T** | Spur 1–5 LÖSCHEN |
+| **A S D F G** | ZURÜCK (Undo) Spur 1–5 |
+| **Shift + A … G** | VOR (Redo) Spur 1–5 |
+| **Leertaste** | ALLE START / STOP |
+| **Shift + Rücktaste** | ALLE LÖSCHEN (mit Rückfrage) |
+| **Eingabe (Return)** | TAP-Tempo |
+| **B** | Tempo eintippen (BPM) |
+| **Pfeil hoch / runter** | Tempo +1 / −1 BPM (mit Shift: ±0,1) |
+| **M** | RHYTHMUS an/aus |
+| **N** | nächstes Rhythmus-Pattern |
+| **K** | nächste Quantisierung |
+
+Das Display zeigt kurz, welche Taste was ausgelöst hat (z. B. `TASTE Q > S1 STOP`). Gehaltene Tasten wiederholen nicht – außer Tempo hoch/runter.
+
+**Eigene Belegung:** *SETUP → Tastaturbelegung …* listet alle Funktionen (alle Spurfunktionen inkl. Rückwärts, One-Shot, Loop-Sync und FX, alle globalen Funktionen, FX-Slots A–D, Tempo). Funktion anklicken, neue Taste drücken – Shift, Strg, Option und Cmd zählen mit. Eine bereits belegte Taste wandert zur neuen Funktion. Esc bricht ab, Rechtsklick entfernt eine Taste, **STANDARD** stellt die Tabelle oben wieder her, **ALLE ENTFERNEN** leert sie, **TASTATURSTEUERUNG** schaltet die Tastatursteuerung an/aus (auch *SETUP → Steuerung mit der Computertastatur*). Die Belegung wird mit dem Zustand der App gespeichert.
+
+![Tastaturbelegung](../images/livelooper-keyboard-de.png)
+
+## 11. Tempo eintippen
+
+Auf die große Tempo-Zahl im Display klicken (oder **B** drücken, oder Rechtsklick auf den TEMPO-Regler → *Tempo eintippen (BPM) …*, oder *SETUP → Tempo eintippen (BPM) …*), BPM eintippen, Eingabe drücken. Nachkommastellen gehen mit Punkt oder Komma (`97.5`, `97,5`); Bereich 40–300 BPM, Esc bricht ab. Der Wert setzt das interne Tempo – solange HOST-SYNC einem laufenden Host folgt, bestimmt weiter das Host-Tempo.
+
+![Tempo eintippen](../images/livelooper-tempo-entry-de.png)
+
+---
+
+## 12. Bezeichnungen Deutsch / Englisch
 
 | Deutsch | English |
 |---|---|

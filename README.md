@@ -18,6 +18,8 @@
 - **Follow transport**: loops start and stop with Live
 - **Saved with your project**: loops are stored losslessly (FLAC, 24 bit) inside the Live set
 - **Import/export**: export loops as WAV, drag & drop audio files onto a track
+- **Computer keyboard control** in the standalone app: logical default keys (1–5 REC/PLAY, Q–T STOP, A–G UNDO, Space, Return = TAP) and your own key mapping in *SETUP → Keyboard mapping …*
+- **Type in the tempo**: click the BPM on the display (or press B) and enter it
 - **English and German user interface**: switch under *SETUP → Language / Sprache* (automatic follows your system language)
 
 ## Why VST3/AU?

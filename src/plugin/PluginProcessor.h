@@ -3,6 +3,7 @@
 #include "Parameters.h"
 #include "engine/LooperEngine.h"
 #include "engine/MidiMap.h"
+#include "KeyMap.h"
 
 #include <juce_audio_formats/juce_audio_formats.h>
 #include <juce_audio_processors/juce_audio_processors.h>
@@ -53,6 +54,16 @@ public:
     juce::AudioProcessorValueTreeState& getState() noexcept { return apvts; }
     LooperEngine& getEngine() noexcept                      { return engine; }
     MidiMap& getMidiMap() noexcept                          { return midiMap; }
+    KeyMap& getKeyMap() noexcept                            { return keyMap; }
+
+    /** Computer-keyboard control is offered in the standalone app (in a DAW the host owns
+        the keyboard). Tests can switch it on for the plug-in build. */
+    bool isKeyboardControlAvailable() const noexcept { return keyboardAvailable; }
+    void setKeyboardControlAvailable (bool a) noexcept { keyboardAvailable = a; }
+    bool isKeyboardControlActive() const noexcept { return keyboardAvailable && keyMap.isEnabled(); }
+
+    /** Sets the internal tempo (clamped to 40..300 BPM) as a host-visible change. */
+    void setInternalTempo (double bpm);
 
     /** Presses a momentary function (sets the trigger parameter, so hosts can record it). */
     void pressTrigger (const juce::String& paramId);
@@ -127,6 +138,8 @@ private:
     juce::AudioProcessorValueTreeState apvts;
     LooperEngine engine;
     MidiMap midiMap;
+    KeyMap keyMap;
+    bool keyboardAvailable = false;
 
     std::vector<std::unique_ptr<Trigger>> triggers;
     std::array<TrackParams, kNumTracks> trackParams;

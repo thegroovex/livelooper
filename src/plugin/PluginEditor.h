@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Widgets.h"
+#include "KeyMapEditor.h"
 
 namespace livelooper
 {
@@ -44,6 +45,15 @@ public:
     void selectFxSlot (bool inputFx, int slot);
     void showStatus (const juce::String& text);
 
+    // computer keyboard (standalone app)
+    bool keyPressed (const juce::KeyPress& key) override;
+    bool keyStateChanged (bool isKeyDown) override;
+    void performKeyAction (const juce::String& action);
+    /** Opens the text field on the display to type in the tempo. */
+    void showTempoEntry();
+    bool isTempoEntryVisible() const { return tempoEntry.isVisible(); }
+    juce::TextEditor& getTempoEntry() noexcept { return tempoEntry; }
+
 private:
     class Surface : public juce::Component
     {
@@ -71,6 +81,9 @@ private:
     void updateFxEditorLabels();
     void showMidiMapMenu();
     void showSetupMenu();
+    void confirmClearAll();
+    void commitTempoEntry();
+    void updateKeyboardFocusPolicy();
     void collectMappables (juce::Component& parent, juce::Array<juce::Component*>& out);
     juce::String paramName (const juce::String& id) const;
 
@@ -98,6 +111,9 @@ private:
     std::unique_ptr<APVTS::ButtonAttachment> rhythmOnAtt, syncAtt;
     std::unique_ptr<APVTS::ComboBoxAttachment> quantizeAtt, rhythmPatternAtt;
     std::unique_ptr<Knob> tempo, rhythmLevel, master, monitor, fade;
+
+    juce::TextEditor tempoEntry;
+    juce::Array<int> heldKeys;
 
     std::unique_ptr<juce::FileChooser> chooser;
     juce::String statusText;

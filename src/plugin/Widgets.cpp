@@ -319,6 +319,28 @@ void Lcd::setContent (const juce::String& big, const juce::StringArray& small, j
     repaint();
 }
 
+juce::Rectangle<int> Lcd::getTempoArea() const
+{
+    auto content = getLocalBounds().toFloat().reduced (3.0f).reduced (10.0f, 4.0f);
+    return content.removeFromLeft (content.getWidth() * 0.36f).toNearestInt();
+}
+
+void Lcd::mouseDown (const juce::MouseEvent& e)
+{
+    if (e.mods.isLeftButtonDown() && getTempoArea().contains (e.getPosition()) && onTempoClicked)
+        onTempoClicked();
+}
+
+void Lcd::mouseMove (const juce::MouseEvent& e)
+{
+    setMouseCursor (getTempoArea().contains (e.getPosition()) ? juce::MouseCursor::IBeamCursor : juce::MouseCursor::NormalCursor);
+}
+
+juce::String Lcd::getTooltip()
+{
+    return tr ("Click the tempo to type in the BPM");
+}
+
 void Lcd::paint (juce::Graphics& g)
 {
     auto b = getLocalBounds().toFloat();

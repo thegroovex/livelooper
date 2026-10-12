@@ -5,6 +5,7 @@
 #include "plugin/PluginEditor.h"
 #include "plugin/PluginProcessor.h"
 #include "plugin/Localisation.h"
+#include "plugin/KeyMapEditor.h"
 
 using namespace livelooper;
 
@@ -98,6 +99,20 @@ int main (int argc, char* argv[])
         save (*editor, outDir.getChildFile ("livelooper-midi-learn" + sfx + ".png"));
         proc.cancelMidiLearn();
         ed->setLearnMode (false);
+
+        // typed-in tempo on the display
+        ed->showTempoEntry();
+        ed->getTempoEntry().setText ("128");
+        juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
+        save (*editor, outDir.getChildFile ("livelooper-tempo-entry" + sfx + ".png"));
+        ed->getTempoEntry().onEscapeKey();
+
+        // keyboard mapping window (standalone app)
+        {
+            KeyMapEditor keys (proc);
+            keys.startCapture (keys.getActions().indexOf ("t2_reverse"));
+            save (keys, outDir.getChildFile ("livelooper-keyboard" + sfx + ".png"), 2.0f);
+        }
 
         // track setup panel on its own
         TrackSettingsPanel panel (proc, *ed, 0);

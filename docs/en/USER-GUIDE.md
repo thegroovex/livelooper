@@ -86,7 +86,7 @@ The LED ring shows the state and the position in the loop:
 
 **Retroactive ending**: if you press to end a recording up to 15 % of a grid step *after* the bar line, the loop still ends exactly on the bar line – whatever you played after the bar line is moved to the start of the loop (into the overdub). If you press too early, the looper simply waits for the bar line.
 
-**HOST SYNC** (on by default): tempo, time signature and position come from Live. When Live's transport is stopped, an internal clock continues at the current Live tempo as soon as a track records or plays. Without host sync the internal tempo applies (knob **TEMPO**, or tap **TAP** several times in time).
+**HOST SYNC** (on by default): tempo, time signature and position come from Live. When Live's transport is stopped, an internal clock continues at the current Live tempo as soon as a track records or plays. Without host sync the internal tempo applies (knob **TEMPO**, tap **TAP** several times in time, or click the tempo on the display and type it in – see section 11).
 
 **Follow host transport** (SETUP menu): loops start with Live's play button and stop with Live's stop button.
 
@@ -148,6 +148,9 @@ Switching on and off is crossfaded without clicks.
 | Follow host transport | loops start/stop with Live |
 | Maximum loop length | 30 · 60 · 120 · 240 · 480 seconds per track (determines memory use; existing loops are kept) |
 | Save loops with the project | store loops in the Live set (on by default). Off = smaller sets, loops are gone after loading |
+| Computer keyboard control | standalone app only: keys on/off (section 10) |
+| Keyboard mapping … | standalone app only: own key mapping (section 10) |
+| Type in tempo (BPM) … | type the internal tempo (section 11) |
 | Language / Sprache | Automatic (system language) · English · Deutsch |
 
 ---
@@ -170,8 +173,44 @@ The Live set stores all parameters, the MIDI assignments and – if switched on 
 
 ## 9. Display
 
-- big number: current tempo
+- big number: current tempo – click it to type in the BPM
 - line 1: tempo source (HOST, internal clock)
 - line 2: bar . beat and quantization
 - line 3: messages (export, import, MIDI learn) or the memory per track
 - dot at top right: lights up yellow on incoming MIDI
+
+---
+
+## 10. Computer keyboard (standalone app)
+
+In the standalone app the computer keyboard plays livelooper like a hardware unit – handy on a MacBook without a controller. In Live the keyboard belongs to Live, so this is a standalone feature (MIDI and Live's own key mapping work there instead).
+
+Default mapping – one keyboard column per track:
+
+| Key | Function |
+|---|---|
+| **1 2 3 4 5** | REC/PLAY of track 1–5 |
+| **Q W E R T** | STOP track 1–5 |
+| **Shift + Q … T** | CLEAR track 1–5 |
+| **A S D F G** | UNDO track 1–5 |
+| **Shift + A … G** | REDO track 1–5 |
+| **Space** | ALL START / STOP |
+| **Shift + Backspace** | CLEAR ALL (asks first) |
+| **Return** | TAP tempo |
+| **B** | type in the tempo (BPM) |
+| **Arrow Up / Down** | tempo +1 / −1 BPM (Shift: ±0.1) |
+| **M** | RHYTHM on/off |
+| **N** | next rhythm pattern |
+| **K** | next quantize setting |
+
+The display briefly shows which key did what (e.g. `KEY Q > T1 STOP`). Holding a key does not repeat it – except tempo up/down.
+
+**Own key mapping:** *SETUP → Keyboard mapping …* lists every function (all track functions incl. reverse, one shot, loop sync and FX, all global functions, FX slots A–D, tempo). Click a function and press its new key – modifiers (Shift, Ctrl, Option, Cmd) count. A key that was already used moves to the new function. Esc cancels, right-click removes a key, **DEFAULTS** restores the table above, **REMOVE ALL** empties it, **KEYBOARD CONTROL** switches keyboard control on/off (also *SETUP → Computer keyboard control*). The mapping is saved together with the app's state.
+
+![Keyboard mapping](../images/livelooper-keyboard.png)
+
+## 11. Typing in the tempo
+
+Click the big tempo number on the display (or press **B**, or right-click the TEMPO knob → *Type in tempo (BPM) …*, or *SETUP → Type in tempo (BPM) …*), type the BPM and press Return. Decimals work with a point or a comma (`97.5`, `97,5`); the range is 40–300 BPM, Esc cancels. The value sets the internal tempo – while HOST SYNC follows a running host, the host tempo stays in charge.
+
+![Typing in the tempo](../images/livelooper-tempo-entry.png)

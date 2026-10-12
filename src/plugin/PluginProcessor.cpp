@@ -107,6 +107,7 @@ LiveLooperProcessor::LiveLooperProcessor()
     rhythmLevel   = apvts.getRawParameterValue (gRhythmLevel);
     rhythmPattern = apvts.getRawParameterValue (gRhythmPattern);
 
+    keyboardAvailable = wrapperType == wrapperType_Standalone;
     startTimerHz (30);
 }
 
@@ -423,6 +424,16 @@ void LiveLooperProcessor::pressTrigger (const juce::String& paramId)
     }
 }
 
+void LiveLooperProcessor::setInternalTempo (double bpm)
+{
+    if (auto* p = apvts.getParameter (gTempo))
+    {
+        p->beginChangeGesture();
+        p->setValueNotifyingHost (p->convertTo0to1 ((float) juce::jlimit (40.0, 300.0, bpm)));
+        p->endChangeGesture();
+    }
+}
+
 int LiveLooperProcessor::getParamIndex (const juce::String& paramId) const
 {
     return paramIndexById.contains (paramId) ? paramIndexById[paramId] : -1;
@@ -578,6 +589,7 @@ void LiveLooperProcessor::getStateInformation (juce::MemoryBlock& destData)
         root.addChildElement (xml.release());
 
     root.addChildElement (midiMap.toXml ([this] (int i) { return getParamIdForIndex (i); }).release());
+    root.addChildElement (keyMap.toXml().release());
 
     if (saveLoops)
     {
@@ -623,6 +635,8 @@ void LiveLooperProcessor::setStateInformation (const void* data, int sizeInBytes
     pendingLoops.clear();
     if (auto* mm = root->getChildByName ("MIDIMAP"))
         midiMap.fromXml (*mm, [this] (const juce::String& id) { return getParamIndex (id); });
+    if (auto* km = root->getChildByName ("KEYMAP"))
+        keyMap.fromXml (*km);
 
     if (auto* loops = root->getChildByName ("LOOPS"))
     {

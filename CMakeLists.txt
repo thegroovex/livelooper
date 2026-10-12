@@ -34,6 +34,8 @@ set(LIVELOOPER_ENGINE_SOURCES
     src/engine/MidiMap.cpp)
 set(LIVELOOPER_PLUGIN_SOURCES
     src/plugin/Localisation.cpp
+    src/plugin/KeyMap.cpp
+    src/plugin/KeyMapEditor.cpp
     src/plugin/Parameters.cpp
     src/plugin/PluginProcessor.cpp
     src/plugin/PluginEditor.cpp
@@ -92,6 +94,7 @@ if(LIVELOOPER_BUILD_TESTS)
         tests/MidiMapTests.cpp
         tests/ProcessorTests.cpp
         tests/LocalisationTests.cpp
+        tests/KeyboardTests.cpp
         ${LIVELOOPER_ENGINE_SOURCES} ${LIVELOOPER_PLUGIN_SOURCES})
     target_include_directories(livelooper_tests PRIVATE src)
     target_compile_definitions(livelooper_tests PRIVATE ${LIVELOOPER_DEFINES} LIVELOOPER_NO_PLUGIN_ENTRY=1 JUCE_MODAL_LOOPS_PERMITTED=1)

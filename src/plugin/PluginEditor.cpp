@@ -29,6 +29,23 @@ LiveLooperEditor::LiveLooperEditor (LiveLooperProcessor& p)
 
     // ---- header
     surface.addAndMakeVisible (lcd);
+    lcd.onTempoClicked = [this] { showTempoEntry(); };
+
+    tempoEntry.setJustification (juce::Justification::centredLeft);
+    tempoEntry.setInputRestrictions (6, "0123456789.,");
+    tempoEntry.setSelectAllWhenFocused (true);
+    tempoEntry.setColour (juce::TextEditor::backgroundColourId, colours::lcdBack);
+    tempoEntry.setColour (juce::TextEditor::textColourId, colours::yellow);
+    tempoEntry.setColour (juce::TextEditor::outlineColourId, colours::yellow);
+    tempoEntry.setColour (juce::TextEditor::focusedOutlineColourId, colours::yellow);
+    tempoEntry.setColour (juce::TextEditor::highlightColourId, colours::yellow.withAlpha (0.3f));
+    tempoEntry.setColour (juce::CaretComponent::caretColourId, colours::yellow);
+    tempoEntry.setFont (LooperLookAndFeel::font (30.0f, true));
+    tempoEntry.setTooltip ("Type in the tempo (40 - 300 BPM), Return sets it, Esc cancels");
+    tempoEntry.onReturnKey = [this] { commitTempoEntry(); };
+    tempoEntry.onEscapeKey = [this] { tempoEntry.setVisible (false); grabKeyboardFocus(); };
+    tempoEntry.onFocusLost = [this] { if (tempoEntry.isVisible()) commitTempoEntry(); };
+    surface.addChildComponent (tempoEntry);
     learnBtn.setClickingTogglesState (false);
     learnBtn.onClick = [this] { setLearnMode (! learnMode); };
     learnBtn.setTooltip ("MIDI learn: click a control, then move a knob / press a pad on your controller");
@@ -92,12 +109,7 @@ LiveLooperEditor::LiveLooperEditor (LiveLooperProcessor& p)
     setParamId (allStartStop, gAllStartStop);
     allStartStop.setTooltip ("Start / stop all tracks");
     clearAll.setTooltip ("Clear all five tracks");
-    clearAll.onClick = [this] {
-        auto opts = juce::MessageBoxOptions().withIconType (juce::MessageBoxIconType::WarningIcon)
-                        .withTitle (tr ("Clear all tracks?")).withMessage (tr ("All five loops will be deleted."))
-                        .withButton (tr ("Clear all")).withButton (tr ("Cancel")).withAssociatedComponent (this);
-        juce::AlertWindow::showAsync (opts, [this] (int r) { if (r == 1) proc.pressTrigger (gClearAll); });
-    };
+    clearAll.onClick = [this] { confirmClearAll(); };
     setParamId (clearAll, gClearAll);
 
     for (juce::Component* c : std::initializer_list<juce::Component*> {
@@ -106,8 +118,10 @@ LiveLooperEditor::LiveLooperEditor (LiveLooperProcessor& p)
         surface.addAndMakeVisible (c);
 
     surface.addChildComponent (overlay);
+    tempo->slider.setTooltip ("Internal tempo - right-click to type in the BPM, or click the tempo on the display");
 
     selectFxSlot (true, 0);
+    updateKeyboardFocusPolicy();
     proc.addChangeListener (this);
     i18n::addListener (this);
 
@@ -145,6 +159,8 @@ void LiveLooperEditor::resized()
 void LiveLooperEditor::layoutSurface()
 {
     lcd.setBounds (layout::lcd);
+    tempoEntry.setBounds (lcd.getBounds().getX() + lcd.getTempoArea().getX() - 4, lcd.getY() + 9,
+                          lcd.getTempoArea().getWidth() - 14, lcd.getHeight() - 18);
     learnBtn.setBounds (868, 22, 104, 36);
     mapBtn.setBounds (978, 22, 92, 36);
     setupBtn.setBounds (1076, 22, 92, 36);
@@ -316,6 +332,14 @@ void LiveLooperEditor::timerCallback()
         overlay.repaint();
 
     updateLcd();
+
+    // computer keyboard: forget keys that were released, keep the focus on the surface
+    for (int i = heldKeys.size(); --i >= 0;)
+        if (! juce::KeyPress::isKeyCurrentlyDown (heldKeys[i]))
+            heldKeys.remove (i);
+    if (proc.isKeyboardControlActive() && isShowing() && ! tempoEntry.isVisible()
+        && juce::Component::getCurrentlyFocusedComponent() == nullptr && juce::Process::isForegroundProcess())
+        grabKeyboardFocus();
 }
 
 void LiveLooperEditor::updateLcd()
@@ -383,6 +407,121 @@ void LiveLooperEditor::languageChanged()
     updateFxEditorLabels();
     repaint();
     surface.repaint();
+}
+
+//============================================================================== computer keyboard / tempo entry
+void LiveLooperEditor::updateKeyboardFocusPolicy()
+{
+    // Clicking a button must not steal the keys from the surface (a focused button would
+    // react to Space / Return itself). Only the tempo field takes the keyboard.
+    const bool keys = proc.isKeyboardControlAvailable();
+    std::function<void (juce::Component&)> walk = [&] (juce::Component& parent) {
+        for (auto* c : parent.getChildren())
+        {
+            if (c == &tempoEntry)
+                continue;
+            if (keys)
+                c->setWantsKeyboardFocus (false);
+            walk (*c);
+        }
+    };
+    walk (surface);
+    setWantsKeyboardFocus (keys);
+}
+
+bool LiveLooperEditor::keyPressed (const juce::KeyPress& key)
+{
+    if (! proc.isKeyboardControlActive() || tempoEntry.isVisible())
+        return false;
+    const auto action = proc.getKeyMap().getActionFor (key);
+    if (action.isEmpty())
+        return false;
+
+    // a held key repeats: only tempo up / down follow the repeat
+    if (! KeyMap::isRepeatingAction (action) && heldKeys.contains (key.getKeyCode()))
+        return true;
+    heldKeys.addIfNotAlreadyThere (key.getKeyCode());
+
+    performKeyAction (action);
+    if (! KeyMap::isSpecialAction (action) && action != gClearAll)
+        showStatus (tr ("KEY %1 > %2", KeyMap::describeKey (key).toUpperCase(), paramName (action).toUpperCase()));
+    return true;
+}
+
+bool LiveLooperEditor::keyStateChanged (bool isKeyDown)
+{
+    if (! isKeyDown)
+        for (int i = heldKeys.size(); --i >= 0;)
+            if (! juce::KeyPress::isKeyCurrentlyDown (heldKeys[i]))
+                heldKeys.remove (i);
+    return false;
+}
+
+void LiveLooperEditor::performKeyAction (const juce::String& action)
+{
+    auto* tempoParam = proc.getState().getParameter (gTempo);
+    auto nudge = [this, tempoParam] (double delta) {
+        const double bpm = tempoParam->convertFrom0to1 (tempoParam->getValue()) + delta;
+        proc.setInternalTempo (std::round (bpm * 10.0) / 10.0);
+        showStatus (tr ("TEMPO %1 BPM", juce::String (tempoParam->convertFrom0to1 (tempoParam->getValue()), 1)));
+    };
+
+    if (action == KeyMap::actTempoUp)            nudge (1.0);
+    else if (action == KeyMap::actTempoDown)     nudge (-1.0);
+    else if (action == KeyMap::actTempoUpFine)   nudge (0.1);
+    else if (action == KeyMap::actTempoDownFine) nudge (-0.1);
+    else if (action == KeyMap::actEnterTempo)    showTempoEntry();
+    else if (action == gClearAll)                confirmClearAll();
+    else if (isTrigger (action))                 proc.pressTrigger (action);
+    else if (auto* p = proc.getState().getParameter (action))
+    {
+        float v = 0.0f;
+        if (auto* choice = dynamic_cast<juce::AudioParameterChoice*> (p))
+            v = choice->convertTo0to1 ((float) ((choice->getIndex() + 1) % choice->choices.size()));
+        else
+            v = p->getValue() >= 0.5f ? 0.0f : 1.0f;
+        p->beginChangeGesture();
+        p->setValueNotifyingHost (v);
+        p->endChangeGesture();
+    }
+}
+
+void LiveLooperEditor::showTempoEntry()
+{
+    auto* p = proc.getState().getParameter (gTempo);
+    tempoEntry.setText (juce::String (p->convertFrom0to1 (p->getValue()), 1), juce::dontSendNotification);
+    tempoEntry.setVisible (true);
+    tempoEntry.toFront (false);
+    tempoEntry.grabKeyboardFocus();
+    tempoEntry.selectAll();
+    showStatus (tr ("TYPE IN TEMPO (40 - 300), RETURN"));
+}
+
+void LiveLooperEditor::commitTempoEntry()
+{
+    const auto text = tempoEntry.getText().replaceCharacter (',', '.').trim();
+    tempoEntry.setVisible (false);
+    if (text.isNotEmpty() && text.containsAnyOf ("0123456789"))
+    {
+        const double bpm = juce::jlimit (40.0, 300.0, text.getDoubleValue());
+        proc.setInternalTempo (bpm);
+        showStatus (proc.getEngine().isHostDriven() ? tr ("INTERNAL TEMPO %1 BPM (HOST TEMPO IN USE)", juce::String (bpm, 1))
+                                                    : tr ("TEMPO %1 BPM", juce::String (bpm, 1)));
+    }
+    if (proc.isKeyboardControlAvailable())
+        grabKeyboardFocus();
+}
+
+void LiveLooperEditor::confirmClearAll()
+{
+    auto opts = juce::MessageBoxOptions().withIconType (juce::MessageBoxIconType::WarningIcon)
+                    .withTitle (tr ("Clear all tracks?")).withMessage (tr ("All five loops will be deleted."))
+                    .withButton (tr ("Clear all")).withButton (tr ("Cancel")).withAssociatedComponent (this);
+    juce::Component::SafePointer<LiveLooperEditor> safe (this);
+    juce::AlertWindow::showAsync (opts, [safe] (int r) {
+        if (safe != nullptr && r == 1)
+            safe->proc.pressTrigger (gClearAll);
+    });
 }
 
 //============================================================================== MIDI learn
@@ -481,11 +620,21 @@ void LiveLooperEditor::showMidiMenuFor (juce::Component& c)
         menu.addItem (2, tr ("Remove MIDI mapping  (%1)", mapping));
     else
         menu.addItem (3, tr ("No MIDI mapping"), false);
+    if (id == gTempo)
+    {
+        menu.addSeparator();
+        menu.addItem (4, tr ("Type in tempo (BPM) ..."));
+    }
 
     juce::Component::SafePointer<LiveLooperEditor> safe (this);
     menu.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&c), [safe, id, learningThis] (int r) {
         if (safe == nullptr)
             return;
+        if (r == 4)
+        {
+            safe->showTempoEntry();
+            return;
+        }
         if (r == 1)
         {
             if (learningThis)
@@ -572,6 +721,14 @@ void LiveLooperEditor::showSetupMenu()
     menu.addItem (3, tr ("Follow host transport (start / stop with the host)"), true, follow->get());
     menu.addSubMenu (tr ("Maximum loop length"), memory);
     menu.addItem (4, tr ("Save loops with the project"), true, proc.getSaveLoopsWithProject());
+    if (proc.isKeyboardControlAvailable())
+    {
+        menu.addSeparator();
+        menu.addItem (5, tr ("Computer keyboard control"), true, proc.getKeyMap().isEnabled());
+        menu.addItem (6, tr ("Keyboard mapping ..."));
+    }
+    menu.addItem (7, tr ("Type in tempo (BPM) ..."));
+    menu.addSeparator();
     menu.addSubMenu ("Language / Sprache", language);
 
     juce::Component::SafePointer<LiveLooperEditor> safe (this);
@@ -585,6 +742,18 @@ void LiveLooperEditor::showSetupMenu()
             follow->setValueNotifyingHost (follow->get() ? 0.0f : 1.0f);
         else if (r == 4)
             safe->proc.setSaveLoopsWithProject (! safe->proc.getSaveLoopsWithProject());
+        else if (r == 5)
+        {
+            auto& km = safe->proc.getKeyMap();
+            km.setEnabled (! km.isEnabled());
+            safe->showStatus (tr (km.isEnabled() ? "KEYBOARD CONTROL ON" : "KEYBOARD CONTROL OFF"));
+            if (km.isEnabled())
+                safe->grabKeyboardFocus();
+        }
+        else if (r == 6)
+            KeyMapEditor::show (safe->proc, *safe);
+        else if (r == 7)
+            safe->showTempoEntry();
         else if (r >= 20 && r < 25)
         {
             safe->proc.setMaxLoopSeconds (lengths[r - 20]);
