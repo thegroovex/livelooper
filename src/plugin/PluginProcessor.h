@@ -24,7 +24,8 @@ class LiveLooperProcessor : public juce::AudioProcessor,
 public:
     /** withCueOutput: adds the "Cue" output bus (outputs 3 - 16) for the rhythm / metronome.
         Used by the standalone app only; plug-ins keep a plain stereo effect layout. */
-    explicit LiveLooperProcessor (bool withCueOutput = juce::PluginHostType::getPluginLoadedAs() == juce::AudioProcessor::wrapperType_Standalone);
+    explicit LiveLooperProcessor (bool withCueOutput = juce::PluginHostType::getPluginLoadedAs() == juce::AudioProcessor::wrapperType_Standalone,
+                                  bool withTrackOutputs = juce::PluginHostType::getPluginLoadedAs() != juce::AudioProcessor::wrapperType_Standalone);
     ~LiveLooperProcessor() override;
 
     //============================================================================== cue output (standalone)
@@ -37,6 +38,32 @@ public:
     ClickRoute getClickRoute() const noexcept { return (ClickRoute) clickRoute.load(); }
     void setClickRoute (ClickRoute r) noexcept { clickRoute.store ((int) r); }
     static juce::String getCuePairName (int pair);
+
+    //============================================================================== v1.3
+    /** Direct output of a track. Standalone: a pair of the cue bus (0 = none). Plug-in: its own
+        optional stereo bus ("Track N", enabled in the host). The track's OUTPUT setting decides
+        whether it is heard there instead of, or as well as, on the main output. */
+    int  getTrackOutputPair (int track) const noexcept { return trackOutPair[(size_t) juce::jlimit (0, kNumTracks - 1, track)].load(); }
+    void setTrackOutputPair (int track, int pair) noexcept
+    {
+        if (juce::isPositiveAndBelow (track, kNumTracks))
+            trackOutPair[(size_t) track].store (juce::jlimit (0, kNumCuePairs, pair));
+    }
+    bool hasTrackOutputBuses() const noexcept { return trackBusesAvailable; }
+
+    /** 5 or 8 tracks. Hidden tracks hold no memory (their loops are cleared). */
+    int  getVisibleTracks() const noexcept { return visibleTracks.load(); }
+    void setVisibleTracks (int n);
+
+    /** Scenes: which tracks play. An empty scene stores on its first press. */
+    bool sceneIsStored (int scene) const noexcept { return sceneMasks[(size_t) juce::jlimit (0, params::kNumScenes - 1, scene)].load() != 0; }
+    uint32_t getSceneMask (int scene) const noexcept { return (uint32_t) sceneMasks[(size_t) juce::jlimit (0, params::kNumScenes - 1, scene)].load() & 0xffu; }
+    int  getLastScene() const noexcept { return lastScene.load(); }
+    void clearScene (int scene) noexcept { sceneMasks[(size_t) juce::jlimit (0, params::kNumScenes - 1, scene)].store (0); }
+
+    /** Writes every track with a loop as 24-bit WAV (with tempo / beat metadata) into the folder.
+        Returns the number of files. */
+    int exportStems (const juce::File& folder);
 
     //============================================================================== looper sets
     /** Saves the complete looper (loops, settings, FX, rhythm) to a set file (.llset).
@@ -110,7 +137,7 @@ public:
 
     // for tests: process MIDI learn/mapping as if it came from the host
     void handleMidiMessage (const juce::MidiMessage& m);
-    static BusesProperties makeBuses (bool withCue);
+    static BusesProperties makeBuses (bool withCue, bool withTrackOutputs);
 
 private:
     struct Trigger
@@ -120,6 +147,7 @@ private:
         LooperEngine::Command command {};
         int track = -1;
         bool isTap = false;
+        int scene = -1;
         bool last = false;
         std::atomic<bool> needsReset { false };
     };
@@ -130,6 +158,8 @@ private:
         std::atomic<float>* oneShot {}; std::atomic<float>* loopSync {}; std::atomic<float>* fx {};
         std::atomic<float>* input {}; std::atomic<float>* startMode {}; std::atomic<float>* stopMode {};
         std::atomic<float>* dubMode {}; std::atomic<float>* measure {};
+        std::atomic<float>* feedback {}; std::atomic<float>* duck {}; std::atomic<float>* output {};
+        std::atomic<float>* pitch {}; std::atomic<float>* stretch {};
     };
 
     struct FxParams
@@ -155,6 +185,7 @@ private:
     void handleTap() noexcept;
     void pushSettingsToEngine() noexcept;
     void applyMidiAction (const MidiMap::Action& a) noexcept;
+    void handleScene (int scene) noexcept;
 
     juce::AudioProcessorValueTreeState apvts;
     LooperEngine engine;
@@ -171,6 +202,14 @@ private:
     std::atomic<float>* rhythmLevel {}; std::atomic<float>* rhythmPattern {}; std::atomic<float>* clickSound {};
     bool cueBusAvailable = false;
     std::atomic<int> cuePair { 0 }, clickRoute { 0 };
+    std::atomic<float>* captureBars {}; std::atomic<float>* autoRec {}; std::atomic<float>* autoRecThresh {};
+    std::atomic<float>* duckSource {}; std::atomic<float>* sceneStore {};
+    bool trackBusesAvailable = false;
+    std::array<std::atomic<int>, kNumTracks> trackOutPair {};
+    std::atomic<int> visibleTracks { kDefaultVisibleTracks };
+    std::array<std::atomic<int>, params::kNumScenes> sceneMasks {};
+    std::atomic<int> lastScene { -1 };
+    std::atomic<bool> sceneStoreDone { false };
 
     juce::Array<juce::RangedAudioParameter*> paramList;
     juce::HashMap<juce::String, int> paramIndexById;

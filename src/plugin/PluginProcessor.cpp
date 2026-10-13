@@ -18,23 +18,29 @@ namespace
     }
 }
 
-juce::AudioProcessor::BusesProperties LiveLooperProcessor::makeBuses (bool withCue)
+juce::AudioProcessor::BusesProperties LiveLooperProcessor::makeBuses (bool withCue, bool withTrackOutputs)
 {
-    {
-        auto b = BusesProperties()
-                     .withInput ("Input", juce::AudioChannelSet::stereo(), true)
-                     .withOutput ("Output", juce::AudioChannelSet::stereo(), true);
-        if (withCue)
-            b = b.withOutput ("Cue", juce::AudioChannelSet::discreteChannels (kCueBusChannels), true);
-        return b;
-    }
+    auto b = BusesProperties()
+                 .withInput ("Input", juce::AudioChannelSet::stereo(), true)
+                 .withOutput ("Output", juce::AudioChannelSet::stereo(), true);
+    if (withCue)
+        b = b.withOutput ("Cue", juce::AudioChannelSet::discreteChannels (kCueBusChannels), true);
+    else if (withTrackOutputs)
+        for (int t = 0; t < kNumTracks; ++t)
+            b = b.withOutput ("Track " + juce::String (t + 1), juce::AudioChannelSet::stereo(), false);
+    return b;
 }
 
-LiveLooperProcessor::LiveLooperProcessor (bool withCueOutput)
-    : AudioProcessor (makeBuses (withCueOutput)),
+LiveLooperProcessor::LiveLooperProcessor (bool withCueOutput, bool withTrackOutputs)
+    : AudioProcessor (makeBuses (withCueOutput, withTrackOutputs)),
       apvts (*this, nullptr, "LIVELOOPER", createLayout())
 {
     cueBusAvailable = withCueOutput;
+    trackBusesAvailable = ! withCueOutput && withTrackOutputs;
+    for (auto& m : sceneMasks)
+        m.store (0);
+    for (auto& p : trackOutPair)
+        p.store (0);
     // ---- parameter index table + MIDI kinds
     std::vector<MidiMap::ParamKind> kinds;
     for (auto* p : getParameters())
@@ -75,6 +81,7 @@ LiveLooperProcessor::LiveLooperProcessor (bool withCueOutput)
         addTrigger (trackId (t, kClear),   C::Clear, t);
         addTrigger (trackId (t, kUndo),    C::Undo, t);
         addTrigger (trackId (t, kRedo),    C::Redo, t);
+        addTrigger (trackId (t, kCapture), C::Capture, t);
 
         auto& tp = trackParams[(size_t) t];
         tp.level     = apvts.getRawParameterValue (trackId (t, kLevel));
@@ -88,12 +95,23 @@ LiveLooperProcessor::LiveLooperProcessor (bool withCueOutput)
         tp.stopMode  = apvts.getRawParameterValue (trackId (t, kStopMode));
         tp.dubMode   = apvts.getRawParameterValue (trackId (t, kDubMode));
         tp.measure   = apvts.getRawParameterValue (trackId (t, kMeasure));
+        tp.feedback  = apvts.getRawParameterValue (trackId (t, kFeedback));
+        tp.duck      = apvts.getRawParameterValue (trackId (t, kDuck));
+        tp.output    = apvts.getRawParameterValue (trackId (t, kOutput));
+        tp.pitch     = apvts.getRawParameterValue (trackId (t, kPitch));
+        tp.stretch   = apvts.getRawParameterValue (trackId (t, kStretch));
     }
     addTrigger (gAllStartStop, C::AllStartStop, -1);
     addTrigger (gAllStart,     C::AllStart, -1);
     addTrigger (gAllStop,      C::AllStop, -1);
     addTrigger (gClearAll,     C::ClearAll, -1);
     addTrigger (gTap,          C::AllStartStop, -1, true);
+    addTrigger (gCapture,      C::Capture, -1);
+    for (int i = 0; i < kNumScenes; ++i)
+    {
+        addTrigger (sceneId (i), C::Start, -1);
+        triggers.back()->scene = i;
+    }
 
     for (int s = 0; s < kNumFxSlots; ++s)
         for (int pass = 0; pass < 2; ++pass)
@@ -119,6 +137,11 @@ LiveLooperProcessor::LiveLooperProcessor (bool withCueOutput)
     rhythmLevel   = apvts.getRawParameterValue (gRhythmLevel);
     rhythmPattern = apvts.getRawParameterValue (gRhythmPattern);
     clickSound    = apvts.getRawParameterValue (gClickSound);
+    captureBars   = apvts.getRawParameterValue (gCaptureBars);
+    autoRec       = apvts.getRawParameterValue (gAutoRec);
+    autoRecThresh = apvts.getRawParameterValue (gAutoRecThresh);
+    duckSource    = apvts.getRawParameterValue (gDuckSource);
+    sceneStore    = apvts.getRawParameterValue (gSceneStore);
 
     keyboardAvailable = wrapperType == wrapperType_Standalone;
     startTimerHz (30);
@@ -136,10 +159,12 @@ bool LiveLooperProcessor::isBusesLayoutSupported (const BusesLayout& layouts) co
     const auto in = layouts.getMainInputChannelSet();
     if (out != juce::AudioChannelSet::stereo())
         return false;
-    if (layouts.outputBuses.size() > 1)
+    for (int b = 1; b < layouts.outputBuses.size(); ++b)
     {
-        const auto cue = layouts.getChannelSet (false, 1);
-        if (! cue.isDisabled() && cue.size() != kCueBusChannels)
+        const auto set = layouts.getChannelSet (false, b);
+        if (set.isDisabled())
+            continue;
+        if (cueBusAvailable ? set.size() != kCueBusChannels : set != juce::AudioChannelSet::stereo())
             return false;
     }
     return in == juce::AudioChannelSet::stereo() || in == juce::AudioChannelSet::mono();
@@ -245,6 +270,10 @@ void LiveLooperProcessor::pushSettingsToEngine() noexcept
     g.masterLevel   = master->load();
     g.monitorLevel  = monitor->load();
     g.clickRoute    = (ClickRoute) clickRoute.load();
+    g.captureBars   = kCaptureBars[juce::jlimit (0, 3, juce::roundToInt (captureBars->load()))];
+    g.autoRecord    = autoRec->load() >= 0.5f;
+    g.autoRecThreshold = juce::Decibels::decibelsToGain (autoRecThresh->load());
+    g.duckSource    = (DuckSource) juce::jlimit (0, 1, juce::roundToInt (duckSource->load()));
     engine.setGlobalSettings (g);
     engine.setFollowHostTransport (follow->load() >= 0.5f);
     engine.setRhythm (rhythmOn->load() >= 0.5f, juce::roundToInt (rhythmPattern->load()), rhythmLevel->load());
@@ -265,6 +294,11 @@ void LiveLooperProcessor::pushSettingsToEngine() noexcept
         s.stopMode  = (StopMode) juce::roundToInt (tp.stopMode->load());
         s.dubMode   = (DubMode) juce::roundToInt (tp.dubMode->load());
         s.measures  = kMeasureChoices[(size_t) juce::jlimit (0, (int) kMeasureChoices.size() - 1, juce::roundToInt (tp.measure->load()))];
+        s.feedback  = tp.feedback->load();
+        s.duck      = tp.duck->load();
+        s.output    = (TrackOutput) juce::jlimit (0, 2, juce::roundToInt (tp.output->load()));
+        s.pitch     = tp.pitch->load();
+        s.stretch   = tp.stretch->load() >= 0.5f;
         engine.setTrackSettings (t, s);
     }
 
@@ -287,8 +321,46 @@ void LiveLooperProcessor::fireTrigger (Trigger& t) noexcept
 {
     if (t.isTap)
         handleTap();
+    else if (t.scene >= 0)
+        handleScene (t.scene);
     else
         engine.queueCommand (t.command, t.track);
+}
+
+void LiveLooperProcessor::handleScene (int scene) noexcept
+{
+    auto& mask = sceneMasks[(size_t) scene];
+    const int visible = visibleTracks.load();
+    if (mask.load() == 0 || sceneStore->load() >= 0.5f)
+    {
+        // store: the tracks that are playing (or recording / overdubbing) right now
+        int m = 0;
+        for (int t = 0; t < visible; ++t)
+        {
+            const auto& tr = engine.getTrack (t);
+            const auto st = tr.getState();
+            if ((st == LoopTrack::State::Playing && ! tr.isStopping()) || st == LoopTrack::State::Overdubbing
+                || st == LoopTrack::State::Recording)
+                m |= 1 << t;
+        }
+        mask.store (m == 0 ? (1 << 30) : m);       // bit 30: stored, but no track plays
+        lastScene.store (scene);
+        sceneStoreDone.store (true);
+        return;
+    }
+    // recall: start the scene's tracks (quantized), stop the others
+    const int m = mask.load();
+    for (int t = 0; t < visible; ++t)
+    {
+        const auto& tr = engine.getTrack (t);
+        if (tr.isEmpty())
+            continue;
+        if ((m & (1 << t)) != 0)
+            engine.queueCommand (LooperEngine::Command::Start, t);
+        else if (tr.isRunning() && ! tr.isStopping())
+            engine.queueCommand (LooperEngine::Command::Stop, t);
+    }
+    lastScene.store (scene);
 }
 
 void LiveLooperProcessor::handleTap() noexcept
@@ -432,7 +504,37 @@ void LiveLooperProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::
         }
     }
 
-    engine.process (inL, inR, buffer.getWritePointer (0), buffer.getWritePointer (1), cueL, cueR, numSamples, time);
+    LooperEngine::ExtraOutputs extra;
+    extra.cueL = cueL;
+    extra.cueR = cueR;
+    if (cueBusAvailable && getBusCount (false) > 1 && getBus (false, 1)->isEnabled())
+    {
+        // standalone: direct track outputs on pairs of the cue bus (never on the click's pair)
+        auto cueBuffer = getBusBuffer (buffer, false, 1);
+        for (int t = 0; t < kNumTracks; ++t)
+        {
+            const int pair = trackOutPair[(size_t) t].load();
+            if (pair > 0 && pair != cuePair.load() && pair * 2 <= cueBuffer.getNumChannels())
+            {
+                extra.directL[(size_t) t] = cueBuffer.getWritePointer ((pair - 1) * 2);
+                extra.directR[(size_t) t] = cueBuffer.getWritePointer ((pair - 1) * 2 + 1);
+            }
+        }
+    }
+    else if (trackBusesAvailable)
+    {
+        // plug-in: one optional stereo bus per track
+        for (int t = 0; t < kNumTracks && t + 1 < getBusCount (false); ++t)
+            if (auto* bus = getBus (false, t + 1); bus != nullptr && bus->isEnabled() && bus->getNumberOfChannels() == 2)
+            {
+                auto tb = getBusBuffer (buffer, false, t + 1);
+                tb.clear();
+                extra.directL[(size_t) t] = tb.getWritePointer (0);
+                extra.directR[(size_t) t] = tb.getWritePointer (1);
+            }
+    }
+
+    engine.process (inL, inR, buffer.getWritePointer (0), buffer.getWritePointer (1), extra, numSamples, time);
     sampleCounter += numSamples;
 }
 
@@ -449,8 +551,66 @@ void LiveLooperProcessor::timerCallback()
         if (auto* p = apvts.getParameter (gTempo))
             p->setValueNotifyingHost (p->convertTo0to1 (tap));
 
+    if (sceneStoreDone.exchange (false))
+    {
+        if (auto* p = apvts.getParameter (gSceneStore); p != nullptr && p->getValue() >= 0.5f)
+            p->setValueNotifyingHost (0.0f);
+        sendChangeMessage();
+    }
+
     if (midiMap.popLearnedParam() >= 0)
         sendChangeMessage();
+}
+
+void LiveLooperProcessor::setVisibleTracks (int n)
+{
+    n = n > kDefaultVisibleTracks ? kNumTracks : kDefaultVisibleTracks;
+    if (n == visibleTracks.load() && engine.getActiveTracks() == n)
+        return;
+    visibleTracks.store (n);
+    suspendProcessing (true);
+    engine.setActiveTracks (n);
+    suspendProcessing (false);
+    sendChangeMessage();
+}
+
+int LiveLooperProcessor::exportStems (const juce::File& folder)
+{
+    folder.createDirectory();
+    const double bpm = std::max (20.0, engine.getCurrentBpm());
+    int written = 0;
+    for (int t = 0; t < visibleTracks.load(); ++t)
+    {
+        juce::AudioBuffer<float> audio;
+        double spp = 0.0;
+        if (! snapshotTrack (t, audio, &spp) || audio.getNumSamples() == 0)
+            continue;
+        const double loopBpm = spp > 0.0 ? engine.getSampleRate() * 60.0 / spp : bpm;
+        const double beats = spp > 0.0 ? audio.getNumSamples() / spp : 0.0;
+        const auto file = folder.getChildFile ("livelooper-track" + juce::String (t + 1) + "-"
+                                               + juce::String (juce::roundToInt (loopBpm)) + "bpm.wav");
+        file.deleteFile();
+        auto stream = std::unique_ptr<juce::OutputStream> (file.createOutputStream());
+        if (stream == nullptr)
+            continue;
+        std::unordered_map<juce::String, juce::String> meta {
+            { juce::WavAudioFormat::acidOneShot, "0" },   { juce::WavAudioFormat::acidRootSet, "0" },
+            { juce::WavAudioFormat::acidStretch, "1" },   { juce::WavAudioFormat::acidDiskBased, "0" },
+            { juce::WavAudioFormat::acidizerFlag, "1" },  { juce::WavAudioFormat::acidRootNote, "60" },
+            { juce::WavAudioFormat::acidBeats, juce::String (juce::roundToInt (beats)) },
+            { juce::WavAudioFormat::acidDenominator, "4" }, { juce::WavAudioFormat::acidNumerator, "4" },
+            { juce::WavAudioFormat::acidTempo, juce::String (loopBpm, 3) }
+        };
+        juce::WavAudioFormat wav;
+        auto writer = wav.createWriterFor (stream, juce::AudioFormatWriterOptions {}
+                                                       .withSampleRate (engine.getSampleRate())
+                                                       .withNumChannels (2)
+                                                       .withBitsPerSample (24)
+                                                       .withMetadataValues (meta));
+        if (writer != nullptr && writer->writeFromAudioSampleBuffer (audio, 0, audio.getNumSamples()))
+            ++written;
+    }
+    return written;
 }
 
 void LiveLooperProcessor::pressTrigger (const juce::String& paramId)
@@ -532,7 +692,7 @@ void LiveLooperProcessor::loadDefaultMidiMap()
             midiMap.assign ({ 0, cc, number }, idx);
     };
 
-    for (int t = 0; t < kNumTracks; ++t)
+    for (int t = 0; t < kDefaultVisibleTracks; ++t)
     {
         map (false, 36 + t, trackId (t, kRecPlay));   // C1 ... E1
         map (false, 41 + t, trackId (t, kStop));      // F1 ... A1
@@ -625,6 +785,14 @@ void LiveLooperProcessor::getStateInformation (juce::MemoryBlock& destData)
     root.setAttribute ("saveLoops", saveLoops);
     root.setAttribute ("cuePair", cuePair.load());
     root.setAttribute ("clickRoute", clickRoute.load());
+    root.setAttribute ("visibleTracks", visibleTracks.load());
+    {
+        juce::StringArray outs, scenes;
+        for (auto& p : trackOutPair) outs.add (juce::String (p.load()));
+        for (auto& m : sceneMasks)   scenes.add (juce::String (m.load()));
+        root.setAttribute ("trackOutputs", outs.joinIntoString (","));
+        root.setAttribute ("scenes", scenes.joinIntoString (","));
+    }
 
     if (auto xml = state.createXml())
         root.addChildElement (xml.release());
@@ -673,6 +841,19 @@ void LiveLooperProcessor::setStateInformation (const void* data, int sizeInBytes
     if (root->hasAttribute ("clickRoute"))
         setClickRoute ((ClickRoute) juce::jlimit (0, 2, root->getIntAttribute ("clickRoute", 0)));
     setMaxLoopSeconds (root->getDoubleAttribute ("maxLoopSeconds", 60.0));
+    setVisibleTracks (root->getIntAttribute ("visibleTracks", kDefaultVisibleTracks));
+    if (root->hasAttribute ("trackOutputs"))
+    {
+        const auto outs = juce::StringArray::fromTokens (root->getStringAttribute ("trackOutputs"), ",", "");
+        for (int t = 0; t < kNumTracks && t < outs.size(); ++t)
+            setTrackOutputPair (t, outs[t].getIntValue());
+    }
+    {
+        const auto scenes = juce::StringArray::fromTokens (root->getStringAttribute ("scenes"), ",", "");
+        for (int i = 0; i < kNumScenes; ++i)
+            sceneMasks[(size_t) i].store (i < scenes.size() ? scenes[i].getIntValue() : 0);
+        lastScene.store (-1);
+    }
 
     if (auto* params = root->getChildByName (apvts.state.getType()))
         apvts.replaceState (juce::ValueTree::fromXml (*params));
@@ -748,6 +929,7 @@ bool LiveLooperProcessor::saveSet (const juce::File& file)
     xml->setAttribute ("saveLoops", keepSaveLoops);
     xml->removeAttribute ("cuePair");
     xml->removeAttribute ("clickRoute");
+    xml->removeAttribute ("trackOutputs");
     if (auto* mm = xml->getChildByName ("MIDIMAP")) xml->removeChildElement (mm, true);
     if (auto* km = xml->getChildByName ("KEYMAP"))  xml->removeChildElement (km, true);
 
@@ -767,6 +949,11 @@ bool LiveLooperProcessor::loadSet (const juce::File& file, juce::String& error)
     xml->setTagName ("LIVELOOPER_STATE");
     xml->setAttribute ("cuePair", cuePair.load());
     xml->setAttribute ("clickRoute", clickRoute.load());
+    {
+        juce::StringArray outs;
+        for (auto& p : trackOutPair) outs.add (juce::String (p.load()));
+        xml->setAttribute ("trackOutputs", outs.joinIntoString (","));
+    }
     xml->setAttribute ("saveLoops", saveLoops);
     if (auto* mm = xml->getChildByName ("MIDIMAP")) xml->removeChildElement (mm, true);
     xml->addChildElement (midiMap.toXml ([this] (int i) { return getParamIdForIndex (i); }).release());

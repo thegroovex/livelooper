@@ -29,6 +29,13 @@ inline constexpr const char* kStartMode = "startmode";
 inline constexpr const char* kStopMode  = "stopmode";
 inline constexpr const char* kDubMode   = "dubmode";
 inline constexpr const char* kMeasure   = "measure";
+// v1.3
+inline constexpr const char* kCapture   = "capture";    // trigger: retrospective capture into this track
+inline constexpr const char* kFeedback  = "feedback";
+inline constexpr const char* kDuck      = "duck";
+inline constexpr const char* kOutput    = "output";
+inline constexpr const char* kPitch     = "pitch";
+inline constexpr const char* kStretch   = "stretch";
 // fx slot
 inline constexpr const char* kFxOn   = "on";
 inline constexpr const char* kFxType = "type";
@@ -54,6 +61,17 @@ inline const juce::String gAllStart     { "allstart" };
 inline const juce::String gAllStop      { "allstop" };
 inline const juce::String gClearAll     { "clearall" };
 inline const juce::String gTap          { "tap" };
+// v1.3
+inline const juce::String gCapture      { "capture" };
+inline const juce::String gCaptureBars  { "capture_bars" };
+inline const juce::String gAutoRec      { "autorec" };
+inline const juce::String gAutoRecThresh{ "autorec_threshold" };
+inline const juce::String gDuckSource   { "duck_source" };
+inline const juce::String gSceneStore   { "scene_store" };
+inline constexpr int kNumScenes = 8;
+inline constexpr int kCaptureBars[] = { 1, 2, 4, 8 };
+/** "scene1" .. "scene8" */
+juce::String sceneId (int scene);
 
 /** True for momentary "button" parameters (they reset to off right after triggering). */
 bool isTrigger (const juce::String& paramId);
@@ -70,6 +88,9 @@ juce::StringArray dubModeChoices();
 juce::StringArray measureChoices();
 juce::StringArray fxTypeChoices();
 juce::StringArray rhythmChoices();
+juce::StringArray outputChoices();
+juce::StringArray duckSourceChoices();
+juce::StringArray captureBarsChoices();
 
 /** The choice lists above are English; this translates a list into the current UI language. */
 juce::StringArray translated (const juce::StringArray& englishChoices);
