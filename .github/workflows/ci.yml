@@ -19,7 +19,7 @@ jobs:
     name: Linux - build, unit tests, host test, pluginval
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install dependencies
         run: |
@@ -61,7 +61,7 @@ jobs:
             pluginvalBin: ./pluginval.exe
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Configure
         shell: bash
@@ -108,7 +108,7 @@ jobs:
           cp docs/de/INSTALLATION.md dist/livelooper/INSTALLATION-DE.md
           cd dist && 7z a -tzip ../livelooper-${{ matrix.name }}.zip livelooper > /dev/null || zip -qr ../livelooper-${{ matrix.name }}.zip livelooper
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: livelooper-${{ matrix.name }}
           path: livelooper-${{ matrix.name }}.zip
@@ -119,10 +119,10 @@ jobs:
     needs: plugins
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: artifacts
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           files: artifacts/**/*.zip
           generate_release_notes: true
