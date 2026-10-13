@@ -442,6 +442,30 @@ public:
             dir.deleteRecursively();
         }
 
+        beginTest ("Drag out: a loop becomes a new tempo-tagged WAV in the drag folder");
+        {
+            Proc13 h;
+            expect (! h.proc.exportLoopForDrag (0).exists(), "empty track: nothing to drag");
+            h.recordLoop (0, 40);
+            const auto a = h.proc.exportLoopForDrag (0);
+            const auto b = h.proc.exportLoopForDrag (0);
+            expect (a.existsAsFile() && b.existsAsFile());
+            expect (a != b, "each drag writes its own file (Live keeps referencing older ones)");
+            expect (a.isAChildOf (LiveLooperProcessor::getDragExportFolder()));
+            expect (a.getFileName().startsWith ("livelooper-track1-") && a.hasFileExtension ("wav"));
+            juce::WavAudioFormat wav;
+            std::unique_ptr<juce::AudioFormatReader> reader (wav.createReaderFor (a.createInputStream().release(), true));
+            expect (reader != nullptr);
+            if (reader != nullptr)
+            {
+                expectEquals ((int) reader->lengthInSamples, h.proc.getEngine().getTrack (0).getLength());
+                expect (reader->metadataValues.containsKey (juce::WavAudioFormat::acidTempo));
+            }
+            reader.reset();
+            a.deleteFile();
+            b.deleteFile();
+        }
+
         beginTest ("New parameters reach the engine and are MIDI-mappable");
         {
             Proc13 h;

@@ -66,6 +66,12 @@ public:
     /** Writes every track with a loop as 24-bit WAV (with tempo / beat metadata) into the folder.
         Returns the number of files. */
     int exportStems (const juce::File& folder);
+    /** Writes one track as a 24-bit WAV with tempo / beat info (ACID chunk), as the stem export does. */
+    bool writeLoopWav (int track, const juce::File& file);
+    /** Folder for loops dragged out of the plug-in (kept, because Live references the files). */
+    static juce::File getDragExportFolder();
+    /** Writes track 'track' to a new file in the drag folder for drag & drop into Live; returns {} when empty. */
+    juce::File exportLoopForDrag (int track);
 
     //============================================================================== Ableton Push
     /** Direct control from Push (1) through its User port, in the plug-in and the standalone app. */

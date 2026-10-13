@@ -1153,6 +1153,10 @@ void LiveLooperEditor::importTrack (int track)
 
 bool LiveLooperEditor::isInterestedInFileDrag (const juce::StringArray& files)
 {
+    // a loop dragged out of livelooper itself is not imported again
+    for (const auto& f : files)
+        if (juce::File (f).isAChildOf (LiveLooperProcessor::getDragExportFolder()))
+            return false;
     for (const auto& f : files)
         if (juce::File (f).hasFileExtension ("wav;aif;aiff;flac;ogg;mp3;llset"))
             return true;

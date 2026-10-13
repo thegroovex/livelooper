@@ -723,6 +723,35 @@ void TrackStrip::paint (juce::Graphics& g)
     }
 }
 
+void TrackStrip::mouseMove (const juce::MouseEvent& e)
+{
+    setMouseCursor (lcdArea.contains (e.getPosition()) && canDragOut() ? juce::MouseCursor::DraggingHandCursor
+                                                                         : juce::MouseCursor::NormalCursor);
+}
+
+void TrackStrip::mouseDrag (const juce::MouseEvent& e)
+{
+    if (dragOutStarted || ! lcdArea.contains (e.getMouseDownPosition()) || e.getDistanceFromDragStart() < 6 || ! canDragOut())
+        return;
+    dragOutStarted = true;
+    const auto file = proc.exportLoopForDrag (track);
+    if (file.existsAsFile())
+        juce::DragAndDropContainer::performExternalDragDropOfFiles ({ file.getFullPathName() }, false, this);
+}
+
+void TrackStrip::mouseUp (const juce::MouseEvent&)
+{
+    dragOutStarted = false;
+}
+
+juce::String TrackStrip::getTooltip()
+{
+    const auto pos = getMouseXYRelative();
+    if (lcdArea.contains (pos) && canDragOut())
+        return tr ("Drag the waveform onto an audio track in Live to export the loop");
+    return {};
+}
+
 void TrackStrip::refresh (bool blinkPhase)
 {
     const auto& st = proc.getEngine().getTrackStatus (track);

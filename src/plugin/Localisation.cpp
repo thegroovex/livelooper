@@ -142,6 +142,7 @@ namespace
         { "Cancel", "Abbrechen" },
         { "Export track %1", "Spur %1 exportieren" },
         { "Import audio to track %1", "Audio in Spur %1 importieren" },
+        { "Drag the waveform onto an audio track in Live to export the loop", "Wellenform auf eine Audiospur in Live ziehen, um den Loop zu exportieren" },
 
         // ---------------------------------------------------------------- track display
         { "TRACK %1", "SPUR %1" },

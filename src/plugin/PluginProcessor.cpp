@@ -605,43 +605,75 @@ void LiveLooperProcessor::setVisibleTracks (int n)
     sendChangeMessage();
 }
 
+bool LiveLooperProcessor::writeLoopWav (int t, const juce::File& file)
+{
+    if (! juce::isPositiveAndBelow (t, kNumTracks))
+        return false;
+    const double bpm = std::max (20.0, engine.getCurrentBpm());
+    juce::AudioBuffer<float> audio;
+    double spp = 0.0;
+    if (! snapshotTrack (t, audio, &spp) || audio.getNumSamples() == 0)
+        return false;
+    const double loopBpm = spp > 0.0 ? engine.getSampleRate() * 60.0 / spp : bpm;
+    const double beats = spp > 0.0 ? audio.getNumSamples() / spp : 0.0;
+    file.getParentDirectory().createDirectory();
+    file.deleteFile();
+    auto stream = std::unique_ptr<juce::OutputStream> (file.createOutputStream());
+    if (stream == nullptr)
+        return false;
+    std::unordered_map<juce::String, juce::String> meta {
+        { juce::WavAudioFormat::acidOneShot, "0" },   { juce::WavAudioFormat::acidRootSet, "0" },
+        { juce::WavAudioFormat::acidStretch, "1" },   { juce::WavAudioFormat::acidDiskBased, "0" },
+        { juce::WavAudioFormat::acidizerFlag, "1" },  { juce::WavAudioFormat::acidRootNote, "60" },
+        { juce::WavAudioFormat::acidBeats, juce::String (juce::roundToInt (beats)) },
+        { juce::WavAudioFormat::acidDenominator, "4" }, { juce::WavAudioFormat::acidNumerator, "4" },
+        { juce::WavAudioFormat::acidTempo, juce::String (loopBpm, 3) }
+    };
+    juce::WavAudioFormat wav;
+    auto writer = wav.createWriterFor (stream, juce::AudioFormatWriterOptions {}
+                                                   .withSampleRate (engine.getSampleRate())
+                                                   .withNumChannels (2)
+                                                   .withBitsPerSample (24)
+                                                   .withMetadataValues (meta));
+    return writer != nullptr && writer->writeFromAudioSampleBuffer (audio, 0, audio.getNumSamples());
+}
+
+static juce::String loopFileStem (int t, double bpm)
+{
+    return "livelooper-track" + juce::String (t + 1) + "-" + juce::String (juce::roundToInt (bpm)) + "bpm";
+}
+
 int LiveLooperProcessor::exportStems (const juce::File& folder)
 {
     folder.createDirectory();
-    const double bpm = std::max (20.0, engine.getCurrentBpm());
     int written = 0;
     for (int t = 0; t < visibleTracks.load(); ++t)
     {
-        juce::AudioBuffer<float> audio;
-        double spp = 0.0;
-        if (! snapshotTrack (t, audio, &spp) || audio.getNumSamples() == 0)
+        if (engine.getTrack (t).getLength() <= 0)
             continue;
-        const double loopBpm = spp > 0.0 ? engine.getSampleRate() * 60.0 / spp : bpm;
-        const double beats = spp > 0.0 ? audio.getNumSamples() / spp : 0.0;
-        const auto file = folder.getChildFile ("livelooper-track" + juce::String (t + 1) + "-"
-                                               + juce::String (juce::roundToInt (loopBpm)) + "bpm.wav");
-        file.deleteFile();
-        auto stream = std::unique_ptr<juce::OutputStream> (file.createOutputStream());
-        if (stream == nullptr)
-            continue;
-        std::unordered_map<juce::String, juce::String> meta {
-            { juce::WavAudioFormat::acidOneShot, "0" },   { juce::WavAudioFormat::acidRootSet, "0" },
-            { juce::WavAudioFormat::acidStretch, "1" },   { juce::WavAudioFormat::acidDiskBased, "0" },
-            { juce::WavAudioFormat::acidizerFlag, "1" },  { juce::WavAudioFormat::acidRootNote, "60" },
-            { juce::WavAudioFormat::acidBeats, juce::String (juce::roundToInt (beats)) },
-            { juce::WavAudioFormat::acidDenominator, "4" }, { juce::WavAudioFormat::acidNumerator, "4" },
-            { juce::WavAudioFormat::acidTempo, juce::String (loopBpm, 3) }
-        };
-        juce::WavAudioFormat wav;
-        auto writer = wav.createWriterFor (stream, juce::AudioFormatWriterOptions {}
-                                                       .withSampleRate (engine.getSampleRate())
-                                                       .withNumChannels (2)
-                                                       .withBitsPerSample (24)
-                                                       .withMetadataValues (meta));
-        if (writer != nullptr && writer->writeFromAudioSampleBuffer (audio, 0, audio.getNumSamples()))
+        const double spp = engine.getTrack (t).getSamplesPerPpq();
+        const double bpm = spp > 0.0 ? engine.getSampleRate() * 60.0 / spp : std::max (20.0, engine.getCurrentBpm());
+        if (writeLoopWav (t, folder.getChildFile (loopFileStem (t, bpm) + ".wav")))
             ++written;
     }
     return written;
+}
+
+juce::File LiveLooperProcessor::getDragExportFolder()
+{
+    return juce::File::getSpecialLocation (juce::File::userMusicDirectory).getChildFile ("livelooper").getChildFile ("Dragged Loops");
+}
+
+juce::File LiveLooperProcessor::exportLoopForDrag (int t)
+{
+    if (! juce::isPositiveAndBelow (t, kNumTracks) || engine.getTrack (t).getLength() <= 0)
+        return {};
+    const double spp = engine.getTrack (t).getSamplesPerPpq();
+    const double bpm = spp > 0.0 ? engine.getSampleRate() * 60.0 / spp : std::max (20.0, engine.getCurrentBpm());
+    // a new file each time: Live keeps referencing the files it imported
+    const auto stamp = juce::Time::getCurrentTime().formatted ("%Y%m%d-%H%M%S");
+    auto file = getDragExportFolder().getChildFile (loopFileStem (t, bpm) + "-" + stamp + ".wav").getNonexistentSibling (false);
+    return writeLoopWav (t, file) ? file : juce::File();
 }
 
 void LiveLooperProcessor::pressTrigger (const juce::String& paramId)

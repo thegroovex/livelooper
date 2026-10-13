@@ -190,12 +190,19 @@ private:
 
 //==============================================================================
 /** One of the five track strips. */
-class TrackStrip : public juce::Component
+class TrackStrip : public juce::Component,
+                   public juce::SettableTooltipClient
 {
 public:
     TrackStrip (LiveLooperProcessor& p, int track);
     void resized() override;
     void paint (juce::Graphics& g) override;
+    // drag the waveform out of the plug-in (e.g. onto an audio track in Live)
+    void mouseMove (const juce::MouseEvent& e) override;
+    void mouseDrag (const juce::MouseEvent& e) override;
+    void mouseUp (const juce::MouseEvent& e) override;
+    juce::String getTooltip() override;
+    bool canDragOut() const noexcept { return waveValid && proc.getEngine().getTrack (track).getLength() > 0; }
     void refresh (bool blinkPhase);
     int getTrackIndex() const noexcept { return track; }
     StopButton& getStopButton() noexcept { return stop; }
@@ -222,6 +229,7 @@ private:
 
     std::array<float, kWaveBins> wave {};
     bool waveValid = false;
+    bool dragOutStarted = false;
     int waveCounter = 0;
     std::array<MeterBallistics, 2> meter;
     bool meterInput = false;
