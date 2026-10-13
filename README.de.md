@@ -8,7 +8,7 @@
 
 ## Funktionen
 
-- **5 Loop-Spuren** mit REC → DUB → PLAY, STOP (halten = löschen), Undo/Redo des letzten Overdubs, Level, Pan, Reverse, One-Shot, Loop-Sync
+- **5 oder 8 Loop-Spuren** mit REC → DUB → PLAY, STOP (halten = löschen), Undo/Redo des letzten Overdubs, Level, Pan, Reverse, One-Shot, Loop-Sync
 - **Quantisierung** auf Takt oder Schlag, synchron zu Tempo, Taktart und Transport von Live (oder interne Clock mit Tap-Tempo)
 - **Feste Loop-Längen** (1, 2, 4, 8, 16 Takte) oder freie Länge; „zu spät gedrückt" wird bis 15 % nach dem Taktstrich rückwirkend korrigiert
 - **Input-FX und Track-FX**: je vier Slots (A–D) mit 12 Effekten – LPF, HPF, BPF, Phaser, Flanger, Delay (tempo-synchron), Reverb, Slicer, Tremolo, Auto Pan, Lo-Fi, Overdrive
@@ -25,6 +25,12 @@
 - **Cue-Ausgang** in der Standalone-App: Rhythmus/Metronom auf ein eigenes Ausgangspaar (z. B. Kopfhörer) statt oder zusätzlich zum Hauptausgang
 - **Zwei Metronomklänge** (Piep, Holzblock) und moderne synthetisierte Drum-Sounds
 - **App-Icon** für die Standalone-App (macOS-Dock, Windows)
+- **Capture**: die zuletzt gespielten 1–8 Takte nachträglich zum Loop machen, ganz ohne Aufnahmetaste
+- **Auto-Aufnahme**: scharf geschaltete Spuren starten mit dem ersten Ton über einer Schwelle
+- **Szenen**: 8 Szenen-Knöpfe starten und stoppen Spurgruppen im Takt
+- **Feedback, Ducking, Tonhöhe und Time-Stretch** pro Spur (Signalsmith Stretch), Resampling der anderen Spuren
+- **Direkte Spurausgänge** (Multi-Out im Plug-in, Interface-Ausgänge in der Standalone-App) und **Stem-Export** mit Tempo-Metadaten
+- **Geister-Abspielmarke**: gestoppte Spuren zeigen, wo sie gerade wären
 - **Oberfläche auf Deutsch und Englisch**: umschaltbar unter *SETUP → Language / Sprache* (Automatisch folgt der Systemsprache)
 
 ## Warum VST3/AU?
@@ -63,3 +69,5 @@ JUCE 8 wird beim Konfigurieren automatisch geladen. Details in [ENTWICKLUNG.md](
 ## Lizenz
 
 Für den livelooper-Quellcode ist noch keine Lizenz festgelegt. livelooper basiert auf dem JUCE-Framework, das unter AGPLv3 oder einer kommerziellen JUCE-Lizenz steht – bei Weitergabe von Binärdateien gelten deren Bedingungen.
+
+Fremdcode in `third_party/`: [Signalsmith Stretch](https://github.com/Signalsmith-Audio/signalsmith-stretch) und Signalsmith Linear (Time-Stretch / Tonhöhe), beide unter MIT-Lizenz – siehe deren `LICENSE.txt`.

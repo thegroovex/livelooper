@@ -8,7 +8,7 @@
 
 ## Features
 
-- **5 loop tracks** with REC → DUB → PLAY, STOP (hold = clear), undo/redo of the last overdub, level, pan, reverse, one shot, loop sync
+- **5 or 8 loop tracks** with REC → DUB → PLAY, STOP (hold = clear), undo/redo of the last overdub, level, pan, reverse, one shot, loop sync
 - **Quantization** to the bar or beat, locked to Live's tempo, time signature and transport (or an internal clock with tap tempo)
 - **Fixed loop lengths** (1, 2, 4, 8, 16 bars) or free length; pressing "too late" is corrected retroactively up to 15 % after the bar line
 - **Input FX and track FX**: four slots each (A–D) with 12 effects – LPF, HPF, BPF, phaser, flanger, delay (tempo-synced), reverb, slicer, tremolo, auto pan, lo-fi, overdrive
@@ -25,6 +25,12 @@
 - **Cue output** in the standalone app: send the rhythm / metronome to a separate output pair (e.g. headphones) instead of, or in addition to, the main output
 - **Two metronome sounds** (beep, woodblock) and modern synthesised drum sounds
 - **App icon** for the standalone app (macOS Dock, Windows)
+- **Capture**: turn the last 1–8 bars you played into a loop afterwards, no record press needed
+- **Auto record**: armed tracks start with the first note above a threshold
+- **Scenes**: 8 scene buttons start and stop groups of tracks in time
+- **Feedback, ducking, pitch and time-stretch** per track (Signalsmith Stretch), resampling of the other tracks
+- **Direct track outputs** (plug-in multi-out, interface outputs in the standalone app) and **stem export** with tempo metadata
+- **Ghost play head**: stopped tracks show where they would be now
 - **English and German user interface**: switch under *SETUP → Language / Sprache* (automatic follows your system language)
 
 ## Why VST3/AU?
@@ -63,3 +69,5 @@ JUCE 8 is downloaded automatically during configuration. Details in [DEVELOPMENT
 ## License
 
 No license has been chosen for the livelooper source code yet. livelooper is based on the JUCE framework, which is available under AGPLv3 or a commercial JUCE license – its terms apply when distributing binaries.
+
+Third-party code in `third_party/`: [Signalsmith Stretch](https://github.com/Signalsmith-Audio/signalsmith-stretch) and Signalsmith Linear (time-stretch / pitch shift), both MIT licensed – see their `LICENSE.txt`.
