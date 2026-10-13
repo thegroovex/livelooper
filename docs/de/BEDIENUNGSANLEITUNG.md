@@ -12,9 +12,10 @@ Die Oberfläche ist wie ein Hardware-Looper aufgebaut. Die Bezeichnungen in dies
 | EINGANGS-FX (links) | vier Effekt-Slots A–D für das Eingangssignal |
 | … BEARBEITEN (Mitte) | Effekttyp und Regler des gerade gewählten Slots |
 | SPUR-FX (rechts) | vier Effekt-Slots A–D für die Spuren mit eingeschaltetem **FX** |
-| SPUR 1–5 | die fünf Loop-Spuren |
+| SPUR 1–5 (oder 1–8) | die Loop-Spuren (SETUP → Spuren) |
 | RHYTHMUS | Drumcomputer, Tempo, Tap |
-| MASTER | Quantisierung, Host-Sync, Pegel, Fade-Zeit, ALLE START / STOP, ALLE LÖSCHEN |
+| MASTER | Quantisierung, Host-Sync, Pegel, Fade-Zeit, ALLE START / STOP, CAPTURE, ALLE LÖSCHEN |
+| Fußleiste | 8 Szenen-Knöpfe, SPEICHERN |
 
 Das Fenster lässt sich an der rechten unteren Ecke größer und kleiner ziehen; die Oberfläche skaliert mit. Fährt man mit der Maus über ein Element, erscheint ein Hinweis.
 
@@ -189,10 +190,10 @@ Standardbelegung – eine Tastaturspalte pro Spur:
 
 | Taste | Funktion |
 |---|---|
-| **1 2 3 4 5** | REC/PLAY Spur 1–5 |
-| **Q W E R T** | STOP Spur 1–5 |
+| **1 2 3 4 5** (6 7 8) | REC/PLAY Spur 1–5 (6–8) |
+| **Q W E R T** (Y U I) | STOP Spur 1–5 (6–8) |
 | **Shift + Q … T** | Spur 1–5 LÖSCHEN – Taste 1,5 s halten, wie die STOP-Taste (kurzes Antippen löscht nicht) |
-| **A S D F G** | ZURÜCK (Undo) Spur 1–5 |
+| **A S D F G** (H J L) | ZURÜCK (Undo) Spur 1–5 (6–8) |
 | **Shift + A … G** | VOR (Redo) Spur 1–5 |
 | **Leertaste** | ALLE START / STOP |
 | **Shift + Rücktaste** | ALLE LÖSCHEN (mit Rückfrage) |
@@ -226,7 +227,7 @@ Auf die große Tempo-Zahl im Display klicken (oder **B** drücken, oder Rechtskl
 
 ## 13. Looper-Sets
 
-Ein Set speichert den kompletten Looper in einer Datei (`.llset`): alle fünf Loops, Pegel, Pan, Spur-Einstellungen, Effekte, Rhythmus, Tempo und Quantisierung.
+Ein Set speichert den kompletten Looper in einer Datei (`.llset`): alle Loops, Pegel, Pan, Spur-Einstellungen, Effekte, Rhythmus, Tempo und Quantisierung.
 
 - **SETUP → Set speichern ...** schreibt ein Set (ein Set enthält immer seine Loops, auch wenn *Loops mit dem Projekt speichern* aus ist).
 - **SETUP → Set laden ...** lädt eins; alternativ eine `.llset`-Datei auf das Fenster ziehen.
@@ -264,3 +265,42 @@ Ohne Cue-Paar (und im Plug-in) spielt der Rhythmus immer auf dem Hauptausgang �
 | Dub-Modus: Overdub · Ersetzen | Dub mode: Overdub · Replace |
 | Takte | Measures |
 | LEER · STOPPT · WARTET · ENDE · GELÖSCHT | EMPTY · STOPPING · WAIT · END · CLEARED |
+
+## 16. Capture (rückwirkende Aufnahme)
+
+Du hast etwas Gutes gespielt, ohne Aufnahme zu drücken? Drück **CAPTURE** (MASTER-Bereich). Die zuletzt gespielten Takte werden ein Loop auf der ersten leeren Spur und laufen sofort im Takt weiter. Die Länge stellst du unter **SETUP → Capture-Länge** ein (1, 2, 4 oder 8 Takte). Wurde weniger gespielt, nimmt livelooper die größte Länge, die passt. Im SETUP jeder Spur gibt es außerdem einen **CAPTURE**-Knopf für genau diese Spur. **UNDO** entfernt einen Capture-Loop wieder.
+
+## 17. Auto-Aufnahme
+
+**SETUP → Auto-Aufnahme**: Scharf geschaltete Spuren (REC gedrückt, Anzeige **AUTO REC**) warten, bis das Eingangssignal die Schwelle überschreitet (-50 bis -12 dB), und starten mit dem ersten Ton. So bleiben die Hände am Instrument. Erneutes Drücken von REC bricht ab.
+
+## 18. Spur-Einstellungen: Feedback, Ducking, Tonhöhe, Tempo folgen, Ausgang
+
+![Spur-Setup](../images/livelooper-track-setup-de.png)
+
+| Einstellung | Bedeutung |
+|---|---|
+| **FEEDBACK** | wie viel vom Loop bei jedem Overdub-Durchlauf erhalten bleibt. 100 % = alles (klassisches Overdub), kleinere Werte lassen ältere Schichten wie bei einem Bandecho ausklingen |
+| **DUCKING** | senkt die Spur ab, während die Ducking-Quelle spielt (**SETUP → Ducking-Quelle**: Kick des Rhythmus oder Spur 1). Ergibt pumpende Sidechain-Grooves |
+| **TONHÖHE** | -12 bis +12 Halbtöne, die Länge bleibt gleich |
+| **TEMPO FOLGEN** | der Loop folgt Tempoänderungen (Host oder intern), ohne seine Tonhöhe zu ändern (Time-Stretch) |
+| **AUSGANG** | Haupt · Direkt · Haupt + Direkt: wo die Spur zu hören ist (Abschnitt 20) |
+| **Eingang → Resample** | die Spur nimmt die Summe der anderen Spuren auf (Bounce): Loops auf einer Spur zusammenfassen und die anderen frei machen |
+
+## 19. Szenen
+
+In der Fußleiste gibt es **8 Szenen-Knöpfe**. Ein leerer Szenen-Knopf speichert beim ersten Drücken, welche Spuren gerade spielen. Eine gespeicherte Szene startet ihre Spuren und stoppt die anderen, quantisiert auf den nächsten Takt oder Schlag. **SPEICHERN** + Szenen-Knopf überschreibt eine Szene. Eine schwache LED zeigt eine gespeicherte Szene, eine helle die zuletzt aufgerufene. Szenen werden mit dem Projekt und in Sets gespeichert und lassen sich per MIDI steuern.
+
+## 20. Direkte Spurausgänge
+
+- **Plug-in**: livelooper hat pro Spur einen optionalen Stereo-Ausgang („Track 1“ … „Track 8“). Aktiviere ihn im Host, in Ableton Live zum Beispiel über eine zweite Audiospur mit *Audio von: livelooper → Track 1*.
+- **Standalone-App**: **SETUP → Direkte Spurausgänge** weist jeder Spur ein Ausgangspaar des Audio-Interfaces zu (ab Ausgang 3/4, nicht das Cue-Paar).
+- Im Spur-SETUP legt **AUSGANG** fest: *Haupt*, *Direkt* (nur der direkte Ausgang) oder *Haupt + Direkt*. Ohne aktiven direkten Ausgang spielt die Spur immer auf dem Hauptausgang.
+
+## 21. 8 Spuren, Geister-Abspielmarke, Stem-Export
+
+- **SETUP → Spuren → 8 Spuren** zeigt drei weitere Spuren und macht das Fenster breiter. Ausgeblendete Spuren belegen keinen Speicher. Beim Zurückschalten auf 5 Spuren werden die Spuren 6 bis 8 gelöscht.
+- **Geister-Abspielmarke**: Eine gestoppte Spur zeigt mit einer gepunkteten Linie, wo sie gerade spielen würde. So holst du sie punktgenau wieder rein.
+- **SETUP → Stems exportieren** schreibt jede Spur mit Loop als 24-Bit-WAV (`livelooper-track1-120bpm.wav`) mit Tempo- und Taktangaben. Ableton Live und andere DAWs legen sie dadurch direkt im Raster ab.
+
+![8 Spuren](../images/livelooper-8-tracks-de.png)

@@ -51,13 +51,13 @@ src/
   engine/                 UI-freier DSP-Kern (nur juce_audio_basics)
     Types.h               Einstellungen, Enums, TimeInfo
     LoopTrack.*           eine Spur: Aufnahme, Overdub, Wiedergabe, Undo/Redo, Fades
-    LooperEngine.*        5 Spuren, Zeitachse/Quantisierung, Befehle, FX-Busse, Rhythmus, Status
+    LooperEngine.*        8 Spuren (5 oder 8 sichtbar), Zeitachse/Quantisierung, Befehle, FX-Busse, Rhythmus, Status
     Effects.*             FxUnit (12 Effekte) und FxChain (4 Slots)
     RhythmGenerator.*     synthetischer Drumcomputer, 12 Pattern
     MidiMap.*             MIDI-Learn-Tabelle (lock-frei)
   plugin/
     Localisation.*        deutsche/englische Texte, Spracheinstellung
-    Parameters.*          alle 137 Parameter (IDs, Bereiche, Gruppen, englische und lokalisierte Namen)
+    Parameters.*          alle 247 Parameter (IDs, Bereiche, Gruppen, englische und lokalisierte Namen)
     PluginProcessor.*     AudioProcessor: Parameter → Engine, Taster, MIDI, Zustand, Import/Export
     PluginEditor.*        Oberfläche, MIDI-Learn-Modus, Menüs, Drag & Drop
     Widgets.*             REC/PLAY-Pad, STOP-Pad, Display, FX-Slot, Spur, Spur-Setup

@@ -61,4 +61,4 @@ livelooper spricht Deutsch und Englisch. Standardmäßig folgt es der Sprache de
 
 - macOS 11 oder neuer, Windows 10/11 (64 Bit)
 - Ableton Live 10.1 oder neuer (VST3), jede Edition
-- Arbeitsspeicher: pro Spur werden `2 × Max. Loop-Länge` Stereo-Audio reserviert (für Undo). Bei 48 kHz und 60 s (Standard) sind das rund 230 MB für alle fünf Spuren; einstellbar unter **SETUP → Maximale Loop-Länge**.
+- Arbeitsspeicher: pro Spur werden `2 × Max. Loop-Länge` Stereo-Audio reserviert (für Undo). Bei 48 kHz und 60 s (Standard) sind das rund 230 MB für fünf Spuren (acht Spuren: rund 370 MB); einstellbar unter **SETUP → Maximale Loop-Länge**.

@@ -2,7 +2,7 @@
 
 **English** | [Deutsch](README.de.md)
 
-**livelooper** is a five-track loop station plug-in for Ableton Live (VST3 and Audio Unit, plus a standalone app). Record, overdub, effects, rhythm, and every single function freely mappable to MIDI – built for live looping on stage and in the studio.
+**livelooper** is a five- or eight-track loop station plug-in for Ableton Live (VST3 and Audio Unit, plus a standalone app). Record, overdub, effects, rhythm, and every single function freely mappable to MIDI – built for live looping on stage and in the studio.
 
 ![livelooper](docs/images/livelooper.png)
 
@@ -14,7 +14,7 @@
 - **Input FX and track FX**: four slots each (A–D) with 12 effects – LPF, HPF, BPF, phaser, flanger, delay (tempo-synced), reverb, slicer, tremolo, auto pan, lo-fi, overdrive
 - **Rhythm**: built-in drum machine with metronome and 11 patterns, always in sync
 - **Start/stop modes**: immediate, fade in/fade out, stop at loop end; dub mode overdub or replace
-- **Full MIDI control**: all 137 functions are host parameters (Live's MIDI map) and also have their own MIDI learn via right-click
+- **Full MIDI control**: all 247 functions are host parameters (Live's MIDI map) and also have their own MIDI learn via right-click
 - **Follow transport**: loops start and stop with Live
 - **Saved with your project**: loops are stored losslessly (FLAC, 24 bit) inside the Live set
 - **Import/export**: export loops as WAV, drag & drop audio files onto a track

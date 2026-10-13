@@ -64,7 +64,7 @@ Automation in Arrangement view works too, e.g. to start a recording exactly at a
 
 ## Parameter list
 
-137 parameters, names as shown in Live with the English interface (with the German interface they are localised, e.g. "S1 Pegel" instead of "T1 Level"; the internal IDs and your saved assignments stay the same):
+247 parameters, names as shown in Live with the English interface (with the German interface they are localised, e.g. "S1 Pegel" instead of "T1 Level"; the internal IDs and your saved assignments stay the same):
 
 **Per track (T1 … T5)** – 16 each:
 `Rec/Play`, `Stop`, `Clear`, `Undo`, `Redo` (buttons) · `Level`, `Pan` · `Reverse`, `One Shot`, `Loop Sync`, `Track FX` (switches) · `Input`, `Start Mode`, `Stop Mode`, `Dub Mode`, `Measures` (selectors)

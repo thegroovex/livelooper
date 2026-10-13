@@ -12,9 +12,10 @@ The interface is laid out like a hardware looper:
 | INPUT FX (left) | four effect slots A–D for the input signal |
 | FX EDIT (centre) | effect type and knobs of the selected slot |
 | TRACK FX (right) | four effect slots A–D for the tracks with **FX** switched on |
-| TRACK 1–5 | the five loop tracks |
+| TRACK 1–5 (or 1–8) | the loop tracks (SETUP → Tracks) |
 | RHYTHM | drum machine, tempo, tap |
-| MASTER | quantization, host sync, levels, fade time, ALL START/STOP, CLEAR ALL |
+| MASTER | quantization, host sync, levels, fade time, ALL START/STOP, CAPTURE, CLEAR ALL |
+| Footer | 8 scene buttons, STORE |
 
 Drag the bottom right corner to resize the window; the interface scales with it. Hover over any control to see a tooltip.
 
@@ -189,10 +190,10 @@ Default mapping – one keyboard column per track:
 
 | Key | Function |
 |---|---|
-| **1 2 3 4 5** | REC/PLAY of track 1–5 |
-| **Q W E R T** | STOP track 1–5 |
+| **1 2 3 4 5** (6 7 8) | REC/PLAY of track 1–5 (6–8) |
+| **Q W E R T** (Y U I) | STOP track 1–5 (6–8) |
 | **Shift + Q … T** | CLEAR track 1–5 – hold the key for 1.5 s, like the STOP button (a short tap does nothing) |
-| **A S D F G** | UNDO track 1–5 |
+| **A S D F G** (H J L) | UNDO track 1–5 (6–8) |
 | **Shift + A … G** | REDO track 1–5 |
 | **Space** | ALL START / STOP |
 | **Shift + Backspace** | CLEAR ALL (asks first) |
@@ -224,7 +225,7 @@ Click the big tempo number on the display (or press **B**, or right-click the TE
 
 ## 13. Looper sets
 
-A set stores the whole looper in one file (`.llset`): all five loops, levels, pan, track settings, effects, rhythm, tempo and quantize settings.
+A set stores the whole looper in one file (`.llset`): all loops, levels, pan, track settings, effects, rhythm, tempo and quantize settings.
 
 - **SETUP → Save set ...** writes a set (a set always contains its loops, even if *Save loops with the project* is off).
 - **SETUP → Load set ...** loads one; you can also drop a `.llset` file onto the window.
@@ -242,3 +243,42 @@ Without a cue pair (or in a plug-in) the rhythm always plays on the main output,
 ## 15. Metronome sound
 
 **SETUP → Metronome sound** switches between **Beep** (classic) and **Woodblock**. The drum patterns use synthesised kick, snare, hand clap and metallic hi-hats.
+
+## 16. Capture (retrospective recording)
+
+You played something great without pressing record? Press **CAPTURE** (MASTER panel). The last bars you played become a loop on the first empty track and play on at once, in time. The length is set in **SETUP → Capture length** (1, 2, 4 or 8 bars). If less was played, livelooper takes the largest length that fits. Every track's SETUP also has a **CAPTURE** button for that track. **UNDO** removes a captured loop.
+
+## 17. Auto record
+
+**SETUP → Auto record**: armed tracks (REC pressed, display **AUTO REC**) wait until the input passes the threshold (-50 to -12 dB) and start recording with the first note. Hands stay on the instrument. Pressing REC again cancels.
+
+## 18. Track settings: feedback, ducking, pitch, follow tempo, output
+
+![Track setup](../images/livelooper-track-setup.png)
+
+| Setting | Meaning |
+|---|---|
+| **FEEDBACK** | how much of the loop remains with every overdub pass. 100 % = all (classic overdub); lower values let older layers fade away like tape echo |
+| **DUCKING** | lowers the track while the ducking source plays (**SETUP → Ducking source**: the rhythm's kick or track 1). Gives pumping, sidechain-style grooves |
+| **PITCH** | -12 to +12 semitones, the length stays the same |
+| **FOLLOW TEMPO** | the loop follows tempo changes (host or internal) without changing pitch (time-stretch) |
+| **OUTPUT** | Main · Direct · Main + Direct: where the track is heard (section 20) |
+| **Input → Resample** | the track records the mix of the other tracks (bounce): combine loops on one track and free the others |
+
+## 19. Scenes
+
+The footer has **8 scene buttons**. Pressing an empty scene stores which tracks are playing. Pressing a stored scene starts its tracks and stops the others, quantized to the next bar or beat. **STORE** + scene button overwrites a scene. A dim LED shows that a scene is stored, a bright one shows the last scene you called up. Scenes are saved with the project and in sets, and they are MIDI-mappable.
+
+## 20. Direct track outputs
+
+- **Plug-in**: livelooper has an optional stereo output per track ("Track 1" … "Track 8"). Enable it in your host, for example in Ableton Live through a second audio track with *Audio From: livelooper → Track 1*.
+- **Standalone app**: **SETUP → Direct track outputs** assigns each track an output pair of the audio interface (outputs 3/4 and up, not the cue pair).
+- In the track SETUP, **OUTPUT** decides between *Main*, *Direct* (only the direct output) and *Main + Direct*. Without an active direct output the track always plays on the main output.
+
+## 21. 8 tracks, ghost play head, stem export
+
+- **SETUP → Tracks → 8 tracks** shows three more tracks and makes the window wider. Hidden tracks use no memory. Switching back to 5 tracks clears tracks 6 to 8.
+- **Ghost play head**: a stopped track shows a dotted line where it would be playing now, so you can bring it back in on cue.
+- **SETUP → Export stems** writes every track with a loop as a 24-bit WAV (`livelooper-track1-120bpm.wav`) with tempo and beat metadata, so Ableton Live and other DAWs drop it straight onto the grid.
+
+![8 tracks](../images/livelooper-8-tracks.png)

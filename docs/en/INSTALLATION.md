@@ -61,4 +61,4 @@ livelooper speaks English and German. By default it follows the language of your
 
 - macOS 11 or later, Windows 10/11 (64 bit)
 - Ableton Live 10.1 or later (VST3), any edition
-- Memory: each track reserves `2 × maximum loop length` of stereo audio (for undo). At 48 kHz and 60 s (default) that is about 230 MB for all five tracks; adjustable under **SETUP → Maximum loop length**.
+- Memory: each track reserves `2 × maximum loop length` of stereo audio (for undo). At 48 kHz and 60 s (default) that is about 230 MB for five tracks (eight tracks: about 370 MB); adjustable under **SETUP → Maximum loop length**.

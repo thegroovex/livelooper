@@ -57,7 +57,7 @@ src/
     MidiMap.*             MIDI learn table (lock-free)
   plugin/
     Localisation.*        English/German texts, language setting
-    Parameters.*          all 137 parameters (IDs, ranges, groups, English and localised names)
+    Parameters.*          all 247 parameters (IDs, ranges, groups, English and localised names)
     PluginProcessor.*     AudioProcessor: parameters → engine, buttons, MIDI, state, import/export
     PluginEditor.*        interface, MIDI learn mode, menus, drag & drop
     Widgets.*             REC/PLAY pad, STOP pad, display, FX slot, track, track setup
