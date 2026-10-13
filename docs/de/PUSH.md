@@ -1,6 +1,6 @@
 # Steuerung mit Ableton Push
 
-livelooper spricht **direkt** mit einem Ableton Push (1) über dessen **User-Port**, sowohl im Plug-in (VST3 / AU) als auch in der Standalone-App. Die Pads leuchten mit Status und Loop-Position jeder Spur, das Display zeigt Namen, Werte und Tempo.
+livelooper spricht **direkt** mit einem Ableton Push (1) über dessen **User-Port**, sowohl im Plug-in (VST3 / AU, in jeder DAW) als auch in der Standalone-App. Weil livelooper Push selbst ansteuert, muss deine DAW Push nicht unterstützen. Die Pads leuchten mit Status und Loop-Position jeder Spur, das Display zeigt Namen, Werte und Tempo.
 
 Mit einem Push wird livelooper zu einem eigenständigen Instrument: keine Maus, kein Bildschirm, nur Pads und Encoder – so, wie es live gespielt werden soll.
 
@@ -10,12 +10,14 @@ Push 2 und Push 3 senden dieselben Pad- und Tasten-Nachrichten, die Bedienung so
 
 ## Einrichtung
 
+**In jeder DAW:** Push anschließen, livelooper laden und **USER** auf Push drücken – Push wechselt zu livelooper. **SETUP → Ableton Push** zeigt „Verbunden“. Unter Windows kann einen MIDI-Port immer nur ein Programm benutzen: Hat deine DAW den User-Port von Push („MIDIIN2 / MIDIOUT2 (Ableton Push)“) eingeschaltet, schalte ihn in den MIDI-Einstellungen der DAW aus, damit livelooper ihn öffnen kann.
+
 **In Ableton Live**
 1. Push wie gewohnt eingerichtet lassen (Bedienoberfläche „Push“ in Lives MIDI-Einstellungen).
 2. livelooper laden. **SETUP → Ableton Push** zeigt „Verbunden“.
 3. **USER** auf Push drücken: Push wechselt zu livelooper. Erneut **USER** drücken, und du bist zurück in Live.
 
-**Windows:** Einen MIDI-Port kann immer nur ein Programm benutzen. Lass in Lives MIDI-Einstellungen den Ein- und Ausgang **„MIDIIN2 (Ableton Push)“ / „MIDIOUT2 (Ableton Push)“** ausgeschaltet (Spur, Sync und Fern aus). Sonst kann livelooper den Port nicht öffnen. Unter macOS ist das nicht nötig.
+**Windows (Live):** Lass in Lives MIDI-Einstellungen den Ein- und Ausgang **„MIDIIN2 (Ableton Push)“ / „MIDIOUT2 (Ableton Push)“** ausgeschaltet (Spur, Sync und Fern aus). Sonst kann livelooper den Port nicht öffnen. Unter macOS ist das nicht nötig.
 
 **Standalone-App:** Push anschließen und livelooper starten. Die App schaltet Push selbst in den User-Modus.
 
@@ -107,7 +109,7 @@ Die 8 × 8 Pads werden ein **XY-Pad** für einen Effekt: X (links nach rechts) =
 
 Master-Encoder = Gesamtpegel · Tempo-Encoder = Tempo (1 BPM, mit **SHIFT** 0,1 BPM). Mit **SHIFT** wird fein eingestellt.
 
-**Master-Sektion**: Bei bis zu 6 sichtbaren Spuren sind die beiden Encoder ganz rechts eine Master-Sektion: **Encoder 7 = Gesamtpegel**, **Encoder 8 = Tempo** (BPM, mit **SHIFT** 0,1 BPM); das Display zeigt darüber *Master* und *Tempo*. Bei 8 Spuren (und im DEVICE-Modus) steuern alle acht Encoder Spuren bzw. Effekte; dann gelten der Master-Encoder (oben rechts) und der Tempo-Encoder (oben links), und Zeile 4 zeigt den Gesamtpegel. Mit **HOST SYNC** bestimmt Live das Tempo (Display: *Host*); das interne Tempo gilt nur ohne Host-Sync.
+**Master-Sektion**: Bei bis zu 6 sichtbaren Spuren sind die beiden Encoder ganz rechts eine Master-Sektion: **Encoder 7 = Gesamtpegel**, **Encoder 8 = Tempo** (BPM, mit **SHIFT** 0,1 BPM); das Display zeigt darüber *Master* und *Tempo*. Bei 8 Spuren (und im DEVICE-Modus) steuern alle acht Encoder Spuren bzw. Effekte; dann gelten der Master-Encoder (oben rechts) und der Tempo-Encoder (oben links), und Zeile 4 zeigt den Gesamtpegel. Mit **HOST SYNC** bestimmt der Host (deine DAW) das Tempo (Display: *Host*); das interne Tempo gilt nur ohne Host-Sync.
 
 Swing-Encoder = **Swing** des Rhythmus, **SHIFT** + Swing-Encoder = Rhythmus-Pegel.
 

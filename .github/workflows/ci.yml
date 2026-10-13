@@ -1,7 +1,7 @@
 name: CI
 
 # Linux runs on every push (cheap). macOS and Windows builds - which produce the
-# plug-ins for Ableton Live - run on version tags (v*) and on manual start, because
+# VST3/AU plug-ins for every DAW - run on version tags (v*) and on manual start, because
 # macOS minutes count 10x on private repositories.
 
 on:
