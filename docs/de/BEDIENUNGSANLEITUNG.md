@@ -72,7 +72,7 @@ Der LED-Ring zeigt den Zustand und die Position im Loop:
 | Stop | Sofort · Ausblenden · Loop-Ende | Stopp sofort, mit Ausblendung oder am Ende des Loops |
 | Dub-Modus (Dub mode) | Overdub · Ersetzen | beim Overdub hinzufügen oder ersetzen |
 | Takte (Measures) | Auto · 1 · 2 · 4 · 8 · 16 | Auto = Länge durch zweiten Druck; feste Zahl = Aufnahme endet automatisch nach so vielen Takten |
-| LOOP-SYNC | an/aus | Loop bleibt fest am Taktraster: nach dem Spulen in Live oder beim Neustart läuft er an der passenden Stelle weiter |
+| LOOP-SYNC | an/aus | Loop bleibt fest am Taktraster: nach dem Spulen in der DAW oder beim Neustart läuft er an der passenden Stelle weiter |
 | LÖSCHEN (CLEAR) | | Spur löschen |
 | WAV EXPORT | | Loop als 24-Bit-WAV speichern |
 | IMPORT | | Audiodatei (WAV, AIFF, FLAC, OGG, MP3) in die Spur laden. Schneller: Datei per Drag & Drop auf die Spur ziehen |
@@ -89,9 +89,9 @@ Der LED-Ring zeigt den Zustand und die Position im Loop:
 
 **Rückwirkendes Beenden**: Wer das Ende einer Aufnahme bis zu 15 % eines Rasterschritts *nach* dem Taktstrich drückt, bekommt den Loop trotzdem exakt am Taktstrich beendet – das Gespielte nach dem Taktstrich wird an den Anfang des Loops (in den Overdub) übernommen. Wer zu früh drückt, wartet einfach auf den Taktstrich.
 
-**HOST-SYNC** (Standard an): Tempo, Taktart und Position kommen von Live. Läuft Lives Transport nicht, läuft eine interne Clock im aktuellen Live-Tempo weiter, sobald eine Spur aufnimmt oder spielt. Ohne Host-Sync gilt das interne Tempo (Regler **TEMPO**, **TAP** mehrfach im Takt antippen, oder auf das Tempo im Display klicken und eintippen – siehe Abschnitt 11).
+**HOST-SYNC** (Standard an): Tempo, Taktart und Position kommen von deiner DAW. Läuft der Host-Transport nicht, läuft eine interne Clock im aktuellen Host-Tempo weiter, sobald eine Spur aufnimmt oder spielt. Ohne Host-Sync gilt das interne Tempo (Regler **TEMPO**, **TAP** mehrfach im Takt antippen, oder auf das Tempo im Display klicken und eintippen – siehe Abschnitt 11).
 
-**Host-Transport folgen** (SETUP-Menü): Loops starten mit Lives Play-Taste und stoppen mit Lives Stop-Taste.
+**Host-Transport folgen** (SETUP-Menü): Loops starten mit der Play-Taste deiner DAW und stoppen mit ihrer Stop-Taste.
 
 Hinweis: Ändert sich das Tempo, nachdem ein Loop aufgenommen wurde, wird der Loop nicht zeitgedehnt – er spielt in seiner Originalgeschwindigkeit weiter.
 
@@ -144,7 +144,7 @@ Jedes Muster hat Akzente und Ghost-Notes, Hi-Hat-Rolls (Trap) und Percussion (Ri
 | Element | Funktion |
 |---|---|
 | Quantisierung | Aus · Schlag · Takt |
-| HOST-SYNC | Tempo/Transport von Live übernehmen |
+| HOST-SYNC | Tempo/Transport vom Host übernehmen |
 | MASTER | Gesamtpegel 0–200 % |
 | EINGANG (INPUT) | Pegel des direkt durchgeschleiften Eingangs 0–200 % (die Aufnahme ist davon unabhängig) |
 | FADE | Fade-Zeit für Ein-/Ausblenden (10 ms – 8 s) |
@@ -158,9 +158,9 @@ Jedes Muster hat Akzente und Ghost-Notes, Hi-Hat-Rolls (Trap) und Percussion (Ri
 | Eintrag | Bedeutung |
 |---|---|
 | Aufnahme-Aktion (Record action) | „Rec > Dub > Play" (Standard) oder „Rec > Play > Dub". Die Beschriftung der REC-Taste („DUB / PLAY" bzw. „PLAY / DUB") und die unterste Displayzeile zeigen den aktiven Modus. |
-| Host-Transport folgen | Loops starten/stoppen mit Live |
+| Host-Transport folgen | Loops starten/stoppen mit dem Host-Transport |
 | Maximale Loop-Länge | 30 · 60 · 120 · 240 · 480 Sekunden pro Spur (bestimmt den Speicherbedarf; vorhandene Loops bleiben erhalten) |
-| Loops im Projekt speichern | Loops im Live-Set speichern (Standard an). Aus = kleinere Sets, die Loops sind nach dem Laden weg |
+| Loops im Projekt speichern | Loops im DAW-Projekt speichern (Standard an). Aus = kleinere Projekte, die Loops sind nach dem Laden weg |
 | Steuerung mit der Computertastatur | nur Standalone-App: Tasten an/aus (Abschnitt 10) |
 | Tastaturbelegung … | nur Standalone-App: eigene Tastenbelegung (Abschnitt 10) |
 | Tempo eintippen (BPM) … | internes Tempo eintippen (Abschnitt 11) |
@@ -173,8 +173,8 @@ Jedes Muster hat Akzente und Ghost-Notes, Hi-Hat-Rolls (Trap) und Percussion (Ri
 Die gesamte Oberfläche – Knöpfe, Displays, Menüs, Hinweise, Dialoge und Parameternamen – gibt es auf Deutsch und Englisch.
 
 - **SETUP → Language / Sprache → Automatisch** (Standard): Deutsch, wenn das Betriebssystem auf Deutsch eingestellt ist, sonst Englisch.
-- **English** oder **Deutsch** legt die Sprache fest. Die Wahl wird auf diesem Rechner gespeichert und gilt für alle livelooper-Instanzen, in Live und in der Standalone-App.
-- Die Oberfläche wechselt sofort. Die Parameternamen, die Live im Gerät und in der MIDI-Map anzeigt, liest Live beim Laden des Plug-ins – sie wechseln nach dem Neuladen (z. B. Set neu öffnen). Bestehende MIDI-Zuweisungen und Automationen bleiben erhalten.
+- **English** oder **Deutsch** legt die Sprache fest. Die Wahl wird auf diesem Rechner gespeichert und gilt für alle livelooper-Instanzen, in deiner DAW und in der Standalone-App.
+- Die Oberfläche wechselt sofort. Die Parameternamen, die deine DAW anzeigt (Gerät, MIDI-Mapping, Automation), liest sie beim Laden des Plug-ins – sie wechseln nach dem Neuladen (z. B. Projekt neu öffnen). Bestehende MIDI-Zuweisungen und Automationen bleiben erhalten.
 
 ![Englische Oberfläche](../images/livelooper.png)
 
@@ -182,7 +182,7 @@ Die gesamte Oberfläche – Knöpfe, Displays, Menüs, Hinweise, Dialoge und Par
 
 ## 8. Speichern und Laden
 
-Mit dem Live-Set werden gespeichert: alle Parameter, die MIDI-Zuweisungen und – wenn eingeschaltet – die Loops (verlustfrei als FLAC, 24 Bit). Beim Laden sind die Spuren gestoppt und starten mit REC/PLAY oder ALLE START. Wechselt die Samplerate des Projekts, werden die Loops automatisch umgerechnet.
+Mit dem DAW-Projekt werden gespeichert: alle Parameter, die MIDI-Zuweisungen und – wenn eingeschaltet – die Loops (verlustfrei als FLAC, 24 Bit). Beim Laden sind die Spuren gestoppt und starten mit REC/PLAY oder ALLE START. Wechselt die Samplerate des Projekts, werden die Loops automatisch umgerechnet.
 
 ## 9. Display
 
@@ -196,7 +196,7 @@ Mit dem Live-Set werden gespeichert: alle Parameter, die MIDI-Zuweisungen und �
 
 ## 10. Computertastatur (Standalone-App)
 
-In der Standalone-App spielt die Computertastatur livelooper wie ein Hardware-Gerät – ideal am MacBook ohne Controller. In Live gehört die Tastatur Live selbst, deshalb ist das eine Standalone-Funktion (dort gibt es MIDI und Lives eigene Tastaturzuweisung).
+In der Standalone-App spielt die Computertastatur livelooper wie ein Hardware-Gerät – ideal am MacBook ohne Controller. In einer DAW gehört die Tastatur der DAW, deshalb ist das eine Standalone-Funktion (dort gibt es MIDI und die eigenen Tastaturbefehle bzw. Tastaturzuweisung der DAW).
 
 Standardbelegung – eine Tastaturspalte pro Spur:
 
@@ -305,7 +305,7 @@ In der Fußleiste gibt es **8 Szenen-Knöpfe**. Ein leerer Szenen-Knopf speicher
 
 ## 20. Direkte Spurausgänge
 
-- **Plug-in**: livelooper hat pro Spur einen optionalen Stereo-Ausgang („Track 1“ … „Track 8“). Aktiviere ihn im Host, in Ableton Live zum Beispiel über eine zweite Audiospur mit *Audio von: livelooper → Track 1*.
+- **Plug-in**: livelooper hat pro Spur einen optionalen Stereo-Ausgang („Track 1“ … „Track 8“). Aktiviere ihn in deiner DAW (jede Spur bekommt dort dann einen eigenen Ausgang), in Ableton Live zum Beispiel über eine zweite Audiospur mit *Audio von: livelooper → Track 1*.
 - **Standalone-App**: **SETUP → Direkte Spurausgänge** weist jeder Spur ein Ausgangspaar des Audio-Interfaces zu (ab Ausgang 3/4, nicht das Cue-Paar).
 - Im Spur-SETUP legt **AUSGANG** fest: *Haupt*, *Direkt* (nur der direkte Ausgang) oder *Haupt + Direkt*. Ohne aktiven direkten Ausgang spielt die Spur immer auf dem Hauptausgang.
 
@@ -313,18 +313,18 @@ In der Fußleiste gibt es **8 Szenen-Knöpfe**. Ein leerer Szenen-Knopf speicher
 
 - **SETUP → Spuren → 8 Spuren** zeigt drei weitere Spuren und macht das Fenster breiter. Ausgeblendete Spuren belegen keinen Speicher. Beim Zurückschalten auf 5 Spuren werden die Spuren 6 bis 8 gelöscht.
 - **Geister-Abspielmarke**: Eine gestoppte Spur zeigt mit einer gepunkteten Linie, wo sie gerade spielen würde. So holst du sie punktgenau wieder rein.
-- **SETUP → Stems exportieren** schreibt jede Spur mit Loop als 24-Bit-WAV (`livelooper-track1-120bpm.wav`) mit Tempo- und Taktangaben. Ableton Live und andere DAWs legen sie dadurch direkt im Raster ab.
+- **SETUP → Stems exportieren** schreibt jede Spur mit Loop als 24-Bit-WAV (`livelooper-track1-120bpm.wav`) mit Tempo- und Taktangaben (ACID). Die meisten DAWs legen sie dadurch direkt im Raster ab.
 
 ![8 Spuren](../images/livelooper-8-tracks-de.png)
 
-## 22. Loops nach Live ziehen
+## 22. Loops in die DAW ziehen
 
 Pack die **Wellenform** im Display einer Spur und zieh sie aus livelooper heraus:
 
-- auf eine **Audiospur** in Lives Arrangement- oder Session-Ansicht – der Loop wird ein Clip,
-- in Lives **Browser** oder auf den Schreibtisch / Finder / Explorer.
+- auf eine **Audiospur** in deiner DAW – der Loop wird ein Clip bzw. eine Region (in Ableton Live in der Arrangement- oder Session-Ansicht),
+- in den **Browser** deiner DAW oder auf den Schreibtisch / Finder / Explorer.
 
-livelooper schreibt dabei eine neue 24-Bit-WAV mit Tempo- und Taktangaben (`livelooper-track1-120bpm-<Datum>.wav`). Live warpt sie dadurch auf die richtige Länge und legt sie ins Raster. Die Dateien bleiben in *Musik → livelooper → Dragged Loops*, weil Live sie weiter verwendet (mit *Datei → Alles sammeln und sichern* kopiert Live sie in dein Projekt). Zieht man eine solche Datei zurück auf livelooper, passiert nichts. Über einer ziehbaren Wellenform wird der Mauszeiger zur Hand; leere Spuren oder Spuren, die gerade aufnehmen, lassen sich nicht ziehen.
+livelooper schreibt dabei eine neue 24-Bit-WAV mit Tempo- und Taktangaben (ACID-Metadaten, `livelooper-track1-120bpm-<Datum>.wav`). Die meisten DAWs legen sie dadurch in der richtigen Länge ins Raster (Ableton Live etwa warpt sie automatisch). Die Dateien bleiben in *Musik → livelooper → Dragged Loops*, weil das DAW-Projekt sie dort weiter verwendet – mit der Funktion deiner DAW zum Sammeln/Konsolidieren von Dateien kopierst du sie ins Projekt (in Live: *Datei → Alles sammeln und sichern*). Zieht man eine solche Datei zurück auf livelooper, passiert nichts. Über einer ziehbaren Wellenform wird der Mauszeiger zur Hand; leere Spuren oder Spuren, die gerade aufnehmen, lassen sich nicht ziehen.
 
 ## 23. Live spielen
 
@@ -335,4 +335,4 @@ livelooper ist zum Spielen gedacht, wie ein Instrument. Ein paar Gewohnheiten, d
 - **Erst improvisieren, dann aufnehmen**: Spiel einfach – wenn etwas Gutes passiert, drück **CAPTURE**.
 - **Einen Bogen bauen**: Strophe, Refrain und Breakdown als **Szenen** speichern und im Takt wechseln.
 - **Schichten formen statt stapeln**: Feedback unter 100 % lässt alte Schichten ausklingen, Tonhöhe und Reverse machen aus einer Phrase etwas Neues, das FX-XY-Pad auf dem Push ist für Drops und Steigerungen gemacht.
-- **Gute Momente behalten**: Zieh einen Loop auf eine Live-Spur oder exportiere nach dem Auftritt die Stems.
+- **Gute Momente behalten**: Zieh einen Loop auf eine Spur in deiner DAW oder exportiere nach dem Auftritt die Stems.

@@ -80,7 +80,7 @@ Die Position in Viertelnoten (ppq) kommt vom Host, solange dessen Transport läu
 
 ### Taster-Parameter
 
-Momentfunktionen sind Bool-Parameter. Der Processor reagiert auf die steigende Flanke und setzt den Parameter über einen Timer auf dem Message-Thread wieder auf 0. So ist jede Funktion automatisierbar und über Lives MIDI-Map zuweisbar.
+Momentfunktionen sind Bool-Parameter. Der Processor reagiert auf die steigende Flanke und setzt den Parameter über einen Timer auf dem Message-Thread wieder auf 0. So ist jede Funktion automatisierbar und über das MIDI-Mapping des Hosts (z. B. Lives MIDI-Map) zuweisbar.
 
 ### Übersetzungen
 

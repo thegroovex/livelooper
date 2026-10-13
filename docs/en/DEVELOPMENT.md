@@ -80,7 +80,7 @@ The position in quarter notes (ppq) comes from the host while its transport is r
 
 ### Button parameters
 
-Momentary functions are bool parameters. The processor reacts to the rising edge and resets the parameter to 0 via a timer on the message thread. That way every function can be automated and assigned with Live's MIDI map.
+Momentary functions are bool parameters. The processor reacts to the rising edge and resets the parameter to 0 via a timer on the message thread. That way every function can be automated and assigned with the host's MIDI mapping (e.g. Live's MIDI map).
 
 ### Translations
 

@@ -8,7 +8,7 @@ Jede Funktion von livelooper ist frei per MIDI steuerbar – jeder Knopf, jeder 
 
 ## Weg 1: MIDI-Learn im Plug-in
 
-Vorbereitung in Live (einmalig):
+Vorbereitung (einmalig): das MIDI deines Controllers an livelooper schicken. Wie, hängt von der DAW ab – über den MIDI-Eingang der Spur, auf der livelooper sitzt, oder über eine MIDI-Spur, die auf das Plug-in geroutet ist. In der Standalone-App den Controller unter *Options → Audio/MIDI Settings* einschalten. Beispiel Ableton Live:
 
 1. MIDI-Spur anlegen.
 2. *MIDI From*: dein Controller / Fußschalter, *Monitor*: **In**.
@@ -22,7 +22,7 @@ Zuweisen:
 
 Auch die Elemente im Spur-**SETUP** (Eingang, Start, Stop, Dub-Modus, Takte, Loop-Sync, Löschen) lassen sich per Rechtsklick zuweisen.
 
-Die Zuweisungen werden mit dem Live-Set gespeichert.
+Die Zuweisungen werden mit dem DAW-Projekt gespeichert.
 
 ### Wie MIDI-Nachrichten wirken
 
@@ -51,20 +51,20 @@ Damit funktionieren sowohl Fußschalter, die beim Drücken 127 und beim Loslasse
 | CC 20–24 | Pegel Spur 1–5 |
 | CC 25 | Master |
 
-## Weg 2: MIDI-Map von Live
+## Weg 2: MIDI-Mapping deiner DAW
 
-Alle Funktionen sind als Plug-in-Parameter sichtbar und automatisierbar.
+Alle Funktionen sind als Plug-in-Parameter sichtbar und automatisierbar – du kannst sie also auch mit dem eigenen MIDI-Mapping deiner DAW (MIDI-Learn, Controller-Zuweisung …) zuweisen und automatisieren. Beispiel Ableton Live:
 
 1. Im Gerätetitel von livelooper auf **Konfigurieren** klicken und die gewünschten Elemente im Plug-in-Fenster anklicken bzw. bewegen – sie erscheinen als Regler im Gerät. (Bei weniger als 128 Parametern zeigt Live sie auch direkt an.)
 2. **MIDI** (Cmd+M / Strg+M) einschalten, Parameter anklicken, Controller bewegen.
 
-Taster-Parameter (z. B. „S1 Rec/Play") springen nach dem Auslösen selbst wieder auf „aus". Dadurch löst jede Betätigung genau einmal aus – egal ob Live die Taste als Umschalter oder als Momentschalter zuordnet.
+Taster-Parameter (z. B. „S1 Rec/Play") springen nach dem Auslösen selbst wieder auf „aus". Dadurch löst jede Betätigung genau einmal aus – egal ob deine DAW die Taste als Umschalter oder als Momentschalter zuordnet.
 
-Auch Automation in der Arrangement-Ansicht ist möglich, z. B. eine Aufnahme exakt an einem Taktstrich starten.
+Auch Automation ist möglich (in Live z. B. in der Arrangement-Ansicht), etwa um eine Aufnahme exakt an einem Taktstrich zu starten.
 
 ## Parameterliste
 
-247 Parameter. Mit deutscher Oberfläche zeigt Live die deutschen Namen, mit englischer die englischen (in Klammern). Die internen IDs und gespeicherte Zuweisungen bleiben in beiden Sprachen gleich – ein Sprachwechsel zerstört also keine MIDI-Map und keine Automation.
+247 Parameter. Mit deutscher Oberfläche zeigt deine DAW die deutschen Namen, mit englischer die englischen (in Klammern). Die internen IDs und gespeicherte Zuweisungen bleiben in beiden Sprachen gleich – ein Sprachwechsel zerstört also keine MIDI-Map und keine Automation.
 
 **Pro Spur (S1 … S5 / T1 … T5)** – je 16:
 `Rec/Play`, `Stop`, `Löschen` (Clear), `Rückgängig` (Undo), `Wiederherstellen` (Redo) – Taster · `Pegel` (Level), `Panorama` (Pan) · `Rückwärts` (Reverse), `One Shot`, `Loop-Sync` (Loop Sync), `Spur-FX` (Track FX) – Schalter · `Eingang` (Input), `Startmodus` (Start Mode), `Stoppmodus` (Stop Mode), `Dub-Modus` (Dub Mode), `Takte` (Measures) – Auswahl

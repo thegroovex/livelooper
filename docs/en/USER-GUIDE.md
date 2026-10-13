@@ -72,7 +72,7 @@ The LED ring shows the state and the position in the loop:
 | Stop | Immediate · Fade Out · Loop End | stop immediately, fade out, or stop at the end of the loop |
 | Dub mode | Overdub · Replace | add to or replace the loop while overdubbing |
 | Measures | Auto · 1 · 2 · 4 · 8 · 16 | Auto = length set by the second press; a fixed number = recording ends automatically after that many bars |
-| LOOP SYNC | on/off | the loop stays locked to the bar grid: after jumping in Live or restarting it continues at the right spot |
+| LOOP SYNC | on/off | the loop stays locked to the bar grid: after jumping in the DAW's timeline or restarting it continues at the right spot |
 | CLEAR | | clear the track |
 | EXPORT WAV | | save the loop as a 24-bit WAV |
 | IMPORT | | load an audio file (WAV, AIFF, FLAC, OGG, MP3) into the track. Faster: drag & drop the file onto the track |
@@ -89,9 +89,9 @@ The LED ring shows the state and the position in the loop:
 
 **Retroactive ending**: if you press to end a recording up to 15 % of a grid step *after* the bar line, the loop still ends exactly on the bar line – whatever you played after the bar line is moved to the start of the loop (into the overdub). If you press too early, the looper simply waits for the bar line.
 
-**HOST SYNC** (on by default): tempo, time signature and position come from Live. When Live's transport is stopped, an internal clock continues at the current Live tempo as soon as a track records or plays. Without host sync the internal tempo applies (knob **TEMPO**, tap **TAP** several times in time, or click the tempo on the display and type it in – see section 11).
+**HOST SYNC** (on by default): tempo, time signature and position come from your DAW. When the host transport is stopped, an internal clock continues at the current host tempo as soon as a track records or plays. Without host sync the internal tempo applies (knob **TEMPO**, tap **TAP** several times in time, or click the tempo on the display and type it in – see section 11).
 
-**Follow host transport** (SETUP menu): loops start with Live's play button and stop with Live's stop button.
+**Follow host transport** (SETUP menu): loops start with your DAW's play button and stop with its stop button.
 
 Note: if the tempo changes after a loop was recorded, the loop is not time-stretched – it keeps playing at its original speed.
 
@@ -144,7 +144,7 @@ Every pattern has accents and ghost notes, hi-hat rolls (Trap) and percussion (r
 | Control | Function |
 |---|---|
 | QUANTIZE | Off · Beat · Measure |
-| HOST SYNC | follow Live's tempo/transport |
+| HOST SYNC | follow the host's tempo/transport |
 | MASTER | overall level 0–200 % |
 | INPUT | level of the input passed straight through, 0–200 % (recording is independent of it) |
 | FADE | fade time for fade in/fade out (10 ms – 8 s) |
@@ -158,9 +158,9 @@ Every pattern has accents and ghost notes, hi-hat rolls (Trap) and percussion (r
 | Entry | Meaning |
 |---|---|
 | Record action | "Rec > Dub > Play" (default) or "Rec > Play > Dub". The REC button legend ("DUB / PLAY" or "PLAY / DUB") and the bottom display line show the active mode. |
-| Follow host transport | loops start/stop with Live |
+| Follow host transport | loops start/stop with the host transport |
 | Maximum loop length | 30 · 60 · 120 · 240 · 480 seconds per track (determines memory use; existing loops are kept) |
-| Save loops with the project | store loops in the Live set (on by default). Off = smaller sets, loops are gone after loading |
+| Save loops with the project | store loops in the DAW project (on by default). Off = smaller projects, loops are gone after loading |
 | Computer keyboard control | standalone app only: keys on/off (section 10) |
 | Keyboard mapping … | standalone app only: own key mapping (section 10) |
 | Type in tempo (BPM) … | type the internal tempo (section 11) |
@@ -173,8 +173,8 @@ Every pattern has accents and ghost notes, hi-hat rolls (Trap) and percussion (r
 The whole interface – buttons, displays, menus, tooltips, dialogs and parameter names – is available in English and German.
 
 - **SETUP → Language / Sprache → Automatic** (default) uses German if your operating system is set to German, otherwise English.
-- **English** or **Deutsch** fixes the language. The choice is saved on this computer and applies to all livelooper instances, in Live and in the standalone app.
-- The interface switches immediately. The parameter names Live shows in the device and in its MIDI map are read when the plug-in is loaded, so they switch after reloading the plug-in (e.g. reopening the set). Existing MIDI maps and automation are not affected.
+- **English** or **Deutsch** fixes the language. The choice is saved on this computer and applies to all livelooper instances, in your DAW and in the standalone app.
+- The interface switches immediately. The parameter names your DAW shows (device, MIDI mapping, automation) are read when the plug-in is loaded, so they switch after reloading the plug-in (e.g. reopening the project). Existing MIDI maps and automation are not affected.
 
 ![German interface](../images/livelooper-de.png)
 
@@ -182,7 +182,7 @@ The whole interface – buttons, displays, menus, tooltips, dialogs and paramete
 
 ## 8. Saving and loading
 
-The Live set stores all parameters, the MIDI assignments and – if switched on – the loops (lossless FLAC, 24 bit). After loading, the tracks are stopped and start with REC/PLAY or ALL START. If the project's sample rate changes, the loops are converted automatically.
+Your DAW project stores all parameters, the MIDI assignments and – if switched on – the loops (lossless FLAC, 24 bit). After loading, the tracks are stopped and start with REC/PLAY or ALL START. If the project's sample rate changes, the loops are converted automatically.
 
 ## 9. Display
 
@@ -196,7 +196,7 @@ The Live set stores all parameters, the MIDI assignments and – if switched on 
 
 ## 10. Computer keyboard (standalone app)
 
-In the standalone app the computer keyboard plays livelooper like a hardware unit – handy on a MacBook without a controller. In Live the keyboard belongs to Live, so this is a standalone feature (MIDI and Live's own key mapping work there instead).
+In the standalone app the computer keyboard plays livelooper like a hardware unit – handy on a MacBook without a controller. In a DAW the keyboard belongs to the DAW, so this is a standalone feature (there, use MIDI or your DAW's own key commands / key mapping instead).
 
 Default mapping – one keyboard column per track:
 
@@ -283,7 +283,7 @@ The footer has **8 scene buttons**. Pressing an empty scene stores which tracks 
 
 ## 20. Direct track outputs
 
-- **Plug-in**: livelooper has an optional stereo output per track ("Track 1" … "Track 8"). Enable it in your host, for example in Ableton Live through a second audio track with *Audio From: livelooper → Track 1*.
+- **Plug-in**: livelooper has an optional stereo output per track ("Track 1" … "Track 8"). Enable it in your DAW (each track then gets its own output there), for example in Ableton Live through a second audio track with *Audio From: livelooper → Track 1*.
 - **Standalone app**: **SETUP → Direct track outputs** assigns each track an output pair of the audio interface (outputs 3/4 and up, not the cue pair).
 - In the track SETUP, **OUTPUT** decides between *Main*, *Direct* (only the direct output) and *Main + Direct*. Without an active direct output the track always plays on the main output.
 
@@ -291,18 +291,18 @@ The footer has **8 scene buttons**. Pressing an empty scene stores which tracks 
 
 - **SETUP → Tracks → 8 tracks** shows three more tracks and makes the window wider. Hidden tracks use no memory. Switching back to 5 tracks clears tracks 6 to 8.
 - **Ghost play head**: a stopped track shows a dotted line where it would be playing now, so you can bring it back in on cue.
-- **SETUP → Export stems** writes every track with a loop as a 24-bit WAV (`livelooper-track1-120bpm.wav`) with tempo and beat metadata, so Ableton Live and other DAWs drop it straight onto the grid.
+- **SETUP → Export stems** writes every track with a loop as a 24-bit WAV (`livelooper-track1-120bpm.wav`) with tempo and beat metadata (ACID), so most DAWs place it straight on the grid.
 
 ![8 tracks](../images/livelooper-8-tracks.png)
 
-## 22. Drag loops into Live
+## 22. Drag loops into your DAW
 
 Grab the **waveform** in a track's display and drag it out of livelooper:
 
-- onto an **audio track** in Live's Arrangement or Session view – the loop becomes a clip,
-- into Live's **browser** or onto the desktop / Finder / Explorer.
+- onto an **audio track** in your DAW – the loop becomes a clip / region (in Ableton Live in Arrangement or Session view),
+- into your DAW's **browser** or onto the desktop / Finder / Explorer.
 
-livelooper writes a new 24-bit WAV with tempo and beat information (`livelooper-track1-120bpm-<date>.wav`), so Live warps it to the right length and it sits on the grid. The files are kept in *Music → livelooper → Dragged Loops* because Live keeps referencing them (use *File → Collect All and Save* in Live to copy them into your project). Dropping such a file back onto livelooper does nothing. The cursor turns into a hand over a waveform that can be dragged; tracks that are empty or still recording cannot be dragged.
+livelooper writes a new 24-bit WAV with tempo and beat information (ACID metadata, `livelooper-track1-120bpm-<date>.wav`), so most DAWs place it on the grid at the right length (Ableton Live, for example, warps it automatically). The files are kept in *Music → livelooper → Dragged Loops* because the DAW project keeps referencing them there – use your DAW's function for collecting/consolidating files to copy them into your project (in Live: *File → Collect All and Save*). Dropping such a file back onto livelooper does nothing. The cursor turns into a hand over a waveform that can be dragged; tracks that are empty or still recording cannot be dragged.
 
 ## 23. Playing live
 
@@ -313,4 +313,4 @@ livelooper is meant to be played like an instrument. A few habits that help on s
 - **Improvise first, record later**: just play – when something good happens, press **CAPTURE**.
 - **Build an arc**: store verse, chorus and breakdown as **scenes** and switch between them on the bar.
 - **Shape layers instead of stacking them**: feedback below 100 % lets old layers fade, pitch and reverse turn a phrase into something new, the FX XY pad on Push is made for drops and builds.
-- **Keep the good moments**: drag a loop onto a Live track or export stems after the show.
+- **Keep the good moments**: drag a loop onto a track in your DAW or export stems after the show.

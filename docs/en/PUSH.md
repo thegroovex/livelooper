@@ -1,6 +1,6 @@
 # Ableton Push control
 
-livelooper talks **directly** to an Ableton Push (1) through its **User port**, both in the plug-in (VST3 / AU) and in the standalone app. Pads light up with each track's state and loop position, the display shows names, values and tempo.
+livelooper talks **directly** to an Ableton Push (1) through its **User port**, both in the plug-in (VST3 / AU, in any DAW) and in the standalone app. Because livelooper drives Push itself, it does not depend on your DAW supporting Push. Pads light up with each track's state and loop position, the display shows names, values and tempo.
 
 With a Push, livelooper becomes a self-contained instrument: no mouse, no screen, just pads and encoders – the way it is meant to be played live.
 
@@ -10,12 +10,14 @@ Push 2 and Push 3 send the same pad and button messages, so the controls should 
 
 ## Setup
 
+**In any DAW:** connect Push, load livelooper and press **USER** on Push – Push switches to livelooper. **SETUP → Ableton Push** shows "Connected". On Windows, a MIDI port can only be used by one program at a time: if your DAW has Push's User port ("MIDIIN2 / MIDIOUT2 (Ableton Push)") enabled, switch it off in the DAW's MIDI settings so livelooper can open it.
+
 **In Ableton Live**
 1. Leave Push set up as usual (control surface "Push" in Live's MIDI preferences).
 2. Load livelooper. **SETUP → Ableton Push** shows "Connected".
 3. Press **USER** on Push: Push switches to livelooper. Press **USER** again to return to Live.
 
-**Windows:** a MIDI port can only be used by one program at a time. In Live's MIDI preferences, leave the input and output **"MIDIIN2 (Ableton Push)" / "MIDIOUT2 (Ableton Push)"** switched off (Track, Sync and Remote off). Otherwise livelooper cannot open the port. On macOS this is not needed.
+**Windows (Live):** In Live's MIDI preferences, leave the input and output **"MIDIIN2 (Ableton Push)" / "MIDIOUT2 (Ableton Push)"** switched off (Track, Sync and Remote off). Otherwise livelooper cannot open the port. On macOS this is not needed.
 
 **Standalone app:** connect Push and start livelooper. The app switches Push to User mode on its own.
 
@@ -67,7 +69,7 @@ The 8 × 8 pads become an **XY pad** for one effect: X (left to right) = paramet
 
 Master encoder = master level · tempo encoder = tempo (1 BPM, **SHIFT** 0.1 BPM). **SHIFT** turns finely.
 
-**Master section**: with up to 6 visible tracks the two rightmost encoders are a master section: **encoder 7 = master level**, **encoder 8 = tempo** (BPM, **SHIFT** 0.1 BPM); the display shows *Master* and *Tempo* above them. With 8 tracks (and in DEVICE mode) all eight encoders control tracks / effects; then use the master encoder (top right) and the tempo encoder (top left), and line 4 shows the master level. With **HOST SYNC** on, Live sets the tempo (the display shows *Host*): the internal tempo applies only without host sync.
+**Master section**: with up to 6 visible tracks the two rightmost encoders are a master section: **encoder 7 = master level**, **encoder 8 = tempo** (BPM, **SHIFT** 0.1 BPM); the display shows *Master* and *Tempo* above them. With 8 tracks (and in DEVICE mode) all eight encoders control tracks / effects; then use the master encoder (top right) and the tempo encoder (top left), and line 4 shows the master level. With **HOST SYNC** on, the host (your DAW) sets the tempo (the display shows *Host*): the internal tempo applies only without host sync.
 
 Swing encoder = rhythm **swing**, **SHIFT** + swing encoder = rhythm level.
 
