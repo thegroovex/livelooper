@@ -109,6 +109,7 @@ if(LIVELOOPER_BUILD_TESTS)
         tests/Feature13Tests.cpp
         tests/Feature14Tests.cpp
         tests/PushTests.cpp
+        tests/Push14Tests.cpp
         tests/RhythmTests.cpp
         ${LIVELOOPER_ENGINE_SOURCES} ${LIVELOOPER_PLUGIN_SOURCES})
     target_include_directories(livelooper_tests PRIVATE src ${LIVELOOPER_THIRD_PARTY_INCLUDES})
