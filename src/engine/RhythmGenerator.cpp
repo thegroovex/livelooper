@@ -583,7 +583,7 @@ void RhythmGenerator::process (float* outL, float* outR, int numSamples, double 
             drums = lp;
         }
 
-        float out = softClip (drums * k.busDrive) * 0.85f;
+        float out = softClip (drums * k.busDrive * 0.5f) * 1.25f;
 
         // metronome (never swung)
         if (clickEnv > 1.0e-4f)

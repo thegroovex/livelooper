@@ -12,7 +12,7 @@
 - **Quantization** to the bar or beat, locked to Live's tempo, time signature and transport (or an internal clock with tap tempo)
 - **Fixed loop lengths** (1, 2, 4, 8, 16 bars) or free length; pressing "too late" is corrected retroactively up to 15 % after the bar line
 - **Input FX and track FX**: four slots each (A–D) with 12 effects – LPF, HPF, BPF, phaser, flanger, delay (tempo-synced), reverb, slicer, tremolo, auto pan, lo-fi, overdrive
-- **Rhythm**: built-in drum machine with metronome and 11 patterns, always in sync
+- **Rhythm**: built-in drum machine with metronome, 20 grooves, 4 kits (Studio, 808, 909, Lo-Fi), swing and humanize, always in sync
 - **Start/stop modes**: immediate, fade in/fade out, stop at loop end; dub mode overdub or replace
 - **Full MIDI control**: all 247 functions are host parameters (Live's MIDI map) and also have their own MIDI learn via right-click
 - **Follow transport**: loops start and stop with Live
@@ -23,7 +23,7 @@
 - **Looper sets**: save and load the whole looper (loops, settings, effects) as a `.llset` file
 - **Meters and waveform**: stereo meter per track (input while recording, output while playing), master meter in the display, waveform overview with play position, clip LED per track
 - **Cue output** in the standalone app: send the rhythm / metronome to a separate output pair (e.g. headphones) instead of, or in addition to, the main output
-- **Two metronome sounds** (beep, woodblock) and modern synthesised drum sounds
+- **Four metronome sounds** (beep, woodblock, click, rimshot) and modern synthesised drum sounds
 - **App icon** for the standalone app (macOS Dock, Windows)
 - **Capture**: turn the last 1–8 bars you played into a loop afterwards, no record press needed
 - **Auto record**: armed tracks start with the first note above a threshold

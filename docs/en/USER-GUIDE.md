@@ -123,7 +123,17 @@ Switching on and off is crossfaded without clicks.
 
 ## 4. Rhythm
 
-**RHYTHM** switches the drum machine on; choose the pattern next to it: Metronome, Rock, Pop, Funk, Hip Hop, House, Techno, Breakbeat, Reggae, Bossa, Shuffle, Half Time. **LEVEL** sets the volume. The rhythm is locked to the bar grid (host or internal clock) and is not recorded. The metronome accents the downbeat.
+**RHYTHM** switches the drum machine on; choose the pattern next to it: Metronome, Rock, Pop, Funk, Hip Hop, House, Techno, Breakbeat, Reggae, Bossa, Shuffle, Half Time, Trap, Lo-Fi, Drum & Bass, Afrobeat, Dembow, UK Garage, Neo Soul, Disco, Afro House. The rhythm is locked to the bar grid (host or internal clock) and is not recorded. The metronome accents the downbeat.
+
+| Control | Function |
+|---|---|
+| **Kit** | **Studio** (tight, modern), **808** (deep boom kick, crisp hats), **909** (punchy house / techno), **Lo-Fi** (warm, dusty, soft top end) |
+| **LEVEL** | volume of the rhythm |
+| **SWING** | delays every second 16th note. 50 % = straight, 54–58 % = a light groove, 66 % = triplet shuffle, 75 % = maximum. Tip: Hip Hop / Lo-Fi 56–60 %, UK Garage 60–64 %, Neo Soul 60–66 % |
+| **FEEL** | humanize: small variations in timing (a few ms late, never early) and velocity. 0 % = machine-exact |
+| **TEMPO / TAP** | internal tempo |
+
+Every pattern has accents and ghost notes, hi-hat rolls (Trap) and percussion (rimshot, shaker, tom). Snare, clap and rimshot sit in a short room. The metronome is never swung.
 
 ---
 
@@ -242,7 +252,7 @@ Without a cue pair (or in a plug-in) the rhythm always plays on the main output,
 
 ## 15. Metronome sound
 
-**SETUP → Metronome sound** switches between **Beep** (classic) and **Woodblock**. The drum patterns use synthesised kick, snare, hand clap and metallic hi-hats.
+**SETUP → Metronome sound**: **Beep** (classic), **Woodblock** (short, wooden knock), **Click** (dry tick without pitch) or **Rimshot**. The drum sounds are synthesised, see section 4.
 
 ## 16. Capture (retrospective recording)
 

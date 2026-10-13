@@ -123,7 +123,17 @@ Ein- und Ausschalten wird ohne Knackser überblendet.
 
 ## 4. Rhythmus
 
-**RHYTHMUS** schaltet den Drumcomputer ein, daneben wird das Muster gewählt: Metronom, Rock, Pop, Funk, Hip Hop, House, Techno, Breakbeat, Reggae, Bossa, Shuffle, Half Time. **PEGEL** regelt die Lautstärke. Der Rhythmus ist fest mit dem Taktraster verbunden (Host oder interne Clock) und wird nicht mit aufgenommen. Beim Metronom ist die Eins betont.
+**RHYTHMUS** schaltet den Drumcomputer ein, daneben wird das Muster gewählt: Metronom, Rock, Pop, Funk, Hip Hop, House, Techno, Breakbeat, Reggae, Bossa, Shuffle, Half Time, Trap, Lo-Fi, Drum & Bass, Afrobeat, Dembow, UK Garage, Neo Soul, Disco, Afro House. Der Rhythmus ist fest mit dem Taktraster verbunden (Host oder interne Clock) und wird nicht mit aufgenommen. Beim Metronom ist die Eins betont.
+
+| Regler | Funktion |
+|---|---|
+| **Kit** | **Studio** (straff, modern), **808** (tiefe Boom-Kick, knackige Hi-Hats), **909** (druckvoll für House / Techno), **Lo-Fi** (warm, staubig, weiche Höhen) |
+| **PEGEL** | Lautstärke des Rhythmus |
+| **SWING** | verzögert jede zweite Sechzehntel. 50 % = gerade, 54–58 % = leichter Groove, 66 % = Triolen-Shuffle, 75 % = maximal. Tipp: Hip Hop / Lo-Fi 56–60 %, UK Garage 60–64 %, Neo Soul 60–66 % |
+| **FEEL** | Humanisierung: kleine Schwankungen im Timing (ein paar ms später, nie früher) und in der Anschlagstärke. 0 % = maschinengenau |
+| **TEMPO / TAP** | internes Tempo |
+
+Jedes Muster hat Akzente und Ghost-Notes, Hi-Hat-Rolls (Trap) und Percussion (Rimshot, Shaker, Tom). Snare, Clap und Rimshot klingen in einem kurzen Raum. Das Metronom wird nie geswingt.
 
 ---
 
@@ -244,7 +254,7 @@ Ohne Cue-Paar (und im Plug-in) spielt der Rhythmus immer auf dem Hauptausgang �
 
 ## 15. Metronomklang
 
-**SETUP → Metronomklang** wechselt zwischen **Piep** (klassisch) und **Holzblock**. Die Drum-Patterns nutzen synthetisierte Kick, Snare, Handclap und metallische Hi-Hats.
+**SETUP → Metronomklang**: **Piep** (klassisch), **Holzblock** (kurzer, hölzerner Schlag), **Klick** (trockener Tick ohne Tonhöhe) oder **Rimshot**. Die Drum-Sounds sind synthetisiert, siehe Abschnitt 4.
 
 ## 16. Bezeichnungen Deutsch / Englisch
 
