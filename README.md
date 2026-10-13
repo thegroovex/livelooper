@@ -2,37 +2,57 @@
 
 **English** | [Deutsch](README.de.md)
 
-**livelooper** is a five- or eight-track loop station plug-in for Ableton Live or any other DAW that supports plugins (VST3 and Audio Unit, plus a standalone app). Record, overdub, effects, rhythm, and every single function freely mappable to MIDI – built for live looping on stage and in the studio.
+**livelooper is an instrument, not a recorder.** It is a five- or eight-track loop station for Ableton Live (VST3 and Audio Unit, plus a standalone app) built to be *played*: to explore an idea, layer it, bend it and perform it live – with your hands on an **Ableton Push**, a MIDI controller or the computer keyboard, and your eyes on the audience instead of the screen.
 
 ![livelooper](docs/images/livelooper.png)
 
+## The idea
+
+- **Live performance comes first.** Every function reacts instantly, lands on the beat and never stops the music. Nothing needs a menu while you play.
+- **Explore and play.** Capture what you just improvised, throw an effect on it with the XY pad, pitch it, reverse it, let it decay like tape – and keep what works.
+- **Hands on hardware.** Plug in an Ableton Push and livelooper takes it over – no mapping. Any other controller works through MIDI learn, every one of the 250 functions is mappable.
+- **Your loops belong in your song.** Drag a loop straight from livelooper onto a track in Live, export stems, or keep everything in the Live set.
+
+## Play it with Ableton Push
+
+![livelooper on Ableton Push](docs/images/livelooper-live-push.jpg)
+
+Connect a Push (1 and up), press **User**, and livelooper turns it into a dedicated looper surface – in the plug-in and in the standalone app:
+
+- **One pad column per track**: REC / PLAY / DUB and STOP, the loop position running up the column as light, colours showing the state, blinking while waiting for the bar
+- **Encoders** for level, pan, pitch, feedback or effects, a **master section** (master level, tempo) and swing on the swing encoder
+- **Scenes** on the scene buttons, **capture**, undo, metronome, tap tempo, **DELETE + pad** clears a track
+- **FX XY pad**: the 8×8 grid becomes a performance pad – touch, slide, let go and it snaps back
+- **Display** with names, values, track states and tempo
+
+Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
+
 ## Features
 
-- **5 or 8 loop tracks** with REC → DUB → PLAY, STOP (hold = clear), undo/redo of the last overdub, level, pan, reverse, one shot, loop sync
-- **Quantization** to the bar or beat, locked to Live's tempo, time signature and transport (or an internal clock with tap tempo)
-- **Fixed loop lengths** (1, 2, 4, 8, 16 bars) or free length; pressing "too late" is corrected retroactively up to 15 % after the bar line
-- **Input FX and track FX**: four slots each (A–D) with 12 effects – LPF, HPF, BPF, phaser, flanger, delay (tempo-synced), reverb, slicer, tremolo, auto pan, lo-fi, overdrive
-- **Rhythm**: built-in drum machine with metronome, 20 grooves, 4 kits (Studio, 808, 909, Lo-Fi), swing and humanize, always in sync
-- **Start/stop modes**: immediate, fade in/fade out, stop at loop end; dub mode overdub or replace
-- **Full MIDI control**: all 247 functions are host parameters (Live's MIDI map) and also have their own MIDI learn via right-click
-- **Follow transport**: loops start and stop with Live
-- **Saved with your project**: loops are stored losslessly (FLAC, 24 bit) inside the Live set
-- **Import/export**: export loops as WAV, drag & drop audio files onto a track
-- **Computer keyboard control** in the standalone app: logical default keys (1–5 REC/PLAY, Q–T STOP, A–G UNDO, Space, Return = TAP) and your own key mapping in *SETUP → Keyboard mapping …*
-- **Type in the tempo**: click the BPM on the display (or press B) and enter it
-- **Looper sets**: save and load the whole looper (loops, settings, effects) as a `.llset` file
-- **Meters and waveform**: stereo meter per track (input while recording, output while playing), master meter in the display, waveform overview with play position, clip LED per track
-- **Cue output** in the standalone app: send the rhythm / metronome to a separate output pair (e.g. headphones) instead of, or in addition to, the main output
-- **Four metronome sounds** (beep, woodblock, click, rimshot) and modern synthesised drum sounds
-- **App icon** for the standalone app (macOS Dock, Windows)
-- **Capture**: turn the last 1–8 bars you played into a loop afterwards, no record press needed
-- **Auto record**: armed tracks start with the first note above a threshold
+**Perform**
+- **5 or 8 loop tracks**: REC → DUB → PLAY on one pad, STOP (hold = clear), undo/redo, reverse, one shot, level, pan
 - **Scenes**: 8 scene buttons start and stop groups of tracks in time
-- **Feedback, ducking, pitch and time-stretch** per track (Signalsmith Stretch), resampling of the other tracks
-- **Direct track outputs** (plug-in multi-out, interface outputs in the standalone app) and **stem export** with tempo metadata
-- **Ghost play head**: stopped tracks show where they would be now
-- **Ableton Push control** (Push 1 and up) in the plug-in and the standalone app: pads with LED feedback for every track, scenes, encoders, display, and an FX XY pad with snap back – see [PUSH.md](docs/en/PUSH.md)
-- **English and German user interface**: switch under *SETUP → Language / Sprache* (automatic follows your system language)
+- **Capture**: turn the last 1–8 bars you played into a loop afterwards – no record press needed
+- **Auto record**: armed tracks start with the first note above a threshold – hands stay on the instrument
+- **Quantization** to the bar or beat; pressing "too late" is corrected up to 15 % after the bar line; fixed lengths 1–16 bars or free
+- **Start/stop modes**: immediate, fade in/out, stop at loop end; overdub or replace
+- **Ghost play head**: stopped tracks show where they would be now, so you drop them back in exactly
+- **Ableton Push**, **MIDI learn** for any controller (right-click any control), and **computer keyboard** control in the standalone app
+
+**Shape the sound**
+- **Input FX and track FX**: four slots each with 12 effects – LPF, HPF, BPF, phaser, flanger, delay (tempo-synced), reverb, slicer, tremolo, auto pan, lo-fi, overdrive
+- **Per track**: feedback (tape-style decay), sidechain ducking, pitch ±12 semitones, follow tempo (time-stretch, Signalsmith Stretch), resampling of the other tracks
+- **Rhythm**: 4 kits (Studio, 808, 909, Lo-Fi), 21 grooves from rock to trap, dembow, UK garage and Afro house, swing and feel; metronome with 4 sounds
+
+**Work with Live**
+- **In sync with Live**: tempo, time signature and transport, or an internal clock with tap tempo / typed-in tempo
+- **Drag loops into Live**: drag a track's waveform onto an audio track or into the browser – a tempo-tagged WAV lands on Live's grid
+- **Stem export** with tempo metadata, WAV export per track, drag & drop audio files onto a track to import
+- **Direct track outputs** (plug-in multi-out, interface outputs in the standalone app), **cue output** for the metronome
+- **Saved with your project**: loops stored losslessly (FLAC, 24 bit) in the Live set; whole **looper sets** as `.llset` files
+- **Meters and waveforms**: stereo meter per track, master meter, waveform with play position, clip LED
+- **All 250 functions** are host parameters for Live's MIDI map
+- **English and German** interface (*SETUP → Language / Sprache*)
 
 ## Why VST3/AU?
 

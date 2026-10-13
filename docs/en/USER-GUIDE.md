@@ -2,6 +2,8 @@
 
 **English** | [Deutsch](../de/BEDIENUNGSANLEITUNG.md)
 
+livelooper is built as an **instrument for exploring and playing live**: every control reacts instantly and lands on the beat, and everything can be played from an [Ableton Push](PUSH.md), any MIDI controller or the computer keyboard. Section 23 has tips for playing live.
+
 ![Interface](../images/livelooper.png)
 
 The interface is laid out like a hardware looper:
@@ -292,3 +294,23 @@ The footer has **8 scene buttons**. Pressing an empty scene stores which tracks 
 - **SETUP → Export stems** writes every track with a loop as a 24-bit WAV (`livelooper-track1-120bpm.wav`) with tempo and beat metadata, so Ableton Live and other DAWs drop it straight onto the grid.
 
 ![8 tracks](../images/livelooper-8-tracks.png)
+
+## 22. Drag loops into Live
+
+Grab the **waveform** in a track's display and drag it out of livelooper:
+
+- onto an **audio track** in Live's Arrangement or Session view – the loop becomes a clip,
+- into Live's **browser** or onto the desktop / Finder / Explorer.
+
+livelooper writes a new 24-bit WAV with tempo and beat information (`livelooper-track1-120bpm-<date>.wav`), so Live warps it to the right length and it sits on the grid. The files are kept in *Music → livelooper → Dragged Loops* because Live keeps referencing them (use *File → Collect All and Save* in Live to copy them into your project). Dropping such a file back onto livelooper does nothing. The cursor turns into a hand over a waveform that can be dragged; tracks that are empty or still recording cannot be dragged.
+
+## 23. Playing live
+
+livelooper is meant to be played like an instrument. A few habits that help on stage:
+
+- **Hands on hardware**: put the transport on an [Ableton Push](PUSH.md) or a MIDI controller ([MIDI](MIDI.md)) so you never need the mouse.
+- **Keep it moving**: use quantize *Bar*, fixed loop lengths and auto record – every press lands on time, even when you're busy playing.
+- **Improvise first, record later**: just play – when something good happens, press **CAPTURE**.
+- **Build an arc**: store verse, chorus and breakdown as **scenes** and switch between them on the bar.
+- **Shape layers instead of stacking them**: feedback below 100 % lets old layers fade, pitch and reverse turn a phrase into something new, the FX XY pad on Push is made for drops and builds.
+- **Keep the good moments**: drag a loop onto a Live track or export stems after the show.

@@ -2,6 +2,10 @@
 
 livelooper spricht **direkt** mit einem Ableton Push (1) über dessen **User-Port**, sowohl im Plug-in (VST3 / AU) als auch in der Standalone-App. Die Pads leuchten mit Status und Loop-Position jeder Spur, das Display zeigt Namen, Werte und Tempo.
 
+Mit einem Push wird livelooper zu einem eigenständigen Instrument: keine Maus, kein Bildschirm, nur Pads und Encoder – so, wie es live gespielt werden soll.
+
+![livelooper auf Ableton Push](../images/livelooper-live-push.jpg)
+
 Push 2 und Push 3 senden dieselben Pad- und Tasten-Nachrichten, die Bedienung sollte dort also auch funktionieren (noch nicht getestet). Die LED-Farben können dort abweichen, und ihr Display wird nicht genutzt.
 
 ## Einrichtung

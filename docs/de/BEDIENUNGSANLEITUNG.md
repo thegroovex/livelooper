@@ -2,6 +2,8 @@
 
 [English](../en/USER-GUIDE.md) | **Deutsch**
 
+livelooper ist als **Instrument zum Erforschen und Live-Spielen** gebaut: Jedes Bedienelement reagiert sofort und landet auf dem Schlag, und alles lässt sich mit einem [Ableton Push](PUSH.md), jedem MIDI-Controller oder der Computertastatur spielen. Tipps fürs Live-Spielen stehen in Abschnitt 23.
+
 ![Oberfläche](../images/livelooper-de.png)
 
 Die Oberfläche ist wie ein Hardware-Looper aufgebaut. Die Bezeichnungen in dieser Anleitung entsprechen der deutschen Oberfläche; bei englischer Oberfläche steht die englische Bezeichnung in Klammern (siehe auch [Kapitel 7](#7-sprache) und die [Übersicht am Ende](#16-bezeichnungen-deutsch--englisch)).
@@ -314,3 +316,23 @@ In der Fußleiste gibt es **8 Szenen-Knöpfe**. Ein leerer Szenen-Knopf speicher
 - **SETUP → Stems exportieren** schreibt jede Spur mit Loop als 24-Bit-WAV (`livelooper-track1-120bpm.wav`) mit Tempo- und Taktangaben. Ableton Live und andere DAWs legen sie dadurch direkt im Raster ab.
 
 ![8 Spuren](../images/livelooper-8-tracks-de.png)
+
+## 22. Loops nach Live ziehen
+
+Pack die **Wellenform** im Display einer Spur und zieh sie aus livelooper heraus:
+
+- auf eine **Audiospur** in Lives Arrangement- oder Session-Ansicht – der Loop wird ein Clip,
+- in Lives **Browser** oder auf den Schreibtisch / Finder / Explorer.
+
+livelooper schreibt dabei eine neue 24-Bit-WAV mit Tempo- und Taktangaben (`livelooper-track1-120bpm-<Datum>.wav`). Live warpt sie dadurch auf die richtige Länge und legt sie ins Raster. Die Dateien bleiben in *Musik → livelooper → Dragged Loops*, weil Live sie weiter verwendet (mit *Datei → Alles sammeln und sichern* kopiert Live sie in dein Projekt). Zieht man eine solche Datei zurück auf livelooper, passiert nichts. Über einer ziehbaren Wellenform wird der Mauszeiger zur Hand; leere Spuren oder Spuren, die gerade aufnehmen, lassen sich nicht ziehen.
+
+## 23. Live spielen
+
+livelooper ist zum Spielen gedacht, wie ein Instrument. Ein paar Gewohnheiten, die auf der Bühne helfen:
+
+- **Hände an die Hardware**: Leg die Bedienung auf einen [Ableton Push](PUSH.md) oder einen MIDI-Controller ([MIDI](MIDI.md)) – dann brauchst du nie die Maus.
+- **Im Fluss bleiben**: Quantisierung *Takt*, feste Loop-Längen und Auto-Aufnahme – jeder Druck sitzt, auch wenn du gerade spielst.
+- **Erst improvisieren, dann aufnehmen**: Spiel einfach – wenn etwas Gutes passiert, drück **CAPTURE**.
+- **Einen Bogen bauen**: Strophe, Refrain und Breakdown als **Szenen** speichern und im Takt wechseln.
+- **Schichten formen statt stapeln**: Feedback unter 100 % lässt alte Schichten ausklingen, Tonhöhe und Reverse machen aus einer Phrase etwas Neues, das FX-XY-Pad auf dem Push ist für Drops und Steigerungen gemacht.
+- **Gute Momente behalten**: Zieh einen Loop auf eine Live-Spur oder exportiere nach dem Auftritt die Stems.
