@@ -39,7 +39,7 @@ bool isTrigger (const juce::String& id)
 
 juce::StringArray quantizeChoices()  { return { "Off", "Beat", "Measure" }; }
 juce::StringArray recActionChoices() { return { "Rec > Dub", "Rec > Play" }; }
-juce::StringArray clickSoundChoices() { return { "Beep", "Woodblock" }; }
+juce::StringArray clickSoundChoices() { return { "Beep", "Woodblock", "Click", "Rimshot" }; }
 juce::StringArray inputChoices()     { return { "Stereo", "Left", "Right", "Resample" }; }
 juce::StringArray outputChoices()    { return { "Main", "Direct", "Main + Direct" }; }
 juce::StringArray duckSourceChoices() { return { "Rhythm Kick", "Track 1" }; }
@@ -54,6 +54,14 @@ juce::StringArray fxTypeChoices()
     juce::StringArray s;
     for (int i = 0; i < (int) FxType::NumTypes; ++i)
         s.add (getFxTypeName ((FxType) i));
+    return s;
+}
+
+juce::StringArray kitChoices()
+{
+    juce::StringArray s;
+    for (int i = 0; i < RhythmGenerator::getNumKits(); ++i)
+        s.add (RhythmGenerator::getKitName (i));
     return s;
 }
 
@@ -94,6 +102,7 @@ namespace
         { "sync", "Sync to Host" }, { "follow", "Follow Transport" }, { "tempo", "Internal Tempo" },
         { "fade", "Fade Time" }, { "rhythm_on", "Rhythm On" }, { "rhythm_level", "Rhythm Level" },
         { "rhythm_pattern", "Rhythm Pattern" }, { "click_sound", "Metronome Sound" },
+        { "rhythm_kit", "Drum Kit" }, { "rhythm_swing", "Swing" }, { "rhythm_humanize", "Humanize" },
         { "capture", "Capture" }, { "capture_bars", "Capture Bars" }, { "autorec", "Auto Record" },
         { "autorec_threshold", "Auto Record Threshold" }, { "duck_source", "Ducking Source" }, { "scene_store", "Store Scene" }
     };
@@ -234,6 +243,14 @@ APVTS::ParameterLayout createLayout()
         group->addChild (choiceParam (gRhythmPattern, localisedName (gRhythmPattern), translated (rhythmChoices()), 1));
         group->addChild (std::make_unique<juce::AudioParameterChoice> (PID { gClickSound, 2 }, localisedName (gClickSound),
                                                                        translated (clickSoundChoices()), 0));
+        group->addChild (std::make_unique<juce::AudioParameterChoice> (PID { gRhythmKit, 4 }, localisedName (gRhythmKit),
+                                                                       translated (kitChoices()), 0));
+        group->addChild (std::make_unique<juce::AudioParameterFloat> (
+            PID { gRhythmSwing, 4 }, localisedName (gRhythmSwing), juce::NormalisableRange<float> (50.0f, 75.0f, 0.1f), 50.0f,
+            juce::AudioParameterFloatAttributes().withLabel ("%")));
+        group->addChild (std::make_unique<juce::AudioParameterFloat> (
+            PID { gRhythmHuman, 4 }, localisedName (gRhythmHuman), juce::NormalisableRange<float> (0.0f, 100.0f, 1.0f), 25.0f,
+            juce::AudioParameterFloatAttributes().withLabel ("%")));
         // v1.3
         group->addChild (std::make_unique<juce::AudioParameterBool> (PID { gCapture, 3 }, localisedName (gCapture), false));
         group->addChild (std::make_unique<juce::AudioParameterChoice> (PID { gCaptureBars, 3 }, localisedName (gCaptureBars),

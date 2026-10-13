@@ -88,6 +88,14 @@ LiveLooperEditor::LiveLooperEditor (LiveLooperProcessor& p)
     rhythmPatternAtt = std::make_unique<APVTS::ComboBoxAttachment> (st, gRhythmPattern, rhythmPattern);
     setParamId (rhythmPattern, gRhythmPattern);
     rhythmLevel = std::make_unique<Knob> (st, gRhythmLevel, "Level", colours::orange);
+    rhythmKit.setEnglishItems (kitChoices());
+    rhythmKitAtt = std::make_unique<APVTS::ComboBoxAttachment> (st, gRhythmKit, rhythmKit);
+    setParamId (rhythmKit, gRhythmKit);
+    rhythmKit.setTooltip ("Drum kit: Studio, 808, 909 or Lo-Fi");
+    rhythmSwing = std::make_unique<Knob> (st, gRhythmSwing, "Swing", colours::orange);
+    rhythmSwing->slider.setTooltip ("Swing: 50 % = straight, 66 % = triplet feel");
+    rhythmHuman = std::make_unique<Knob> (st, gRhythmHuman, "Feel", colours::orange);
+    rhythmHuman->slider.setTooltip ("Humanize: small variations in timing and velocity");
     tempo = std::make_unique<Knob> (st, gTempo, "Tempo", colours::yellow);
     tap.onClick = [this] { proc.pressTrigger (gTap); };
     setParamId (tap, gTap);
@@ -139,7 +147,7 @@ LiveLooperEditor::LiveLooperEditor (LiveLooperProcessor& p)
     surface.addAndMakeVisible (sceneStore);
 
     for (juce::Component* c : std::initializer_list<juce::Component*> {
-             &rhythmOn, &rhythmPattern, rhythmLevel.get(), tempo.get(), &tap, &sync, &quantize,
+             &rhythmOn, &rhythmPattern, &rhythmKit, rhythmLevel.get(), rhythmSwing.get(), rhythmHuman.get(), tempo.get(), &tap, &sync, &quantize,
              master.get(), monitor.get(), fade.get(), &allStartStop, &clearAll, &capture })
         surface.addAndMakeVisible (c);
 
@@ -235,12 +243,18 @@ void LiveLooperEditor::layoutSurface()
     rhythmOn.setBounds (row.removeFromLeft (100).reduced (0, 2));
     row.removeFromLeft (8);
     rhythmPattern.setBounds (row.reduced (0, 3));
-    rh.removeFromTop (8);
+    rh.removeFromTop (4);
+    row = rh.removeFromTop (30);
+    rhythmKit.setBounds (row.removeFromLeft (row.getWidth() * 3 / 5).reduced (0, 3));
+    row.removeFromLeft (8);
+    tap.setBounds (row.reduced (0, 2));
+    rh.removeFromTop (4);
     row = rh;
-    const int third = row.getWidth() / 3;
-    rhythmLevel->setBounds (row.removeFromLeft (third).reduced (4));
-    tempo->setBounds (row.removeFromLeft (third).reduced (4));
-    tap.setBounds (row.withSizeKeepingCentre (row.getWidth() - 12, 44));
+    const int quarter = row.getWidth() / 4;
+    rhythmLevel->setBounds (row.removeFromLeft (quarter).reduced (2));
+    rhythmSwing->setBounds (row.removeFromLeft (quarter).reduced (2));
+    rhythmHuman->setBounds (row.removeFromLeft (quarter).reduced (2));
+    tempo->setBounds (row.reduced (2));
 
     auto ms = layout::masterPanel.translated (dx, 0).reduced (10).withTrimmedTop (22);
     row = ms.removeFromTop (32);

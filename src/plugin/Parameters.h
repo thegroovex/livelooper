@@ -56,6 +56,9 @@ inline const juce::String gRhythmOn     { "rhythm_on" };
 inline const juce::String gRhythmLevel  { "rhythm_level" };
 inline const juce::String gRhythmPattern{ "rhythm_pattern" };
 inline const juce::String gClickSound   { "click_sound" };
+inline const juce::String gRhythmKit    { "rhythm_kit" };       // since 1.3
+inline const juce::String gRhythmSwing  { "rhythm_swing" };
+inline const juce::String gRhythmHuman  { "rhythm_humanize" };
 inline const juce::String gAllStartStop { "allstartstop" };
 inline const juce::String gAllStart     { "allstart" };
 inline const juce::String gAllStop      { "allstop" };
@@ -88,6 +91,7 @@ juce::StringArray dubModeChoices();
 juce::StringArray measureChoices();
 juce::StringArray fxTypeChoices();
 juce::StringArray rhythmChoices();
+juce::StringArray kitChoices();
 juce::StringArray outputChoices();
 juce::StringArray duckSourceChoices();
 juce::StringArray captureBarsChoices();

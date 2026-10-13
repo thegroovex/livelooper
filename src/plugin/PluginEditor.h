@@ -126,10 +126,10 @@ private:
     void applyVisibleTracks();
     void exportStems();
     LLButton tap { "TAP", colours::yellow }, rhythmOn { "RHYTHM", colours::orange }, sync { "HOST SYNC", colours::cyan };
-    LLCombo quantize, rhythmPattern;
+    LLCombo quantize, rhythmPattern, rhythmKit;
     std::unique_ptr<APVTS::ButtonAttachment> rhythmOnAtt, syncAtt;
-    std::unique_ptr<APVTS::ComboBoxAttachment> quantizeAtt, rhythmPatternAtt;
-    std::unique_ptr<Knob> tempo, rhythmLevel, master, monitor, fade;
+    std::unique_ptr<APVTS::ComboBoxAttachment> quantizeAtt, rhythmPatternAtt, rhythmKitAtt;
+    std::unique_ptr<Knob> tempo, rhythmLevel, rhythmSwing, rhythmHuman, master, monitor, fade;
 
     juce::TextEditor tempoEntry;
     juce::Array<int> heldKeys;

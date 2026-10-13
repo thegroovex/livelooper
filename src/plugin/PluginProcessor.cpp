@@ -138,6 +138,9 @@ LiveLooperProcessor::LiveLooperProcessor (bool withCueOutput, bool withTrackOutp
     rhythmLevel   = apvts.getRawParameterValue (gRhythmLevel);
     rhythmPattern = apvts.getRawParameterValue (gRhythmPattern);
     clickSound    = apvts.getRawParameterValue (gClickSound);
+    rhythmKit     = apvts.getRawParameterValue (gRhythmKit);
+    rhythmSwing   = apvts.getRawParameterValue (gRhythmSwing);
+    rhythmHuman   = apvts.getRawParameterValue (gRhythmHuman);
     captureBars   = apvts.getRawParameterValue (gCaptureBars);
     autoRec       = apvts.getRawParameterValue (gAutoRec);
     autoRecThresh = apvts.getRawParameterValue (gAutoRecThresh);
@@ -305,6 +308,7 @@ void LiveLooperProcessor::pushSettingsToEngine() noexcept
     engine.setFollowHostTransport (follow->load() >= 0.5f);
     engine.setRhythm (rhythmOn->load() >= 0.5f, juce::roundToInt (rhythmPattern->load()), rhythmLevel->load());
     engine.setClickSound (juce::roundToInt (clickSound->load()));
+    engine.setRhythmFeel (juce::roundToInt (rhythmKit->load()), rhythmSwing->load() * 0.01f, rhythmHuman->load() * 0.01f);
 
     for (int t = 0; t < kNumTracks; ++t)
     {

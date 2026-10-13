@@ -67,6 +67,13 @@ public:
     void setTrackFx (int slot, const FxSettings& s) noexcept     { trackFx.setSlot (slot, s); }
     void setRhythm (bool on, int pattern, float level) noexcept;
     void setClickSound (int sound) noexcept                     { rhythm.setClickSound (sound); }
+    /** kit index, swing 0.5 (straight) ... 0.75, humanize 0 ... 1 */
+    void setRhythmFeel (int kit, float swing, float humanize) noexcept
+    {
+        rhythm.setKit (kit);
+        rhythm.setSwing (swing);
+        rhythm.setHumanize (humanize);
+    }
     void setFollowHostTransport (bool f) noexcept               { followHostTransport = f; }
 
     // ---- commands (audio thread). Executed at the start of the next process() call.

@@ -211,6 +211,7 @@ private:
     std::atomic<float>* recAction {}; std::atomic<float>* sync {}; std::atomic<float>* follow {};
     std::atomic<float>* tempo {}; std::atomic<float>* fade {}; std::atomic<float>* rhythmOn {};
     std::atomic<float>* rhythmLevel {}; std::atomic<float>* rhythmPattern {}; std::atomic<float>* clickSound {};
+    std::atomic<float>* rhythmKit {}; std::atomic<float>* rhythmSwing {}; std::atomic<float>* rhythmHuman {};
     bool cueBusAvailable = false;
     std::atomic<int> cuePair { 0 }, clickRoute { 0 };
     std::atomic<float>* captureBars {}; std::atomic<float>* autoRec {}; std::atomic<float>* autoRecThresh {};
