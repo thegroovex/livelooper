@@ -22,6 +22,9 @@ class LiveLooperEditor : public juce::AudioProcessorEditor,
 public:
     static constexpr int kBaseWidth = 1180;
     static constexpr int kBaseHeight = 720;
+    static constexpr int kStripWidth = 170;
+    /** Width of the surface: wider when 8 tracks are shown. */
+    int surfaceWidth() const noexcept { return kBaseWidth + (proc.getVisibleTracks() - kDefaultVisibleTracks) * kStripWidth; }
 
     explicit LiveLooperEditor (LiveLooperProcessor&);
     ~LiveLooperEditor() override;
@@ -115,6 +118,13 @@ private:
     std::array<std::unique_ptr<TrackStrip>, kNumTracks> strips;
 
     LLButton allStartStop { "ALL START / STOP", colours::green }, clearAll { "CLEAR ALL", colours::red };
+    LLButton capture { "CAPTURE", colours::red };
+    std::array<std::unique_ptr<LLButton>, params::kNumScenes> sceneBtns;
+    LLButton sceneStore { "STORE", colours::yellow };
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> sceneStoreAtt;
+    int shownTracks = -1;
+    void applyVisibleTracks();
+    void exportStems();
     LLButton tap { "TAP", colours::yellow }, rhythmOn { "RHYTHM", colours::orange }, sync { "HOST SYNC", colours::cyan };
     LLCombo quantize, rhythmPattern;
     std::unique_ptr<APVTS::ButtonAttachment> rhythmOnAtt, syncAtt;

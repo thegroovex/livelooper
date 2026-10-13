@@ -617,6 +617,7 @@ void TrackStrip::paint (juce::Graphics& g)
     }
     if (pending == LooperEngine::Pending::Record)      { stateText = "REC WAIT";  stateColour = colours::red; }
     else if (pending == LooperEngine::Pending::Play)   { stateText = "PLAY WAIT"; stateColour = colours::green; }
+    else if (pending == LooperEngine::Pending::AutoRecord) { stateText = "AUTO REC"; stateColour = colours::red; }
     else if (pending != LooperEngine::Pending::None)   { stateText = "REC END"; stateColour = colours::red; }
 
     const double measure = proc.getEngine().getMeasurePpq();
@@ -660,7 +661,16 @@ void TrackStrip::paint (juce::Graphics& g)
             g.setColour (stateColour.withAlpha (played ? 0.95f : 0.35f));
             g.fillRect (waveArea.getX() + w * (float) i, mid - h, juce::jmax (1.0f, w - 0.6f), h * 2.0f);
         }
-        if (! recording && state != LoopTrack::State::Empty)
+        const float ghost = st.ghostProgress.load();
+        if (state == LoopTrack::State::Stopped && ghost >= 0.0f)
+        {
+            // ghost play head: where the stopped loop would be now, so it can be started on cue
+            g.setColour (colours::text.withAlpha (0.45f));
+            const float x = waveArea.getX() + waveArea.getWidth() * juce::jlimit (0.0f, 1.0f, ghost);
+            for (float y = waveArea.getY(); y < waveArea.getBottom(); y += 4.0f)
+                g.fillRect (x - 0.5f, y, 1.0f, 2.0f);
+        }
+        else if (! recording && state != LoopTrack::State::Empty)
         {
             g.setColour (colours::text);
             g.fillRect (waveArea.getX() + waveArea.getWidth() * prog - 0.75f, waveArea.getY(), 1.5f, waveArea.getHeight());
@@ -750,7 +760,7 @@ TrackSettingsPanel::TrackSettingsPanel (LiveLooperProcessor& p, MidiMenuHost& ho
     const Def defs[] = {
         { kInput, "Input", inputChoices() }, { kStartMode, "Start", startModeChoices() },
         { kStopMode, "Stop", stopModeChoices() }, { kDubMode, "Dub mode", dubModeChoices() },
-        { kMeasure, "Measures", measureChoices() }
+        { kMeasure, "Measures", measureChoices() }, { kOutput, "Output", outputChoices() }
     };
     for (const auto& [id, caption, choices] : defs)
     {
@@ -777,7 +787,26 @@ TrackSettingsPanel::TrackSettingsPanel (LiveLooperProcessor& p, MidiMenuHost& ho
     for (auto* b : { &clear, &exportBtn, &importBtn })
         addAndMakeVisible (b);
 
-    setSize (300, 44 + (int) rows.size() * 30 + 76);
+    feedback = std::make_unique<Knob> (st, trackId (track, kFeedback), "Feedback", colours::orange);
+    feedback->slider.setTooltip ("Feedback: how much of the loop remains with every overdub pass (100 % = all)");
+    duck = std::make_unique<Knob> (st, trackId (track, kDuck), "Ducking", colours::green);
+    duck->slider.setTooltip ("Ducking: lowers this track while the ducking source (SETUP) plays");
+    pitch = std::make_unique<Knob> (st, trackId (track, kPitch), "Pitch", colours::cyan);
+    pitch->slider.setTooltip ("Pitch in semitones (the length stays the same)");
+    for (auto* k : { feedback.get(), duck.get(), pitch.get() })
+        addAndMakeVisible (k);
+
+    stretch.setClickingTogglesState (true);
+    stretchAtt = std::make_unique<APVTS::ButtonAttachment> (st, trackId (track, kStretch), stretch);
+    setParamId (stretch, trackId (track, kStretch));
+    stretch.setTooltip ("Follow tempo: the loop follows tempo changes without changing its pitch (time-stretch)");
+    setParamId (capture, trackId (track, kCapture));
+    capture.setTooltip ("Capture: turns the last bars you played into a loop on this (empty) track");
+    capture.onClick = [this] { proc.pressTrigger (trackId (track, kCapture)); };
+    addAndMakeVisible (stretch);
+    addAndMakeVisible (capture);
+
+    setSize (300, 44 + (int) rows.size() * 30 + 76 + 90 + 36);
 }
 
 void TrackSettingsPanel::resized()
@@ -797,6 +826,16 @@ void TrackSettingsPanel::resized()
     row = b.removeFromTop (32);
     exportBtn.setBounds (row.removeFromLeft (row.getWidth() / 2).reduced (2, 3));
     importBtn.setBounds (row.reduced (2, 3));
+    b.removeFromTop (6);
+    row = b.removeFromTop (84);
+    const int kw = row.getWidth() / 3;
+    feedback->setBounds (row.removeFromLeft (kw));
+    duck->setBounds (row.removeFromLeft (kw));
+    pitch->setBounds (row);
+    b.removeFromTop (4);
+    row = b.removeFromTop (32);
+    stretch.setBounds (row.removeFromLeft (row.getWidth() / 2).reduced (2, 3));
+    capture.setBounds (row.reduced (2, 3));
 }
 
 void TrackSettingsPanel::paint (juce::Graphics& g)

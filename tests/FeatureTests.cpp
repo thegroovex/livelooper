@@ -211,8 +211,12 @@ public:
             expectGreaterThan (peakOf (buffer, 5), 0.02f, "click on output 6");
             expectEquals (peakOf (buffer, 6), 0.0f);
 
-            LiveLooperProcessor plugin (false);
+            LiveLooperProcessor plugin (false, false);
             expectEquals (plugin.getBusCount (false), 1, "plug-ins keep a stereo effect layout");
+            LiveLooperProcessor multi (false, true);
+            expectEquals (multi.getMainBusNumOutputChannels(), 2, "main output stays stereo");
+            for (int b = 1; b < multi.getBusCount (false); ++b)
+                expect (! multi.getBus (false, b)->isEnabled(), "track outputs are off until the host enables them");
             expect (LiveLooperProcessor::getCuePairName (1).contains ("3"));
         }
 

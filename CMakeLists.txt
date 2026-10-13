@@ -102,6 +102,7 @@ if(LIVELOOPER_BUILD_TESTS)
         tests/LocalisationTests.cpp
         tests/KeyboardTests.cpp
         tests/FeatureTests.cpp
+        tests/Feature13Tests.cpp
         ${LIVELOOPER_ENGINE_SOURCES} ${LIVELOOPER_PLUGIN_SOURCES})
     target_include_directories(livelooper_tests PRIVATE src ${LIVELOOPER_THIRD_PARTY_INCLUDES})
     target_compile_definitions(livelooper_tests PRIVATE ${LIVELOOPER_DEFINES} LIVELOOPER_NO_PLUGIN_ENTRY=1 JUCE_MODAL_LOOPS_PERMITTED=1)

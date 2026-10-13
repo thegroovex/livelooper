@@ -252,5 +252,9 @@ private:
     LLButton loopSync { "LOOP SYNC", colours::green };
     LLButton clear { "CLEAR", colours::red }, exportBtn { "EXPORT WAV" }, importBtn { "IMPORT" };
     std::unique_ptr<APVTS::ButtonAttachment> loopSyncAtt;
+    // v1.3
+    std::unique_ptr<Knob> feedback, duck, pitch;
+    LLButton stretch { "FOLLOW TEMPO", colours::cyan }, capture { "CAPTURE", colours::red };
+    std::unique_ptr<APVTS::ButtonAttachment> stretchAtt;
 };
 } // namespace livelooper

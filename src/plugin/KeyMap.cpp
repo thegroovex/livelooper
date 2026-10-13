@@ -105,9 +105,9 @@ void KeyMap::setDefaults()
     using namespace params;
     clear();
     const juce::ModifierKeys none, shift (juce::ModifierKeys::shiftModifier);
-    const char rec[]  = { '1', '2', '3', '4', '5' };
-    const char stop[] = { 'Q', 'W', 'E', 'R', 'T' };
-    const char undo[] = { 'A', 'S', 'D', 'F', 'G' };
+    const char rec[]  = { '1', '2', '3', '4', '5', '6', '7', '8' };
+    const char stop[] = { 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I' };
+    const char undo[] = { 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'L' };
     for (int t = 0; t < kNumTracks; ++t)
     {
         assign (juce::KeyPress (rec[t], none, 0), trackId (t, kRecPlay));

@@ -108,13 +108,39 @@ LiveLooperEditor::LiveLooperEditor (LiveLooperProcessor& p)
     allStartStop.onClick = [this] { proc.pressTrigger (gAllStartStop); };
     setParamId (allStartStop, gAllStartStop);
     allStartStop.setTooltip ("Start / stop all tracks");
-    clearAll.setTooltip ("Clear all five tracks");
+    clearAll.setTooltip ("Clear all tracks");
     clearAll.onClick = [this] { confirmClearAll(); };
     setParamId (clearAll, gClearAll);
 
+    capture.onClick = [this] { proc.pressTrigger (gCapture); };
+    setParamId (capture, gCapture);
+    capture.tooltipFn = [this] {
+        return tr ("Capture: turns the last %1 bars you played into a loop on the first empty track (no need to press record)",
+                   captureBarsChoices()[juce::roundToInt (proc.getState().getRawParameterValue (gCaptureBars)->load())]);
+    };
+
+    for (int i = 0; i < kNumScenes; ++i)
+    {
+        auto b = std::make_unique<LLButton> (juce::String (i + 1), colours::yellow);
+        b->onClick = [this, i] { proc.pressTrigger (sceneId (i)); };
+        setParamId (*b, sceneId (i));
+        b->tooltipFn = [this, i] {
+            return tr (proc.sceneIsStored (i) ? "Scene %1: starts its tracks and stops the others (quantized)"
+                                              : "Scene %1 is empty: click to store which tracks are playing now",
+                       juce::String (i + 1));
+        };
+        surface.addAndMakeVisible (*b);
+        sceneBtns[(size_t) i] = std::move (b);
+    }
+    sceneStore.setClickingTogglesState (true);
+    sceneStoreAtt = std::make_unique<APVTS::ButtonAttachment> (st, gSceneStore, sceneStore);
+    setParamId (sceneStore, gSceneStore);
+    sceneStore.setTooltip ("Store: the next scene button you press stores which tracks are playing now");
+    surface.addAndMakeVisible (sceneStore);
+
     for (juce::Component* c : std::initializer_list<juce::Component*> {
              &rhythmOn, &rhythmPattern, rhythmLevel.get(), tempo.get(), &tap, &sync, &quantize,
-             master.get(), monitor.get(), fade.get(), &allStartStop, &clearAll })
+             master.get(), monitor.get(), fade.get(), &allStartStop, &clearAll, &capture })
         surface.addAndMakeVisible (c);
 
     surface.addChildComponent (overlay);
@@ -126,10 +152,7 @@ LiveLooperEditor::LiveLooperEditor (LiveLooperProcessor& p)
     i18n::addListener (this);
 
     setResizable (true, true);
-    setResizeLimits (kBaseWidth * 6 / 10, kBaseHeight * 6 / 10, kBaseWidth * 2, kBaseHeight * 2);
-    if (auto* c = getConstrainer())
-        c->setFixedAspectRatio ((double) kBaseWidth / (double) kBaseHeight);
-    setSize (kBaseWidth, kBaseHeight);
+    applyVisibleTracks();
     startTimerHz (30);
 }
 
@@ -148,25 +171,45 @@ void LiveLooperEditor::paint (juce::Graphics& g)
     g.fillAll (colours::panel);
 }
 
+void LiveLooperEditor::applyVisibleTracks()
+{
+    const int n = proc.getVisibleTracks();
+    if (n == shownTracks)
+        return;
+    const float scale = shownTracks < 0 || getHeight() <= 0 ? 1.0f : (float) getHeight() / (float) kBaseHeight;
+    shownTracks = n;
+    for (int t = 0; t < kNumTracks; ++t)
+        strips[(size_t) t]->setVisible (t < n);
+    const int w = surfaceWidth();
+    if (auto* c = getConstrainer())
+        c->setFixedAspectRatio (0.0);      // drop the old ratio before the limits change
+    setResizeLimits (w * 6 / 10, kBaseHeight * 6 / 10, w * 2, kBaseHeight * 2);
+    if (auto* c = getConstrainer())
+        c->setFixedAspectRatio ((double) w / (double) kBaseHeight);
+    setSize (juce::roundToInt ((float) w * scale), juce::roundToInt ((float) kBaseHeight * scale));
+    resized();
+}
+
 void LiveLooperEditor::resized()
 {
-    const float scale = (float) getWidth() / (float) kBaseWidth;
-    surface.setBounds (0, 0, kBaseWidth, kBaseHeight);
+    const float scale = (float) getHeight() / (float) kBaseHeight;
+    surface.setBounds (0, 0, surfaceWidth(), kBaseHeight);
     surface.setTransform (juce::AffineTransform::scale (scale));
     layoutSurface();
 }
 
 void LiveLooperEditor::layoutSurface()
 {
-    lcd.setBounds (layout::lcd);
+    const int dx = surfaceWidth() - kBaseWidth;          // extra width for tracks 6 - 8
+    lcd.setBounds (layout::lcd.translated (dx / 2, 0));
     tempoEntry.setBounds (lcd.getBounds().getX() + lcd.getTempoArea().getX() - 4, lcd.getY() + 9,
                           lcd.getTempoArea().getWidth() - 14, lcd.getHeight() - 18);
-    learnBtn.setBounds (868, 22, 104, 36);
-    mapBtn.setBounds (978, 22, 92, 36);
-    setupBtn.setBounds (1076, 22, 92, 36);
+    learnBtn.setBounds (868 + dx, 22, 104, 36);
+    mapBtn.setBounds (978 + dx, 22, 92, 36);
+    setupBtn.setBounds (1076 + dx, 22, 92, 36);
 
     auto slotRow = [] (juce::Rectangle<int> panel) { return panel.reduced (8).withTrimmedTop (22); };
-    auto in = slotRow (layout::inputFx), tr = slotRow (layout::trackFx);
+    auto in = slotRow (layout::inputFx), tr = slotRow (layout::trackFx.translated (dx, 0));
     const int sw = in.getWidth() / kNumFxSlots;
     for (int s = 0; s < kNumFxSlots; ++s)
     {
@@ -174,19 +217,20 @@ void LiveLooperEditor::layoutSurface()
         trackSlots[(size_t) s]->setBounds (tr.removeFromLeft (sw));
     }
 
-    auto ed = layout::fxEditor.reduced (8).withTrimmedTop (22);
+    auto ed = layout::fxEditor.translated (dx / 2, 0).reduced (8).withTrimmedTop (22);
     fxType.setBounds (ed.removeFromLeft (120).withSizeKeepingCentre (116, 28));
     const int kw = ed.getWidth() / 3;
     fxP1->setBounds (ed.removeFromLeft (kw));
     fxP2->setBounds (ed.removeFromLeft (kw));
     fxMix->setBounds (ed);
 
-    auto tracks = layout::tracks;
-    const int stripW = tracks.getWidth() / kNumTracks;
-    for (int t = 0; t < kNumTracks; ++t)
+    auto tracks = layout::tracks.withWidth (layout::tracks.getWidth() + dx);
+    const int visible = proc.getVisibleTracks();
+    const int stripW = tracks.getWidth() / visible;
+    for (int t = 0; t < visible; ++t)
         strips[(size_t) t]->setBounds (tracks.removeFromLeft (stripW).reduced (2, 0));
 
-    auto rh = layout::rhythm.reduced (10).withTrimmedTop (22);
+    auto rh = layout::rhythm.translated (dx, 0).reduced (10).withTrimmedTop (22);
     auto row = rh.removeFromTop (32);
     rhythmOn.setBounds (row.removeFromLeft (100).reduced (0, 2));
     row.removeFromLeft (8);
@@ -198,7 +242,7 @@ void LiveLooperEditor::layoutSurface()
     tempo->setBounds (row.removeFromLeft (third).reduced (4));
     tap.setBounds (row.withSizeKeepingCentre (row.getWidth() - 12, 44));
 
-    auto ms = layout::masterPanel.reduced (10).withTrimmedTop (22);
+    auto ms = layout::masterPanel.translated (dx, 0).reduced (10).withTrimmedTop (22);
     row = ms.removeFromTop (32);
     quantize.setBounds (row.removeFromLeft (row.getWidth() / 2).reduced (0, 3).withTrimmedRight (4));
     sync.setBounds (row.reduced (0, 2).withTrimmedLeft (4));
@@ -209,9 +253,23 @@ void LiveLooperEditor::layoutSurface()
     monitor->setBounds (row.removeFromLeft (kn).reduced (4));
     fade->setBounds (row.reduced (4));
     ms.removeFromTop (8);
-    clearAll.setBounds (ms.removeFromBottom (30).reduced (0, 1));
+    {
+        auto bottom = ms.removeFromBottom (30).reduced (0, 1);
+        capture.setBounds (bottom.removeFromLeft (bottom.getWidth() / 2).withTrimmedRight (3));
+        clearAll.setBounds (bottom.withTrimmedLeft (3));
+    }
     ms.removeFromBottom (6);
     allStartStop.setBounds (ms);
+
+    // scenes in the footer
+    auto sc = layout::footer.reduced (20, 12).withTrimmedLeft (64);
+    for (auto& b : sceneBtns)
+    {
+        b->setBounds (sc.removeFromLeft (34).reduced (1, 0));
+        sc.removeFromLeft (2);
+    }
+    sc.removeFromLeft (4);
+    sceneStore.setBounds (sc.removeFromLeft (66).reduced (1, 0));
 
     overlay.setBounds (surface.getLocalBounds());
 }
@@ -219,12 +277,13 @@ void LiveLooperEditor::layoutSurface()
 void LiveLooperEditor::paintSurface (juce::Graphics& g)
 {
     // brushed panel
+    const int dx = surfaceWidth() - kBaseWidth;
     juce::ColourGradient grad (juce::Colour (0xff2b2e33), 0.0f, 0.0f, juce::Colour (0xff17191c), 0.0f, (float) kBaseHeight, false);
     g.setGradientFill (grad);
     g.fillAll();
     g.setColour (juce::Colours::white.withAlpha (0.015f));
     for (int y = 0; y < kBaseHeight; y += 3)
-        g.drawHorizontalLine (y, 0.0f, (float) kBaseWidth);
+        g.drawHorizontalLine (y, 0.0f, (float) surfaceWidth());
 
     // logo
     g.setColour (colours::text);
@@ -232,7 +291,7 @@ void LiveLooperEditor::paintSurface (juce::Graphics& g)
     g.drawText ("livelooper", 22, 14, 260, 40, juce::Justification::centredLeft);
     g.setColour (colours::textDim);
     g.setFont (LooperLookAndFeel::font (11.0f, true));
-    g.drawText (tr ("5 TRACK LOOP STATION"), 24, 50, 260, 16, juce::Justification::centredLeft);
+    g.drawText (tr ("%1 TRACK LOOP STATION", juce::String (proc.getVisibleTracks())), 24, 50, 260, 16, juce::Justification::centredLeft);
     const juce::Colour dots[] = { colours::red, colours::orange, colours::green, colours::cyan, colours::learn };
     for (int i = 0; i < 5; ++i)
     {
@@ -256,17 +315,30 @@ void LiveLooperEditor::paintSurface (juce::Graphics& g)
     section (layout::inputFx, tr ("INPUT FX"), colours::cyan);
     const auto fxTitle = tr (selectedInput ? "INPUT FX" : "TRACK FX") + " " + juce::String::charToString ((juce::juce_wchar) ('A' + selectedSlot))
                          + "  " + tr ("EDIT");
-    section (layout::fxEditor, fxTitle, selectedInput ? colours::cyan : colours::orange);
-    section (layout::trackFx, tr ("TRACK FX"), colours::orange);
-    section (layout::rhythm, tr ("RHYTHM"), colours::orange);
-    section (layout::masterPanel, tr ("MASTER"), colours::green);
+    section (layout::fxEditor.translated (dx / 2, 0), fxTitle, selectedInput ? colours::cyan : colours::orange);
+    section (layout::trackFx.translated (dx, 0), tr ("TRACK FX"), colours::orange);
+    section (layout::rhythm.translated (dx, 0), tr ("RHYTHM"), colours::orange);
+    section (layout::masterPanel.translated (dx, 0), tr ("MASTER"), colours::green);
 
-    // footer
+    // footer: scenes, tips, version
+    const auto footer = layout::footer.withWidth (surfaceWidth()).reduced (20, 12);
+    g.setColour (colours::text);
+    g.setFont (LooperLookAndFeel::font (12.0f, true));
+    g.drawText (tr ("SCENES"), footer.withWidth (62), juce::Justification::centredLeft);
+    const int last = proc.getLastScene();
+    for (int i = 0; i < kNumScenes; ++i)
+    {
+        // LED under each scene button: stored = dim, last recalled = bright
+        const auto b = sceneBtns[(size_t) i]->getBounds();
+        g.setColour (proc.sceneIsStored (i) ? (i == last ? colours::yellow : colours::yellow.withAlpha (0.35f))
+                                            : juce::Colour (0xff2b2e33));
+        g.fillRect (b.getX() + 6, b.getBottom() + 2, b.getWidth() - 12, 3);
+    }
     g.setColour (colours::textDim);
     g.setFont (LooperLookAndFeel::font (12.0f));
-    const auto footer = layout::footer.reduced (20, 12);
     g.drawFittedText (tr ("Right-click any control for MIDI learn   |   hold STOP to clear   |   drop audio files on a track to import"),
-                      footer.withTrimmedRight (130), juce::Justification::centredLeft, 1, 0.75f);
+                      footer.withTrimmedLeft (sceneStore.getRight() - footer.getX() + 18).withTrimmedRight (130),
+                      juce::Justification::centredLeft, 1, 0.6f);
     g.drawText ("livelooper v" LIVELOOPER_VERSION, footer, juce::Justification::centredRight);
 }
 
@@ -293,7 +365,7 @@ void LiveLooperEditor::selectFxSlot (bool inputFx, int slot)
         trackSlots[(size_t) s]->setSelected (! inputFx && s == slot);
     }
     updateFxEditorLabels();
-    surface.repaint (layout::fxEditor);
+    surface.repaint (layout::fxEditor.translated ((surfaceWidth() - kBaseWidth) / 2, 0));
 }
 
 void LiveLooperEditor::updateFxEditorLabels()
@@ -310,7 +382,10 @@ void LiveLooperEditor::timerCallback()
     blinkCounter = (blinkCounter + 1) % 16;
     const bool blink = blinkCounter < 8;
     for (auto& s : strips)
-        s->refresh (blink);
+        if (s->isVisible())
+            s->refresh (blink);
+    if (blinkCounter % 4 == 0)
+        surface.repaint (layout::footer.withWidth (surfaceWidth()));
     for (int s = 0; s < kNumFxSlots; ++s)
     {
         inputSlots[(size_t) s]->repaint();
@@ -412,6 +487,7 @@ void LiveLooperEditor::showStatus (const juce::String& text)
 
 void LiveLooperEditor::changeListenerCallback (juce::ChangeBroadcaster*)
 {
+    applyVisibleTracks();
     overlay.repaint();
     selectFxSlot (selectedInput, selectedSlot);
 }
@@ -787,10 +863,59 @@ void LiveLooperEditor::showSetupMenu()
         cue.addItem (69, tr ("Enable the outputs in Options > Audio/MIDI Settings"), false);
     }
 
+    // ---- v1.3: tracks, capture, auto record, ducking, direct outputs
+    auto* captureBars = dynamic_cast<juce::AudioParameterChoice*> (st.getParameter (gCaptureBars));
+    auto* autoRec = dynamic_cast<juce::AudioParameterBool*> (st.getParameter (gAutoRec));
+    auto* autoRecThresh = dynamic_cast<juce::AudioParameterFloat*> (st.getParameter (gAutoRecThresh));
+    auto* duckSource = dynamic_cast<juce::AudioParameterChoice*> (st.getParameter (gDuckSource));
+
+    juce::PopupMenu tracksMenu;
+    tracksMenu.addItem (100, tr ("5 tracks"), true, proc.getVisibleTracks() == 5);
+    tracksMenu.addItem (101, tr ("8 tracks"), true, proc.getVisibleTracks() == 8);
+
+    juce::PopupMenu captureMenu;
+    for (int i = 0; i < captureBars->choices.size(); ++i)
+        captureMenu.addItem (110 + i, tr (kCaptureBars[i] == 1 ? "%1 bar" : "%1 bars", juce::String (kCaptureBars[i])),
+                             true, captureBars->getIndex() == i);
+
+    juce::PopupMenu autoRecMenu;
+    autoRecMenu.addItem (120, tr ("Auto record (armed tracks wait for the input)"), true, autoRec->get());
+    autoRecMenu.addSectionHeader (tr ("Threshold"));
+    const std::array<int, 5> thresholds { -50, -40, -30, -20, -12 };
+    for (int i = 0; i < 5; ++i)
+        autoRecMenu.addItem (121 + i, juce::String (thresholds[(size_t) i]) + " dB", true,
+                             juce::roundToInt (autoRecThresh->get()) == thresholds[(size_t) i]);
+
+    juce::PopupMenu duckMenu;
+    for (int i = 0; i < duckSource->choices.size(); ++i)
+        duckMenu.addItem (130 + i, tr (duckSourceChoices()[i]), true, duckSource->getIndex() == i);
+
+    juce::PopupMenu directMenu;
+    if (proc.hasCueOutput())
+    {
+        for (int t = 0; t < proc.getVisibleTracks(); ++t)
+        {
+            juce::PopupMenu pairs;
+            for (int p = 0; p <= LiveLooperProcessor::kNumCuePairs; ++p)
+                pairs.addItem (200 + t * 10 + p, LiveLooperProcessor::getCuePairName (p), true, proc.getTrackOutputPair (t) == p);
+            directMenu.addSubMenu (tr ("Track %1", juce::String (t + 1)) + ": " + LiveLooperProcessor::getCuePairName (proc.getTrackOutputPair (t)), pairs);
+        }
+        directMenu.addSeparator();
+        directMenu.addItem (199, tr ("Set the track's OUTPUT to Direct in its SETUP"), false);
+    }
+
     juce::PopupMenu menu;
     menu.addSectionHeader (tr ("livelooper setup"));
     menu.addItem (8, tr ("Save set ..."));
     menu.addItem (9, tr ("Load set ..."));
+    menu.addItem (10, tr ("Export stems (one WAV per track) ..."));
+    menu.addSeparator();
+    menu.addSubMenu (tr ("Tracks"), tracksMenu);
+    menu.addSubMenu (tr ("Capture length"), captureMenu);
+    menu.addSubMenu (tr ("Auto record"), autoRecMenu);
+    menu.addSubMenu (tr ("Ducking source"), duckMenu);
+    if (proc.hasCueOutput())
+        menu.addSubMenu (tr ("Direct track outputs"), directMenu);
     menu.addSeparator();
     menu.addSubMenu (tr ("Record action"), rec);
     menu.addItem (3, tr ("Follow host transport (start / stop with the host)"), true, follow->get());
@@ -811,9 +936,50 @@ void LiveLooperEditor::showSetupMenu()
 
     juce::Component::SafePointer<LiveLooperEditor> safe (this);
     menu.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&setupBtn),
-                        [safe, recAction, follow, lengths, clickSound] (int r) {
+                        [safe, recAction, follow, lengths, clickSound, captureBars, autoRec, autoRecThresh, duckSource, thresholds] (int r) {
         if (safe == nullptr || r == 0)
             return;
+        auto setParam = [] (juce::RangedAudioParameter* p, float plain) {
+            p->beginChangeGesture();
+            p->setValueNotifyingHost (p->convertTo0to1 (plain));
+            p->endChangeGesture();
+        };
+        if (r == 10)
+        {
+            safe->exportStems();
+            return;
+        }
+        if (r == 100 || r == 101)
+        {
+            safe->proc.setVisibleTracks (r == 100 ? 5 : 8);
+            return;
+        }
+        if (r >= 110 && r < 114)
+        {
+            setParam (captureBars, (float) (r - 110));
+            return;
+        }
+        if (r == 120)
+        {
+            setParam (autoRec, autoRec->get() ? 0.0f : 1.0f);
+            safe->showStatus (tr (autoRec->get() ? "AUTO REC ON" : "AUTO REC OFF"));
+            return;
+        }
+        if (r >= 121 && r <= 125)
+        {
+            setParam (autoRecThresh, (float) thresholds[(size_t) (r - 121)]);
+            return;
+        }
+        if (r >= 130 && r < 132)
+        {
+            setParam (duckSource, (float) (r - 130));
+            return;
+        }
+        if (r >= 200 && r < 200 + kNumTracks * 10)
+        {
+            safe->proc.setTrackOutputPair ((r - 200) / 10, (r - 200) % 10);
+            return;
+        }
         if (r == 1 || r == 2)
             recAction->setValueNotifyingHost (recAction->convertTo0to1 ((float) (r - 1)));
         else if (r == 3)
@@ -860,6 +1026,21 @@ void LiveLooperEditor::showSetupMenu()
             i18n::setSetting ((i18n::Language) (r - 30));
             safe->showStatus (tr ("LANGUAGE: ENGLISH"));
         }
+    });
+}
+
+//============================================================================== stems
+void LiveLooperEditor::exportStems()
+{
+    const auto dir = juce::File::getSpecialLocation (juce::File::userMusicDirectory);
+    chooser = std::make_unique<juce::FileChooser> (tr ("Export stems to folder"), dir);
+    juce::Component::SafePointer<LiveLooperEditor> safe (this);
+    chooser->launchAsync (juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectDirectories,
+                          [safe] (const juce::FileChooser& fc) {
+        if (safe == nullptr || fc.getResult() == juce::File())
+            return;
+        const int n = safe->proc.exportStems (fc.getResult());
+        safe->showStatus (n > 0 ? tr ("%1 STEMS EXPORTED", juce::String (n)) : tr ("NOTHING TO EXPORT"));
     });
 }
 
