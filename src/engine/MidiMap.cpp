@@ -62,6 +62,18 @@ MidiMap::Action MidiMap::handle (const juce::MidiMessage& m) noexcept
     Action a;
     const bool isNoteOn = m.isNoteOn() && m.getVelocity() > 0;
     const bool isCC = m.isController();
+    if (m.isNoteOff (true) && learnTarget.load() < 0)
+    {
+        // note off only releases momentary parameters
+        const int p = table[(size_t) slot ({ m.getChannel() - 1, false, m.getNoteNumber() })].load();
+        if (p >= 0 && p < (int) kinds.size() && kinds[(size_t) p] == ParamKind::Momentary)
+        {
+            a.paramIndex = p;
+            a.op = Action::Op::SetNormalized;
+            a.value = 0.0f;
+        }
+        return a;
+    }
     if (! isNoteOn && ! isCC)
         return a;
 
@@ -109,6 +121,10 @@ MidiMap::Action MidiMap::handle (const juce::MidiMessage& m) noexcept
         case ParamKind::Choice:
             if (isNoteOn) a.op = Action::Op::StepChoice;
             else { a.op = Action::Op::SetNormalized; a.value = (float) ccValue / 127.0f; }
+            break;
+        case ParamKind::Momentary:
+            if (isNoteOn || risingEdge) { a.op = Action::Op::SetNormalized; a.value = 1.0f; }
+            else if (isCC && ccValue < 64) { a.op = Action::Op::SetNormalized; a.value = 0.0f; }
             break;
         case ParamKind::Continuous:
             a.op = Action::Op::SetNormalized;

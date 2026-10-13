@@ -32,7 +32,20 @@ bool isTrigger (const juce::String& id)
     if (id.startsWithChar ('t') && id.length() > 3 && id[2] == '_')
     {
         const auto name = id.substring (3);
-        return name == kRecPlay || name == kStop || name == kClear || name == kUndo || name == kRedo || name == kCapture;
+        return name == kRecPlay || name == kStop || name == kClear || name == kUndo || name == kRedo || name == kCapture
+            || name == kCutSync || name == kDouble || name == kHalve || name == kOctUp || name == kOctDown || name == kCopy;
+    }
+    return false;
+}
+
+bool isMomentary (const juce::String& id)
+{
+    if (id.startsWithChar ('t') && id.length() > 3 && id[2] == '_')
+    {
+        const auto name = id.substring (3);
+        for (auto* s : kSlices)
+            if (name == s)
+                return true;
     }
     return false;
 }
@@ -44,6 +57,7 @@ juce::StringArray inputChoices()     { return { "Stereo", "Left", "Right", "Resa
 juce::StringArray outputChoices()    { return { "Main", "Direct", "Main + Direct" }; }
 juce::StringArray duckSourceChoices() { return { "Rhythm Kick", "Track 1" }; }
 juce::StringArray captureBarsChoices() { return { "1", "2", "4", "8" }; }
+juce::StringArray recLengthChoices() { return { "-", "1 Bar", "2 Bars", "4 Bars", "8 Bars", "16 Bars", "32 Bars" }; }
 juce::StringArray startModeChoices() { return { "Immediate", "Fade In" }; }
 juce::StringArray stopModeChoices()  { return { "Immediate", "Fade Out", "Loop End" }; }
 juce::StringArray dubModeChoices()   { return { "Overdub", "Replace" }; }
@@ -90,7 +104,11 @@ namespace
         { kLoopSync, "Loop Sync" }, { kTrackFx, "Track FX" }, { kInput, "Input" }, { kStartMode, "Start Mode" },
         { kStopMode, "Stop Mode" }, { kDubMode, "Dub Mode" }, { kMeasure, "Measures" },
         { kCapture, "Capture" }, { kFeedback, "Feedback" }, { kDuck, "Ducking" }, { kOutput, "Output" },
-        { kPitch, "Pitch" }, { kStretch, "Follow Tempo" }
+        { kPitch, "Pitch" }, { kStretch, "Follow Tempo" },
+        { "slice1", "Slice 1" }, { "slice2", "Slice 2" }, { "slice3", "Slice 3" }, { "slice4", "Slice 4" },
+        { "slice5", "Slice 5" }, { "slice6", "Slice 6" }, { kCutSync, "Back in Sync" }, { kMute, "Mute" },
+        { kSolo, "Solo" }, { kDouble, "Double Loop" }, { kHalve, "Halve Loop" }, { kOctUp, "Octave Up" },
+        { kOctDown, "Octave Down" }, { kCopy, "Copy to Empty Track" }, { kRecLen, "Rec Length" }
     };
     const std::pair<const char*, const char*> kFxNames[] = {
         { kFxOn, "On" }, { kFxType, "Type" }, { kFxP1, "Param 1" }, { kFxP2, "Param 2" }, { kFxMix, "Mix" }
@@ -104,7 +122,8 @@ namespace
         { "rhythm_pattern", "Rhythm Pattern" }, { "click_sound", "Metronome Sound" },
         { "rhythm_kit", "Drum Kit" }, { "rhythm_swing", "Swing" }, { "rhythm_humanize", "Humanize" },
         { "capture", "Capture" }, { "capture_bars", "Capture Bars" }, { "autorec", "Auto Record" },
-        { "autorec_threshold", "Auto Record Threshold" }, { "duck_source", "Ducking Source" }, { "scene_store", "Store Scene" }
+        { "autorec_threshold", "Auto Record Threshold" }, { "duck_source", "Ducking Source" }, { "scene_store", "Store Scene" },
+        { "tape_stop", "Tape Stop" }, { "perf_filter", "Performance Filter" }
     };
 
     template <size_t N>
@@ -215,6 +234,13 @@ APVTS::ParameterLayout createLayout()
                 .withStringFromValueFunction ([] (float v, int) { const int st = juce::roundToInt (v); return (st > 0 ? "+" : "") + juce::String (st); })
                 .withLabel ("st")));
         group->addChild (std::make_unique<juce::AudioParameterBool> (PID { trackId (t, kStretch), 3 }, localisedName (trackId (t, kStretch)), false));
+        // v1.4 performance
+        for (auto* sl : kSlices)
+            group->addChild (std::make_unique<juce::AudioParameterBool> (PID { trackId (t, sl), 5 }, localisedName (trackId (t, sl)), false));
+        for (auto* n : { kCutSync, kMute, kSolo, kDouble, kHalve, kOctUp, kOctDown, kCopy })
+            group->addChild (std::make_unique<juce::AudioParameterBool> (PID { trackId (t, n), 5 }, localisedName (trackId (t, n)), false));
+        group->addChild (std::make_unique<juce::AudioParameterChoice> (PID { trackId (t, kRecLen), 5 }, localisedName (trackId (t, kRecLen)),
+                                                                       translated (recLengthChoices()), 0));
         layout.add (std::move (group));
     }
 
@@ -264,6 +290,14 @@ APVTS::ParameterLayout createLayout()
         for (int i = 0; i < kNumScenes; ++i)
             group->addChild (std::make_unique<juce::AudioParameterBool> (PID { sceneId (i), 3 }, localisedName (sceneId (i)), false));
         group->addChild (std::make_unique<juce::AudioParameterBool> (PID { gSceneStore, 3 }, localisedName (gSceneStore), false));
+        // v1.4
+        group->addChild (percentParam (gTapeStop, localisedName (gTapeStop), 1.0f, 0.0f, 5));
+        group->addChild (std::make_unique<juce::AudioParameterFloat> (
+            PID { gPerfFilter, 5 }, localisedName (gPerfFilter), juce::NormalisableRange<float> (-1.0f, 1.0f), 0.0f,
+            juce::AudioParameterFloatAttributes().withStringFromValueFunction ([] (float v, int) {
+                const int p = juce::roundToInt (v * 100.0f);
+                return p == 0 ? i18n::tr ("Off") : (p < 0 ? "LP " + juce::String (-p) : "HP " + juce::String (p));
+            })));
         layout.add (std::move (group));
     }
 

@@ -19,11 +19,12 @@ namespace livelooper
       Toggle     (Reverse, FX on ...)        note-on or CC rising edge flips the value
       Choice     (FX type, quantize ...)     note-on steps to the next choice, CC selects directly
       Continuous (level, pan, FX knobs ...)  CC sets the value, note-on sets velocity/127
+      Momentary  (slice pads, since 1.4)     on while the note / CC (>= 64) is held, off on release
 */
 class MidiMap
 {
 public:
-    enum class ParamKind : uint8_t { Trigger = 0, Toggle, Choice, Continuous };
+    enum class ParamKind : uint8_t { Trigger = 0, Toggle, Choice, Continuous, Momentary };
 
     struct Key
     {

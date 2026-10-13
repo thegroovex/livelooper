@@ -16,7 +16,8 @@ juce::StringArray KeyMap::getAvailableActions()
     using namespace params;
     juce::StringArray a;
     for (int t = 0; t < kNumTracks; ++t)
-        for (auto* n : { kRecPlay, kStop, kClear, kUndo, kRedo, kReverse, kOneShot, kLoopSync, kTrackFx })
+        for (auto* n : { kRecPlay, kStop, kClear, kUndo, kRedo, kReverse, kOneShot, kLoopSync, kTrackFx,
+                         kMute, kSolo, kCutSync, kDouble, kHalve, kOctUp, kOctDown, kCopy })   // v1.4: performance moves
             a.add (trackId (t, n));
 
     a.addArray ({ gAllStartStop, gAllStart, gAllStop, gClearAll, gTap,

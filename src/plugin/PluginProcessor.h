@@ -131,6 +131,10 @@ public:
 
     /** Presses a momentary function (sets the trigger parameter, so hosts can record it). */
     void pressTrigger (const juce::String& paramId);
+    /** v1.4 (Push DUPLICATE + two pads): copies the loop of track src to the empty track dst. */
+    void requestCopy (int src, int dst) noexcept { pendingCopy.store (src * 16 + dst + 1); }
+    /** v1.4: a slice pad held this long (seconds) turns from a jump into a stutter that ends on release. */
+    static constexpr double kSliceHoldSeconds = 0.25;
 
     int  getParamIndex (const juce::String& paramId) const;
     juce::String getParamIdForIndex (int index) const;
@@ -165,6 +169,8 @@ private:
         int track = -1;
         bool isTap = false;
         int scene = -1;
+        int arg = 0;            // extra command argument (copy: -1 = first empty track)
+        int octave = 0;         // v1.4: octave up / down trigger (changes the pitch parameter)
         bool last = false;
         std::atomic<bool> needsReset { false };
     };
@@ -177,7 +183,21 @@ private:
         std::atomic<float>* dubMode {}; std::atomic<float>* measure {};
         std::atomic<float>* feedback {}; std::atomic<float>* duck {}; std::atomic<float>* output {};
         std::atomic<float>* pitch {}; std::atomic<float>* stretch {};
+        // v1.4
+        std::array<std::atomic<float>*, params::kNumSlices> slices {};
+        std::atomic<float>* mute {}; std::atomic<float>* solo {}; std::atomic<float>* recLen {};
     };
+
+    /** v1.4 slice pads (audio thread): tap = jump, hold = stutter that returns in sync on release. */
+    struct SliceState
+    {
+        int held = -1;                  // slice whose pad is held (the latest press)
+        long long heldSamples = 0;
+        bool stutter = false;
+        std::array<bool, params::kNumSlices> last {};
+        int lastRecLen = 0;
+    };
+    void handleSlicePads (int numSamples) noexcept;
 
     struct FxParams
     {
@@ -222,6 +242,11 @@ private:
     std::atomic<int> cuePair { 0 }, clickRoute { 0 };
     std::atomic<float>* captureBars {}; std::atomic<float>* autoRec {}; std::atomic<float>* autoRecThresh {};
     std::atomic<float>* duckSource {}; std::atomic<float>* sceneStore {};
+    std::atomic<float>* tapeStopParam {}; std::atomic<float>* perfFilterParam {};
+    std::array<SliceState, kNumTracks> sliceState {};
+    std::array<std::atomic<bool>, kNumTracks> recLenFired {};
+    std::array<std::atomic<int>, kNumTracks> pendingOctave {};
+    std::atomic<int> pendingCopy { 0 };
     bool trackBusesAvailable = false;
     std::array<std::atomic<int>, kNumTracks> trackOutPair {};
     std::atomic<int> visibleTracks { kDefaultVisibleTracks };

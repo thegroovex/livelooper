@@ -53,6 +53,8 @@ LiveLooperProcessor::LiveLooperProcessor (bool withCueOutput, bool withTrackOutp
 
         if (isTrigger (ranged->getParameterID()))
             kinds.push_back (MidiMap::ParamKind::Trigger);
+        else if (isMomentary (ranged->getParameterID()))
+            kinds.push_back (MidiMap::ParamKind::Momentary);
         else if (dynamic_cast<juce::AudioParameterBool*> (ranged) != nullptr)
             kinds.push_back (MidiMap::ParamKind::Toggle);
         else if (dynamic_cast<juce::AudioParameterChoice*> (ranged) != nullptr)
@@ -63,7 +65,7 @@ LiveLooperProcessor::LiveLooperProcessor (bool withCueOutput, bool withTrackOutp
     midiMap.setParamKinds (std::move (kinds));
 
     // ---- triggers
-    auto addTrigger = [this] (const juce::String& id, LooperEngine::Command c, int track, bool isTap = false)
+    auto addTrigger = [this] (const juce::String& id, LooperEngine::Command c, int track, bool isTap = false, int arg = 0, int octave = 0)
     {
         auto tr = std::make_unique<Trigger>();
         tr->raw = apvts.getRawParameterValue (id);
@@ -71,6 +73,8 @@ LiveLooperProcessor::LiveLooperProcessor (bool withCueOutput, bool withTrackOutp
         tr->command = c;
         tr->track = track;
         tr->isTap = isTap;
+        tr->arg = arg;
+        tr->octave = octave;
         triggers.push_back (std::move (tr));
     };
 
@@ -83,6 +87,12 @@ LiveLooperProcessor::LiveLooperProcessor (bool withCueOutput, bool withTrackOutp
         addTrigger (trackId (t, kUndo),    C::Undo, t);
         addTrigger (trackId (t, kRedo),    C::Redo, t);
         addTrigger (trackId (t, kCapture), C::Capture, t);
+        addTrigger (trackId (t, kCutSync), C::CutOff, t);
+        addTrigger (trackId (t, kDouble),  C::Multiply, t);
+        addTrigger (trackId (t, kHalve),   C::Halve, t);
+        addTrigger (trackId (t, kCopy),    C::Copy, t, false, -1);
+        addTrigger (trackId (t, kOctUp),   C::RecPlay, t, false, 0, 1);
+        addTrigger (trackId (t, kOctDown), C::RecPlay, t, false, 0, -1);
 
         auto& tp = trackParams[(size_t) t];
         tp.level     = apvts.getRawParameterValue (trackId (t, kLevel));
@@ -101,6 +111,13 @@ LiveLooperProcessor::LiveLooperProcessor (bool withCueOutput, bool withTrackOutp
         tp.output    = apvts.getRawParameterValue (trackId (t, kOutput));
         tp.pitch     = apvts.getRawParameterValue (trackId (t, kPitch));
         tp.stretch   = apvts.getRawParameterValue (trackId (t, kStretch));
+        for (int sl = 0; sl < kNumSlices; ++sl)
+            tp.slices[(size_t) sl] = apvts.getRawParameterValue (trackId (t, kSlices[sl]));
+        tp.mute      = apvts.getRawParameterValue (trackId (t, kMute));
+        tp.solo      = apvts.getRawParameterValue (trackId (t, kSolo));
+        tp.recLen    = apvts.getRawParameterValue (trackId (t, kRecLen));
+        recLenFired[(size_t) t].store (false);
+        pendingOctave[(size_t) t].store (0);
     }
     addTrigger (gAllStartStop, C::AllStartStop, -1);
     addTrigger (gAllStart,     C::AllStart, -1);
@@ -146,6 +163,8 @@ LiveLooperProcessor::LiveLooperProcessor (bool withCueOutput, bool withTrackOutp
     autoRecThresh = apvts.getRawParameterValue (gAutoRecThresh);
     duckSource    = apvts.getRawParameterValue (gDuckSource);
     sceneStore    = apvts.getRawParameterValue (gSceneStore);
+    tapeStopParam = apvts.getRawParameterValue (gTapeStop);
+    perfFilterParam = apvts.getRawParameterValue (gPerfFilter);
 
     keyboardAvailable = wrapperType == wrapperType_Standalone;
     if (wrapperType != wrapperType_Undefined)      // a real host or the standalone app (not the unit tests)
@@ -309,6 +328,11 @@ void LiveLooperProcessor::pushSettingsToEngine() noexcept
     engine.setRhythm (rhythmOn->load() >= 0.5f, juce::roundToInt (rhythmPattern->load()), rhythmLevel->load());
     engine.setClickSound (juce::roundToInt (clickSound->load()));
     engine.setRhythmFeel (juce::roundToInt (rhythmKit->load()), rhythmSwing->load() * 0.01f, rhythmHuman->load() * 0.01f);
+    engine.setPerformance (tapeStopParam->load(), perfFilterParam->load());
+
+    bool anySolo = false;
+    for (int t = 0; t < visibleTracks.load(); ++t)
+        anySolo = anySolo || trackParams[(size_t) t].solo->load() >= 0.5f;
 
     for (int t = 0; t < kNumTracks; ++t)
     {
@@ -330,6 +354,7 @@ void LiveLooperProcessor::pushSettingsToEngine() noexcept
         s.output    = (TrackOutput) juce::jlimit (0, 2, juce::roundToInt (tp.output->load()));
         s.pitch     = tp.pitch->load();
         s.stretch   = tp.stretch->load() >= 0.5f;
+        s.muted     = tp.mute->load() >= 0.5f || (anySolo && tp.solo->load() < 0.5f);
         engine.setTrackSettings (t, s);
     }
 
@@ -354,8 +379,67 @@ void LiveLooperProcessor::fireTrigger (Trigger& t) noexcept
         handleTap();
     else if (t.scene >= 0)
         handleScene (t.scene);
+    else if (t.octave != 0)
+        pendingOctave[(size_t) t.track].fetch_add (t.octave);      // the message thread changes the pitch
     else
-        engine.queueCommand (t.command, t.track);
+        engine.queueCommand (t.command, t.track, t.arg);
+}
+
+void LiveLooperProcessor::handleSlicePads (int numSamples) noexcept
+{
+    using C = LooperEngine::Command;
+    const auto holdSamples = (long long) (kSliceHoldSeconds * currentSampleRate);
+    for (int t = 0; t < kNumTracks; ++t)
+    {
+        auto& ss = sliceState[(size_t) t];
+        const auto& tp = trackParams[(size_t) t];
+        for (int sl = 0; sl < kNumSlices; ++sl)
+        {
+            const bool on = tp.slices[(size_t) sl]->load() >= 0.5f;
+            const bool was = ss.last[(size_t) sl];
+            ss.last[(size_t) sl] = on;
+            if (on && ! was)
+            {
+                // press: jump to the slice (quantized to the next 16th)
+                engine.queueCommand (C::Cut, t, sl);
+                ss.held = sl;
+                ss.heldSamples = 0;
+            }
+            else if (! on && was && ss.held == sl)
+            {
+                // release: a hold returns to the running position, a tap stays where it jumped
+                if (ss.stutter)
+                    engine.queueCommand (C::CutOff, t);
+                ss.held = -1;
+                ss.stutter = false;
+            }
+        }
+        if (ss.held >= 0)
+        {
+            ss.heldSamples += numSamples;
+            if (! ss.stutter && ss.heldSamples >= holdSamples)
+            {
+                ss.stutter = true;
+                engine.queueCommand (C::StutterOn, t);
+            }
+        }
+
+        // loop length for the next / running recording (fires once, the timer resets the choice)
+        const int recLen = juce::jlimit (0, 6, juce::roundToInt (tp.recLen->load()));
+        if (recLen != ss.lastRecLen)
+        {
+            if (recLen > 0)
+            {
+                engine.queueCommand (C::SetRecLength, t, kRecLenBars[recLen]);
+                recLenFired[(size_t) t].store (true);
+            }
+            ss.lastRecLen = recLen;
+        }
+    }
+
+    const int copy = pendingCopy.exchange (0);
+    if (copy > 0)
+        engine.queueCommand (C::Copy, (copy - 1) / 16, (copy - 1) % 16);
 }
 
 void LiveLooperProcessor::handleScene (int scene) noexcept
@@ -503,6 +587,7 @@ void LiveLooperProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::
         t->last = on;
     }
 
+    handleSlicePads (numSamples);
     pushSettingsToEngine();
 
     // ---- audio
@@ -576,6 +661,22 @@ void LiveLooperProcessor::timerCallback()
     for (auto& t : triggers)
         if (t->needsReset.exchange (false) && t->param->getValue() >= 0.5f)
             t->param->setValueNotifyingHost (0.0f);
+
+    // v1.4: one-shot rec length choices go back to "-", octave triggers move the pitch
+    for (int t = 0; t < kNumTracks; ++t)
+    {
+        if (recLenFired[(size_t) t].exchange (false))
+            if (auto* p = apvts.getParameter (trackId (t, kRecLen)); p != nullptr && p->getValue() > 0.0f)
+                p->setValueNotifyingHost (0.0f);
+        if (const int oct = pendingOctave[(size_t) t].exchange (0); oct != 0)
+            if (auto* p = apvts.getParameter (trackId (t, kPitch)))
+            {
+                const float st = juce::jlimit (-12.0f, 12.0f, p->convertFrom0to1 (p->getValue()) + 12.0f * (float) oct);
+                p->beginChangeGesture();
+                p->setValueNotifyingHost (p->convertTo0to1 (st));
+                p->endChangeGesture();
+            }
+    }
 
     const float tap = pendingTapTempo.exchange (0.0f);
     if (tap > 0.0f)

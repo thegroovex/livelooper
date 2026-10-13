@@ -36,6 +36,19 @@ inline constexpr const char* kDuck      = "duck";
 inline constexpr const char* kOutput    = "output";
 inline constexpr const char* kPitch     = "pitch";
 inline constexpr const char* kStretch   = "stretch";
+// v1.4 performance
+inline constexpr int kNumSlices = 6;
+inline constexpr const char* kSlices[kNumSlices] = { "slice1", "slice2", "slice3", "slice4", "slice5", "slice6" };   // momentary: hold = held pad
+inline constexpr const char* kCutSync   = "cutsync";    // trigger: back to the running position
+inline constexpr const char* kMute      = "mute";
+inline constexpr const char* kSolo      = "solo";
+inline constexpr const char* kDouble    = "double";     // trigger: loop x 2 (multiply)
+inline constexpr const char* kHalve     = "halve";      // trigger: loop / 2
+inline constexpr const char* kOctUp     = "octup";      // trigger: pitch +12
+inline constexpr const char* kOctDown   = "octdown";    // trigger: pitch -12
+inline constexpr const char* kCopy      = "copy";       // trigger: copy the loop to the first empty track
+inline constexpr const char* kRecLen    = "reclen";     // choice, fires once: length of the next / running recording
+inline constexpr int kRecLenBars[] = { 0, 1, 2, 4, 8, 16, 32 };
 // fx slot
 inline constexpr const char* kFxOn   = "on";
 inline constexpr const char* kFxType = "type";
@@ -71,6 +84,9 @@ inline const juce::String gAutoRec      { "autorec" };
 inline const juce::String gAutoRecThresh{ "autorec_threshold" };
 inline const juce::String gDuckSource   { "duck_source" };
 inline const juce::String gSceneStore   { "scene_store" };
+// v1.4
+inline const juce::String gTapeStop     { "tape_stop" };     // 0 = running, 1 = tape stands still
+inline const juce::String gPerfFilter   { "perf_filter" };   // -1 low-pass .. 0 off .. 1 high-pass
 inline constexpr int kNumScenes = 8;
 inline constexpr int kCaptureBars[] = { 1, 2, 4, 8 };
 /** "scene1" .. "scene8" */
@@ -78,6 +94,8 @@ juce::String sceneId (int scene);
 
 /** True for momentary "button" parameters (they reset to off right after triggering). */
 bool isTrigger (const juce::String& paramId);
+/** True for parameters that follow a held button (on while held): the slice pads. MIDI: note on / off. */
+bool isMomentary (const juce::String& paramId);
 
 juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
 
@@ -95,6 +113,7 @@ juce::StringArray kitChoices();
 juce::StringArray outputChoices();
 juce::StringArray duckSourceChoices();
 juce::StringArray captureBarsChoices();
+juce::StringArray recLengthChoices();
 
 /** The choice lists above are English; this translates a list into the current UI language. */
 juce::StringArray translated (const juce::StringArray& englishChoices);

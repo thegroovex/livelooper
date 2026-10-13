@@ -389,3 +389,190 @@ public:
 };
 
 static Feature14EngineTests feature14EngineTests;
+
+//==============================================================================
+namespace
+{
+struct Proc14
+{
+    LiveLooperProcessor proc { false, false };
+    juce::AudioBuffer<float> buffer { 2, kBlock14 };
+    juce::MidiBuffer midi;
+    float lastPeak = 0.0f;
+
+    Proc14()
+    {
+        proc.prepareToPlay (kRate14, kBlock14);
+        set ("quantize", 0.0f);
+        set ("recaction", 1.0f);
+        set ("sync", 0.0f);
+        set ("monitor", 0.0f);
+    }
+    void set (const juce::String& id, float v) { proc.getState().getParameter (id)->setValueNotifyingHost (v); }
+    float get (const juce::String& id)         { return proc.getState().getParameter (id)->getValue(); }
+    void run (int blocks, float in = 0.0f)
+    {
+        lastPeak = 0.0f;
+        for (int b = 0; b < blocks; ++b)
+        {
+            for (int ch = 0; ch < 2; ++ch)
+                juce::FloatVectorOperations::fill (buffer.getWritePointer (ch), in, kBlock14);
+            proc.processBlock (buffer, midi);
+            midi.clear();
+            lastPeak = std::max (lastPeak, buffer.getMagnitude (0, 0, kBlock14));
+        }
+    }
+    void press (const juce::String& id, float in = 0.0f)
+    {
+        proc.pressTrigger (id);
+        run (1, in);
+        set (id, 0.0f);
+    }
+    /** what the message-thread timer does in the app (rec length reset, octave) */
+    void pump()
+    {
+        for (int i = 0; i < 5; ++i)
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (40);
+    }
+    void recordBar (int t)
+    {
+        set (params::trackId (t, params::kMeasure), 0.2f);       // "1"
+        press (params::trackId (t, params::kRecPlay), 0.5f);
+        run (kBar14 / kBlock14, 0.5f);
+        set (params::trackId (t, params::kMeasure), 0.0f);
+    }
+    LoopTrack& track (int t) { return proc.getEngine().getTrack (t); }
+};
+} // namespace
+
+class Feature14ProcessorTests : public juce::UnitTest
+{
+public:
+    Feature14ProcessorTests() : juce::UnitTest ("1.4 performance parameters", "plugin") {}
+
+    void runTest() override
+    {
+        using namespace params;
+
+        beginTest ("Slice parameters: tap jumps and stays, hold (250 ms) stutters and returns in sync");
+        {
+            Proc14 h;
+            h.recordBar (0);
+            expect (h.track (0).getState() == LoopTrack::State::Playing);
+            h.set (trackId (0, kSlices[2]), 1.0f);
+            h.run (3);
+            h.set (trackId (0, kSlices[2]), 0.0f);
+            h.run (3);
+            expect (h.track (0).isCut() && ! h.track (0).isStuttering(), "tap: jumped and stays");
+            h.press (trackId (0, kCutSync));
+            expect (! h.track (0).isCut(), "BACK IN SYNC trigger");
+
+            h.set (trackId (0, kSlices[4]), 1.0f);
+            h.run (30);
+            expect (h.track (0).isStuttering(), "held: stutter");
+            h.set (trackId (0, kSlices[4]), 0.0f);
+            h.run (2);
+            expect (! h.track (0).isCut(), "released: back in sync");
+        }
+
+        beginTest ("Mute and solo parameters silence tracks that keep running");
+        {
+            Proc14 h;
+            h.recordBar (0);
+            h.recordBar (1);
+            h.run (5);
+            expect (h.lastPeak > 0.4f);
+            h.set (trackId (0, kMute), 1.0f);
+            h.set (trackId (1, kMute), 1.0f);
+            h.run (2);
+            h.run (2);
+            expectEquals (h.lastPeak, 0.0f, "both muted");
+            expect (h.track (0).getState() == LoopTrack::State::Playing);
+            h.set (trackId (0, kMute), 0.0f);
+            h.set (trackId (1, kMute), 0.0f);
+            h.set (trackId (1, kSolo), 1.0f);
+            h.run (2);
+            h.run (2);
+            expectWithinAbsoluteError (h.lastPeak, 0.5f, 0.01f, "only the soloed track");
+            h.set (trackId (1, kSolo), 0.0f);
+            h.run (4);
+            expectWithinAbsoluteError (h.lastPeak, 1.0f, 0.02f, "both again");
+        }
+
+        beginTest ("Rec length choice fires once and goes back to '-'");
+        {
+            Proc14 h;
+            h.press (trackId (0, kRecPlay), 0.5f);
+            h.set (trackId (0, kRecLen), 2.0f / 6.0f);      // 2 bars
+            h.run (1, 0.5f);
+            expect (h.proc.getEngine().getTrackStatus (0).recordingSpan.load());
+            h.pump();
+            expectEquals (h.get (trackId (0, kRecLen)), 0.0f, "reset by the timer");
+            h.run (2 * kBar14 / kBlock14, 0.5f);
+            expect (h.track (0).getState() == LoopTrack::State::Playing);
+            expectEquals (h.track (0).getLength(), 2 * kBar14);
+        }
+
+        beginTest ("Loop move triggers: octave, double, halve, copy");
+        {
+            Proc14 h;
+            h.recordBar (0);
+            h.press (trackId (0, kOctUp));
+            h.pump();
+            expectWithinAbsoluteError (h.proc.getState().getParameter (trackId (0, kPitch))->convertFrom0to1 (h.get (trackId (0, kPitch))), 12.0f, 1.0e-3f);
+            h.press (trackId (0, kOctUp));
+            h.pump();
+            expectWithinAbsoluteError (h.proc.getState().getParameter (trackId (0, kPitch))->convertFrom0to1 (h.get (trackId (0, kPitch))), 12.0f, 1.0e-3f, "stays in range");
+            h.press (trackId (0, kOctDown));
+            h.run (1);
+            h.press (trackId (0, kOctDown));
+            h.pump();
+            expectWithinAbsoluteError (h.proc.getState().getParameter (trackId (0, kPitch))->convertFrom0to1 (h.get (trackId (0, kPitch))), -12.0f, 1.0e-3f);
+
+            h.press (trackId (0, kDouble));
+            expectEquals (h.track (0).getLength(), 2 * kBar14);
+            h.run (1);
+            h.press (trackId (0, kHalve));
+            expectEquals (h.track (0).getLength(), kBar14);
+            h.press (trackId (0, kCopy));
+            expectEquals (h.track (1).getLength(), kBar14, "copied to the first empty track");
+            h.proc.requestCopy (0, 3);
+            h.run (1);
+            expectEquals (h.track (3).getLength(), kBar14, "copied to the chosen track");
+            expect (h.track (2).isEmpty());
+        }
+
+        beginTest ("Tape stop and performance filter parameters reach the engine, slices are MIDI momentary");
+        {
+            Proc14 h;
+            h.recordBar (0);
+            h.set (gTapeStop, 1.0f);
+            h.run (50);
+            h.run (5);
+            expect (h.proc.getEngine().isTapeStopActive());
+            expect (h.lastPeak < 0.01f, "tape stopped");
+            h.set (gTapeStop, 0.0f);
+            h.run (20);
+            expect (! h.proc.getEngine().isTapeStopActive());
+            expectWithinAbsoluteError (h.lastPeak, 0.5f, 0.01f);
+
+            // MIDI learn a slice: note on = held, note off = released
+            h.proc.startMidiLearn (trackId (0, kSlices[0]));
+            h.proc.handleMidiMessage (juce::MidiMessage::noteOn (1, 60, (juce::uint8) 100));
+            h.proc.handleMidiMessage (juce::MidiMessage::noteOff (1, 60));
+            h.proc.handleMidiMessage (juce::MidiMessage::noteOn (1, 60, (juce::uint8) 100));
+            expectEquals (h.get (trackId (0, kSlices[0])), 1.0f, "note on");
+            h.proc.handleMidiMessage (juce::MidiMessage::noteOff (1, 60));
+            expectEquals (h.get (trackId (0, kSlices[0])), 0.0f, "note off");
+            // mute stays a toggle for MIDI
+            h.proc.startMidiLearn (trackId (0, kMute));
+            h.proc.handleMidiMessage (juce::MidiMessage::noteOn (1, 61, (juce::uint8) 100));
+            h.proc.handleMidiMessage (juce::MidiMessage::noteOn (1, 61, (juce::uint8) 100));
+            h.proc.handleMidiMessage (juce::MidiMessage::noteOff (1, 61));
+            expectEquals (h.get (trackId (0, kMute)), 1.0f, "toggle");
+            expect (isMomentary (trackId (2, kSlices[5])) && ! isMomentary (trackId (2, kMute)) && isTrigger (trackId (2, kDouble)));
+        }
+    }
+};
+
+static Feature14ProcessorTests feature14ProcessorTests;
