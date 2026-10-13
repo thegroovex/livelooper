@@ -924,7 +924,7 @@ void LiveLooperEditor::showSetupMenu()
         pushMenu.addItem (140, tr ("Control from Ableton Push (User port)"), true, proc.isPushEnabled());
         pushMenu.addItem (149, proc.getPushStatus(), false);
         pushMenu.addSeparator();
-        pushMenu.addItem (148, tr ("In Live: press USER on Push to switch between Live and livelooper"), false);
+        pushMenu.addItem (148, tr ("Press USER on Push to switch between your DAW and livelooper"), false);
     }
 
     juce::PopupMenu menu;

@@ -54,7 +54,7 @@ juce::String PushDevice::getStatusText() const
     if (usedElsewhere)
         return i18n::tr ("Push is controlled by another livelooper instance");
     if (openFailed)
-        return i18n::tr ("Push found, but its User port is in use (Windows: switch it off in Live's MIDI preferences)");
+        return i18n::tr ("Push found, but its User port is in use (Windows: switch it off in your DAW's MIDI settings)");
     return i18n::tr ("No Push found");
 }
 

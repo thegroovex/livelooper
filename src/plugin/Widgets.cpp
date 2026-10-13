@@ -748,7 +748,7 @@ juce::String TrackStrip::getTooltip()
 {
     const auto pos = getMouseXYRelative();
     if (lcdArea.contains (pos) && canDragOut())
-        return tr ("Drag the waveform onto an audio track in Live to export the loop");
+        return tr ("Drag the waveform onto an audio track in your DAW to export the loop");
     return {};
 }
 

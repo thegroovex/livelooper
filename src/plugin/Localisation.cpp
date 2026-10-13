@@ -142,7 +142,7 @@ namespace
         { "Cancel", "Abbrechen" },
         { "Export track %1", "Spur %1 exportieren" },
         { "Import audio to track %1", "Audio in Spur %1 importieren" },
-        { "Drag the waveform onto an audio track in Live to export the loop", "Wellenform auf eine Audiospur in Live ziehen, um den Loop zu exportieren" },
+        { "Drag the waveform onto an audio track in your DAW to export the loop", "Wellenform auf eine Audiospur in deiner DAW ziehen, um den Loop zu exportieren" },
 
         // ---------------------------------------------------------------- track display
         { "TRACK %1", "SPUR %1" },
@@ -177,10 +177,10 @@ namespace
         { "808", "808" },
         { "909", "909" },
         { "Control from Ableton Push (User port)", "Steuerung mit Ableton Push (User-Port)" },
-        { "In Live: press USER on Push to switch between Live and livelooper", "In Live: USER auf Push wechselt zwischen Live und livelooper" },
+        { "Press USER on Push to switch between your DAW and livelooper", "USER auf Push wechselt zwischen deiner DAW und livelooper" },
         { "Ableton Push", "Ableton Push" },
         { "Connected: %1", "Verbunden: %1" },
-        { "Push found, but its User port is in use (Windows: switch it off in Live's MIDI preferences)", "Push gefunden, aber sein User-Port ist belegt (Windows: in Lives MIDI-Einstellungen ausschalten)" },
+        { "Push found, but its User port is in use (Windows: switch it off in your DAW's MIDI settings)", "Push gefunden, aber sein User-Port ist belegt (Windows: in den MIDI-Einstellungen deiner DAW ausschalten)" },
         { "No Push found", "Kein Push gefunden" },
         { "Push is controlled by another livelooper instance", "Push wird von einer anderen livelooper-Instanz gesteuert" },
         { "Resample", "Resample" },

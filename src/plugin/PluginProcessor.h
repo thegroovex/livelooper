@@ -16,7 +16,7 @@ namespace push { class PushDevice; }
     The plug-in: owns the parameters (APVTS), the MIDI-learn map and the engine.
 
     Every function of the looper is a host parameter, so it can be automated and mapped
-    with the host's own MIDI mapping (Ableton Live: MIDI Map Mode after "Configure").
+    with the host's own MIDI mapping (e.g. MIDI learn / MIDI map mode of your DAW).
     Additionally the plug-in accepts MIDI and has its own MIDI learn.
 */
 class LiveLooperProcessor : public juce::AudioProcessor,
