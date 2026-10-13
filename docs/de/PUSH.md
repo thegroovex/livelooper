@@ -61,7 +61,7 @@ Die 8 × 8 Pads werden ein **XY-Pad** für einen Effekt: X (links nach rechts) =
 | CLIP | Feedback |
 | DEVICE | Parameter 1 der Eingangs-FX A – D (1 – 4) und der Spur-FX A – D (5 – 8). **SHIFT** = Mix |
 
-Master-Encoder = Gesamtpegel · Tempo-Encoder = Tempo (1 BPM, mit **SHIFT** 0,1 BPM) · Swing-Encoder = Rhythmus-Pegel. Mit **SHIFT** wird fein eingestellt.
+Master-Encoder = Gesamtpegel · Tempo-Encoder = Tempo (1 BPM, mit **SHIFT** 0,1 BPM). Mit **SHIFT** wird fein eingestellt.
 
 **Master-Sektion**: Bei bis zu 6 sichtbaren Spuren sind die beiden Encoder ganz rechts eine Master-Sektion: **Encoder 7 = Gesamtpegel**, **Encoder 8 = Tempo** (BPM, mit **SHIFT** 0,1 BPM); das Display zeigt darüber *Master* und *Tempo*. Bei 8 Spuren (und im DEVICE-Modus) steuern alle acht Encoder Spuren bzw. Effekte; dann gelten der Master-Encoder (oben rechts) und der Tempo-Encoder (oben links), und Zeile 4 zeigt den Gesamtpegel. Mit **HOST SYNC** bestimmt Live das Tempo (Display: *Host*); das interne Tempo gilt nur ohne Host-Sync.
 

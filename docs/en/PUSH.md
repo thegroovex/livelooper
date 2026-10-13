@@ -61,7 +61,7 @@ The 8 × 8 pads become an **XY pad** for one effect: X (left to right) = paramet
 | CLIP | feedback |
 | DEVICE | parameter 1 of input FX A – D (1 – 4) and track FX A – D (5 – 8). **SHIFT** = mix |
 
-Master encoder = master level · tempo encoder = tempo (1 BPM, **SHIFT** 0.1 BPM) · swing encoder = rhythm level. **SHIFT** turns finely.
+Master encoder = master level · tempo encoder = tempo (1 BPM, **SHIFT** 0.1 BPM). **SHIFT** turns finely.
 
 **Master section**: with up to 6 visible tracks the two rightmost encoders are a master section: **encoder 7 = master level**, **encoder 8 = tempo** (BPM, **SHIFT** 0.1 BPM); the display shows *Master* and *Tempo* above them. With 8 tracks (and in DEVICE mode) all eight encoders control tracks / effects; then use the master encoder (top right) and the tempo encoder (top left), and line 4 shows the master level. With **HOST SYNC** on, Live sets the tempo (the display shows *Host*): the internal tempo applies only without host sync.
 
