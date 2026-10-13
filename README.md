@@ -2,7 +2,7 @@
 
 **English** | [Deutsch](README.de.md)
 
-**livelooper** is a five- or eight-track loop station plug-in for Ableton Live (VST3 and Audio Unit, plus a standalone app). Record, overdub, effects, rhythm, and every single function freely mappable to MIDI – built for live looping on stage and in the studio.
+**livelooper** is a five- or eight-track loop station plug-in for Ableton Live or any other DAW that supports plugins (VST3 and Audio Unit, plus a standalone app). Record, overdub, effects, rhythm, and every single function freely mappable to MIDI – built for live looping on stage and in the studio.
 
 ![livelooper](docs/images/livelooper.png)
 
