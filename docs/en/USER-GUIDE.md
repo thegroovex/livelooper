@@ -314,3 +314,16 @@ livelooper is meant to be played like an instrument. A few habits that help on s
 - **Build an arc**: store verse, chorus and breakdown as **scenes** and switch between them on the bar.
 - **Shape layers instead of stacking them**: feedback below 100 % lets old layers fade, pitch and reverse turn a phrase into something new, the FX XY pad on Push is made for drops and builds.
 - **Keep the good moments**: drag a loop onto a Live track or export stems after the show.
+
+## 24. Performance moves (since 1.4)
+
+New functions for playing live. They are host parameters (MIDI learn, Live's MIDI map, keyboard) and gestures on [Ableton Push](PUSH.md):
+
+- **Loop cutting** (*Slice 1 – 6*): jumps to one of six positions of a playing loop at the next 16th note (with quantize *Off* at once). A short press stays there, a press held longer than ¼ s repeats the slice (a ¼, ⅛ or 1/16 note) and returns on release to where the loop would be now – in sync. *Back in Sync* ends a cut. Jumps are crossfaded, so they never click.
+- **Mute** / **Solo**: silence a track (or all others) without stopping it – it keeps running in time and comes back exactly in place.
+- **Double Loop**: the loop is duplicated (twice as long) – overdub a variation over the second half. **Halve Loop** keeps the first half. Both work on playing or stopped tracks and can be undone with UNDO.
+- **Octave Up / Down**: pitch +12 / −12 semitones.
+- **Copy to Empty Track**: copies the loop into the next empty track (stopped; when started it plays in sync with the original).
+- **Rec Length**: a fixed length (1 – 32 bars) for the next or the running first recording, without changing the track's Measures setting.
+- **Tape Stop**: the loops slow down like a stopping tape machine; back at 0 % they spin up and continue in sync – the timeline never stops.
+- **Performance Filter**: a DJ-style filter on the loops (low-pass to the left, high-pass to the right, off in the middle).

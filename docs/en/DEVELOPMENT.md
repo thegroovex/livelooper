@@ -35,7 +35,7 @@ ctest --test-dir build -C Release --output-on-failure      # Linux without a dis
 
 | Test | What is checked |
 |---|---|
-| `unit_tests` (`livelooper_tests`) | Engine: free and quantized recording (bar, beat), retroactive ending, fixed bar count, cancelling, large host blocks, input routing, overdub, replace, undo/redo (including the first recording), clear, reverse, one shot, stop modes, level/pan, all start/stop, track FX routing, loop sync after transport jumps, quantized start in phase, follow transport, internal clock, rhythm. Effects: all 12 types stable, bypass bit-exact, filter response, delay time, slicer grid. MIDI: learn, button/switch/selector/continuous, CC edges, uniqueness, saving. Processor: 137 unique MIDI-capable parameters, button parameters, MIDI via processBlock, learn, project save including loop audio, sample rate change, WAV export/import, editor. Features 1.2: cue routing (main / cue / both, no cue → main), both metronome sounds, all drum patterns in range, track meter input/output, master meter, waveform incl. overdub/undo, standalone cue bus channel pairs, sets save/load keeping mappings, STOP button release. Localisation: English/German texts, every choice/effect has a translation, parameter names, live switching |
+| `unit_tests` (`livelooper_tests`) | Engine: free and quantized recording (bar, beat), retroactive ending, fixed bar count, cancelling, large host blocks, input routing, overdub, replace, undo/redo (including the first recording), clear, reverse, one shot, stop modes, level/pan, all start/stop, track FX routing, loop sync after transport jumps, quantized start in phase, follow transport, internal clock, rhythm. Effects: all 12 types stable, bypass bit-exact, filter response, delay time, slicer grid. MIDI: learn, button/switch/selector/continuous, CC edges, uniqueness, saving. Processor: 137 unique MIDI-capable parameters, button parameters, MIDI via processBlock, learn, project save including loop audio, sample rate change, WAV export/import, editor. Features 1.2: cue routing (main / cue / both, no cue → main), both metronome sounds, all drum patterns in range, track meter input/output, master meter, waveform incl. overdub/undo, standalone cue bus channel pairs, sets save/load keeping mappings, STOP button release. Localisation: English/German texts, every choice/effect has a translation, parameter names, live switching. Features 1.4: loop cutting on the 16th grid (crossfaded, tap stays, hold stutters, back in sync), mute/solo, multiply/halve with undo, copy, rec length, tape stop, performance filter, slice parameters as MIDI momentary; Push: cutting gestures, REC + position pad length with progress bar, footswitches, touch strip, pad pressure, DOUBLE/OCTAVE/DUPLICATE, MUTE/SOLO hold, level meters with display glyphs (rate-limited) |
 | `vst3_host_test` (`livelooper_hosttest`) | loads the built `livelooper.vst3` through JUCE's VST3 hosting like a DAW: name, effect category, MIDI input, parameter count, recording and playback via parameters, stop, saving/loading state in a second instance, editor |
 
 Single group: `livelooper_tests engine`, or `midi`, `plugin`.
@@ -53,11 +53,12 @@ src/
     LoopTrack.*           one track: recording, overdub, playback, undo/redo, fades
     LooperEngine.*        5 tracks, timeline/quantization, commands, FX buses, rhythm, status
     Effects.*             FxUnit (12 effects) and FxChain (4 slots)
+    Performance.*         tape stop and performance filter on the loop bus (1.4)
     RhythmGenerator.*     synthetic drum machine, 12 patterns
     MidiMap.*             MIDI learn table (lock-free)
   plugin/
     Localisation.*        English/German texts, language setting
-    Parameters.*          all 247 parameters (IDs, ranges, groups, English and localised names)
+    Parameters.*          all 372 parameters (IDs, ranges, groups, English and localised names)
     PluginProcessor.*     AudioProcessor: parameters → engine, buttons, MIDI, state, import/export
     PluginEditor.*        interface, MIDI learn mode, menus, drag & drop
     Widgets.*             REC/PLAY pad, STOP pad, display, FX slot, track, track setup

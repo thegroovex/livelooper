@@ -10,7 +10,7 @@
 
 - **Live performance comes first.** Every function reacts instantly, lands on the beat and never stops the music. Nothing needs a menu while you play.
 - **Explore and play.** Capture what you just improvised, throw an effect on it with the XY pad, pitch it, reverse it, let it decay like tape – and keep what works.
-- **Hands on hardware.** Plug in an Ableton Push and livelooper takes it over – no mapping. Any other controller works through MIDI learn, every one of the 250 functions is mappable.
+- **Hands on hardware.** Plug in an Ableton Push and livelooper takes it over – no mapping. Any other controller works through MIDI learn, every one of the 372 functions is mappable.
 - **Your loops belong in your song.** Drag a loop straight from livelooper onto a track in Live, export stems, or keep everything in the Live set.
 
 ## Play it with Ableton Push
@@ -22,8 +22,11 @@ Connect a Push (1 and up), press **User**, and livelooper turns it into a dedica
 - **One pad column per track**: REC / PLAY / DUB and STOP, the loop position running up the column as light, colours showing the state, blinking while waiting for the bar
 - **Encoders** for level, pan, pitch, feedback or effects, a **master section** (master level, tempo) and swing on the swing encoder
 - **Scenes** on the scene buttons, **capture**, undo, metronome, tap tempo, **DELETE + pad** clears a track
-- **FX XY pad**: the 8×8 grid becomes a performance pad – touch, slide, let go and it snaps back
-- **Display** with names, values, track states and tempo
+- **Loop cutting**: tap a position pad and the loop jumps there on the next 16th, hold it to stutter, let go and it is back in sync
+- **Performance moves**: hold MUTE / SOLO + pad for drops, DOUBLE = loop × 2 (SHIFT = half), OCTAVE ±12, DUPLICATE + pads copies a loop, REC pad + position pad = 1–32 bars
+- **Touch strip** = tape stop that springs back in sync (SHIFT = filter sweep), **footswitch** = REC/PLAY, double tap STOP, hold CLEAR
+- **FX XY pad**: the 8×8 grid becomes a performance pad – touch, slide, press harder for more, let go and it snaps back
+- **Display** with names, values, track states, tempo and level meters
 
 Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
 
@@ -37,6 +40,7 @@ Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
 - **Quantization** to the bar or beat; pressing "too late" is corrected up to 15 % after the bar line; fixed lengths 1–16 bars or free
 - **Start/stop modes**: immediate, fade in/out, stop at loop end; overdub or replace
 - **Ghost play head**: stopped tracks show where they would be now, so you drop them back in exactly
+- **Loop cutting and stutter**, **momentary mute / solo**, **loop × 2 / half**, **copy to another track**, **tape stop** and a **performance filter** – everything quantized musically, nothing ever stops the music
 - **Ableton Push**, **MIDI learn** for any controller (right-click any control), and **computer keyboard** control in the standalone app
 
 **Shape the sound**
@@ -51,7 +55,7 @@ Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
 - **Direct track outputs** (plug-in multi-out, interface outputs in the standalone app), **cue output** for the metronome
 - **Saved with your project**: loops stored losslessly (FLAC, 24 bit) in the Live set; whole **looper sets** as `.llset` files
 - **Meters and waveforms**: stereo meter per track, master meter, waveform with play position, clip LED
-- **All 250 functions** are host parameters for Live's MIDI map
+- **All 372 functions** are host parameters for Live's MIDI map
 - **English and German** interface (*SETUP → Language / Sprache*)
 
 ## Why VST3/AU?

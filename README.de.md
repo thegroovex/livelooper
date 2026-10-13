@@ -10,7 +10,7 @@
 
 - **Live-Performance zuerst.** Jede Funktion reagiert sofort, landet auf dem Schlag und hält die Musik nie an. Beim Spielen braucht nichts ein Menü.
 - **Erforschen und spielen.** Halte fest, was du gerade improvisiert hast, leg mit dem XY-Pad einen Effekt darauf, verstimm es, dreh es um, lass es ausklingen wie ein Band – und behalte, was funktioniert.
-- **Hände an die Hardware.** Schließ einen Ableton Push an und livelooper übernimmt ihn – ohne Mapping. Jeder andere Controller funktioniert per MIDI Learn, alle 250 Funktionen sind zuweisbar.
+- **Hände an die Hardware.** Schließ einen Ableton Push an und livelooper übernimmt ihn – ohne Mapping. Jeder andere Controller funktioniert per MIDI Learn, alle 372 Funktionen sind zuweisbar.
 - **Deine Loops gehören in deinen Song.** Zieh einen Loop direkt aus livelooper auf eine Spur in Live, exportiere Stems oder behalte alles im Live-Set.
 
 ## Spielen mit Ableton Push
@@ -22,8 +22,11 @@ Push (ab Version 1) anschließen, **User** drücken – und livelooper macht dar
 - **Eine Pad-Spalte pro Spur**: REC / PLAY / DUB und STOP, die Loop-Position läuft als Licht die Spalte hoch, Farben zeigen den Status, Blinken heißt „wartet auf den Takt“
 - **Encoder** für Pegel, Panorama, Tonhöhe, Feedback oder Effekte, eine **Master-Sektion** (Gesamtpegel, Tempo) und Swing auf dem Swing-Encoder
 - **Szenen** auf den Szenen-Tasten, **Capture**, Undo, Metronom, Tap-Tempo, **DELETE + Pad** löscht eine Spur
-- **FX-XY-Pad**: Das 8×8-Raster wird zum Performance-Pad – anfassen, schieben, loslassen, und es springt zurück
-- **Display** mit Namen, Werten, Spurstatus und Tempo
+- **Loop-Cutting**: Positions-Pad antippen und der Loop springt zur nächsten 16tel dorthin, halten lässt ihn stottern, loslassen – und er ist wieder synchron
+- **Performance-Moves**: MUTE / SOLO + Pad halten für Drops, DOUBLE = Loop × 2 (SHIFT = halbieren), OCTAVE ±12, DUPLICATE + Pads kopiert einen Loop, REC-Pad + Positions-Pad = 1–32 Takte
+- **Touchstrip** = Tape-Stopp, der synchron zurückspringt (SHIFT = Filter-Sweep), **Fußschalter** = REC/PLAY, doppelt STOP, halten LÖSCHEN
+- **FX-XY-Pad**: Das 8×8-Raster wird zum Performance-Pad – anfassen, schieben, fester drücken für mehr, loslassen, und es springt zurück
+- **Display** mit Namen, Werten, Spurstatus, Tempo und Pegelanzeige
 
 Einrichtung und komplette Belegung: **[PUSH.md](docs/de/PUSH.md)**.
 
@@ -37,6 +40,7 @@ Einrichtung und komplette Belegung: **[PUSH.md](docs/de/PUSH.md)**.
 - **Quantisierung** auf Takt oder Schlag; „zu spät“ gedrückt wird bis 15 % nach dem Taktstrich korrigiert; feste Längen 1–16 Takte oder frei
 - **Start-/Stopp-Modi**: sofort, Fade-In/-Out, Stopp am Loop-Ende; Overdub oder Replace
 - **Geister-Abspielmarke**: Gestoppte Spuren zeigen, wo sie gerade wären – so holst du sie punktgenau zurück
+- **Loop-Cutting und Stottern**, **Stumm / Solo solange gehalten**, **Loop × 2 / halbieren**, **in eine andere Spur kopieren**, **Tape-Stopp** und ein **Performance-Filter** – alles musikalisch quantisiert, nichts hält je die Musik an
 - **Ableton Push**, **MIDI Learn** für jeden Controller (Rechtsklick auf ein Bedienelement) und **Computertastatur** in der Standalone-App
 
 **Klang formen**
@@ -51,7 +55,7 @@ Einrichtung und komplette Belegung: **[PUSH.md](docs/de/PUSH.md)**.
 - **Direkte Spurausgänge** (Plug-in Multi-Out, Interface-Ausgänge in der Standalone-App), **Cue-Ausgang** für das Metronom
 - **Mit dem Projekt gespeichert**: Loops verlustfrei (FLAC, 24 Bit) im Live-Set; komplette **Looper-Sets** als `.llset`-Datei
 - **Pegel und Wellenformen**: Stereo-Pegel pro Spur, Master-Pegel, Wellenform mit Abspielposition, Clip-LED
-- **Alle 250 Funktionen** sind Host-Parameter für Lives MIDI-Map
+- **Alle 372 Funktionen** sind Host-Parameter für Lives MIDI-Map
 - **Deutsche und englische** Oberfläche (*SETUP → Language / Sprache*)
 
 ## Warum VST3/AU?

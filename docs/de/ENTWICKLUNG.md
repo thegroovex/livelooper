@@ -35,7 +35,7 @@ ctest --test-dir build -C Release --output-on-failure      # Linux ohne Bildschi
 
 | Test | Was geprüft wird |
 |---|---|
-| `unit_tests` (`livelooper_tests`) | Engine: freie und quantisierte Aufnahme (Takt, Schlag), rückwirkendes Beenden, feste Taktanzahl, Abbrechen, große Host-Blöcke, Eingangs-Routing, Overdub, Replace, Undo/Redo (inkl. erster Aufnahme), Clear, Reverse, One-Shot, Stop-Modi, Pegel/Pan, All Start/Stop, Track-FX-Routing, Loop-Sync nach Transportsprung, quantisierter Start in Phase, Follow Transport, interne Clock, Rhythmus. Effekte: alle 12 Typen stabil, Bypass bit-genau, Filterwirkung, Delay-Zeit, Slicer-Raster. MIDI: Learn, Taster/Schalter/Auswahl/Regler, CC-Flanken, Eindeutigkeit, Speichern. Processor: 137 eindeutige, MIDI-fähige Parameter, Taster-Parameter, MIDI über processBlock, Learn, Projekt-Speichern inkl. Loop-Audio, Samplerate-Wechsel, WAV-Export/-Import, Editor. Features 1.2: Cue-Routing (Haupt / Cue / beide, ohne Cue → Haupt), beide Metronomklänge, alle Drum-Patterns im Pegelbereich, Spur-Pegel Eingang/Ausgang, Master-Pegel, Wellenform inkl. Overdub/Undo, Standalone-Cue-Bus-Kanalpaare, Sets speichern/laden mit Erhalt der Zuweisungen, STOP-Knopf beim Loslassen. Lokalisierung: deutsche/englische Texte, Übersetzung für jede Auswahl und jeden Effekt, Parameternamen, Umschalten im laufenden Betrieb |
+| `unit_tests` (`livelooper_tests`) | Engine: freie und quantisierte Aufnahme (Takt, Schlag), rückwirkendes Beenden, feste Taktanzahl, Abbrechen, große Host-Blöcke, Eingangs-Routing, Overdub, Replace, Undo/Redo (inkl. erster Aufnahme), Clear, Reverse, One-Shot, Stop-Modi, Pegel/Pan, All Start/Stop, Track-FX-Routing, Loop-Sync nach Transportsprung, quantisierter Start in Phase, Follow Transport, interne Clock, Rhythmus. Effekte: alle 12 Typen stabil, Bypass bit-genau, Filterwirkung, Delay-Zeit, Slicer-Raster. MIDI: Learn, Taster/Schalter/Auswahl/Regler, CC-Flanken, Eindeutigkeit, Speichern. Processor: 137 eindeutige, MIDI-fähige Parameter, Taster-Parameter, MIDI über processBlock, Learn, Projekt-Speichern inkl. Loop-Audio, Samplerate-Wechsel, WAV-Export/-Import, Editor. Features 1.2: Cue-Routing (Haupt / Cue / beide, ohne Cue → Haupt), beide Metronomklänge, alle Drum-Patterns im Pegelbereich, Spur-Pegel Eingang/Ausgang, Master-Pegel, Wellenform inkl. Overdub/Undo, Standalone-Cue-Bus-Kanalpaare, Sets speichern/laden mit Erhalt der Zuweisungen, STOP-Knopf beim Loslassen. Lokalisierung: deutsche/englische Texte, Übersetzung für jede Auswahl und jeden Effekt, Parameternamen, Umschalten im laufenden Betrieb. Features 1.4: Loop-Cutting im 16tel-Raster (übergeblendet, Antippen bleibt, Halten stottert, zurück in Sync), Stumm/Solo, Verdoppeln/Halbieren mit Undo, Kopieren, Aufnahmelänge, Tape-Stopp, Performance-Filter, Slice-Parameter als gehaltene MIDI-Funktion; Push: Cutting-Gesten, REC + Positions-Pad mit Fortschrittsbalken, Fußschalter, Touchstrip, Pad-Druck, DOUBLE/OCTAVE/DUPLICATE, MUTE/SOLO halten, Pegelanzeige mit Display-Zeichen (begrenzte Rate) |
 | `vst3_host_test` (`livelooper_hosttest`) | lädt das fertige `livelooper.vst3` über JUCEs VST3-Hosting wie eine DAW: Name, Effekt-Kategorie, MIDI-Eingang, Parameteranzahl, Aufnahme und Wiedergabe über Parameter, Stop, Zustand speichern/laden in zweiter Instanz, Editor |
 
 Einzelne Gruppe: `livelooper_tests engine` bzw. `midi`, `plugin`.
@@ -53,11 +53,12 @@ src/
     LoopTrack.*           eine Spur: Aufnahme, Overdub, Wiedergabe, Undo/Redo, Fades
     LooperEngine.*        8 Spuren (5 oder 8 sichtbar), Zeitachse/Quantisierung, Befehle, FX-Busse, Rhythmus, Status
     Effects.*             FxUnit (12 Effekte) und FxChain (4 Slots)
+    Performance.*         Tape-Stopp und Performance-Filter auf der Loop-Summe (1.4)
     RhythmGenerator.*     synthetischer Drumcomputer, 12 Pattern
     MidiMap.*             MIDI-Learn-Tabelle (lock-frei)
   plugin/
     Localisation.*        deutsche/englische Texte, Spracheinstellung
-    Parameters.*          alle 247 Parameter (IDs, Bereiche, Gruppen, englische und lokalisierte Namen)
+    Parameters.*          alle 372 Parameter (IDs, Bereiche, Gruppen, englische und lokalisierte Namen)
     PluginProcessor.*     AudioProcessor: Parameter → Engine, Taster, MIDI, Zustand, Import/Export
     PluginEditor.*        Oberfläche, MIDI-Learn-Modus, Menüs, Drag & Drop
     Widgets.*             REC/PLAY-Pad, STOP-Pad, Display, FX-Slot, Spur, Spur-Setup
