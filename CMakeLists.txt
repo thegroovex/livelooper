@@ -44,7 +44,10 @@ set(LIVELOOPER_PLUGIN_SOURCES
     src/plugin/PluginProcessor.cpp
     src/plugin/PluginEditor.cpp
     src/plugin/LooperLookAndFeel.cpp
-    src/plugin/Widgets.cpp)
+    src/plugin/Widgets.cpp
+    src/plugin/push/PushProtocol.cpp
+    src/plugin/push/PushSurface.cpp
+    src/plugin/push/PushDevice.cpp)
 set(LIVELOOPER_DEFINES LIVELOOPER_VERSION="${PROJECT_VERSION}" JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_VST3_CAN_REPLACE_VST2=0 JUCE_DISPLAY_SPLASH_SCREEN=0)
 set(LIVELOOPER_MODULES juce::juce_audio_utils juce::juce_audio_formats juce::juce_gui_extra juce::juce_dsp)
 
@@ -103,6 +106,7 @@ if(LIVELOOPER_BUILD_TESTS)
         tests/KeyboardTests.cpp
         tests/FeatureTests.cpp
         tests/Feature13Tests.cpp
+        tests/PushTests.cpp
         ${LIVELOOPER_ENGINE_SOURCES} ${LIVELOOPER_PLUGIN_SOURCES})
     target_include_directories(livelooper_tests PRIVATE src ${LIVELOOPER_THIRD_PARTY_INCLUDES})
     target_compile_definitions(livelooper_tests PRIVATE ${LIVELOOPER_DEFINES} LIVELOOPER_NO_PLUGIN_ENTRY=1 JUCE_MODAL_LOOPS_PERMITTED=1)

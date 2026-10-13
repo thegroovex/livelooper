@@ -10,6 +10,8 @@
 
 namespace livelooper
 {
+namespace push { class PushDevice; }
+
 /**
     The plug-in: owns the parameters (APVTS), the MIDI-learn map and the engine.
 
@@ -64,6 +66,15 @@ public:
     /** Writes every track with a loop as 24-bit WAV (with tempo / beat metadata) into the folder.
         Returns the number of files. */
     int exportStems (const juce::File& folder);
+
+    //============================================================================== Ableton Push
+    /** Direct control from Push (1) through its User port, in the plug-in and the standalone app. */
+    bool isPushAvailable() const noexcept { return pushDevice != nullptr; }
+    bool isPushEnabled() const noexcept;
+    void setPushEnabled (bool e);
+    juce::String getPushStatus() const;
+    /** Tests / screenshot tool: create the Push connection although no host loaded us. */
+    void createPushDevice();
 
     //============================================================================== looper sets
     /** Saves the complete looper (loops, settings, FX, rhythm) to a set file (.llset).
@@ -210,6 +221,8 @@ private:
     std::array<std::atomic<int>, params::kNumScenes> sceneMasks {};
     std::atomic<int> lastScene { -1 };
     std::atomic<bool> sceneStoreDone { false };
+    std::unique_ptr<push::PushDevice> pushDevice;
+    bool pushEnabledSetting = true;
 
     juce::Array<juce::RangedAudioParameter*> paramList;
     juce::HashMap<juce::String, int> paramIndexById;

@@ -1,6 +1,7 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 #include "Localisation.h"
+#include "push/PushDevice.h"
 
 namespace livelooper
 {
@@ -144,12 +145,38 @@ LiveLooperProcessor::LiveLooperProcessor (bool withCueOutput, bool withTrackOutp
     sceneStore    = apvts.getRawParameterValue (gSceneStore);
 
     keyboardAvailable = wrapperType == wrapperType_Standalone;
+    if (wrapperType != wrapperType_Undefined)      // a real host or the standalone app (not the unit tests)
+        createPushDevice();
     startTimerHz (30);
 }
 
 LiveLooperProcessor::~LiveLooperProcessor()
 {
     stopTimer();
+    pushDevice.reset();
+}
+
+void LiveLooperProcessor::createPushDevice()
+{
+    if (pushDevice == nullptr)
+    {
+        pushDevice = std::make_unique<push::PushDevice> (*this, wrapperType == wrapperType_Standalone);
+        pushDevice->setEnabled (pushEnabledSetting);
+    }
+}
+
+bool LiveLooperProcessor::isPushEnabled() const noexcept { return pushEnabledSetting; }
+
+void LiveLooperProcessor::setPushEnabled (bool e)
+{
+    pushEnabledSetting = e;
+    if (pushDevice != nullptr)
+        pushDevice->setEnabled (e);
+}
+
+juce::String LiveLooperProcessor::getPushStatus() const
+{
+    return pushDevice != nullptr ? pushDevice->getStatusText() : i18n::tr ("Off");
 }
 
 //==============================================================================
@@ -786,6 +813,7 @@ void LiveLooperProcessor::getStateInformation (juce::MemoryBlock& destData)
     root.setAttribute ("cuePair", cuePair.load());
     root.setAttribute ("clickRoute", clickRoute.load());
     root.setAttribute ("visibleTracks", visibleTracks.load());
+    root.setAttribute ("push", pushEnabledSetting);
     {
         juce::StringArray outs, scenes;
         for (auto& p : trackOutPair) outs.add (juce::String (p.load()));
@@ -842,6 +870,7 @@ void LiveLooperProcessor::setStateInformation (const void* data, int sizeInBytes
         setClickRoute ((ClickRoute) juce::jlimit (0, 2, root->getIntAttribute ("clickRoute", 0)));
     setMaxLoopSeconds (root->getDoubleAttribute ("maxLoopSeconds", 60.0));
     setVisibleTracks (root->getIntAttribute ("visibleTracks", kDefaultVisibleTracks));
+    setPushEnabled (root->getBoolAttribute ("push", true));
     if (root->hasAttribute ("trackOutputs"))
     {
         const auto outs = juce::StringArray::fromTokens (root->getStringAttribute ("trackOutputs"), ",", "");
@@ -930,6 +959,7 @@ bool LiveLooperProcessor::saveSet (const juce::File& file)
     xml->removeAttribute ("cuePair");
     xml->removeAttribute ("clickRoute");
     xml->removeAttribute ("trackOutputs");
+    xml->removeAttribute ("push");
     if (auto* mm = xml->getChildByName ("MIDIMAP")) xml->removeChildElement (mm, true);
     if (auto* km = xml->getChildByName ("KEYMAP"))  xml->removeChildElement (km, true);
 
@@ -954,6 +984,7 @@ bool LiveLooperProcessor::loadSet (const juce::File& file, juce::String& error)
         for (auto& p : trackOutPair) outs.add (juce::String (p.load()));
         xml->setAttribute ("trackOutputs", outs.joinIntoString (","));
     }
+    xml->setAttribute ("push", pushEnabledSetting);
     xml->setAttribute ("saveLoops", saveLoops);
     if (auto* mm = xml->getChildByName ("MIDIMAP")) xml->removeChildElement (mm, true);
     xml->addChildElement (midiMap.toXml ([this] (int i) { return getParamIdForIndex (i); }).release());

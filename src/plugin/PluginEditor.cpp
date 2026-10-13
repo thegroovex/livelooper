@@ -904,6 +904,15 @@ void LiveLooperEditor::showSetupMenu()
         directMenu.addItem (199, tr ("Set the track's OUTPUT to Direct in its SETUP"), false);
     }
 
+    juce::PopupMenu pushMenu;
+    if (proc.isPushAvailable())
+    {
+        pushMenu.addItem (140, tr ("Control from Ableton Push (User port)"), true, proc.isPushEnabled());
+        pushMenu.addItem (149, proc.getPushStatus(), false);
+        pushMenu.addSeparator();
+        pushMenu.addItem (148, tr ("In Live: press USER on Push to switch between Live and livelooper"), false);
+    }
+
     juce::PopupMenu menu;
     menu.addSectionHeader (tr ("livelooper setup"));
     menu.addItem (8, tr ("Save set ..."));
@@ -916,6 +925,8 @@ void LiveLooperEditor::showSetupMenu()
     menu.addSubMenu (tr ("Ducking source"), duckMenu);
     if (proc.hasCueOutput())
         menu.addSubMenu (tr ("Direct track outputs"), directMenu);
+    if (proc.isPushAvailable())
+        menu.addSubMenu (tr ("Ableton Push"), pushMenu);
     menu.addSeparator();
     menu.addSubMenu (tr ("Record action"), rec);
     menu.addItem (3, tr ("Follow host transport (start / stop with the host)"), true, follow->get());
@@ -968,6 +979,11 @@ void LiveLooperEditor::showSetupMenu()
         if (r >= 121 && r <= 125)
         {
             setParam (autoRecThresh, (float) thresholds[(size_t) (r - 121)]);
+            return;
+        }
+        if (r == 140)
+        {
+            safe->proc.setPushEnabled (! safe->proc.isPushEnabled());
             return;
         }
         if (r >= 130 && r < 132)
