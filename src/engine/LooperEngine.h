@@ -2,6 +2,7 @@
 
 #include "Effects.h"
 #include "LoopTrack.h"
+#include "Performance.h"
 #include "RhythmGenerator.h"
 
 namespace livelooper
@@ -22,8 +23,18 @@ public:
         RecPlay = 0, Stop, Clear, Undo, Redo,       // per track
         AllStartStop, AllStart, AllStop, ClearAll,  // global
         Capture,                                    // per track: retrospective capture (-1 = first empty track)
-        Start                                       // per track: play (quantized) when stopped, used by scenes
+        Start,                                      // per track: play (quantized) when stopped, used by scenes
+        // v1.4 (arg = extra argument of queueCommand)
+        Cut,              // per track: jump to slice arg (0 .. kNumSlices-1) at the next 16th
+        CutOff,           // per track: back to the running position (in sync)
+        StutterOn,        // per track: repeat at the cut point while on
+        StutterOff,
+        Multiply,         // per track: loop x 2
+        Halve,            // per track: loop / 2
+        Copy,             // per track: copy the loop to track arg (-1 = first empty track)
+        SetRecLength      // per track: arg = bars for the pending / running first recording
     };
+    static constexpr int kNumSlices = 6;
 
     enum class Pending : int { None = 0, Record, FinishRecord, FinishRecordThenStop, Play, AutoRecord };
 
@@ -43,6 +54,10 @@ public:
         std::atomic<bool>  meterIsInput { false };
         std::atomic<float> ghostProgress { -1.0f };   // stopped track: where it would be now (0..1), -1 = none
         std::atomic<float> duckGain { 1.0f };
+        // v1.4
+        std::atomic<bool>  recordingSpan { false };   // the running first recording has a fixed length
+        std::atomic<bool>  cut { false };             // loop cutting / stutter active
+        mutable std::atomic<float> displayMeter { 0.0f };   // peak for the Push display (taken with exchange)
     };
 
     /** Extra outputs (all optional): cue pair for the rhythm, direct output pair per track. */
@@ -77,7 +92,14 @@ public:
     void setFollowHostTransport (bool f) noexcept               { followHostTransport = f; }
 
     // ---- commands (audio thread). Executed at the start of the next process() call.
-    void queueCommand (Command c, int track = -1) noexcept;
+    void queueCommand (Command c, int track = -1, int arg = 0) noexcept;
+    /** v1.4 loop bus performance: tape stop depth 0 .. 1, filter -1 (low-pass) .. 0 (off) .. 1 (high-pass). */
+    void setPerformance (float tapeStopDepth, float filter) noexcept { tapeStop.setDepth (tapeStopDepth); perfFilter.setAmount (filter); }
+    bool isTapeStopActive() const noexcept { return tapeStop.isActive(); }
+    /** Start of slice s (0 .. kNumSlices-1) of track t in loop samples, snapped to 16th notes of the loop. */
+    int sliceStart (int t, int slice) const noexcept;
+    /** Length of the stutter repeat for track t (a 16th, 8th or quarter note, at most a slice). */
+    int stutterLength (int t) const noexcept;
 
     // ---- processing
     void process (const float* inL, const float* inR, float* outL, float* outR, int numSamples, const TimeInfo& time) noexcept
@@ -114,6 +136,8 @@ public:
     void   takeMasterMeter (float& l, float& r) noexcept { l = masterPeakL.exchange (0.0f); r = masterPeakR.exchange (0.0f); }
     /** Peak of the cue output since the last call, resets it. */
     float  takeCueMeter() noexcept           { return cuePeak.exchange (0.0f); }
+    /** Peak of the main output for the Push display (separate from the editor's meter), resets it. */
+    float  takeDisplayMasterMeter() noexcept { return displayMasterPeak.exchange (0.0f); }
 
     // ---- direct access for tests and import/export (lock the track first when not on the audio thread)
     LoopTrack& getTrack (int t) noexcept      { return tracks[(size_t) t]; }
@@ -123,7 +147,8 @@ public:
 
 private:
     struct PendingAction { Pending type = Pending::None; double targetPpq = 0.0; };
-    struct QueuedCommand { Command command; int track; };
+    struct QueuedCommand { Command command; int track; int arg = 0; };
+    struct PendingCut { bool active = false; double targetPpq = 0.0; int slice = 0; };
 
     void processChunk (const float* inL, const float* inR, float* outL, float* outR, const ExtraOutputs& extra,
                        int offset, int n, const TimeInfo& time) noexcept;
@@ -141,6 +166,7 @@ private:
     double nextBoundary (double grid) const noexcept;
     int autoFinishSamples (int t) const noexcept;
     void updateStatus() noexcept;
+    void executeCut (int t, int slice) noexcept;
 
     double sampleRate = 44100.0;
     int maxBlock = 512;
@@ -155,6 +181,14 @@ private:
     RhythmGenerator rhythm;
     bool rhythmOn = false;
     bool followHostTransport = false;
+
+    std::array<PendingCut, kNumTracks> cutPending {};
+    std::array<bool, kNumTracks> stutterWanted {};
+    std::array<int, kNumTracks> recLengthBars {};
+    TapeStop tapeStop;
+    PerformanceFilter perfFilter;
+    std::vector<float> loopBusL, loopBusR;
+    std::atomic<float> displayMasterPeak { 0.0f };
 
     std::array<QueuedCommand, 128> commandQueue {};
     int numQueued = 0;

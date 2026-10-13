@@ -26,7 +26,7 @@ class LoopTrack
 {
 public:
     enum class State : int { Empty = 0, Recording, Playing, Overdubbing, Stopped };
-    enum class UndoKind : int { None = 0, Recording, Overdub };
+    enum class UndoKind : int { None = 0, Recording, Overdub, Length };
 
     static constexpr int kChunkShift = 9;
     static constexpr int kChunkSize  = 1 << kChunkShift;
@@ -66,6 +66,28 @@ public:
     void clear();
     bool undo();
     bool redo();
+
+    //============================================================================== v1.4 performance moves (audio thread)
+    /** Loop cutting: from now on the loop is heard from logicalStart on (the running position
+        keeps counting underneath, so cutOff() returns to it in sync). Short crossfade. */
+    void cutTo (int logicalStart) noexcept;
+    /** Stutter: repeats the lengthSamples after the current cut point while on. */
+    void setStutter (bool on, int lengthSamples) noexcept;
+    /** Back to the running position (in sync), crossfaded. */
+    void cutOff() noexcept;
+    bool isCut() const noexcept               { return readMap.type != MapType::Straight; }
+    bool isStuttering() const noexcept        { return readMap.type == MapType::Stutter; }
+    /** Logical loop position that is heard now (differs from the running position while cut). */
+    int  getAudiblePosition() const noexcept  { return length > 0 ? mapPosition (readMap, playPos, runCounter) : 0; }
+    /** Multiply: the loop is duplicated (length x 2). Playing or stopped tracks only. Undoable. */
+    bool multiply() noexcept;
+    /** Halves the loop length (keeps the first half). Playing or stopped tracks only. Undoable. */
+    bool halve() noexcept;
+    /** Copies the loop of another track into this (empty) track; it ends up stopped, anchored like the source. */
+    bool copyFrom (const LoopTrack& source) noexcept;
+    /** Sets / changes the planned length of the running first recording. Returns true when the
+        recording is already longer (the caller should finish it at the next boundary). */
+    bool setRecordingSpan (int samples) noexcept;
 
     /** Re-aligns the playback position with the timeline (after a transport jump). */
     void resyncToTimeline (double ppqNow);
@@ -125,6 +147,23 @@ public:
     int expectedPosition (double ppq) const noexcept;
 
 private:
+    enum class MapType : int { Straight = 0, Offset, Stutter };
+    /** How the running position maps to the heard loop position (loop cutting / stutter). */
+    struct ReadMap
+    {
+        MapType type = MapType::Straight;
+        int offset = 0;              // Offset: heard = running + offset
+        int base = 0, len = 1;       // Stutter: heard = base + (counter - counter0) % len
+        long long counter0 = 0;
+        int runPos0 = 0;             // running position at counter0 (stretch path)
+    };
+    int  mapPosition (const ReadMap& m, int pos, long long counter) const noexcept;
+    /** position for the time-stretch reader, which runs ahead of the running position */
+    int  mapReadPosition (const ReadMap& m, int pos) const noexcept;
+    void changeMap (const ReadMap& next) noexcept;
+    void resetMap() noexcept;
+    void applyMuteGain (float& g) noexcept;
+
     inline float sampleAt (int ch, int index) const noexcept
     {
         return layers[chunkOwner[(size_t) (index >> kChunkShift)]][ch][(size_t) index];
@@ -184,6 +223,14 @@ private:
     int   fadeSamples = 22050;
     bool  stopping = false;
     bool  stopAtWrap = false;
+
+    // v1.4: loop cutting, mute
+    ReadMap readMap, prevMap;
+    long long runCounter = 0;        // counts every sample the running position advances
+    long long cutCounter = 0;        // runCounter at the last cut
+    int   mapFadeLeft = 0, mapFadeTotal = 1;
+    float muteGain = 1.0f;
+    int   altLength = 0;             // length to restore by undo / redo of multiply / halve
 
     float peak = 0.0f;
     float inPeakL = 0.0f, inPeakR = 0.0f, outPeakL = 0.0f, outPeakR = 0.0f;

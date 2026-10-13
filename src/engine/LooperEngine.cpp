@@ -28,14 +28,19 @@ void LooperEngine::prepare (double newSampleRate, int maxBlockSize, double newMa
         if (tr.getMaxLength() != std::max (LoopTrack::kChunkSize, maxLen))
             tr.allocate (maxLen);      // keeps existing loops when only the block size changed
         pending[(size_t) t] = {};
+        cutPending[(size_t) t] = {};
+        stutterWanted[(size_t) t] = false;
+        recLengthBars[(size_t) t] = 0;
     }
 
+    tapeStop.prepare (sampleRate);
+    perfFilter.prepare (sampleRate);
     inputFx.prepare (sampleRate);
     trackFx.prepare (sampleRate);
     rhythm.prepare (sampleRate);
 
     for (auto* v : { &inProcL, &inProcR, &fxBusL, &fxBusR, &clickBuf, &kickBuf, &duckEnvBuf,
-                     &tOutL, &tOutR, &tFxL, &tFxR, &resL, &resR })
+                     &tOutL, &tOutR, &tFxL, &tFxR, &resL, &resR, &loopBusL, &loopBusR })
         v->assign ((size_t) maxBlock, 0.0f);
 
     const auto ringSize = (size_t) (sampleRate * maxLoopSeconds);
@@ -73,6 +78,8 @@ void LooperEngine::reset()
     inputFx.reset();
     trackFx.reset();
     rhythm.reset();
+    tapeStop.reset();
+    perfFilter.reset();
 }
 
 void LooperEngine::setRhythm (bool on, int pattern, float level) noexcept
@@ -82,10 +89,56 @@ void LooperEngine::setRhythm (bool on, int pattern, float level) noexcept
     rhythm.setLevel (level);
 }
 
-void LooperEngine::queueCommand (Command c, int track) noexcept
+void LooperEngine::queueCommand (Command c, int track, int arg) noexcept
 {
     if (numQueued < (int) commandQueue.size())
-        commandQueue[(size_t) numQueued++] = { c, track };
+        commandQueue[(size_t) numQueued++] = { c, track, arg };
+}
+
+//============================================================================== v1.4: loop cutting
+int LooperEngine::sliceStart (int t, int slice) const noexcept
+{
+    const auto& tr = tracks[(size_t) t];
+    const int len = tr.getLength();
+    if (len <= 0)
+        return 0;
+    slice = std::clamp (slice, 0, kNumSlices - 1);
+    const double spp = tr.getSamplesPerPpq();
+    const double loopPpq = spp > 0.0 ? len / spp : 0.0;
+    // snap the slice to 16th notes of the loop, so cutting keeps the groove on the grid
+    if (loopPpq >= 0.25 * kNumSlices)
+    {
+        const double startPpq = std::round (slice * loopPpq / kNumSlices / 0.25) * 0.25;
+        return std::clamp ((int) std::llround (startPpq * spp), 0, len - 1);
+    }
+    return (int) ((long long) len * slice / kNumSlices);
+}
+
+int LooperEngine::stutterLength (int t) const noexcept
+{
+    const auto& tr = tracks[(size_t) t];
+    const int len = tr.getLength();
+    const double spp = tr.getSamplesPerPpq();
+    if (len <= 0)
+        return 64;
+    if (spp <= 0.0)
+        return std::max (64, len / 24);
+    const double slicePpq = len / spp / kNumSlices;
+    double repeatPpq = 1.0;                       // a quarter note ...
+    while (repeatPpq > 0.25 && repeatPpq > slicePpq + 1.0e-6)
+        repeatPpq *= 0.5;                         // ... or an 8th / 16th when the slice is shorter
+    return std::clamp ((int) std::llround (repeatPpq * spp), 64, len);
+}
+
+void LooperEngine::executeCut (int t, int slice) noexcept
+{
+    auto& tr = tracks[(size_t) t];
+    cutPending[(size_t) t].active = false;
+    if (tr.getState() != LoopTrack::State::Playing && tr.getState() != LoopTrack::State::Overdubbing)
+        return;
+    tr.cutTo (sliceStart (t, slice));
+    if (stutterWanted[(size_t) t])
+        tr.setStutter (true, stutterLength (t));
 }
 
 //==============================================================================
@@ -107,7 +160,9 @@ double LooperEngine::nextBoundary (double grid) const noexcept
 
 int LooperEngine::autoFinishSamples (int t) const noexcept
 {
-    const int m = tracks[(size_t) t].getSettings().measures;
+    int m = tracks[(size_t) t].getSettings().measures;
+    if (recLengthBars[(size_t) t] > 0)
+        m = recLengthBars[(size_t) t];      // v1.4: length chosen for this recording (Push: REC pad + position pad)
     if (m <= 0)
         return 0;
     return (int) std::llround (m * measurePpq * samplesPerPpq);
@@ -230,6 +285,7 @@ void LooperEngine::trackRecPlay (int t) noexcept
                 }
             }
             tr.startRecording (blockPpq, samplesPerPpq, autoFinishSamples (t), global.recAction);
+            recLengthBars[(size_t) t] = 0;
             break;
         }
         case LoopTrack::State::Recording:   finishRecordingQuantized (t, false); break;
@@ -246,6 +302,8 @@ void LooperEngine::trackStop (int t) noexcept
 {
     auto& tr = tracks[(size_t) t];
     auto& pa = pending[(size_t) t];
+    cutPending[(size_t) t].active = false;
+    stutterWanted[(size_t) t] = false;
 
     if (pa.type == Pending::Record || pa.type == Pending::Play)
     {
@@ -291,6 +349,7 @@ void LooperEngine::executePending (int t) noexcept
         case Pending::AutoRecord:
         case Pending::Record:
             tr.startRecording (blockPpq, samplesPerPpq, autoFinishSamples (t), global.recAction);
+            recLengthBars[(size_t) t] = 0;
             break;
         case Pending::FinishRecord:
             tr.finishRecording (global.recAction);
@@ -320,6 +379,9 @@ void LooperEngine::executeCommand (const QueuedCommand& c) noexcept
             if (validTrack)
             {
                 pending[(size_t) t].type = Pending::None;
+                cutPending[(size_t) t].active = false;
+                stutterWanted[(size_t) t] = false;
+                recLengthBars[(size_t) t] = 0;
                 tracks[(size_t) t].clear();
             }
             break;
@@ -381,7 +443,95 @@ void LooperEngine::executeCommand (const QueuedCommand& c) noexcept
             for (int i = 0; i < kNumTracks; ++i)
             {
                 pending[(size_t) i].type = Pending::None;
+                cutPending[(size_t) i].active = false;
+                stutterWanted[(size_t) i] = false;
+                recLengthBars[(size_t) i] = 0;
                 tracks[(size_t) i].clear();
+            }
+            break;
+
+        // ---------------------------------------------------------------- v1.4
+        case Command::Cut:
+            if (validTrack && tracks[(size_t) t].isRunning() && tracks[(size_t) t].getState() != LoopTrack::State::Recording)
+            {
+                const int slice = std::clamp (c.arg, 0, kNumSlices - 1);
+                // tight: the next 16th note (immediately without quantize or clock)
+                const double grid = 0.25;
+                const double target = running ? std::ceil (blockPpq / grid - 1.0e-6) * grid : blockPpq;
+                if (! running || global.quantize == Quantize::Off || target - blockPpq < 1.0e-6)
+                    executeCut (t, slice);
+                else
+                    cutPending[(size_t) t] = { true, target, slice };
+            }
+            break;
+        case Command::CutOff:
+            if (validTrack)
+            {
+                cutPending[(size_t) t].active = false;
+                stutterWanted[(size_t) t] = false;
+                tracks[(size_t) t].cutOff();
+            }
+            break;
+        case Command::StutterOn:
+            if (validTrack)
+            {
+                stutterWanted[(size_t) t] = true;
+                if (! cutPending[(size_t) t].active && tracks[(size_t) t].isRunning())
+                    tracks[(size_t) t].setStutter (true, stutterLength (t));
+            }
+            break;
+        case Command::StutterOff:
+            if (validTrack)
+            {
+                stutterWanted[(size_t) t] = false;
+                tracks[(size_t) t].setStutter (false, 0);
+            }
+            break;
+        case Command::Multiply:
+        case Command::Halve:
+            if (validTrack && pending[(size_t) t].type == Pending::None)
+            {
+                const juce::SpinLock::ScopedTryLockType lock (trackLocks[(size_t) t]);
+                if (lock.isLocked())
+                {
+                    cutPending[(size_t) t].active = false;
+                    stutterWanted[(size_t) t] = false;
+                    if (c.command == Command::Multiply) tracks[(size_t) t].multiply();
+                    else                                tracks[(size_t) t].halve();
+                }
+            }
+            break;
+        case Command::Copy:
+            if (validTrack && ! tracks[(size_t) t].isEmpty())
+            {
+                int dst = c.arg;
+                if (dst < 0)
+                    for (int i = 0; i < activeTracks.load() && dst < 0; ++i)
+                        if (i != t && tracks[(size_t) i].isEmpty() && pending[(size_t) i].type == Pending::None)
+                            dst = i;
+                if (dst >= 0 && dst < activeTracks.load() && dst != t && tracks[(size_t) dst].isEmpty()
+                    && pending[(size_t) dst].type == Pending::None)
+                {
+                    const juce::SpinLock::ScopedTryLockType lockSrc (trackLocks[(size_t) t]);
+                    const juce::SpinLock::ScopedTryLockType lockDst (trackLocks[(size_t) dst]);
+                    if (lockSrc.isLocked() && lockDst.isLocked())
+                        tracks[(size_t) dst].copyFrom (tracks[(size_t) t]);
+                }
+            }
+            break;
+        case Command::SetRecLength:
+            if (validTrack && c.arg > 0)
+            {
+                auto& tr = tracks[(size_t) t];
+                const auto& pa = pending[(size_t) t];
+                if (tr.getState() == LoopTrack::State::Recording && pa.type == Pending::None)
+                {
+                    const int samples = (int) std::llround (c.arg * measurePpq * samplesPerPpq);
+                    if (tr.setRecordingSpan (samples))
+                        finishRecordingQuantized (t, false);     // already longer: ends at the next boundary
+                }
+                else if (tr.isEmpty())
+                    recLengthBars[(size_t) t] = c.arg;           // used when the (pending) recording starts
             }
             break;
     }
@@ -435,49 +585,73 @@ void LooperEngine::processTrack (int t, const float* srcL, const float* srcR, in
     int done = 0;
     while (done < n)
     {
-        int segEnd = n;
         const auto& pa = pending[(size_t) t];
+        const bool hasPending = pa.type != Pending::None;
+        int pendEnd = n;
         if (pa.type == Pending::AutoRecord)
         {
             // starts with the first sample above the threshold
             const float th = global.autoRecThreshold;
-            segEnd = n;
             for (int i = done; i < n; ++i)
                 if (std::abs (srcL[i]) >= th || std::abs (srcR[i]) >= th)
                 {
-                    segEnd = i;
+                    pendEnd = i;
                     break;
                 }
         }
-        else if (pa.type != Pending::None)
+        else if (hasPending)
         {
             if (! running)
-                segEnd = done;
+                pendEnd = done;
             else
             {
                 const double off = (pa.targetPpq - (chunkStartPpq + done * ppqPerSample)) * samplesPerPpq;
-                segEnd = std::clamp (done + (int) std::ceil (off - 1.0e-6), done, n);
+                pendEnd = std::clamp (done + (int) std::ceil (off - 1.0e-6), done, n);
             }
         }
 
+        // v1.4: quantized loop cut
+        const auto& cp = cutPending[(size_t) t];
+        int cutEnd = n;
+        if (cp.active)
+        {
+            if (! running)
+                cutEnd = done;
+            else
+            {
+                const double off = (cp.targetPpq - (chunkStartPpq + done * ppqPerSample)) * samplesPerPpq;
+                cutEnd = std::clamp (done + (int) std::ceil (off - 1.0e-6), done, n);
+            }
+        }
+
+        const int segEnd = std::min (pendEnd, cutEnd);
         if (segEnd > done)
             tr.process (srcL + done, srcR + done, tOutL.data() + done, tOutR.data() + done,
                         tFxL.data() + done, tFxR.data() + done, segEnd - done);
 
         if (segEnd >= n)
             break;
-        if (pending[(size_t) t].type == Pending::None)
+
+        bool acted = false;
+        if (cutPending[(size_t) t].active && cutEnd <= segEnd)
         {
-            done = segEnd;
-            continue;
+            executeCut (t, cutPending[(size_t) t].slice);
+            acted = true;
         }
-        if (pending[(size_t) t].type == Pending::AutoRecord && ! running)
-            ensureClockRunning();
-        if (! running && pending[(size_t) t].type != Pending::AutoRecord)
+        if (hasPending && pendEnd <= segEnd && pending[(size_t) t].type != Pending::None)
+        {
+            if (pending[(size_t) t].type == Pending::AutoRecord && ! running)
+                ensureClockRunning();
+            if (running || pending[(size_t) t].type == Pending::AutoRecord)
+            {
+                blockPpq = chunkStartPpq + segEnd * ppqPerSample;
+                executePending (t);
+                blockPpq = chunkStartPpq;
+                acted = true;
+            }
+        }
+        if (! acted)
             break;     // waits for a clock that is not running (should not happen)
-        blockPpq = chunkStartPpq + segEnd * ppqPerSample;
-        executePending (t);
-        blockPpq = chunkStartPpq;
         done = segEnd;
     }
     lock.exit();
@@ -713,6 +887,15 @@ void LooperEngine::processChunk (const float* inL, const float* inR, float* outL
     const bool clickToMain = ! hasCue || global.clickRoute != ClickRoute::Cue;
     const bool clickToCue = hasCue && global.clickRoute != ClickRoute::Main;
 
+    // v1.4: the loops (dry tracks + track FX bus) go through the tape stop and the performance filter
+    for (int i = 0; i < n; ++i)
+    {
+        loopBusL[(size_t) i] = outL[i] + fxBusL[(size_t) i];
+        loopBusR[(size_t) i] = outR[i] + fxBusR[(size_t) i];
+    }
+    tapeStop.process (loopBusL.data(), loopBusR.data(), n);
+    perfFilter.process (loopBusL.data(), loopBusR.data(), n);
+
     const float mon = global.monitorLevel;
     const float master = global.masterLevel;
     float pl = 0.0f, pr = 0.0f, pc = 0.0f;
@@ -720,8 +903,8 @@ void LooperEngine::processChunk (const float* inL, const float* inR, float* outL
     {
         const float click = clickBuf[(size_t) i];
         const float cm = clickToMain ? click : 0.0f;
-        outL[i] = (outL[i] + cm + fxBusL[(size_t) i] + inProcL[(size_t) i] * mon) * master;
-        outR[i] = (outR[i] + cm + fxBusR[(size_t) i] + inProcR[(size_t) i] * mon) * master;
+        outL[i] = (loopBusL[(size_t) i] + cm + inProcL[(size_t) i] * mon) * master;
+        outR[i] = (loopBusR[(size_t) i] + cm + inProcR[(size_t) i] * mon) * master;
         pl = std::max (pl, std::abs (outL[i]));
         pr = std::max (pr, std::abs (outR[i]));
     }
@@ -738,6 +921,8 @@ void LooperEngine::processChunk (const float* inL, const float* inR, float* outL
     if (pl > masterPeakL.load (std::memory_order_relaxed)) masterPeakL.store (pl, std::memory_order_relaxed);
     if (pr > masterPeakR.load (std::memory_order_relaxed)) masterPeakR.store (pr, std::memory_order_relaxed);
     if (pc > cuePeak.load (std::memory_order_relaxed))     cuePeak.store (pc, std::memory_order_relaxed);
+    if (std::max (pl, pr) > displayMasterPeak.load (std::memory_order_relaxed))
+        displayMasterPeak.store (std::max (pl, pr), std::memory_order_relaxed);
 
     // ---------------------------------------------------------------- advance
     const double endPpq = chunkStartPpq + n * ppqPerSample;
@@ -767,6 +952,8 @@ void LooperEngine::updateStatus() noexcept
             // hold the maximum until the UI reads it (exchange in the UI)
             if (ml > st.meterL.load (std::memory_order_relaxed)) st.meterL.store (ml, std::memory_order_relaxed);
             if (mr > st.meterR.load (std::memory_order_relaxed)) st.meterR.store (mr, std::memory_order_relaxed);
+            if (std::max (ml, mr) > st.displayMeter.load (std::memory_order_relaxed))
+                st.displayMeter.store (std::max (ml, mr), std::memory_order_relaxed);
             st.meterIsInput.store (in, std::memory_order_relaxed);
         }
         st.lengthSamples.store (tr.getLength());
@@ -774,6 +961,8 @@ void LooperEngine::updateStatus() noexcept
         st.canUndo.store (tr.canUndo());
         st.canRedo.store (tr.canRedo());
         st.stopping.store (tr.isStopping());
+        st.recordingSpan.store (tr.getRecordingSpan() > 0);
+        st.cut.store (tr.isCut() || cutPending[(size_t) t].active);
         float ghost = -1.0f;
         if (tr.getState() == LoopTrack::State::Stopped && running && tr.hasAnchor() && tr.getLength() > 0)
             ghost = (float) tr.expectedPosition (blockPpq) / (float) tr.getLength();

@@ -101,6 +101,7 @@ void LoopTrack::renderStretched (int numSamples) noexcept
     auto readAt = [this, reverse] (double pos, float& l, float& r) {
         int p = (int) pos % length;
         if (p < 0) p += length;
+        p = mapReadPosition (readMap, p);
         const int index = reverse ? (length - 1 - p) : p;
         l = sampleAt (0, index);
         r = sampleAt (1, index);
@@ -193,6 +194,7 @@ void LoopTrack::startRecording (double ppqNow, double samplesPerPpq, int autoFin
     anchorValid = true;
     undoKind = redoKind = UndoKind::None;
     stopping = stopAtWrap = false;
+    resetMap();
 }
 
 void LoopTrack::finishRecording (RecAction next, int trimSamples)
@@ -304,6 +306,7 @@ void LoopTrack::play (double ppqNow, bool syncToTimeline)
 
     if (state != State::Playing)
     {
+        resetMap();
         if (syncToTimeline && settings.loopSync && anchorValid && ! settings.oneShot)
             playPos = expectedPosition (ppqNow);
         else
@@ -345,6 +348,7 @@ void LoopTrack::stop (bool allowFade)
 
 void LoopTrack::finishStop() noexcept
 {
+    resetMap();
     state = State::Stopped;
     stopping = false;
     stopAtWrap = false;
@@ -355,6 +359,8 @@ void LoopTrack::finishStop() noexcept
 
 void LoopTrack::clear()
 {
+    resetMap();
+    altLength = 0;
     state = State::Empty;
     length = recPos = playPos = autoFinish = savedLength = 0;
     undoKind = redoKind = UndoKind::None;
@@ -372,6 +378,15 @@ bool LoopTrack::undo()
     if (state == State::Overdubbing)
         state = State::Playing;
 
+    if (undoKind == UndoKind::Length)
+    {
+        std::swap (length, altLength);
+        playPos = length > 0 ? playPos % length : 0;
+        resetMap();
+        redoKind = UndoKind::Length;
+        undoKind = UndoKind::None;
+        return true;
+    }
     if (undoKind == UndoKind::Recording)
     {
         savedLength = length;
@@ -397,6 +412,17 @@ bool LoopTrack::redo()
     if (redoKind == UndoKind::None)
         return false;
 
+    if (redoKind == UndoKind::Length)
+    {
+        if (altLength <= 0 || altLength > maxLength)
+            return false;
+        std::swap (length, altLength);
+        playPos = playPos % length;
+        resetMap();
+        undoKind = UndoKind::Length;
+        redoKind = UndoKind::None;
+        return true;
+    }
     if (redoKind == UndoKind::Recording)
     {
         if (savedLength <= 0)
@@ -442,7 +468,217 @@ float LoopTrack::getProgress() const noexcept
         return autoFinish > 0 ? (float) recPos / (float) autoFinish : 0.0f;
     if (length <= 0)
         return 0.0f;
-    return (float) playPos / (float) length;
+    return (float) getAudiblePosition() / (float) length;
+}
+
+//============================================================================== v1.4: loop cutting, multiply, halve, copy
+int LoopTrack::mapPosition (const ReadMap& m, int pos, long long counter) const noexcept
+{
+    switch (m.type)
+    {
+        case MapType::Offset:
+        {
+            const int p = (pos + m.offset) % length;
+            return p < 0 ? p + length : p;
+        }
+        case MapType::Stutter:
+        {
+            const long long d = counter - m.counter0;
+            const int within = (int) (((d % m.len) + m.len) % m.len);
+            return (m.base + within) % length;
+        }
+        case MapType::Straight: break;
+    }
+    return pos;
+}
+
+int LoopTrack::mapReadPosition (const ReadMap& m, int pos) const noexcept
+{
+    if (m.type == MapType::Stutter)
+    {
+        const int d = ((pos - m.runPos0) % length + length) % length;
+        return (m.base + d % m.len) % length;
+    }
+    return mapPosition (m, pos, 0);
+}
+
+void LoopTrack::resetMap() noexcept
+{
+    readMap = prevMap = ReadMap();
+    mapFadeLeft = 0;
+}
+
+void LoopTrack::changeMap (const ReadMap& next) noexcept
+{
+    // crossfade from what is heard now to the new mapping (about 3 ms)
+    prevMap = readMap;
+    readMap = next;
+    mapFadeTotal = mapFadeLeft = std::max (16, (int) (sampleRate * 0.003));
+    stretchWasActive = false;           // the time-stretch reader has to seek
+}
+
+void LoopTrack::cutTo (int logicalStart) noexcept
+{
+    if (length <= 0 || (state != State::Playing && state != State::Overdubbing))
+        return;
+    logicalStart = ((logicalStart % length) + length) % length;
+    ReadMap m;
+    m.type = MapType::Offset;
+    m.offset = ((logicalStart - playPos) % length + length) % length;
+    if (readMap.type == MapType::Stutter)
+    {
+        // a new cut while the stutter is held: stutter at the new point
+        m.type = MapType::Stutter;
+        m.base = logicalStart;
+        m.len = readMap.len;
+        m.counter0 = runCounter;
+        m.runPos0 = playPos;
+    }
+    cutCounter = runCounter;
+    changeMap (m);
+}
+
+void LoopTrack::setStutter (bool on, int lengthSamples) noexcept
+{
+    if (length <= 0)
+        return;
+    if (on)
+    {
+        if (readMap.type == MapType::Stutter)
+            return;
+        // repeat from the current cut point (or the running position when not cut)
+        ReadMap m;
+        m.type = MapType::Stutter;
+        m.len = std::clamp (lengthSamples, 64, length);
+        const int heard = getAudiblePosition();
+        if (readMap.type == MapType::Offset)
+        {
+            // the cut point = where the jump landed; keep the phase within the repeat
+            m.base = ((heard - (int) ((runCounter - cutCounter) % m.len)) % length + length) % length;
+            m.counter0 = runCounter - (runCounter - cutCounter) % m.len;
+        }
+        else
+        {
+            m.base = heard;
+            m.counter0 = runCounter;
+        }
+        m.runPos0 = ((playPos - (int) (runCounter - m.counter0)) % length + length) % length;
+        // no audible change at the moment of switching: only the wrap later jumps back
+        readMap = m;
+        stretchWasActive = false;
+        return;
+    }
+    if (readMap.type != MapType::Stutter)
+        return;
+    // leave the repeat: continue linearly from what is heard now
+    ReadMap m;
+    m.type = MapType::Offset;
+    m.offset = ((getAudiblePosition() - playPos) % length + length) % length;
+    readMap = m;
+}
+
+void LoopTrack::cutOff() noexcept
+{
+    if (readMap.type == MapType::Straight)
+        return;
+    changeMap (ReadMap());
+}
+
+bool LoopTrack::multiply() noexcept
+{
+    if (length <= 0 || state == State::Empty || state == State::Recording || state == State::Overdubbing
+        || (long long) length * 2 > maxLength)
+        return false;
+    const int len = length;
+    const auto firstNew = (size_t) ((len + kChunkSize - 1) >> kChunkShift);
+    const auto lastNew = (size_t) ((2 * len - 1) >> kChunkShift);
+    for (size_t c = firstNew; c <= lastNew && c < numChunks; ++c)
+        chunkOwner[c] = 0;
+    std::fill (chunkTouched.begin(), chunkTouched.end(), (uint8_t) 0);
+    for (int i = 0; i < len; ++i)
+    {
+        const int d = len + i;
+        const auto owner = chunkOwner[(size_t) (d >> kChunkShift)];
+        layers[owner][0][(size_t) d] = sampleAt (0, i);
+        layers[owner][1][(size_t) d] = sampleAt (1, i);
+    }
+    for (size_t c = (size_t) (len >> kChunkShift); c <= lastNew && c < numChunks; ++c)
+        recomputeChunkPeak (chunkOwner[c], c);
+    altLength = len;
+    length = 2 * len;
+    undoKind = UndoKind::Length;
+    redoKind = UndoKind::None;
+    resetMap();
+    return true;
+}
+
+bool LoopTrack::halve() noexcept
+{
+    if (length < 2 * 2048 || state == State::Empty || state == State::Recording || state == State::Overdubbing)
+        return false;
+    std::fill (chunkTouched.begin(), chunkTouched.end(), (uint8_t) 0);
+    altLength = length;
+    length = length / 2;
+    if (playPos >= length)
+        playPos -= length;
+    playPos = std::clamp (playPos, 0, length - 1);
+    undoKind = UndoKind::Length;
+    redoKind = UndoKind::None;
+    resetMap();
+    return true;
+}
+
+bool LoopTrack::copyFrom (const LoopTrack& src) noexcept
+{
+    if (&src == this || state != State::Empty || src.length < 64 || src.state == State::Recording || src.length > maxLength)
+        return false;
+    const int n = src.length;
+    std::fill (chunkOwner.begin(), chunkOwner.end(), (uint8_t) 0);
+    std::fill (chunkTouched.begin(), chunkTouched.end(), (uint8_t) 0);
+    for (int i = 0; i < n; ++i)
+    {
+        layers[0][0][(size_t) i] = src.sampleAt (0, i);
+        layers[0][1][(size_t) i] = src.sampleAt (1, i);
+    }
+    for (size_t c = 0; c < numChunks; ++c)
+    {
+        chunkPeak[1][c].store (0.0f, std::memory_order_relaxed);
+        if ((int) (c << kChunkShift) < n)
+            recomputeChunkPeak (0, c);
+        else
+            chunkPeak[0][c].store (0.0f, std::memory_order_relaxed);
+    }
+    length = recPos = n;
+    playPos = 0;
+    recSamplesPerPpq = src.recSamplesPerPpq;
+    anchorPpq = src.anchorPpq;
+    anchorValid = src.anchorValid;
+    undoKind = UndoKind::Recording;       // UNDO removes the copy again
+    redoKind = UndoKind::None;
+    gain = gainTarget = 0.0f;
+    gainRampLeft = 0;
+    resetMap();
+    state = State::Stopped;
+    return true;
+}
+
+bool LoopTrack::setRecordingSpan (int samples) noexcept
+{
+    if (state != State::Recording || samples <= 0)
+        return false;
+    autoFinish = std::min (samples, maxLength);
+    return recPos >= autoFinish;
+}
+
+void LoopTrack::applyMuteGain (float& g) noexcept
+{
+    const float target = settings.muted ? 0.0f : 1.0f;
+    if (muteGain != target)
+    {
+        const float step = 1.0f / std::max (1.0f, (float) (sampleRate * kDeclickMs / 1000.0f));
+        muteGain = target > muteGain ? std::min (target, muteGain + step) : std::max (target, muteGain - step);
+    }
+    g *= muteGain;
 }
 
 //==============================================================================
@@ -520,9 +756,33 @@ void LoopTrack::process (const float* inL, const float* inR,
 
     for (int i = 0; i < numSamples; ++i)
     {
-        const int index = reverse ? (length - 1 - playPos) : playPos;
+        // loop cutting: the heard position may differ from the running position
+        if (readMap.type == MapType::Stutter && runCounter > readMap.counter0
+            && (runCounter - readMap.counter0) % readMap.len == 0)
+        {
+            // the repeat wraps: crossfade from the audio that would follow into the repeat start
+            ReadMap cont;
+            cont.type = MapType::Offset;
+            cont.offset = (((readMap.base + readMap.len) - playPos) % length + length) % length;
+            prevMap = cont;
+            mapFadeTotal = mapFadeLeft = std::max (16, (int) (sampleRate * 0.003));
+        }
+        const int logical = readMap.type == MapType::Straight ? playPos : mapPosition (readMap, playPos, runCounter);
+        const int index = reverse ? (length - 1 - logical) : logical;
         float l = stretched ? stretchImpl->outL[(size_t) i] : sampleAt (0, index);
         float r = stretched ? stretchImpl->outR[(size_t) i] : sampleAt (1, index);
+        if (mapFadeLeft > 0)
+        {
+            const float w = (float) mapFadeLeft / (float) mapFadeTotal;     // weight of the old mapping
+            if (! stretched)
+            {
+                const int oldLogical = mapPosition (prevMap, playPos, runCounter);
+                const int oldIndex = reverse ? (length - 1 - oldLogical) : oldLogical;
+                l = l * (1.0f - w) + sampleAt (0, oldIndex) * w;
+                r = r * (1.0f - w) + sampleAt (1, oldIndex) * w;
+            }
+            --mapFadeLeft;
+        }
 
         if (state == State::Overdubbing)
         {
@@ -547,7 +807,8 @@ void LoopTrack::process (const float* inL, const float* inR,
                 gain = gainTarget;
         }
 
-        const float g = gain * level;
+        float g = gain * level;
+        applyMuteGain (g);
         const float oL = l * g * panL;
         const float oR = r * g * panR;
         busL[i] += oL;
@@ -570,6 +831,7 @@ void LoopTrack::process (const float* inL, const float* inR,
             playFrac -= step;
         }
         playPos += step;
+        runCounter += step;
         if (playPos >= length)
         {
             playPos -= length;

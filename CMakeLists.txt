@@ -35,7 +35,8 @@ set(LIVELOOPER_ENGINE_SOURCES
     src/engine/LooperEngine.cpp
     src/engine/Effects.cpp
     src/engine/RhythmGenerator.cpp
-    src/engine/MidiMap.cpp)
+    src/engine/MidiMap.cpp
+    src/engine/Performance.cpp)
 set(LIVELOOPER_PLUGIN_SOURCES
     src/plugin/Localisation.cpp
     src/plugin/KeyMap.cpp
@@ -106,6 +107,7 @@ if(LIVELOOPER_BUILD_TESTS)
         tests/KeyboardTests.cpp
         tests/FeatureTests.cpp
         tests/Feature13Tests.cpp
+        tests/Feature14Tests.cpp
         tests/PushTests.cpp
         tests/RhythmTests.cpp
         ${LIVELOOPER_ENGINE_SOURCES} ${LIVELOOPER_PLUGIN_SOURCES})

@@ -58,6 +58,7 @@ struct TrackSettings
     TrackOutput output   = TrackOutput::Main;
     float      pitch     = 0.0f;   // semitones, -12..+12
     bool       stretch   = false;  // follow tempo changes (time-stretch, pitch kept)
+    bool       muted     = false;  // v1.4: output silenced (mute, or another track is soloed); keeps running
 };
 
 struct GlobalSettings
