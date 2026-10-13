@@ -31,6 +31,7 @@
 - **Feedback, Ducking, Tonhöhe und Time-Stretch** pro Spur (Signalsmith Stretch), Resampling der anderen Spuren
 - **Direkte Spurausgänge** (Multi-Out im Plug-in, Interface-Ausgänge in der Standalone-App) und **Stem-Export** mit Tempo-Metadaten
 - **Geister-Abspielmarke**: gestoppte Spuren zeigen, wo sie gerade wären
+- **Steuerung mit Ableton Push** (ab Push 1) im Plug-in und in der Standalone-App: Pads mit LED-Rückmeldung für jede Spur, Szenen, Encoder, Display und ein FX-XY-Pad mit Zurückspringen – siehe [PUSH.md](docs/de/PUSH.md)
 - **Oberfläche auf Deutsch und Englisch**: umschaltbar unter *SETUP → Language / Sprache* (Automatisch folgt der Systemsprache)
 
 ## Warum VST3/AU?
@@ -52,6 +53,7 @@ Alles Weitere steht in der **[Bedienungsanleitung](docs/de/BEDIENUNGSANLEITUNG.m
 | [INSTALLATION.md](docs/de/INSTALLATION.md) | Download, Installation auf macOS und Windows, Einrichtung in Live |
 | [BEDIENUNGSANLEITUNG.md](docs/de/BEDIENUNGSANLEITUNG.md) | Oberfläche, alle Funktionen, Effekte, Rhythmus, Setup, Sprache |
 | [MIDI.md](docs/de/MIDI.md) | MIDI-Learn, Live-MIDI-Map, Standard-Belegung, Parameterliste |
+| [PUSH.md](docs/de/PUSH.md) | Steuerung mit Ableton Push: Einrichtung, Pad-Belegung, Encoder, FX-XY-Pad |
 | [ENTWICKLUNG.md](docs/de/ENTWICKLUNG.md) | Bauen aus dem Quellcode, Architektur, Tests, CI, Übersetzungen |
 
 Englische Dokumentation: [docs/en](docs/en/).

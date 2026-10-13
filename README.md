@@ -31,6 +31,7 @@
 - **Feedback, ducking, pitch and time-stretch** per track (Signalsmith Stretch), resampling of the other tracks
 - **Direct track outputs** (plug-in multi-out, interface outputs in the standalone app) and **stem export** with tempo metadata
 - **Ghost play head**: stopped tracks show where they would be now
+- **Ableton Push control** (Push 1 and up) in the plug-in and the standalone app: pads with LED feedback for every track, scenes, encoders, display, and an FX XY pad with snap back – see [PUSH.md](docs/en/PUSH.md)
 - **English and German user interface**: switch under *SETUP → Language / Sprache* (automatic follows your system language)
 
 ## Why VST3/AU?
@@ -52,6 +53,7 @@ Everything else is in the **[User Guide](docs/en/USER-GUIDE.md)**, MIDI control 
 | [INSTALLATION.md](docs/en/INSTALLATION.md) | Download, installation on macOS and Windows, setup in Live |
 | [USER-GUIDE.md](docs/en/USER-GUIDE.md) | Interface, all functions, effects, rhythm, setup, language |
 | [MIDI.md](docs/en/MIDI.md) | MIDI learn, Live's MIDI map, default mapping, parameter list |
+| [PUSH.md](docs/en/PUSH.md) | Ableton Push control: setup, pad layout, encoders, FX XY pad |
 | [DEVELOPMENT.md](docs/en/DEVELOPMENT.md) | Building from source, architecture, tests, CI, translations |
 
 German documentation: [docs/de](docs/de/).
