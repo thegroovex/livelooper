@@ -63,6 +63,10 @@ Die 8 × 8 Pads werden ein **XY-Pad** für einen Effekt: X (links nach rechts) =
 
 Master-Encoder = Gesamtpegel · Tempo-Encoder = Tempo (1 BPM, mit **SHIFT** 0,1 BPM) · Swing-Encoder = Rhythmus-Pegel. Mit **SHIFT** wird fein eingestellt.
 
+**Master-Sektion**: Bei bis zu 6 sichtbaren Spuren sind die beiden Encoder ganz rechts eine Master-Sektion: **Encoder 7 = Gesamtpegel**, **Encoder 8 = Tempo** (BPM, mit **SHIFT** 0,1 BPM); das Display zeigt darüber *Master* und *Tempo*. Bei 8 Spuren (und im DEVICE-Modus) steuern alle acht Encoder Spuren bzw. Effekte; dann gelten der Master-Encoder (oben rechts) und der Tempo-Encoder (oben links), und Zeile 4 zeigt den Gesamtpegel. Mit **HOST SYNC** bestimmt Live das Tempo (Display: *Host*); das interne Tempo gilt nur ohne Host-Sync.
+
+Swing-Encoder = **Swing** des Rhythmus, **SHIFT** + Swing-Encoder = Rhythmus-Pegel.
+
 ### Display
 
 Zeile 1: was die Encoder steuern · Zeile 2: ihre Werte · Zeile 3: Status der Spuren (`>` = ausgewählte Spur) · Zeile 4: Tempo, letzte Szene, Auto-Aufnahme, XY-Effekt.

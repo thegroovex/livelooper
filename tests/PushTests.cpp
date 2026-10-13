@@ -339,6 +339,15 @@ public:
             expectEquals (r.get ("master"), m2);
             r.press (cc::volume);
 
+            const float sw = r.get ("rhythm_swing");
+            r.turn (kSwingEncoder, 4);
+            expectGreaterThan (r.get ("rhythm_swing"), sw, "swing encoder = rhythm swing");
+            const float rl = r.get ("rhythm_level");
+            r.button (cc::shift, true);
+            r.turn (kSwingEncoder, 127);
+            r.button (cc::shift, false);
+            expectLessThan (r.get ("rhythm_level"), rl, "SHIFT + swing encoder = rhythm level");
+
             r.proc.setVisibleTracks (8);             // 8 tracks: encoders 7 / 8 are tracks again
             r.render();
             expect (r.surface.getDisplayLine (0).contains ("Lvl 8"));

@@ -239,7 +239,11 @@ void PushSurface::handleEncoder (int number, int delta)
     }
     if (number == kSwingEncoder)
     {
-        nudge (gRhythmLevel, delta, 0.01f * fine);
+        // swing encoder = rhythm swing, SHIFT: rhythm level
+        if (shift)
+            nudge (gRhythmLevel, delta, 0.01f);
+        else
+            nudge (gRhythmSwing, delta, 0.01f);
         return;
     }
     auto changeTempo = [this, delta]
