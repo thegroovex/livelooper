@@ -48,7 +48,8 @@ void PushSurface::nudge (const juce::String& paramId, int steps, float stepSize)
     auto* p = proc.getState().getParameter (paramId);
     if (p == nullptr || steps == 0)
         return;
-    const int numSteps = p->getNumSteps();
+    const auto& range = p->getNormalisableRange();
+    const int numSteps = range.interval >= 1.0f ? (int) std::round ((range.end - range.start) / range.interval) + 1 : p->getNumSteps();
     if (numSteps > 1 && numSteps < 100)
     {
         // stepped parameter (pitch): a few encoder ticks per step
