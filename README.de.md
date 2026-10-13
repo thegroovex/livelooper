@@ -79,6 +79,7 @@ Alles Weitere steht in der **[Bedienungsanleitung](docs/de/BEDIENUNGSANLEITUNG.m
 | Dokument | Inhalt |
 |---|---|
 | [INSTALLATION.md](docs/de/INSTALLATION.md) | Download, Installation auf macOS und Windows, Einrichtung in deiner DAW (mit Ableton Live als Beispiel) |
+| [DAW-EINRICHTUNG.md](docs/de/DAW-EINRICHTUNG.md) | Das Plug-in in deiner DAW: Looper-Spur, Monitoring, Mikro/Gitarre und Software-Instrumente loopen, live zwischen Quellen wechseln, Audio herausholen, MIDI-Routing (Live, Bitwig, Cubase, Logic, Reaper, Studio One) |
 | [BEDIENUNGSANLEITUNG.md](docs/de/BEDIENUNGSANLEITUNG.md) | Oberfläche, alle Funktionen, Effekte, Rhythmus, Setup, Sprache |
 | [MIDI.md](docs/de/MIDI.md) | MIDI-Learn, MIDI-Mapping deiner DAW, Standard-Belegung, Parameterliste |
 | [PUSH.md](docs/de/PUSH.md) | Steuerung mit Ableton Push (in jeder DAW und standalone): Einrichtung, Pad-Belegung, Encoder, FX-XY-Pad |

@@ -30,7 +30,7 @@ Universal Binary: läuft nativ auf Apple Silicon und Intel.
 
 ## Einrichtung in deiner DAW
 
-livelooper funktioniert in jedem VST3-/AU-Host gleich:
+livelooper funktioniert in jedem VST3-/AU-Host gleich. Unten die Kurzfassung; Schritt-für-Schritt-Anleitungen für jede DAW – Software-Instrumente loopen, live zwischen Quellen wechseln, Monitoring ohne doppeltes Signal, direkte Ausgänge und MIDI-Routing – stehen in **[DAW-EINRICHTUNG.md](DAW-EINRICHTUNG.md)**.
 
 1. Eine **Audiospur** anlegen, deren Eingang dein Mikro/Instrument ist (Mono oder Stereo).
 2. **Eingangs-Monitoring einschalten**, damit du den Eingang hörst (und er das Plug-in erreicht), auch wenn die Spur nicht aufnahmebereit ist – wie das geht, hängt von deiner DAW ab.
@@ -54,6 +54,10 @@ livelooper funktioniert in jedem VST3-/AU-Host gleich:
 Mehr dazu in [MIDI.md](MIDI.md).
 
 **Tempo**: Mit **HOST-SYNC** (Standard) folgt livelooper dem Tempo, der Taktart und der Position von Live. Läuft der Transport nicht, zählt eine interne Clock im Host-Tempo weiter – in Live wie in jeder anderen DAW.
+
+## Standalone-App
+
+Du brauchst gar keine DAW: Die **Standalone-App** (im selben Download) ist livelooper für sich allein – Audio-Interface unter **Options → Audio/MIDI Settings** wählen, Push anschließen und spielen. Sie bietet zusätzlich einen Cue-Ausgang fürs Metronom und direkte Spurausgänge auf den Ausgängen deines Interfaces (Bedienungsanleitung, Abschnitte 14 und 20). Das Plug-in nimmst du, wenn du die Instrumente, Effekte und Aufnahme deiner DAW drumherum willst ([DAW-EINRICHTUNG.md](DAW-EINRICHTUNG.md)).
 
 ## Standalone-App: kein Eingang / Aufnahmen bleiben stumm
 

@@ -2,7 +2,7 @@
 
 [English](../en/USER-GUIDE.md) | **Deutsch**
 
-livelooper ist als **Instrument zum Erforschen und Live-Spielen** gebaut: Jedes Bedienelement reagiert sofort und landet auf dem Schlag, und alles lässt sich mit einem [Ableton Push](PUSH.md), jedem MIDI-Controller oder der Computertastatur spielen. Tipps fürs Live-Spielen stehen in Abschnitt 23.
+livelooper ist als **Instrument zum Erforschen und Live-Spielen** gebaut: Jedes Bedienelement reagiert sofort und landet auf dem Schlag, und alles lässt sich mit einem [Ableton Push](PUSH.md), jedem MIDI-Controller oder der Computertastatur spielen. Tipps fürs Live-Spielen stehen in Abschnitt 23. Wie du das Plug-in in deine DAW einbindest (Looper-Spur, Monitoring, Software-Instrumente loopen, Quellen wechseln), steht in [DAW-EINRICHTUNG.md](DAW-EINRICHTUNG.md).
 
 ![Oberfläche](../images/livelooper-de.png)
 
@@ -308,6 +308,7 @@ In der Fußleiste gibt es **8 Szenen-Knöpfe**. Ein leerer Szenen-Knopf speicher
 - **Plug-in**: livelooper hat pro Spur einen optionalen Stereo-Ausgang („Track 1“ … „Track 8“). Aktiviere ihn in deiner DAW (jede Spur bekommt dort dann einen eigenen Ausgang), in Ableton Live zum Beispiel über eine zweite Audiospur mit *Audio von: livelooper → Track 1*.
 - **Standalone-App**: **SETUP → Direkte Spurausgänge** weist jeder Spur ein Ausgangspaar des Audio-Interfaces zu (ab Ausgang 3/4, nicht das Cue-Paar).
 - Im Spur-SETUP legt **AUSGANG** fest: *Haupt*, *Direkt* (nur der direkte Ausgang) oder *Haupt + Direkt*. Ohne aktiven direkten Ausgang spielt die Spur immer auf dem Hauptausgang.
+- Weitere Wege, Audio aus livelooper in die DAW zu holen: [DAW-EINRICHTUNG.md, Abschnitt 5](DAW-EINRICHTUNG.md#5-audio-herausholen).
 
 ## 21. 8 Spuren, Geister-Abspielmarke, Stem-Export
 
@@ -336,6 +337,7 @@ livelooper ist zum Spielen gedacht, wie ein Instrument. Ein paar Gewohnheiten, d
 - **Einen Bogen bauen**: Strophe, Refrain und Breakdown als **Szenen** speichern und im Takt wechseln.
 - **Schichten formen statt stapeln**: Feedback unter 100 % lässt alte Schichten ausklingen, Tonhöhe und Reverse machen aus einer Phrase etwas Neues, das FX-XY-Pad auf dem Push ist für Drops und Steigerungen gemacht.
 - **Gute Momente behalten**: Zieh einen Loop auf eine Spur in deiner DAW oder exportiere nach dem Auftritt die Stems.
+- **Mehrere Instrumente, ein Looper**: alle in die Looper-Spur routen und durch Spielen, Stummschalten oder Scharfschalten wechseln – siehe [DAW-EINRICHTUNG.md, Abschnitt 4](DAW-EINRICHTUNG.md#4-beim-spielen-zwischen-instrumenten-und-quellen-wechseln).
 
 ## 24. Performance-Moves (seit 1.4)
 

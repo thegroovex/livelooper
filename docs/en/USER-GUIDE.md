@@ -2,7 +2,7 @@
 
 **English** | [Deutsch](../de/BEDIENUNGSANLEITUNG.md)
 
-livelooper is built as an **instrument for exploring and playing live**: every control reacts instantly and lands on the beat, and everything can be played from an [Ableton Push](PUSH.md), any MIDI controller or the computer keyboard. Section 23 has tips for playing live.
+livelooper is built as an **instrument for exploring and playing live**: every control reacts instantly and lands on the beat, and everything can be played from an [Ableton Push](PUSH.md), any MIDI controller or the computer keyboard. Section 23 has tips for playing live. How to wire the plug-in into your DAW (looper track, monitoring, looping software instruments, switching sources) is explained in [DAW-SETUP.md](DAW-SETUP.md).
 
 ![Interface](../images/livelooper.png)
 
@@ -286,6 +286,7 @@ The footer has **8 scene buttons**. Pressing an empty scene stores which tracks 
 - **Plug-in**: livelooper has an optional stereo output per track ("Track 1" … "Track 8"). Enable it in your DAW (each track then gets its own output there), for example in Ableton Live through a second audio track with *Audio From: livelooper → Track 1*.
 - **Standalone app**: **SETUP → Direct track outputs** assigns each track an output pair of the audio interface (outputs 3/4 and up, not the cue pair).
 - In the track SETUP, **OUTPUT** decides between *Main*, *Direct* (only the direct output) and *Main + Direct*. Without an active direct output the track always plays on the main output.
+- More ways to get audio out of livelooper in your DAW: [DAW-SETUP.md, section 5](DAW-SETUP.md#5-getting-the-audio-out).
 
 ## 21. 8 tracks, ghost play head, stem export
 
@@ -314,6 +315,7 @@ livelooper is meant to be played like an instrument. A few habits that help on s
 - **Build an arc**: store verse, chorus and breakdown as **scenes** and switch between them on the bar.
 - **Shape layers instead of stacking them**: feedback below 100 % lets old layers fade, pitch and reverse turn a phrase into something new, the FX XY pad on Push is made for drops and builds.
 - **Keep the good moments**: drag a loop onto a track in your DAW or export stems after the show.
+- **Several instruments, one looper**: route them all into the looper track and switch by playing, muting or arming – see [DAW-SETUP.md, section 4](DAW-SETUP.md#4-switching-between-instruments-and-sources-while-playing).
 
 ## 24. Performance moves (since 1.4)
 
