@@ -258,7 +258,7 @@ Ohne Cue-Paar (und im Plug-in) spielt der Rhythmus immer auf dem Hauptausgang �
 
 **SETUP → Metronomklang**: **Piep** (klassisch), **Holzblock** (kurzer, hölzerner Schlag), **Klick** (trockener Tick ohne Tonhöhe) oder **Rimshot**. Die Drum-Sounds sind synthetisiert, siehe Abschnitt 4.
 
-## 16. Bezeichnungen Deutsch / Englisch
+## Bezeichnungen Deutsch / Englisch
 
 | Deutsch | English |
 |---|---|
