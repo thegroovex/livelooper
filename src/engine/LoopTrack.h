@@ -36,7 +36,16 @@ public:
     void prepare (double sampleRate);
     int  getMaxLength() const noexcept { return maxLength; }
 
+    LoopTrack();
+    ~LoopTrack();
+    LoopTrack (const LoopTrack&) = delete;
+    LoopTrack& operator= (const LoopTrack&) = delete;
+
     void setSettings (const TrackSettings& s) noexcept { settings = s; }
+    /** Samples per ppq of the loop divided by those of the current tempo (for time-stretch). */
+    void setTempoRatio (double r) noexcept { tempoRatio = r; }
+    /** True while the playback goes through the time-stretch / pitch shifter. */
+    bool isStretching() const noexcept { return stretchWasActive; }
     const TrackSettings& getSettings() const noexcept  { return settings; }
     void setFadeSamples (int n) noexcept               { fadeSamples = n < 1 ? 1 : n; }
 
@@ -107,6 +116,10 @@ public:
     void readLoop (float* dstL, float* dstR) const noexcept;
     /** Replaces the loop with the given audio; the track ends up stopped. */
     void loadLoop (const float* srcL, const float* srcR, int numSamples, double samplesPerPpq);
+    /** Loads numSamples from a ring buffer starting at start (wrapping), crossfades the loop end
+        into the audio that came before the start (xfade samples) and anchors it at anchorPpq. */
+    void loadLoopFromRing (const float* ringL, const float* ringR, int ringSize, int start, int numSamples,
+                           int xfade, double samplesPerPpq, double anchorPpq);
 
     /** Expected playback position for a timeline position (loop sync). */
     int expectedPosition (double ppq) const noexcept;
@@ -128,6 +141,18 @@ private:
             a.store (v, std::memory_order_relaxed);
     }
     void recomputeChunkPeak (int layer, size_t chunk) noexcept;
+    bool wantsStretch() const noexcept;
+    /** Renders numSamples of stretched / pitched loop audio into stretchOutL/R. */
+    void renderStretched (int numSamples) noexcept;
+
+    struct Stretch;
+    std::unique_ptr<Stretch> stretchImpl;
+    double tempoRatio = 1.0;
+    double playFrac = 0.0;          // fractional part of the play position (ratio != 1)
+    double readPos = 0.0;           // input position of the stretcher in the loop (ahead by its latency)
+    int    expectedPlayPos = -1;    // detects jumps of the play position (re-seek)
+    bool   stretchWasActive = false;
+    float  lastPitch = 0.0f;
 
     std::vector<float> layers[2][2];          // [layer][channel]
     std::vector<uint8_t> chunkOwner;          // which layer holds the chunk

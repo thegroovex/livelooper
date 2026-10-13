@@ -8,7 +8,8 @@
 
 namespace livelooper
 {
-constexpr int kNumTracks  = 5;
+constexpr int kNumTracks  = 8;   // the UI shows 5 or 8 of them (SETUP)
+constexpr int kDefaultVisibleTracks = 5;
 constexpr int kNumFxSlots = 4;
 
 /** Musical position of one audio block, as delivered by the host (or the internal clock). */
@@ -26,7 +27,11 @@ enum class RecAction  { RecDub = 0, RecPlay };
 enum class StartMode  { Immediate = 0, FadeIn };
 enum class StopMode   { Immediate = 0, FadeOut, LoopEnd };
 enum class DubMode    { Overdub = 0, Replace };
-enum class InputRoute { Stereo = 0, Left, Right };
+enum class InputRoute { Stereo = 0, Left, Right, Resample };   // Resample = the mix of the other tracks
+/** Where a track is heard: main output, its direct output, or both. */
+enum class TrackOutput { Main = 0, Direct, MainAndDirect };
+/** What ducks the tracks with a DUCK amount: the rhythm's kick drum or track 1. */
+enum class DuckSource { RhythmKick = 0, Track1 };
 /** Where the rhythm / metronome is heard (cue = separate output pair of the standalone app). */
 enum class ClickRoute { Main = 0, Cue, MainAndCue };
 
@@ -48,6 +53,11 @@ struct TrackSettings
     StopMode   stopMode  = StopMode::Immediate;
     DubMode    dubMode   = DubMode::Overdub;
     int        measures  = 0;      // 0 = auto
+    float      feedback  = 1.0f;   // 0..1: how much of the loop survives each overdub pass (1 = all)
+    float      duck      = 0.0f;   // 0..1: sidechain ducking amount
+    TrackOutput output   = TrackOutput::Main;
+    float      pitch     = 0.0f;   // semitones, -12..+12
+    bool       stretch   = false;  // follow tempo changes (time-stretch, pitch kept)
 };
 
 struct GlobalSettings
@@ -60,6 +70,10 @@ struct GlobalSettings
     float     masterLevel   = 1.0f;
     float     monitorLevel  = 1.0f;  // input pass-through (after input FX)
     ClickRoute clickRoute   = ClickRoute::Main;
+    DuckSource duckSource   = DuckSource::RhythmKick;
+    bool      autoRecord    = false;   // armed tracks start recording when the input exceeds the threshold
+    float     autoRecThreshold = 0.0316f;   // linear (-30 dB)
+    int       captureBars   = 4;       // retrospective capture length
 };
 
 inline double positiveModulo (double a, double b) noexcept

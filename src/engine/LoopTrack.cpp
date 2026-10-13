@@ -1,5 +1,22 @@
 #include "LoopTrack.h"
 
+#if defined (__GNUC__)
+ #pragma GCC diagnostic push
+ #pragma GCC diagnostic ignored "-Wshadow"
+ #pragma GCC diagnostic ignored "-Wconversion"
+ #pragma GCC diagnostic ignored "-Wsign-conversion"
+ #pragma GCC diagnostic ignored "-Wfloat-conversion"
+ #pragma GCC diagnostic ignored "-Wunused-parameter"
+#elif defined (_MSC_VER)
+ #pragma warning (push, 0)
+#endif
+#include <signalsmith-stretch/signalsmith-stretch.h>
+#if defined (__GNUC__)
+ #pragma GCC diagnostic pop
+#elif defined (_MSC_VER)
+ #pragma warning (pop)
+#endif
+
 #include <algorithm>
 #include <cstring>
 
@@ -11,6 +28,33 @@ namespace
 }
 
 //==============================================================================
+struct LoopTrack::Stretch
+{
+    static constexpr int kMaxBlock = 512;      // output samples per stretcher call
+    static constexpr double kMaxRatio = 4.0;
+    signalsmith::stretch::SignalsmithStretch<float> stretch;
+    std::vector<float> inL, inR, outL, outR, seekL, seekR;
+    bool configured = false;
+    double configuredRate = 0.0;
+
+    void configure (double sampleRate)
+    {
+        if (configured && configuredRate == sampleRate)
+            return;
+        stretch.presetDefault (2, (float) sampleRate);
+        const auto inMax = (size_t) (kMaxBlock * kMaxRatio) + 8;
+        inL.assign (inMax, 0.0f); inR.assign (inMax, 0.0f);
+        outL.assign (8192, 0.0f); outR.assign (8192, 0.0f);
+        const auto seekMax = (size_t) stretch.seekLength() + 8;
+        seekL.assign (seekMax, 0.0f); seekR.assign (seekMax, 0.0f);
+        configured = true;
+        configuredRate = sampleRate;
+    }
+};
+
+LoopTrack::LoopTrack() : stretchImpl (std::make_unique<Stretch>()) {}
+LoopTrack::~LoopTrack() = default;
+
 void LoopTrack::allocate (int maxLengthSamples)
 {
     maxLength = std::max (kChunkSize, maxLengthSamples);
@@ -36,6 +80,69 @@ void LoopTrack::allocate (int maxLengthSamples)
 void LoopTrack::prepare (double newSampleRate)
 {
     sampleRate = newSampleRate;
+    stretchImpl->configure (sampleRate);
+    stretchWasActive = false;
+}
+
+bool LoopTrack::wantsStretch() const noexcept
+{
+    if (state != State::Playing || length < 4096 || ! stretchImpl->configured)
+        return false;
+    const bool pitched = std::abs (settings.pitch) > 0.01f;
+    const bool tempo = settings.stretch && std::abs (tempoRatio - 1.0) > 1.0e-4;
+    return pitched || tempo;
+}
+
+void LoopTrack::renderStretched (int numSamples) noexcept
+{
+    auto& s = *stretchImpl;
+    const double ratio = settings.stretch ? std::clamp (tempoRatio, 1.0 / Stretch::kMaxRatio, Stretch::kMaxRatio) : 1.0;
+    const bool reverse = settings.reverse;
+    auto readAt = [this, reverse] (double pos, float& l, float& r) {
+        int p = (int) pos % length;
+        if (p < 0) p += length;
+        const int index = reverse ? (length - 1 - p) : p;
+        l = sampleAt (0, index);
+        r = sampleAt (1, index);
+    };
+
+    if (std::abs (settings.pitch - lastPitch) > 0.001f || ! stretchWasActive)
+    {
+        s.stretch.setTransposeSemitones (settings.pitch);
+        lastPitch = settings.pitch;
+    }
+
+    // (re)start: feed the stretcher the audio before the read position, the read position
+    // runs ahead of the audible position by the stretcher's latency
+    if (! stretchWasActive || playPos != expectedPlayPos)
+    {
+        s.stretch.reset();
+        const double lead = s.stretch.inputLatency() + s.stretch.outputLatency() * ratio;
+        readPos = std::fmod ((double) playPos + lead, (double) length);
+        const int seekLen = std::min ((int) s.seekL.size(), s.stretch.seekLength());
+        for (int i = 0; i < seekLen; ++i)
+            readAt (readPos - seekLen + i, s.seekL[(size_t) i], s.seekR[(size_t) i]);
+        float* seekCh[2] = { s.seekL.data(), s.seekR.data() };
+        s.stretch.seek (seekCh, seekLen, ratio);
+        stretchWasActive = true;
+    }
+
+    int done = 0;
+    while (done < numSamples)
+    {
+        const int n = std::min (Stretch::kMaxBlock, numSamples - done);
+        double want = readPos + ratio * n;
+        int inCount = (int) std::floor (want) - (int) std::floor (readPos);
+        inCount = std::clamp (inCount, 0, (int) s.inL.size());
+        for (int i = 0; i < inCount; ++i)
+            readAt (std::floor (readPos) + i, s.inL[(size_t) i], s.inR[(size_t) i]);
+        readPos = std::fmod (want, (double) length);
+
+        float* inCh[2] = { s.inL.data(), s.inR.data() };
+        float* outCh[2] = { s.outL.data() + done, s.outR.data() + done };
+        s.stretch.process (inCh, inCount, outCh, n);
+        done += n;
+    }
 }
 
 //==============================================================================
@@ -397,11 +504,25 @@ void LoopTrack::process (const float* inL, const float* inR,
     float* busR = settings.trackFx ? fxR : outR;
     const bool reverse = settings.reverse;
 
+    // time-stretch / pitch shift (playback only; overdubs always run at the original speed)
+    const bool stretched = wantsStretch() && numSamples <= (int) stretchImpl->outL.size();
+    double advance = 1.0;
+    if (stretched)
+    {
+        renderStretched (numSamples);
+        advance = settings.stretch ? std::clamp (tempoRatio, 0.25, 4.0) : 1.0;
+    }
+    else
+    {
+        stretchWasActive = false;
+        playFrac = 0.0;
+    }
+
     for (int i = 0; i < numSamples; ++i)
     {
         const int index = reverse ? (length - 1 - playPos) : playPos;
-        float l = sampleAt (0, index);
-        float r = sampleAt (1, index);
+        float l = stretched ? stretchImpl->outL[(size_t) i] : sampleAt (0, index);
+        float r = stretched ? stretchImpl->outR[(size_t) i] : sampleAt (1, index);
 
         if (state == State::Overdubbing)
         {
@@ -409,8 +530,9 @@ void LoopTrack::process (const float* inL, const float* inR,
             routeInput (inL[i], inR[i], il, ir);
             touchChunkForWrite (index);
             const auto owner = chunkOwner[(size_t) (index >> kChunkShift)];
-            const float nl = settings.dubMode == DubMode::Replace ? il : l + il;
-            const float nr = settings.dubMode == DubMode::Replace ? ir : r + ir;
+            const float fb = settings.feedback;
+            const float nl = settings.dubMode == DubMode::Replace ? il : l * fb + il;
+            const float nr = settings.dubMode == DubMode::Replace ? ir : r * fb + ir;
             layers[owner][0][(size_t) index] = nl;
             layers[owner][1][(size_t) index] = nr;
             notePeak (owner, index, nl, nr);
@@ -440,18 +562,29 @@ void LoopTrack::process (const float* inL, const float* inR,
             return;
         }
 
-        if (++playPos >= length)
+        int step = 1;
+        if (stretched)
         {
-            playPos = 0;
+            playFrac += advance;
+            step = (int) playFrac;
+            playFrac -= step;
+        }
+        playPos += step;
+        if (playPos >= length)
+        {
+            playPos -= length;
+            if (playPos >= length) playPos = 0;
             if (settings.oneShot || stopAtWrap)
             {
                 if (state == State::Overdubbing)
                     state = State::Playing;
                 finishStop();
+                expectedPlayPos = -1;
                 return;
             }
         }
     }
+    expectedPlayPos = playPos;
 }
 
 //==============================================================================
@@ -522,6 +655,51 @@ void LoopTrack::loadLoop (const float* srcL, const float* srcR, int numSamples, 
         recomputeChunkPeak (0, c);
     recSamplesPerPpq = samplesPerPpq;
     anchorValid = false;
+    state = State::Stopped;
+}
+
+void LoopTrack::loadLoopFromRing (const float* ringL, const float* ringR, int ringSize, int start, int numSamples,
+                                  int xfade, double samplesPerPpq, double newAnchorPpq)
+{
+    clear();
+    numSamples = std::min (numSamples, maxLength);
+    if (numSamples < 64 || ringSize <= 0)
+        return;
+
+    std::fill (chunkOwner.begin(), chunkOwner.end(), (uint8_t) 0);
+    std::fill (chunkTouched.begin(), chunkTouched.end(), (uint8_t) 0);
+    auto* dL = layers[0][0].data();
+    auto* dR = layers[0][1].data();
+    for (int i = 0; i < numSamples; ++i)
+    {
+        const int k = (start + i) % ringSize;
+        dL[i] = ringL[k];
+        dR[i] = ringR[k];
+    }
+    // seam: the loop end fades into what was played just before the loop start,
+    // which continues seamlessly into the first sample of the loop
+    xfade = std::min (xfade, numSamples / 4);
+    for (int i = 0; i < xfade; ++i)
+    {
+        const float w = (float) (i + 1) / (float) (xfade + 1);
+        const int k = ((start - xfade + i) % ringSize + ringSize) % ringSize;
+        const int d = numSamples - xfade + i;
+        dL[d] = dL[d] * (1.0f - w) + ringL[k] * w;
+        dR[d] = dR[d] * (1.0f - w) + ringR[k] * w;
+    }
+
+    length = recPos = numSamples;
+    for (size_t c = 0; c < numChunks; ++c)
+    {
+        chunkPeak[0][c].store (0.0f);
+        chunkPeak[1][c].store (0.0f);
+    }
+    for (size_t c = 0; c <= (size_t) ((numSamples - 1) >> kChunkShift) && c < numChunks; ++c)
+        recomputeChunkPeak (0, c);
+    recSamplesPerPpq = samplesPerPpq;
+    anchorPpq = newAnchorPpq;
+    anchorValid = true;
+    undoKind = UndoKind::Recording;      // UNDO removes the captured loop again
     state = State::Stopped;
 }
 } // namespace livelooper

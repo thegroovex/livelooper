@@ -20,10 +20,12 @@ public:
     enum class Command : int
     {
         RecPlay = 0, Stop, Clear, Undo, Redo,       // per track
-        AllStartStop, AllStart, AllStop, ClearAll   // global
+        AllStartStop, AllStart, AllStop, ClearAll,  // global
+        Capture,                                    // per track: retrospective capture (-1 = first empty track)
+        Start                                       // per track: play (quantized) when stopped, used by scenes
     };
 
-    enum class Pending : int { None = 0, Record, FinishRecord, FinishRecordThenStop, Play };
+    enum class Pending : int { None = 0, Record, FinishRecord, FinishRecordThenStop, Play, AutoRecord };
 
     struct TrackStatus
     {
@@ -39,6 +41,16 @@ public:
         // meter: input level while recording / overdubbing, output level otherwise
         mutable std::atomic<float> meterL { 0.0f }, meterR { 0.0f };   // UI takes them with exchange()
         std::atomic<bool>  meterIsInput { false };
+        std::atomic<float> ghostProgress { -1.0f };   // stopped track: where it would be now (0..1), -1 = none
+        std::atomic<float> duckGain { 1.0f };
+    };
+
+    /** Extra outputs (all optional): cue pair for the rhythm, direct output pair per track. */
+    struct ExtraOutputs
+    {
+        float* cueL = nullptr;
+        float* cueR = nullptr;
+        std::array<float*, kNumTracks> directL {}, directR {};
     };
 
     LooperEngine();
@@ -68,7 +80,21 @@ public:
     /** cueL / cueR (may be null): separate output for the rhythm / metronome (GlobalSettings::clickRoute).
         Without a cue output the rhythm always goes to the main output. */
     void process (const float* inL, const float* inR, float* outL, float* outR, float* cueL, float* cueR,
+                  int numSamples, const TimeInfo& time) noexcept
+    {
+        ExtraOutputs x;
+        x.cueL = cueL;
+        x.cueR = cueR;
+        process (inL, inR, outL, outR, x, numSamples, time);
+    }
+    void process (const float* inL, const float* inR, float* outL, float* outR, const ExtraOutputs& extra,
                   int numSamples, const TimeInfo& time) noexcept;
+
+    /** Tracks that hold memory (5 or 8). Call from the message thread; allocates. */
+    void setActiveTracks (int n);
+    int  getActiveTracks() const noexcept { return activeTracks.load(); }
+    /** Seconds of input kept for the retrospective capture. */
+    double getCaptureSecondsAvailable() const noexcept { return (double) ringFilled.load() / sampleRate; }
 
     // ---- status for the UI (any thread)
     const TrackStatus& getTrackStatus (int t) const noexcept { return status[(size_t) t]; }
@@ -92,8 +118,10 @@ private:
     struct PendingAction { Pending type = Pending::None; double targetPpq = 0.0; };
     struct QueuedCommand { Command command; int track; };
 
-    void processChunk (const float* inL, const float* inR, float* outL, float* outR, float* cueL, float* cueR,
-                       int n, const TimeInfo& time) noexcept;
+    void processChunk (const float* inL, const float* inR, float* outL, float* outR, const ExtraOutputs& extra,
+                       int offset, int n, const TimeInfo& time) noexcept;
+    void processTrack (int t, const float* srcL, const float* srcR, int n, double chunkStartPpq) noexcept;
+    bool captureInto (int t) noexcept;
     void executeCommand (const QueuedCommand& c) noexcept;
     void trackRecPlay (int t) noexcept;
     void trackStop (int t) noexcept;
@@ -138,7 +166,13 @@ private:
     bool   wasHostPlaying = false;
     double expectedHostPpq = 0.0;
 
-    std::vector<float> inProcL, inProcR, fxBusL, fxBusR, clickBuf;
+    std::vector<float> inProcL, inProcR, fxBusL, fxBusR, clickBuf, kickBuf, duckEnvBuf;
+    std::vector<float> tOutL, tOutR, tFxL, tFxR, resL, resR;
+    std::vector<float> ringL, ringR;           // retrospective capture: the last seconds of input (after input FX)
+    int ringWrite = 0;
+    std::atomic<int> ringFilled { 0 };
+    std::atomic<int> activeTracks { kDefaultVisibleTracks };
+    float duckEnv = 0.0f, duckRelease = 0.999f;
     std::atomic<float> masterPeakL { 0.0f }, masterPeakR { 0.0f }, cuePeak { 0.0f };
 
     std::atomic<double> statusPpq { 0.0 }, statusBpm { 120.0 }, statusMeasurePpq { 4.0 };

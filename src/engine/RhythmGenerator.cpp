@@ -182,7 +182,7 @@ void RhythmGenerator::trigger (long long step, int beatsPerMeasure) noexcept
 }
 
 void RhythmGenerator::process (float* outL, float* outR, int numSamples, double ppqStart, double ppqPerSample,
-                               int beatsPerMeasure, bool timelineRunning) noexcept
+                               int beatsPerMeasure, bool timelineRunning, float* kickOut) noexcept
 {
     if (! timelineRunning)
         lastStep = -1;
@@ -214,6 +214,8 @@ void RhythmGenerator::process (float* outL, float* outR, int numSamples, double 
             if (kickPhase >= 1.0f) kickPhase -= 1.0f;
             const float body = (float) std::sin (kTwoPi * kickPhase) * kickEnv;
             drums += softClip (body * 1.8f) * 0.95f + n * kickClick * 0.35f;
+            if (kickOut != nullptr)
+                kickOut[i] = kickEnv;      // sidechain source: the kick's envelope (independent of the level)
             kickEnv *= kickDecay;
             kickClick *= kickClickDecay;
         }

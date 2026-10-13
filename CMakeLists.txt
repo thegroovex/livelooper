@@ -26,6 +26,10 @@ endif()
 # The engine is UI-free DSP code (only juce_audio_basics); the plugin sources add
 # processor, parameters and editor. Both lists are compiled into every target that
 # needs them (JUCE modules must not be linked into intermediate static libraries).
+set(LIVELOOPER_THIRD_PARTY_INCLUDES
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/signalsmith-stretch/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/signalsmith-linear/include)
+
 set(LIVELOOPER_ENGINE_SOURCES
     src/engine/LoopTrack.cpp
     src/engine/LooperEngine.cpp
@@ -72,7 +76,7 @@ juce_add_plugin(livelooper
     DESCRIPTION "Five-track live looper with effects, rhythm and full MIDI mapping")
 
 target_sources(livelooper PRIVATE ${LIVELOOPER_ENGINE_SOURCES} ${LIVELOOPER_PLUGIN_SOURCES})
-target_include_directories(livelooper PRIVATE src)
+target_include_directories(livelooper PRIVATE src ${LIVELOOPER_THIRD_PARTY_INCLUDES})
 target_compile_definitions(livelooper PUBLIC ${LIVELOOPER_DEFINES})
 
 target_link_libraries(livelooper
@@ -99,7 +103,7 @@ if(LIVELOOPER_BUILD_TESTS)
         tests/KeyboardTests.cpp
         tests/FeatureTests.cpp
         ${LIVELOOPER_ENGINE_SOURCES} ${LIVELOOPER_PLUGIN_SOURCES})
-    target_include_directories(livelooper_tests PRIVATE src)
+    target_include_directories(livelooper_tests PRIVATE src ${LIVELOOPER_THIRD_PARTY_INCLUDES})
     target_compile_definitions(livelooper_tests PRIVATE ${LIVELOOPER_DEFINES} LIVELOOPER_NO_PLUGIN_ENTRY=1 JUCE_MODAL_LOOPS_PERMITTED=1)
     target_link_libraries(livelooper_tests PRIVATE ${LIVELOOPER_MODULES}
         juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
@@ -123,7 +127,7 @@ if(LIVELOOPER_BUILD_TESTS)
     juce_add_console_app(livelooper_screenshot PRODUCT_NAME "livelooper_screenshot")
     target_sources(livelooper_screenshot PRIVATE tools/Screenshot.cpp
         ${LIVELOOPER_ENGINE_SOURCES} ${LIVELOOPER_PLUGIN_SOURCES})
-    target_include_directories(livelooper_screenshot PRIVATE src)
+    target_include_directories(livelooper_screenshot PRIVATE src ${LIVELOOPER_THIRD_PARTY_INCLUDES})
     target_compile_definitions(livelooper_screenshot PRIVATE ${LIVELOOPER_DEFINES} LIVELOOPER_NO_PLUGIN_ENTRY=1 JUCE_MODAL_LOOPS_PERMITTED=1)
     target_link_libraries(livelooper_screenshot PRIVATE ${LIVELOOPER_MODULES} juce::juce_recommended_config_flags)
 endif()

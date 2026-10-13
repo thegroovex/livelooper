@@ -85,6 +85,8 @@ int main (int argc, char* argv[])
     set ("rhythm_on", 1.0f);
     set ("t3_level", 0.8f);
     set ("t2_pan", -0.3f);
+    press (proc, "scene1");     // store a scene: shows its LED in the footer
+    runBlocks (proc, 1, 0.0f);
     proc.loadDefaultMidiMap();
     juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
     runBlocks (proc, 1, 0.0f);
@@ -133,6 +135,26 @@ int main (int argc, char* argv[])
         panel.setLookAndFeel (&editor->getLookAndFeel());
         save (panel, outDir.getChildFile ("livelooper-track-setup" + sfx + ".png"), 2.0f);
         panel.setLookAndFeel (nullptr);
+    }
+
+    // optional 8 tracks
+    editor.reset();
+    proc.setVisibleTracks (8);
+    press (proc, "t6_recplay"); runBlocks (proc, 120, 0.35f);
+    press (proc, "t6_recplay"); runBlocks (proc, 2, 0.0f);
+    press (proc, "t8_recplay"); runBlocks (proc, 60, 0.45f);
+    editor.reset (proc.createEditor());
+    for (int f = 0; f < 4; ++f)
+    {
+        runBlocks (proc, 3, 0.5f);
+        juce::MessageManager::getInstance()->runDispatchLoopUntil (40);
+    }
+    for (const auto& [language, suffix] : { std::pair<i18n::Language, const char*> { i18n::Language::English, "" },
+                                            std::pair<i18n::Language, const char*> { i18n::Language::German, "-de" } })
+    {
+        i18n::setSetting (language, false);
+        juce::MessageManager::getInstance()->runDispatchLoopUntil (200);
+        save (*editor, outDir.getChildFile ("livelooper-8-tracks" + juce::String (suffix) + ".png"));
     }
     i18n::setSetting (i18n::Language::English, false);
     return 0;

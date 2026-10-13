@@ -29,7 +29,7 @@ public:
 
     /** Adds the rhythm to the output. timelineRunning = false produces silence (voices decay). */
     void process (float* outL, float* outR, int numSamples, double ppqStart, double ppqPerSample,
-                  int beatsPerMeasure, bool timelineRunning) noexcept;
+                  int beatsPerMeasure, bool timelineRunning, float* kickOut = nullptr) noexcept;
 
     /** Simple TPT state-variable filter (public for tests). */
     struct Svf

@@ -24,7 +24,7 @@ void LooperEngine::prepare (double newSampleRate, int maxBlockSize, double newMa
         const juce::SpinLock::ScopedLockType lock (trackLocks[(size_t) t]);
         auto& tr = tracks[(size_t) t];
         tr.prepare (sampleRate);
-        const int maxLen = (int) (sampleRate * maxLoopSeconds);
+        const int maxLen = t < activeTracks.load() ? (int) (sampleRate * maxLoopSeconds) : 0;
         if (tr.getMaxLength() != std::max (LoopTrack::kChunkSize, maxLen))
             tr.allocate (maxLen);      // keeps existing loops when only the block size changed
         pending[(size_t) t] = {};
@@ -34,10 +34,38 @@ void LooperEngine::prepare (double newSampleRate, int maxBlockSize, double newMa
     trackFx.prepare (sampleRate);
     rhythm.prepare (sampleRate);
 
-    for (auto* v : { &inProcL, &inProcR, &fxBusL, &fxBusR, &clickBuf })
+    for (auto* v : { &inProcL, &inProcR, &fxBusL, &fxBusR, &clickBuf, &kickBuf, &duckEnvBuf,
+                     &tOutL, &tOutR, &tFxL, &tFxR, &resL, &resR })
         v->assign ((size_t) maxBlock, 0.0f);
 
+    const auto ringSize = (size_t) (sampleRate * maxLoopSeconds);
+    if (ringL.size() != ringSize)
+    {
+        ringL.assign (ringSize, 0.0f);
+        ringR.assign (ringSize, 0.0f);
+        ringWrite = 0;
+        ringFilled.store (0);
+    }
+    duckRelease = (float) std::exp (-1.0 / (0.18 * sampleRate));
+
     numQueued = 0;
+}
+
+void LooperEngine::setActiveTracks (int n)
+{
+    n = std::clamp (n, 1, kNumTracks);
+    activeTracks.store (n);
+    const int maxLen = (int) (sampleRate * maxLoopSeconds);
+    for (int t = 0; t < kNumTracks; ++t)
+    {
+        auto& tr = tracks[(size_t) t];
+        const int want = std::max (LoopTrack::kChunkSize, t < n ? maxLen : 0);
+        if (tr.getMaxLength() == want)
+            continue;
+        const juce::SpinLock::ScopedLockType lock (trackLocks[(size_t) t]);
+        pending[(size_t) t] = {};
+        tr.allocate (t < n ? maxLen : 0);       // hidden tracks give their memory back (and lose their loop)
+    }
 }
 
 void LooperEngine::reset()
@@ -171,7 +199,7 @@ void LooperEngine::trackRecPlay (int t) noexcept
     auto& tr = tracks[(size_t) t];
     auto& pa = pending[(size_t) t];
 
-    if (pa.type == Pending::Record || pa.type == Pending::Play)
+    if (pa.type == Pending::Record || pa.type == Pending::Play || pa.type == Pending::AutoRecord)
     {
         pa.type = Pending::None;      // second press while waiting cancels
         return;
@@ -183,6 +211,13 @@ void LooperEngine::trackRecPlay (int t) noexcept
     {
         case LoopTrack::State::Empty:
         {
+            if (t >= activeTracks.load())
+                return;
+            if (global.autoRecord)
+            {
+                pa = { Pending::AutoRecord, 0.0 };   // waits for the input to exceed the threshold
+                return;
+            }
             if (! running)
                 ensureClockRunning();
             else if (global.quantize != Quantize::Off)
@@ -253,6 +288,7 @@ void LooperEngine::executePending (int t) noexcept
 
     switch (type)
     {
+        case Pending::AutoRecord:
         case Pending::Record:
             tr.startRecording (blockPpq, samplesPerPpq, autoFinishSamples (t), global.recAction);
             break;
@@ -315,10 +351,30 @@ void LooperEngine::executeCommand (const QueuedCommand& c) noexcept
         case Command::AllStop:
             for (int i = 0; i < kNumTracks; ++i)
             {
-                if (pending[(size_t) i].type == Pending::Play || pending[(size_t) i].type == Pending::Record)
+                if (pending[(size_t) i].type == Pending::Play || pending[(size_t) i].type == Pending::Record
+                    || pending[(size_t) i].type == Pending::AutoRecord)
                     pending[(size_t) i].type = Pending::None;
                 if (tracks[(size_t) i].isRunning())
                     trackStop (i);
+            }
+            break;
+        case Command::Capture:
+        {
+            int target = t;
+            if (! validTrack)
+                for (int i = 0; i < activeTracks.load() && target < 0; ++i)
+                    if (tracks[(size_t) i].isEmpty() && pending[(size_t) i].type == Pending::None)
+                        target = i;
+            if (target >= 0 && target < activeTracks.load())
+                captureInto (target);
+            break;
+        }
+        case Command::Start:
+            if (validTrack && pending[(size_t) t].type == Pending::None)
+            {
+                const auto& tr = tracks[(size_t) t];
+                if (tr.getState() == LoopTrack::State::Stopped || (tr.getState() == LoopTrack::State::Playing && tr.isStopping()))
+                    trackPlayQuantized (t);
             }
             break;
         case Command::ClearAll:
@@ -332,7 +388,7 @@ void LooperEngine::executeCommand (const QueuedCommand& c) noexcept
 }
 
 //==============================================================================
-void LooperEngine::process (const float* inL, const float* inR, float* outL, float* outR, float* cueL, float* cueR,
+void LooperEngine::process (const float* inL, const float* inR, float* outL, float* outR, const ExtraOutputs& extra,
                             int numSamples, const TimeInfo& time) noexcept
 {
     int done = 0;
@@ -340,17 +396,18 @@ void LooperEngine::process (const float* inL, const float* inR, float* outL, flo
     while (done < numSamples)
     {
         const int n = std::min (maxBlock, numSamples - done);
-        processChunk (inL + done, inR + done, outL + done, outR + done,
-                      cueL != nullptr ? cueL + done : nullptr, cueR != nullptr ? cueR + done : nullptr, n, t);
+        processChunk (inL + done, inR + done, outL + done, outR + done, extra, done, n, t);
         done += n;
         if (t.hostPlaying)
             t.ppq += n * (t.bpm / (60.0 * sampleRate));
     }
 }
 
-void LooperEngine::processChunk (const float* inL, const float* inR, float* outL, float* outR, float* cueL, float* cueR,
-                                 int n, const TimeInfo& time) noexcept
+void LooperEngine::processChunk (const float* inL, const float* inR, float* outL, float* outR, const ExtraOutputs& extra,
+                                 int offset, int n, const TimeInfo& time) noexcept
 {
+    float* cueL = extra.cueL != nullptr ? extra.cueL + offset : nullptr;
+    float* cueR = extra.cueR != nullptr ? extra.cueR + offset : nullptr;
     // ---------------------------------------------------------------- timeline
     bpm = (global.syncToHost && time.bpm > 0.0) ? time.bpm : global.internalTempo;
     bpm = std::clamp (bpm, 20.0, 400.0);
@@ -391,7 +448,10 @@ void LooperEngine::processChunk (const float* inL, const float* inR, float* outL
 
     const int fadeSamples = (int) (global.fadeMs * 0.001 * sampleRate);
     for (auto& tr : tracks)
+    {
         tr.setFadeSamples (fadeSamples);
+        tr.setTempoRatio (tr.getSamplesPerPpq() > 0.0 ? tr.getSamplesPerPpq() / samplesPerPpq : 1.0);
+    }
 
     if (hostStarted || jumped)
         for (auto& tr : tracks)
@@ -438,55 +498,120 @@ void LooperEngine::processChunk (const float* inL, const float* inR, float* outL
     std::fill (fxBusL.begin(), fxBusL.begin() + n, 0.0f);
     std::fill (fxBusR.begin(), fxBusR.begin() + n, 0.0f);
 
-    // ---------------------------------------------------------------- tracks
-    const double chunkStartPpq = blockPpq;
-    for (int t = 0; t < kNumTracks; ++t)
+    // ---------------------------------------------------------------- retrospective capture buffer
+    if (! ringL.empty())
     {
-        auto& lock = trackLocks[(size_t) t];
-        if (! lock.tryEnter())
-            continue;
-
-        auto& tr = tracks[(size_t) t];
-        int done = 0;
-        while (done < n)
+        const int size = (int) ringL.size();
+        for (int i = 0; i < n; ++i)
         {
-            int segEnd = n;
-            const auto& pa = pending[(size_t) t];
-            if (pa.type != Pending::None)
+            ringL[(size_t) ringWrite] = inProcL[(size_t) i];
+            ringR[(size_t) ringWrite] = inProcR[(size_t) i];
+            if (++ringWrite >= size)
+                ringWrite = 0;
+        }
+        ringFilled.store (std::min (size, ringFilled.load (std::memory_order_relaxed) + n), std::memory_order_relaxed);
+    }
+
+    // ---------------------------------------------------------------- rhythm (rendered first: it can duck the tracks)
+    const double chunkStartPpq = blockPpq;
+    std::fill (clickBuf.begin(), clickBuf.begin() + n, 0.0f);
+    std::fill (kickBuf.begin(), kickBuf.begin() + n, 0.0f);
+    rhythm.process (clickBuf.data(), clickBuf.data(), n, chunkStartPpq, ppqPerSample,
+                    (int) std::lround (measurePpq), running && rhythmOn, kickBuf.data());
+    // process() adds to both pointers: they are the same buffer, so halve it again
+    for (int i = 0; i < n; ++i)
+        clickBuf[(size_t) i] *= 0.5f;
+
+    auto followEnvelope = [this, n] (const float* srcL, const float* srcR) {
+        for (int i = 0; i < n; ++i)
+        {
+            const float x = std::max (std::abs (srcL[i]), srcR != nullptr ? std::abs (srcR[i]) : 0.0f);
+            duckEnv = x > duckEnv ? x : duckEnv * duckRelease;
+            duckEnvBuf[(size_t) i] = std::min (1.0f, duckEnv * 2.0f);
+        }
+    };
+    if (global.duckSource == DuckSource::RhythmKick)
+        followEnvelope (kickBuf.data(), nullptr);
+
+    // ---------------------------------------------------------------- tracks
+    // pass 0: tracks that record the input, pass 1: tracks that resample the mix of the others
+    std::fill (resL.begin(), resL.begin() + n, 0.0f);
+    std::fill (resR.begin(), resR.begin() + n, 0.0f);
+    for (int pass = 0; pass < 2; ++pass)
+    {
+        for (int t = 0; t < kNumTracks; ++t)
+        {
+            auto& tr = tracks[(size_t) t];
+            const auto& ts = tr.getSettings();
+            const bool resample = ts.input == InputRoute::Resample;
+            if (resample != (pass == 1))
+                continue;
+
+            std::fill (tOutL.begin(), tOutL.begin() + n, 0.0f);
+            std::fill (tOutR.begin(), tOutR.begin() + n, 0.0f);
+            std::fill (tFxL.begin(), tFxL.begin() + n, 0.0f);
+            std::fill (tFxR.begin(), tFxR.begin() + n, 0.0f);
+
+            processTrack (t, resample ? resL.data() : inProcL.data(), resample ? resR.data() : inProcR.data(), n, chunkStartPpq);
+
+            if (t == 0 && global.duckSource == DuckSource::Track1)
             {
-                if (! running)
-                    segEnd = done;
-                else
+                // the envelope of track 1 (before its own ducking, which never applies to the source)
+                std::vector<float>& a = tOutL; std::vector<float>& b2 = tOutR;
+                for (int i = 0; i < n; ++i)
                 {
-                    const double offset = (pa.targetPpq - (chunkStartPpq + done * ppqPerSample)) * samplesPerPpq;
-                    segEnd = std::clamp (done + (int) std::ceil (offset - 1.0e-6), done, n);
+                    const float x = std::max (std::max (std::abs (a[(size_t) i]), std::abs (b2[(size_t) i])),
+                                              std::max (std::abs (tFxL[(size_t) i]), std::abs (tFxR[(size_t) i])));
+                    duckEnv = x > duckEnv ? x : duckEnv * duckRelease;
+                    duckEnvBuf[(size_t) i] = std::min (1.0f, duckEnv * 2.0f);
                 }
             }
 
-            if (segEnd > done)
-                tr.process (inProcL.data() + done, inProcR.data() + done, outL + done, outR + done,
-                            fxBusL.data() + done, fxBusR.data() + done, segEnd - done);
-
-            done = segEnd;
-            if (done < n && pending[(size_t) t].type != Pending::None)
+            // sidechain ducking
+            float minGain = 1.0f;
+            const bool selfSource = t == 0 && global.duckSource == DuckSource::Track1;
+            if (ts.duck > 0.0f && ! selfSource)
             {
-                blockPpq = chunkStartPpq + done * ppqPerSample;
-                executePending (t);
-                blockPpq = chunkStartPpq;
+                for (int i = 0; i < n; ++i)
+                {
+                    const float g = 1.0f - ts.duck * duckEnvBuf[(size_t) i];
+                    minGain = std::min (minGain, g);
+                    tOutL[(size_t) i] *= g; tOutR[(size_t) i] *= g;
+                    tFxL[(size_t) i] *= g;  tFxR[(size_t) i] *= g;
+                }
+            }
+            status[(size_t) t].duckGain.store (minGain, std::memory_order_relaxed);
+
+            // routing: main output (FX-routed tracks via the track FX bus) and / or the direct output
+            float* dL = extra.directL[(size_t) t] != nullptr ? extra.directL[(size_t) t] + offset : nullptr;
+            float* dR = extra.directR[(size_t) t] != nullptr ? extra.directR[(size_t) t] + offset : nullptr;
+            const bool hasDirect = dL != nullptr && dR != nullptr;
+            const bool toMain = ! hasDirect || ts.output != TrackOutput::Direct;
+            const bool toDirect = hasDirect && ts.output != TrackOutput::Main;
+            for (int i = 0; i < n; ++i)
+            {
+                const auto k = (size_t) i;
+                if (toMain)
+                {
+                    outL[i] += tOutL[k]; outR[i] += tOutR[k];
+                    fxBusL[k] += tFxL[k]; fxBusR[k] += tFxR[k];
+                }
+                if (toDirect)
+                {
+                    dL[i] += (tOutL[k] + tFxL[k]) * global.masterLevel;
+                    dR[i] += (tOutR[k] + tFxR[k]) * global.masterLevel;
+                }
+                if (pass == 0)
+                {
+                    resL[k] += tOutL[k] + tFxL[k];
+                    resR[k] += tOutR[k] + tFxR[k];
+                }
             }
         }
-        lock.exit();
     }
 
     // ---------------------------------------------------------------- track FX, rhythm, monitor, master
     trackFx.process (fxBusL.data(), fxBusR.data(), n, chunkStartPpq, ppqPerSample, bpm);
-    // The rhythm is mono: render it once, then send it to the main and / or the cue output.
-    std::fill (clickBuf.begin(), clickBuf.begin() + n, 0.0f);
-    rhythm.process (clickBuf.data(), clickBuf.data(), n, chunkStartPpq, ppqPerSample,
-                    (int) std::lround (measurePpq), running && rhythmOn);
-    // process() adds to both pointers: they are the same buffer, so halve it again
-    for (int i = 0; i < n; ++i)
-        clickBuf[(size_t) i] *= 0.5f;
 
     const bool hasCue = cueL != nullptr && cueR != nullptr;
     const bool clickToMain = ! hasCue || global.clickRoute != ClickRoute::Cue;
@@ -553,6 +678,10 @@ void LooperEngine::updateStatus() noexcept
         st.canUndo.store (tr.canUndo());
         st.canRedo.store (tr.canRedo());
         st.stopping.store (tr.isStopping());
+        float ghost = -1.0f;
+        if (tr.getState() == LoopTrack::State::Stopped && running && tr.hasAnchor() && tr.getLength() > 0)
+            ghost = (float) tr.expectedPosition (blockPpq) / (float) tr.getLength();
+        st.ghostProgress.store (ghost);
     }
     statusPpq.store (running ? blockPpq : 0.0);
     statusBpm.store (bpm);
