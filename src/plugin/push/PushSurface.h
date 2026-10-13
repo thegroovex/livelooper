@@ -68,6 +68,8 @@ private:
     juce::String fxParamId (const char* name) const;
 
     int trackPadColour (int track, int row, bool blinkOn) const;
+    /** first encoder of the master section (master level, tempo), -1 when the encoders are all in use */
+    int masterColumn() const;
     int fxPadColour (int row, int column) const;
 
     LiveLooperProcessor& proc;

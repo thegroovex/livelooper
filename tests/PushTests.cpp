@@ -313,6 +313,41 @@ public:
             expect (r.surface.getDisplayLine (0).contains ("Pit 1"));
         }
 
+        beginTest ("Master section on the two rightmost encoders (up to 6 tracks)");
+        {
+            PushRig r;
+            r.render (true);
+            expect (r.surface.getDisplayLine (0).contains ("Master"));
+            expect (r.surface.getDisplayLine (0).contains ("Tempo"));
+            expect (r.surface.getDisplayLine (2).contains ("MASTER"));
+            const float master = r.get ("master");
+            r.turn (kEncoderFirst + 6, 127);
+            expectLessThan (r.get ("master"), master, "encoder 7 = master level");
+            r.turn (kEncoderFirst + 7, 3);
+            expectWithinAbsoluteError (r.plain ("tempo"), 123.0f, 0.05f, "encoder 8 = tempo, 1 BPM per tick");
+            r.button (cc::shift, true);
+            r.turn (kEncoderFirst + 7, 1);
+            r.button (cc::shift, false);
+            expectWithinAbsoluteError (r.plain ("tempo"), 123.1f, 0.05f, "SHIFT: 0.1 BPM");
+            r.run (1, 0.0f);
+            r.render();
+            expect (r.surface.getDisplayLine (1).contains ("123.1"), "display shows the BPM");
+
+            r.press (cc::device);                    // FX mode: all eight encoders are effects
+            const float m2 = r.get ("master");
+            r.turn (kEncoderFirst + 6, 5);
+            expectEquals (r.get ("master"), m2);
+            r.press (cc::volume);
+
+            r.proc.setVisibleTracks (8);             // 8 tracks: encoders 7 / 8 are tracks again
+            r.render();
+            expect (r.surface.getDisplayLine (0).contains ("Lvl 8"));
+            expect (r.surface.getDisplayLine (3).contains ("Vol "), "master level in the status line");
+            const float l7 = r.get ("t7_level");
+            r.turn (kEncoderFirst + 6, 5);
+            expectGreaterThan (r.get ("t7_level"), l7);
+        }
+
         beginTest ("LED messages are sent only when something changed");
         {
             PushRig r;

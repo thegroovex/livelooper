@@ -222,6 +222,13 @@ void PushSurface::handleButton (int number, bool pressed)
     }
 }
 
+int PushSurface::masterColumn() const
+{
+    if (encoderMode == EncoderMode::Fx || proc.getVisibleTracks() > 6)
+        return -1;
+    return 6;           // encoder 7 = master level, encoder 8 = tempo
+}
+
 void PushSurface::handleEncoder (int number, int delta)
 {
     const float fine = shift ? 0.1f : 1.0f;
@@ -235,15 +242,28 @@ void PushSurface::handleEncoder (int number, int delta)
         nudge (gRhythmLevel, delta, 0.01f * fine);
         return;
     }
-    if (number == kTempoEncoder)
+    auto changeTempo = [this, delta]
     {
         auto* p = proc.getState().getParameter (gTempo);
         if (p != nullptr)
             proc.setInternalTempo (p->convertFrom0to1 (p->getValue()) + (float) delta * (shift ? 0.1f : 1.0f));
+    };
+    if (number == kTempoEncoder)
+    {
+        changeTempo();
         return;
     }
 
     const int i = number - kEncoderFirst;
+    // master section on the two rightmost encoders while they are free (up to 6 tracks, not in FX mode)
+    if (const int m = masterColumn(); m >= 0 && i >= m)
+    {
+        if (i == m)
+            nudge (gMaster, delta, 0.005f * fine);
+        else
+            changeTempo();
+        return;
+    }
     if (encoderMode == EncoderMode::Fx)
     {
         // encoders 1 - 4: input FX A - D, 5 - 8: track FX A - D (parameter 1, SHIFT: mix)
@@ -359,6 +379,19 @@ std::array<juce::String, kDisplayLines> PushSurface::buildDisplay() const
             names.add ((in ? "In" : "Tr") + juce::String::charToString ((juce::juce_wchar) ('A' + i % 4)) + " " + type.substring (0, 4));
             values.add (percent (value (fxId (in, i % 4, shift ? kFxMix : kFxP1))));
         }
+        else if (const int m = masterColumn(); m >= 0 && i >= m)
+        {
+            if (i == m)
+            {
+                names.add ("Master");
+                values.add (percent (value (gMaster)));
+            }
+            else
+            {
+                names.add ("Tempo");
+                values.add (juce::String (proc.getEngine().getCurrentBpm(), 1));
+            }
+        }
         else if (i < visible)
         {
             switch (encoderMode)
@@ -376,6 +409,12 @@ std::array<juce::String, kDisplayLines> PushSurface::buildDisplay() const
             values.add ({});
         }
 
+        if (const int m = masterColumn(); m >= 0 && i >= m)
+        {
+            const bool hostTempo = i > m && st.getRawParameterValue (gSync)->load() >= 0.5f && proc.getEngine().isHostDriven();
+            states.add (i == m ? "MASTER" : (hostTempo ? "Host" : "BPM"));
+            continue;
+        }
         if (i >= visible)
         {
             states.add ({});
@@ -401,6 +440,8 @@ std::array<juce::String, kDisplayLines> PushSurface::buildDisplay() const
 
     juce::String status;
     status << "livelooper  " << juce::String (proc.getEngine().getCurrentBpm(), 1) << " BPM";
+    if (masterColumn() < 0)
+        status << "  Vol " << percent (value (gMaster));
     if (const int sc = proc.getLastScene(); sc >= 0)
         status << "  Scene " << (sc + 1);
     if (st.getRawParameterValue (gAutoRec)->load() >= 0.5f)
