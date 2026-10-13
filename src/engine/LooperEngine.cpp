@@ -388,6 +388,102 @@ void LooperEngine::executeCommand (const QueuedCommand& c) noexcept
 }
 
 //==============================================================================
+bool LooperEngine::captureInto (int t) noexcept
+{
+    auto& tr = tracks[(size_t) t];
+    if (! tr.isEmpty() || ringL.empty())
+        return false;
+
+    const int ringSize = (int) ringL.size();
+    const int filled = ringFilled.load (std::memory_order_relaxed);
+    const int xfade = std::min (512, (int) (0.005 * sampleRate));
+    const double barSamples = measurePpq * samplesPerPpq;
+    int bars = std::max (1, global.captureBars);
+
+    // samples from the last bar line to now: the captured loop ends on a bar line and
+    // continues in phase when the timeline is already running
+    const double prevBar = running ? std::floor ((blockPpq + 1.0e-9) / measurePpq) * measurePpq : 0.0;
+    const int sinceBar = running ? (int) std::llround ((blockPpq - prevBar) * samplesPerPpq) : 0;
+
+    auto lengthFor = [barSamples] (int b) { return (int) std::llround (b * barSamples); };
+    while (bars > 1 && (lengthFor (bars) + sinceBar + xfade > filled || lengthFor (bars) > tr.getMaxLength()))
+        bars /= 2;
+    const int len = lengthFor (bars);
+    if (len + sinceBar + xfade > filled || len > tr.getMaxLength() || len < 64)
+        return false;
+
+    const int start = ((ringWrite - sinceBar - len) % ringSize + ringSize) % ringSize;
+    const juce::SpinLock::ScopedTryLockType lock (trackLocks[(size_t) t]);
+    if (! lock.isLocked())
+        return false;
+
+    if (! running)
+        ensureClockRunning();
+    const double anchor = running ? prevBar - bars * measurePpq : 0.0;
+    tr.loadLoopFromRing (ringL.data(), ringR.data(), ringSize, start, len, xfade, samplesPerPpq, anchor);
+    tr.play (blockPpq, true);
+    return true;
+}
+
+void LooperEngine::processTrack (int t, const float* srcL, const float* srcR, int n, double chunkStartPpq) noexcept
+{
+    auto& lock = trackLocks[(size_t) t];
+    if (! lock.tryEnter())
+        return;
+
+    auto& tr = tracks[(size_t) t];
+    int done = 0;
+    while (done < n)
+    {
+        int segEnd = n;
+        const auto& pa = pending[(size_t) t];
+        if (pa.type == Pending::AutoRecord)
+        {
+            // starts with the first sample above the threshold
+            const float th = global.autoRecThreshold;
+            segEnd = n;
+            for (int i = done; i < n; ++i)
+                if (std::abs (srcL[i]) >= th || std::abs (srcR[i]) >= th)
+                {
+                    segEnd = i;
+                    break;
+                }
+        }
+        else if (pa.type != Pending::None)
+        {
+            if (! running)
+                segEnd = done;
+            else
+            {
+                const double off = (pa.targetPpq - (chunkStartPpq + done * ppqPerSample)) * samplesPerPpq;
+                segEnd = std::clamp (done + (int) std::ceil (off - 1.0e-6), done, n);
+            }
+        }
+
+        if (segEnd > done)
+            tr.process (srcL + done, srcR + done, tOutL.data() + done, tOutR.data() + done,
+                        tFxL.data() + done, tFxR.data() + done, segEnd - done);
+
+        if (segEnd >= n)
+            break;
+        if (pending[(size_t) t].type == Pending::None)
+        {
+            done = segEnd;
+            continue;
+        }
+        if (pending[(size_t) t].type == Pending::AutoRecord && ! running)
+            ensureClockRunning();
+        if (! running && pending[(size_t) t].type != Pending::AutoRecord)
+            break;     // waits for a clock that is not running (should not happen)
+        blockPpq = chunkStartPpq + segEnd * ppqPerSample;
+        executePending (t);
+        blockPpq = chunkStartPpq;
+        done = segEnd;
+    }
+    lock.exit();
+}
+
+//==============================================================================
 void LooperEngine::process (const float* inL, const float* inR, float* outL, float* outR, const ExtraOutputs& extra,
                             int numSamples, const TimeInfo& time) noexcept
 {
