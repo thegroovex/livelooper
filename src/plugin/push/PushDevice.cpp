@@ -25,12 +25,13 @@ std::atomic<PushDevice*> PushDevice::owner { nullptr };
 
 PushDevice::PushDevice (LiveLooperProcessor& p, bool standaloneApp) : surface (p), standalone (standaloneApp)
 {
-    startTimerHz (30);
+    startTimerHz (kTimerHz);
 }
 
 PushDevice::~PushDevice()
 {
     stopTimer();
+    cancelPendingUpdate();
     disconnect();
 }
 
@@ -126,6 +127,37 @@ void PushDevice::handleIncomingMidiMessage (juce::MidiInput*, const juce::MidiMe
     };
     if (scope.blockSize1 > 0) store (scope.startIndex1);
     else if (scope.blockSize2 > 0) store (scope.startIndex2);
+    triggerAsyncUpdate();
+}
+
+void PushDevice::processIncoming()
+{
+    const auto scope = fifo.read (fifo.getNumReady());
+    auto handle = [this] (int start, int size) {
+        for (int i = 0; i < size; ++i)
+        {
+            const auto& d = queue[(size_t) (start + i)];
+            const int len = juce::MidiMessage::getMessageLengthFromFirstByte (d[0]);
+            surface.handleMidi (juce::MidiMessage (d.data(), juce::jlimit (1, 3, len)));
+        }
+    };
+    handle (scope.startIndex1, scope.blockSize1);
+    handle (scope.startIndex2, scope.blockSize2);
+}
+
+void PushDevice::sendChanges (bool full)
+{
+    if (output == nullptr)
+        return;
+    sendChanges (full);
+}
+
+void PushDevice::handleAsyncUpdate()
+{
+    if (! enabled || ! isConnected())
+        return;
+    processIncoming();
+    sendChanges (false);       // immediate LED feedback for the press
 }
 
 void PushDevice::timerCallback()
@@ -136,12 +168,12 @@ void PushDevice::timerCallback()
 
     if (! isConnected())
     {
-        if (ticks % 60 == 1)          // every two seconds
+        if (ticks % (2 * kTimerHz) == 1)          // every two seconds
             connect();
         if (! isConnected())
             return;
     }
-    else if (ticks % 60 == 0)
+    else if (ticks % (2 * kTimerHz) == 0)
     {
         // the device went away (unplugged)?
         bool present = false;
@@ -154,18 +186,9 @@ void PushDevice::timerCallback()
         }
     }
 
-    // incoming
-    const auto scope = fifo.read (fifo.getNumReady());
-    auto handle = [this] (int start, int size) {
-        for (int i = 0; i < size; ++i)
-        {
-            const auto& d = queue[(size_t) (start + i)];
-            const int len = juce::MidiMessage::getMessageLengthFromFirstByte (d[0]);
-            surface.handleMidi (juce::MidiMessage (d.data(), juce::jlimit (1, 3, len)));
-        }
-    };
-    handle (scope.startIndex1, scope.blockSize1);
-    handle (scope.startIndex2, scope.blockSize2);
+    // incoming (normally already handled by handleAsyncUpdate), held gestures, meters
+    processIncoming();
+    surface.update();
 
     // outgoing: changes every frame, everything again once a second and whenever Push
     // starts talking after a pause (it was just switched back to User mode)

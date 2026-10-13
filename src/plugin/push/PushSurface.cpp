@@ -1,5 +1,6 @@
 #include "PushSurface.h"
 #include "../PluginProcessor.h"
+#include "../Localisation.h"
 
 namespace livelooper::push
 {
@@ -35,6 +36,39 @@ void PushSurface::setParam (const juce::String& paramId, float normalised)
         p->setValueNotifyingHost (juce::jlimit (0.0f, 1.0f, normalised));
         p->endChangeGesture();
     }
+}
+
+float PushSurface::getParam (const juce::String& paramId) const
+{
+    auto* p = proc.getState().getParameter (paramId);
+    return p != nullptr ? p->getValue() : 0.0f;
+}
+
+void PushSurface::selectTrack (int t)
+{
+    if (t >= 0 && t < proc.getVisibleTracks())
+        selectedTrack = t;
+}
+
+void PushSurface::showNotice (const juce::String& text)
+{
+    notice = text;
+    noticeUntil = now() + kNoticeMs;
+}
+
+juce::String PushSurface::getNotice() const
+{
+    return (notice.isNotEmpty() && (int) (noticeUntil - now()) > 0) ? notice : juce::String();
+}
+
+bool PushSurface::isTrackMuted (int t) const
+{
+    if (getParam (trackId (t, kMute)) >= 0.5f)
+        return true;
+    bool anySolo = false;
+    for (int i = 0; i < proc.getVisibleTracks(); ++i)
+        anySolo = anySolo || getParam (trackId (i, kSolo)) >= 0.5f;
+    return anySolo && getParam (trackId (t, kSolo)) < 0.5f;
 }
 
 void PushSurface::toggleParam (const juce::String& paramId)
@@ -80,7 +114,25 @@ void PushSurface::handleMidi (const juce::MidiMessage& m)
         const int vel = m.isNoteOn() ? m.getVelocity() : 0;
         if (isPadNote (note))
             handlePad (padRow (note), padColumn (note), vel);
+        else if (note == kTouchStripNote)
+            handleStrip (vel > 0, -1);
         return;            // encoder touch notes are not used
+    }
+    if (m.isPitchWheel())
+    {
+        handleStrip (true, m.getPitchWheelValue());
+        return;
+    }
+    if (m.isAftertouch())
+    {
+        if (isPadNote (m.getNoteNumber()))
+            handlePressure (m.getAfterTouchValue());
+        return;
+    }
+    if (m.isChannelPressure())
+    {
+        handlePressure (m.getChannelPressureValue());
+        return;
     }
     if (! m.isController())
         return;
@@ -102,25 +154,231 @@ void PushSurface::handlePad (int row, int column, int velocity)
             fxPadReleaseAll();
         return;
     }
-    if (velocity == 0 || column >= proc.getVisibleTracks())
+    if (column >= proc.getVisibleTracks())
         return;
 
     const int t = column;
-    selectedTrack = t;
+    const auto& st = proc.getEngine().getTrackStatus (t);
+    const auto state = (LoopTrack::State) st.state.load();
+    const auto pending = (LooperEngine::Pending) st.pending.load();
+
+    if (velocity == 0)
+    {
+        // ---- releases: they end what the press started, whatever modifier is held now
+        if (muteHold[(size_t) t].active)
+        {
+            auto& h = muteHold[(size_t) t];
+            h.active = false;
+            setParam (trackId (t, kMute), h.previous);
+            if (now() - h.since < kHoldMs)
+                proc.pressTrigger (trackId (t, kStop));       // a tap stops, as before
+            return;
+        }
+        if (soloHold[(size_t) t].active)
+        {
+            soloHold[(size_t) t].active = false;
+            setParam (trackId (t, kSolo), soloHold[(size_t) t].previous);
+            return;
+        }
+        if (row == 0)
+            recPadHeld[(size_t) t] = false;
+        if (row >= 2)
+        {
+            auto& down = slicePadDown[(size_t) t][(size_t) (row - 2)];
+            if (down)
+            {
+                down = false;
+                setParam (trackId (t, kSlices[row - 2]), 0.0f);
+            }
+        }
+        return;
+    }
+
+    // ---- presses with a modifier
     if (deleteHeld)
     {
+        selectTrack (t);
         proc.pressTrigger (trackId (t, kClear));
+        return;
+    }
+    if (duplicateHeld)
+    {
+        if (dupSource < 0)
+        {
+            if (state != LoopTrack::State::Empty)
+            {
+                dupSource = t;
+                selectTrack (t);
+            }
+        }
+        else if (t != dupSource)
+        {
+            proc.requestCopy (dupSource, t);
+            showNotice (i18n::tr ("Copy T%1 to T%2", juce::String (dupSource + 1), juce::String (t + 1)));
+            dupDone = true;
+        }
         return;
     }
     if (muteHeld)
     {
+        // mute at once (a drop on the beat); released within kHoldMs it becomes the old stop
+        selectTrack (t);
+        muteHold[(size_t) t] = { true, now(), getParam (trackId (t, kMute)) };
+        setParam (trackId (t, kMute), 1.0f);
+        return;
+    }
+    if (soloHeld)
+    {
+        soloHold[(size_t) t] = { true, now(), getParam (trackId (t, kSolo)) };
+        setParam (trackId (t, kSolo), 1.0f);
+        return;
+    }
+    if (selectHeld)
+    {
+        selectTrack (t);
+        return;
+    }
+
+    if (row == 0)
+    {
+        selectTrack (t);
+        recPadHeld[(size_t) t] = ! shift;
+        proc.pressTrigger (trackId (t, shift ? kUndo : kRecPlay));
+        return;
+    }
+    if (row == 1)
+    {
+        selectTrack (t);
+        proc.pressTrigger (trackId (t, shift ? kRedo : kStop));
+        return;
+    }
+
+    // ---- rows 3 - 8: loop position
+    const int slice = row - 2;
+    const bool recordingOrWaiting = state == LoopTrack::State::Empty || state == LoopTrack::State::Recording
+                                    || pending == LooperEngine::Pending::Record || pending == LooperEngine::Pending::AutoRecord;
+    if (recPadHeld[(size_t) t] && recordingOrWaiting)
+    {
+        // REC pad held + position pad: length of this recording (1, 2, 4, 8, 16, 32 bars)
+        setParam (trackId (t, kRecLen), (float) (slice + 1) / 6.0f);
+        const int bars = kRecLenBars[slice + 1];
+        showNotice (bars == 1 ? i18n::tr ("Rec length: 1 bar") : i18n::tr ("Rec length: %1 bars", juce::String (bars)));
+        return;
+    }
+    selectTrack (t);
+    if (shift)
+    {
+        proc.pressTrigger (trackId (t, kCutSync));
+        showNotice (i18n::tr ("T%1 back in sync", juce::String (t + 1)));
+        return;
+    }
+    if (state == LoopTrack::State::Playing || state == LoopTrack::State::Overdubbing)
+    {
+        // loop cutting: the processor turns a tap into a jump, a hold into a stutter
+        slicePadDown[(size_t) t][(size_t) slice] = true;
+        setParam (trackId (t, kSlices[slice]), 1.0f);
+    }
+}
+
+void PushSurface::handleStrip (bool touched, int value)
+{
+    if (! touched)
+    {
+        if (! stripTouched)
+            return;
+        stripTouched = false;
+        // spring back: the tape runs again (in sync), the filter opens
+        if (stripMode == StripMode::TapeStop)
+            setParam (gTapeStop, 0.0f);
+        else
+            setParam (gPerfFilter, 0.5f);
+        return;
+    }
+    if (! stripTouched)
+    {
+        stripTouched = true;
+        stripMode = shift ? StripMode::Filter : StripMode::TapeStop;
+        showNotice (stripMode == StripMode::Filter ? i18n::tr ("Touch strip: filter") : i18n::tr ("Touch strip: tape stop"));
+    }
+    if (value < 0)
+        return;          // touch without a position yet
+    const float pos = juce::jlimit (0.0f, 1.0f, (float) value / 16383.0f);
+    if (stripMode == StripMode::TapeStop)
+        setParam (gTapeStop, 1.0f - pos);      // top = running, bottom = the tape stands still
+    else
+        setParam (gPerfFilter, pos);           // bottom = low-pass, middle = off, top = high-pass
+}
+
+void PushSurface::handlePressure (int value)
+{
+    if (mode != Mode::FxPad || fxTouches <= 0 || ! fxSnapshot.active)
+        return;
+    // press harder = more of the effect (from its own mix up to 100 %)
+    const float pressure = juce::jlimit (0.0f, 1.0f, (float) value / 127.0f);
+    setParam (fxParamId (kFxMix), fxSnapshot.mix + (1.0f - fxSnapshot.mix) * pressure);
+}
+
+void PushSurface::handleFootswitch (int number, bool pressed)
+{
+    const int t = selectedTrack;
+    if (number == cc::footswitch1)
+    {
+        if (pressed)
+        {
+            // next track
+            const int visible = std::max (1, proc.getVisibleTracks());
+            selectTrack ((selectedTrack + 1) % visible);
+            showNotice (i18n::tr ("T%1 selected", juce::String (selectedTrack + 1)));
+        }
+        return;
+    }
+    if (! pressed)
+    {
+        fs2Down = false;
+        return;
+    }
+    const auto ms = now();
+    fs2Down = true;
+    fs2DownAt = ms;
+    fs2HoldDone = false;
+    if (fs2HasTap && ms - fs2LastTap <= kDoubleTapMs)
+    {
+        // double tap: STOP (the first tap already did REC / PLAY, as on a looper pedal)
+        fs2HasTap = false;
         proc.pressTrigger (trackId (t, kStop));
         return;
     }
-    if (row == 0)
-        proc.pressTrigger (trackId (t, shift ? kUndo : kRecPlay));
-    else if (row == 1)
-        proc.pressTrigger (trackId (t, shift ? kRedo : kStop));
+    fs2HasTap = true;
+    fs2LastTap = ms;
+    proc.pressTrigger (trackId (t, kRecPlay));
+}
+
+void PushSurface::update()
+{
+    const auto ms = now();
+    if (fs2Down && ! fs2HoldDone && ms - fs2DownAt >= kFootHoldMs)
+    {
+        // footswitch held: clear the selected track
+        fs2HoldDone = true;
+        fs2HasTap = false;
+        proc.pressTrigger (trackId (selectedTrack, kClear));
+        showNotice (i18n::tr ("T%1 cleared", juce::String (selectedTrack + 1)));
+    }
+
+    // meters: peak since the last update, fast attack, falls about 24 dB per second
+    const float dt = lastMeterUpdate == 0 ? 0.02f : juce::jlimit (0.0f, 0.5f, (float) (ms - lastMeterUpdate) * 0.001f);
+    lastMeterUpdate = ms;
+    auto& engine = proc.getEngine();
+    for (int i = 0; i < 9; ++i)
+    {
+        const float peak = i < 8 ? engine.getTrackStatus (i).displayMeter.exchange (0.0f) : engine.takeDisplayMasterMeter();
+        const float db = juce::Decibels::gainToDecibels (peak, -100.0f);
+        const float norm = juce::jlimit (0.0f, 1.0f, (db + 48.0f) / 48.0f);
+        auto& m = meterLevel[(size_t) i];
+        m = std::max (norm, m - dt * 0.5f);
+        if (peak >= 0.999f)
+            clipUntil[(size_t) i] = ms + 1000;
+    }
 }
 
 void PushSurface::fxPadTouch (int row, int column)
@@ -130,7 +388,7 @@ void PushSurface::fxPadTouch (int row, int column)
         fxTouches = 0;
         // remember the effect as it was, for the snap back
         auto value = [this] (const char* n) { auto* p = proc.getState().getParameter (fxParamId (n)); return p != nullptr ? p->getValue() : 0.0f; };
-        fxSnapshot = { true, value (kFxOn), value (kFxP1), value (kFxP2) };
+        fxSnapshot = { true, value (kFxOn), value (kFxP1), value (kFxP2), value (kFxMix) };
         setParam (fxParamId (kFxOn), 1.0f);
     }
     ++fxTouches;
@@ -148,6 +406,7 @@ void PushSurface::fxPadReleaseAll()
     {
         setParam (fxParamId (kFxP1), fxSnapshot.p1);
         setParam (fxParamId (kFxP2), fxSnapshot.p2);
+        setParam (fxParamId (kFxMix), fxSnapshot.mix);
         setParam (fxParamId (kFxOn), fxSnapshot.on);
     }
     fxSnapshot.active = false;
@@ -160,6 +419,31 @@ void PushSurface::handleButton (int number, bool pressed)
         case cc::shift:     shift = pressed; return;
         case cc::deleteBtn: deleteHeld = pressed; return;
         case cc::mute:      muteHeld = pressed; return;
+        case cc::select:    selectHeld = pressed; return;
+        case cc::solo:      soloHeld = pressed; return;
+        case cc::footswitch1:
+        case cc::footswitch2: handleFootswitch (number, pressed); return;
+        case cc::duplicate:
+            if (pressed)
+            {
+                duplicateHeld = true;
+                dupSource = -1;
+                dupDone = false;
+                showNotice (i18n::tr ("DUPLICATE: press the track to copy, then an empty track"));
+            }
+            else if (duplicateHeld)
+            {
+                duplicateHeld = false;
+                // no destination pressed: copy the chosen (or selected) track to the next empty track
+                const int src = dupSource >= 0 ? dupSource : selectedTrack;
+                if (! dupDone && proc.getEngine().getTrackStatus (src).state.load() != (int) LoopTrack::State::Empty)
+                {
+                    proc.pressTrigger (trackId (src, kCopy));
+                    showNotice (i18n::tr ("Copy T%1 to the next empty track", juce::String (src + 1)));
+                }
+                dupSource = -1;
+            }
+            return;
         default: break;
     }
     if (! pressed)
@@ -209,6 +493,24 @@ void PushSurface::handleButton (int number, bool pressed)
         case cc::tapTempo:   proc.pressTrigger (gTap); break;
         case cc::undo:       proc.pressTrigger (trackId (selectedTrack, shift ? kRedo : kUndo)); break;
         case cc::automation: toggleParam (gAutoRec); break;
+        case cc::master:
+            metersShown = ! metersShown;
+            showNotice (metersShown ? i18n::tr ("Meters on") : i18n::tr ("Meters off"));
+            break;
+        case cc::doubleBtn:
+            proc.pressTrigger (trackId (selectedTrack, shift ? kHalve : kDouble));
+            showNotice (i18n::tr (shift ? "T%1 loop /2" : "T%1 loop x2", juce::String (selectedTrack + 1)));
+            break;
+        case cc::octaveUp:
+        case cc::octaveDown:
+            if (auto* p = proc.getState().getParameter (trackId (selectedTrack, kPitch)))
+            {
+                const bool up = number == cc::octaveUp;
+                const float st = juce::jlimit (-12.0f, 12.0f, p->convertFrom0to1 (p->getValue()) + (up ? 12.0f : -12.0f));
+                setParam (trackId (selectedTrack, kPitch), p->convertTo0to1 (st));
+                showNotice (i18n::tr (up ? "T%1 octave up" : "T%1 octave down", juce::String (selectedTrack + 1)));
+            }
+            break;
         case cc::newBtn:     toggleParam (gSceneStore); break;
         case cc::quantize:
             if (auto* p = proc.getState().getParameter (gQuantize))
@@ -323,9 +625,22 @@ int PushSurface::trackPadColour (int t, int row, bool blinkOn) const
     }
 
     // rows 2 .. 7: loop position, bottom to top
+    const int segment = row - 2;
+    const bool lengthChoice = recPadHeld[(size_t) t] && (empty || state == LoopTrack::State::Recording);
+    if (state == LoopTrack::State::Recording && st.recordingSpan.load())
+    {
+        // fixed length: progress bar
+        const int filled = (int) (juce::jlimit (0.0f, 0.9999f, st.progress.load()) * kProgressRows);
+        if (segment < filled)
+            return pad::red;
+        if (segment == filled)
+            return blinkOn ? pad::red : pad::redDim;
+        return lengthChoice ? pad::orangeDim : pad::off;
+    }
+    if (lengthChoice)
+        return pad::orangeDim;      // REC pad held: the six lengths 1 .. 32 bars
     if (empty)
         return pad::off;
-    const int segment = row - 2;
     if (state == LoopTrack::State::Recording)
         return pad::redDim;
     if (state == LoopTrack::State::Stopped)
@@ -337,7 +652,13 @@ int PushSurface::trackPadColour (int t, int row, bool blinkOn) const
     const int head = (int) (prog * kProgressRows);
     const bool dub = state == LoopTrack::State::Overdubbing;
     if (segment == head)
+    {
+        if (isTrackMuted (t))
+            return pad::redDim;                 // muted (drop): the play head goes dark red
+        if (st.cut.load())
+            return pad::cyan;                   // cut / stutter: out of the normal position
         return dub ? pad::orange : pad::green;
+    }
     return segment < head ? (dub ? pad::orangeDim : pad::greenDim) : pad::off;
 }
 
@@ -442,8 +763,36 @@ std::array<juce::String, kDisplayLines> PushSurface::buildDisplay() const
         states.add ((i == selectedTrack ? ">" : "") + s);
     }
 
+    juce::String line3 = columns (states);
+    if (metersShown)
+    {
+        // level meters: selection mark, state letter and a 6-cell bar under every track
+        line3.clear();
+        const int m = masterColumn();
+        for (int i = 0; i < 8; ++i)
+        {
+            const int width = (i % 2 == 0) ? 8 : 9;
+            juce::String col;
+            if (m >= 0 && i == m)
+                col = " M" + levelBar (meterLevel[8], 6);
+            else if (m >= 0 && i > m)
+            {
+                const auto t = states[i];
+                const int pad = width - t.length();
+                col = juce::String::repeatedString (" ", pad / 2) + t + juce::String::repeatedString (" ", pad - pad / 2);
+            }
+            else if (i < visible)
+                col = meterColumn (i, 8);
+            col = (col + juce::String::repeatedString (" ", width)).substring (0, width);
+            line3 << col;
+        }
+    }
+
     juce::String status;
-    status << "livelooper  " << juce::String (proc.getEngine().getCurrentBpm(), 1) << " BPM";
+    if (metersShown && masterColumn() < 0)
+        status << "Out " << levelBar (meterLevel[8], 6) << "  " << juce::String (proc.getEngine().getCurrentBpm(), 1) << " BPM";
+    else
+        status << "livelooper  " << juce::String (proc.getEngine().getCurrentBpm(), 1) << " BPM";
     if (masterColumn() < 0)
         status << "  Vol " << percent (value (gMaster));
     if (const int sc = proc.getLastScene(); sc >= 0)
@@ -455,7 +804,34 @@ std::array<juce::String, kDisplayLines> PushSurface::buildDisplay() const
     if (mode == Mode::FxPad)
         status << "  XY: " << (fxTarget < 4 ? "In FX " : "Trk FX ") << juce::String::charToString ((juce::juce_wchar) ('A' + fxTarget % 4))
                << " " << text (fxParamId (kFxType));
-    return { columns (names), columns (values), columns (states), status };
+    if (const auto n = getNotice(); n.isNotEmpty())
+        status = n;
+    return { columns (names), columns (values), line3, status };
+}
+
+juce::String PushSurface::meterColumn (int t, int width) const
+{
+    const auto& ts = proc.getEngine().getTrackStatus (t);
+    const auto state = (LoopTrack::State) ts.state.load();
+    const auto pending = (LooperEngine::Pending) ts.pending.load();
+    // R rec, D dub, P play, S stopped, - empty; lower case = waiting for the bar; M muted
+    juce::juce_wchar letter = '-';
+    switch (state)
+    {
+        case LoopTrack::State::Empty:       letter = '-'; break;
+        case LoopTrack::State::Recording:   letter = 'R'; break;
+        case LoopTrack::State::Overdubbing: letter = 'D'; break;
+        case LoopTrack::State::Playing:     letter = ts.stopping.load() ? 's' : 'P'; break;
+        case LoopTrack::State::Stopped:     letter = 'S'; break;
+    }
+    if (pending == LooperEngine::Pending::Record || pending == LooperEngine::Pending::AutoRecord) letter = 'r';
+    else if (pending == LooperEngine::Pending::Play) letter = 'p';
+    if ((state == LoopTrack::State::Playing || state == LoopTrack::State::Overdubbing) && isTrackMuted (t))
+        letter = 'M';
+    auto bar = levelBar (meterLevel[(size_t) t], width - 2);
+    if ((int) (clipUntil[(size_t) t] - now()) > 0)
+        bar = bar.dropLastCharacters (1) + juce::String::charToString (glyph::fullBlock);
+    return juce::String::charToString (t == selectedTrack ? '>' : ' ') + juce::String::charToString (letter) + bar;
 }
 
 void PushSurface::render (std::vector<juce::MidiMessage>& out, bool full)
@@ -545,14 +921,27 @@ void PushSurface::render (std::vector<juce::MidiMessage>& out, bool full)
     setCC (cc::track, encoderMode == EncoderMode::Pitch ? button::on : button::dim);
     setCC (cc::clip, encoderMode == EncoderMode::Feedback ? button::on : button::dim);
     setCC (cc::device, encoderMode == EncoderMode::Fx ? button::on : button::dim);
+    setCC (cc::select, selectHeld ? button::on : button::dim);
+    setCC (cc::solo, soloHeld ? button::on : button::dim);
+    setCC (cc::duplicate, duplicateHeld ? button::on : button::dim);
+    setCC (cc::master, metersShown ? button::on : button::dim);
+    setCC (cc::doubleBtn, button::dim);
+    setCC (cc::octaveUp, button::dim);
+    setCC (cc::octaveDown, button::dim);
 
     // ---- display
     const auto lines = buildDisplay();
+    const auto ms = now();
     for (int l = 0; l < kDisplayLines; ++l)
         if (lines[(size_t) l] != displayState[(size_t) l])
         {
+            // lines with meters change all the time: at most every kMeterIntervalMs
+            const bool meterLine = metersShown && (l == 2 || (l == 3 && masterColumn() < 0));
+            if (meterLine && ! full && displayState[(size_t) l] != "\x01" && ms - lastLineSent[(size_t) l] < kMeterIntervalMs)
+                continue;
             out.push_back (displayLine (l, lines[(size_t) l]));
             displayState[(size_t) l] = lines[(size_t) l];
+            lastLineSent[(size_t) l] = ms;
         }
 }
 } // namespace livelooper::push

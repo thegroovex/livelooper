@@ -24,6 +24,7 @@ inline constexpr int kMasterEncoder  = 79;
 inline constexpr int kTempoEncoder   = 14;
 inline constexpr int kSwingEncoder   = 15;
 inline constexpr int kEncoderTouchFirst = 0;    // note 0 .. 7 = touching encoder 1 .. 8, 8 = master
+inline constexpr int kTouchStripNote = 12;      // note on / off: finger on / off the touch strip (position = pitch bend)
 
 namespace cc
 {
@@ -35,6 +36,9 @@ namespace cc
     inline constexpr int play = 85, record = 86, newBtn = 87, duplicate = 88, automation = 89, fixedLength = 90;
     inline constexpr int device = 110, browse = 111, track = 112, clip = 113, volume = 114, panSend = 115;
     inline constexpr int quantize = 116, doubleBtn = 117, deleteBtn = 118, undo = 119;
+    inline constexpr int master = 28;
+    /** Footswitch jacks on the back of Push 1 (127 = pressed, 0 = released). */
+    inline constexpr int footswitch1 = 64, footswitch2 = 69;
 }
 
 inline constexpr int padNote (int row, int column) noexcept { return kPadNoteFirst + row * kGridSize + column; }
@@ -80,7 +84,19 @@ namespace twoColour
 inline constexpr int kDisplayLines = 4;
 inline constexpr int kDisplayChars = 68;        // 4 segments of 17 characters
 
-/** Sysex that writes one display line (0 .. 3). Text is padded / cut to 68 ASCII characters. */
+/** Special characters of the Push 1 display (as used by Live's own Push script for its value graphs). */
+namespace glyph
+{
+    inline constexpr juce::juce_wchar barLeft = 0x03;      // half-filled cell
+    inline constexpr juce::juce_wchar block = 0x05;        // filled cell of a bar
+    inline constexpr juce::juce_wchar dash = 0x06;         // empty cell of a bar
+    inline constexpr juce::juce_wchar fullBlock = 0x1d;    // solid block (used for clipping)
+}
+/** A level bar of 'cells' display characters for a value 0 .. 1 (two steps per cell). */
+juce::String levelBar (float value, int cells);
+
+/** Sysex that writes one display line (0 .. 3). Text is padded / cut to 68 characters: ASCII,
+    the special characters 1 .. 31 (bars) and German umlauts (mapped to the display's own codes). */
 juce::MidiMessage displayLine (int line, const juce::String& text);
 /** Sysex that clears one display line. */
 juce::MidiMessage clearDisplayLine (int line);

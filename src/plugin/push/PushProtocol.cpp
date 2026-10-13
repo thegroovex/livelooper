@@ -18,9 +18,33 @@ juce::MidiMessage displayLine (int line, const juce::String& text)
     for (int i = 0; i < kDisplayChars; ++i)
     {
         const auto c = i < text.length() ? text[i] : (juce::juce_wchar) ' ';
-        data[7 + i] = (juce::uint8) (c >= 32 && c < 127 ? c : '?');
+        juce::uint8 b = '?';
+        if (c >= 1 && c < 128)
+            b = (juce::uint8) c;
+        else
+            switch (c)          // the Push 1 character set has the German umlauts at 10 .. 26
+            {
+                case 0xc4: b = 10; break;   // Ä
+                case 0xd6: b = 12; break;   // Ö
+                case 0xdc: b = 13; break;   // Ü
+                case 0xdf: b = 14; break;   // ß
+                case 0xe4: b = 16; break;   // ä
+                case 0xf6: b = 23; break;   // ö
+                case 0xfc: b = 26; break;   // ü
+                default: break;
+            }
+        data[7 + i] = b;
     }
     return juce::MidiMessage::createSysExMessage (data, (int) sizeof (data));
+}
+
+juce::String levelBar (float value, int cells)
+{
+    const int steps = juce::jlimit (0, cells * 2, juce::roundToInt (value * (float) (cells * 2)));
+    juce::String s;
+    for (int i = 0; i < cells; ++i)
+        s += juce::String::charToString (steps >= 2 * (i + 1) ? glyph::block : (steps == 2 * i + 1 ? glyph::barLeft : glyph::dash));
+    return s;
 }
 
 juce::MidiMessage clearDisplayLine (int line)

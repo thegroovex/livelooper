@@ -15,6 +15,7 @@ namespace livelooper::push
     (MIDIIN2 / MIDIOUT2) must stay switched off in Live's MIDI preferences.
 */
 class PushDevice : private juce::Timer,
+                   private juce::AsyncUpdater,
                    private juce::MidiInputCallback
 {
 public:
@@ -29,6 +30,11 @@ public:
 
 private:
     void timerCallback() override;
+    /** Incoming messages are handled right away (not only on the next timer tick), so pads react instantly. */
+    void handleAsyncUpdate() override;
+    void processIncoming();
+    void sendChanges (bool full);
+    static constexpr int kTimerHz = 50;
     void handleIncomingMidiMessage (juce::MidiInput*, const juce::MidiMessage& m) override;
     void connect();
     void disconnect();
