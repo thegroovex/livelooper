@@ -478,7 +478,7 @@ namespace
         { "Install updates automatically", "Updates automatisch installieren" },
         { "Installed: %1", "Installiert: %1" },
         { "LINK %1 PEERS", "LINK %1 TEILNEHMER" },
-        { "LINK (HOST SYNC HAS PRIORITY)", "LINK (HOST-SYNC HAT VORRANG)" },
+        { "LINK (HOST SYNC HAS PRIORITY)", "LINK: HOST-SYNC ZUERST" },
         { "LINK 1 PEER", "LINK 1 TEILNEHMER" },
         { "LINK ON", "LINK AN" },
         { "LINK OFF", "LINK AUS" },

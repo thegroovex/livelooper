@@ -196,6 +196,8 @@ HelpComponent::HelpComponent()
 
 void HelpComponent::setQuery (const juce::String& q)
 {
+    if (searchBox.getText() != q)
+        searchBox.setText (q, juce::dontSendNotification);
     visible = search (sections, q);
     list.updateContent();
     list.repaint();
@@ -371,6 +373,7 @@ juce::StringArray UpdateManager::installPlugins (juce::String& e)
 AboutComponent::AboutComponent (bool isStandalone, bool checkNow) : standalone (isStandalone)
 {
     logo = getEmbeddedImage ("beattactics-logo-transparent.png");
+    icon = getEmbeddedImage ("livelooper-icon-256.png");
 
     auto setup = [this] (juce::TextButton& b, const juce::String& text) {
         b.setButtonText (text);
@@ -455,7 +458,7 @@ AboutComponent::AboutComponent (bool isStandalone, bool checkNow) : standalone (
     refresh();
     if (checkNow)
         UpdateManager::getInstance()->check();
-    setSize (640, 640);
+    setSize (640, 600);
 }
 
 AboutComponent::~AboutComponent()
@@ -524,8 +527,15 @@ void AboutComponent::paint (juce::Graphics& g)
     g.fillAll (colours::panel);
     auto b = getLocalBounds().reduced (20);
     auto top = b.removeFromTop (150);
+    if (icon.isValid())
+        g.drawImageWithin (icon, top.getX(), top.getY(), 150, 150, juce::RectanglePlacement::centred);
     if (logo.isValid())
-        g.drawImageWithin (logo, top.getX(), top.getY(), 150, 150, juce::RectanglePlacement::centred);
+    {
+        // brand mark at the bottom: BeatTactics, designed by groovex
+        auto foot = getLocalBounds().reduced (20).removeFromBottom (48);
+        g.drawImageWithin (logo, foot.getX(), foot.getY(), 240, foot.getHeight(),
+                           juce::RectanglePlacement::xLeft | juce::RectanglePlacement::yMid);
+    }
     auto t = top.withTrimmedLeft (170);
     g.setColour (colours::text);
     g.setFont (LooperLookAndFeel::font (38.0f, true));
@@ -564,6 +574,7 @@ void AboutComponent::resized()
     honesty.setBounds (b.removeFromTop (48));
     pluginsBtn.setBounds (b.removeFromTop (30).removeFromLeft (170));
     b.removeFromTop (6);
+    b.removeFromBottom (56);   // brand mark
     notes.setBounds (b);
 }
 

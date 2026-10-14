@@ -6,8 +6,11 @@
 #include "plugin/PluginProcessor.h"
 #include "plugin/Localisation.h"
 #include "plugin/KeyMapEditor.h"
+#include "plugin/InfoWindows.h"
+#include "plugin/Parameters.h"
 
 using namespace livelooper;
+using namespace livelooper::params;
 
 namespace
 {
@@ -106,8 +109,48 @@ int main (int argc, char* argv[])
     {
         i18n::setSetting (language, false);
         const juce::String sfx (suffix);
+        ed->showStatus ({});
         juce::MessageManager::getInstance()->runDispatchLoopUntil (200);
         save (*editor, outDir.getChildFile ("livelooper" + sfx + ".png"));
+
+        // v1.5 live performance: beat FX, colour FX, beat repeat latch, metronome and Link on
+        set (gBfxOn, 1.0f);
+        set (gColorType, 1.0f);
+        set (gRepeatLatch, 1.0f);
+        set (gMetroOn, 1.0f);
+        set (gLinkOn, 1.0f);
+        set ("sync", 0.0f);    // Link drives the tempo like in the standalone app
+        for (int f = 0; f < 4; ++f)
+        {
+            runBlocks (proc, 3, 0.6f);
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (60);
+        }
+        save (*editor, outDir.getChildFile ("livelooper-performance" + sfx + ".png"));
+        set (gBfxOn, 0.0f);
+        set (gColorType, 0.0f);
+        set (gRepeatLatch, 0.0f);
+        set (gMetroOn, 0.0f);
+        set (gLinkOn, 0.0f);
+        set ("sync", 1.0f);
+        runBlocks (proc, 2, 0.0f);
+        juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
+
+        // in-app help (searchable user guide) and the about window
+        {
+            HelpComponent help;
+            help.setLookAndFeel (&editor->getLookAndFeel());
+            help.setQuery ("Link");
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
+            save (help, outDir.getChildFile ("livelooper-help" + sfx + ".png"));
+            help.setLookAndFeel (nullptr);
+        }
+        {
+            AboutComponent about (false, false);
+            about.setLookAndFeel (&editor->getLookAndFeel());
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
+            save (about, outDir.getChildFile ("livelooper-about" + sfx + ".png"));
+            about.setLookAndFeel (nullptr);
+        }
 
         ed->setLearnMode (true);
         proc.startMidiLearn ("t5_recplay");
@@ -153,6 +196,7 @@ int main (int argc, char* argv[])
                                             std::pair<i18n::Language, const char*> { i18n::Language::German, "-de" } })
     {
         i18n::setSetting (language, false);
+        dynamic_cast<LiveLooperEditor*> (editor.get())->showStatus ({});
         juce::MessageManager::getInstance()->runDispatchLoopUntil (200);
         save (*editor, outDir.getChildFile ("livelooper-8-tracks" + juce::String (suffix) + ".png"));
     }

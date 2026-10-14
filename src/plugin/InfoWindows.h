@@ -119,7 +119,7 @@ private:
     void showText (const juce::String& title, const juce::String& body);
 
     bool standalone;
-    juce::Image logo;
+    juce::Image logo, icon;
     juce::TextButton licenceBtn, thirdPartyBtn, checkBtn, actionBtn, pluginsBtn, pageBtn;
     juce::ToggleButton autoCheck, autoInstall;
     juce::Label status, honesty;

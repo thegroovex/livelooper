@@ -671,12 +671,18 @@ void LiveLooperEditor::updateLcd()
     juce::StringArray lines;
     {
         // v1.5: Link status (peers) on the display
-        juce::String l1 = proc.isLinkDriving() ? tr ("BPM   LINK") : tr (host ? "BPM   HOST" : (syncOn ? "BPM   HOST (STOPPED) / INT CLOCK" : "BPM   INTERNAL"));
-        if (proc.getState().getRawParameterValue (gLinkOn)->load() >= 0.5f)
+        const bool linkOn = proc.getState().getRawParameterValue (gLinkOn)->load() >= 0.5f;
+        juce::String l1;
+        if (linkOn && proc.isLinkDriving())
         {
             const int peers = proc.getLinkPeers();
-            l1 << "   " << (proc.isLinkDriving() ? tr (peers == 1 ? "LINK 1 PEER" : "LINK %1 PEERS", juce::String (peers))
-                                                 : tr ("LINK (HOST SYNC HAS PRIORITY)"));
+            l1 << "BPM   " << tr (peers == 1 ? "LINK 1 PEER" : "LINK %1 PEERS", juce::String (peers));
+        }
+        else
+        {
+            l1 = proc.isLinkDriving() ? tr ("BPM   LINK") : tr (host ? "BPM   HOST" : (syncOn ? "BPM   HOST (STOPPED) / INT CLOCK" : "BPM   INTERNAL"));
+            if (linkOn)
+                l1 << "   " << tr ("LINK (HOST SYNC HAS PRIORITY)");
         }
         lines.add (l1);
     }

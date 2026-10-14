@@ -78,6 +78,7 @@ juce_add_binary_data(livelooper_resources
         LICENSE
         THIRD-PARTY.md
         docs/brand/beattactics-logo-transparent.png
+        resources/livelooper-icon-256.png
         ${LIVELOOPER_DRUM_SAMPLES})
 set_target_properties(livelooper_resources PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
