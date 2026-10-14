@@ -535,6 +535,13 @@ public:
             for (int x = 300; x < 780 && ! bright; x += 4)
                 bright = f0.getPixelAt (x, 230).getBrightness() > 0.8f;
             expect (bright, "livelooper title drawn");
+            if (auto path = juce::SystemStats::getEnvironmentVariable ("LIVELOOPER_CLIP_PREVIEW", {}); path.isNotEmpty())
+            {
+                const juce::File file (path);
+                file.deleteFile();
+                juce::FileOutputStream out (file);
+                juce::PNGImageFormat().writeImageToStream (r.renderFrame (2.3), out);
+            }
         }
 
         beginTest ("Clip export writes a video (system encoder) or PNG frames + WAV");
@@ -598,8 +605,19 @@ public:
             expectEquals (tour->getNumSteps(), 5);
             tour->back();
             expectEquals (tour->getStep(), 0);
+            auto snap = [&ed] (const juce::String& name) {
+                if (auto path = juce::SystemStats::getEnvironmentVariable ("LIVELOOPER_UI_PREVIEW", {}); path.isNotEmpty())
+                {
+                    const juce::File file (path + name + ".png");
+                    file.deleteFile();
+                    juce::FileOutputStream out (file);
+                    juce::PNGImageFormat().writeImageToStream (ed->createComponentSnapshot (ed->getLocalBounds()), out);
+                }
+            };
+            snap ("tour1");
             for (int i = 1; i < 5; ++i)
             {
+                if (i == 4) snap ("tour4");
                 tour->next();
                 expectEquals (tour->getStep(), i);
                 expect (tour->getCardBounds().getBottom() <= tour->getHeight() && tour->getCardBounds().getY() >= 0, "card on screen");
