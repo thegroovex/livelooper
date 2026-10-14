@@ -483,6 +483,7 @@ static Features16PushTests features16PushTests;
 #include "plugin/GuidedTour.h"
 #include "plugin/PluginEditor.h"
 #include "plugin/controllers/GridControllers.h"
+#include "plugin/Localisation.h"
 
 class Features16UiTests : public juce::UnitTest
 {
@@ -612,6 +613,20 @@ public:
             h.pump();
             expect (! ed->isTourVisible());
             ed.reset();
+        }
+
+        beginTest ("Every new 1.6 text has a German translation");
+        {
+            for (auto* s : { "Half Speed", "Double Speed", "Reverse Loop Audio", "Performance Recorder", "Export 9:16 Clip",
+                             "NEXT", "BACK", "SKIP TOUR", "DONE", "RECORD", "OVERDUB", "SCENE", "STEP %1 / %2", "Load demo set",
+                             "Empty set (clear everything)", "Guided tour (60 seconds)", "Performance recorder",
+                             "Controller templates (grid controllers)", "Clip export 9:16 (Reels, TikTok, Shorts)",
+                             "T%1 half speed", "T%1 double speed", "T%1 loop reversed", "live loop performance",
+                             "Not enough audio for a clip yet.", "Save set to share (.livelooper, one file with all audio) ..." })
+                expect (i18n::germanFor (s).isNotEmpty(), juce::String ("missing German text for: ") + s);
+            for (int t = 0; t < kNumTracks; ++t)
+                for (auto* n : { kHalfSpeed, kDblSpeed, kRevLoop })
+                    expect (i18n::germanFor (englishName (trackId (t, n)).fromFirstOccurrenceOf (" ", false, false)).isNotEmpty());
         }
 
         beginTest ("Controller templates: detection by MIDI port name");
