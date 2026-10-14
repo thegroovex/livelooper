@@ -99,8 +99,10 @@ JUCE 8 wird beim Konfigurieren automatisch geladen. Details in [ENTWICKLUNG.md](
 
 ## Lizenz
 
-Für den livelooper-Quellcode ist noch keine Lizenz festgelegt. livelooper basiert auf dem JUCE-Framework, das unter AGPLv3 oder einer kommerziellen JUCE-Lizenz steht – bei Weitergabe von Binärdateien gelten deren Bedingungen.
+livelooper ist freie Software: Sie dürfen sie unter den Bedingungen der **GNU Affero General Public License Version 3** (AGPLv3), veröffentlicht von der Free Software Foundation, weitergeben und/oder verändern – siehe [LICENSE](LICENSE). Sie wird in der Hoffnung verbreitet, dass sie nützlich ist, aber OHNE JEDE GEWÄHRLEISTUNG.
 
-Ableton, Push und alle anderen genannten Produktnamen sind Marken ihrer jeweiligen Inhaber; livelooper steht in keiner Verbindung zu ihnen und wird nicht von ihnen unterstützt.
+Warum AGPLv3: livelooper baut auf JUCE 8 auf (genutzt unter dessen AGPLv3-Option) und enthält Ableton Link (GPLv2 oder neuer); das Gesamtwerk steht daher unter AGPLv3. Wer livelooper weitergibt (Programmdateien oder veränderte Versionen), muss auch den zugehörigen Quellcode unter derselben Lizenz anbieten.
 
-Fremdcode in `third_party/`: [Signalsmith Stretch](https://github.com/Signalsmith-Audio/signalsmith-stretch) und Signalsmith Linear (Time-Stretch / Tonhöhe), beide unter MIT-Lizenz – siehe deren `LICENSE.txt`.
+Fremdkomponenten und ihre Lizenzen – JUCE (AGPLv3), Ableton Link und asio-standalone, Signalsmith Stretch / Linear (MIT) und die Drum-Samples – stehen in [THIRD-PARTY.md](THIRD-PARTY.md).
+
+Ableton, Push, Link und alle anderen genannten Produktnamen sind Marken ihrer jeweiligen Inhaber; livelooper steht in keiner Verbindung zu ihnen und wird nicht von ihnen unterstützt.
