@@ -13,6 +13,7 @@
 namespace livelooper
 {
 namespace push { class PushDevice; }
+namespace controllers { class GridControllerDevice; }   // v1.6
 
 /**
     The plug-in: owns the parameters (APVTS), the MIDI-learn map and the engine.
@@ -134,6 +135,9 @@ public:
     bool loadDemoSet();
     /** Empty set: every loop cleared, settings back to the defaults. */
     void loadEmptySet();
+    /** Grid controller templates (Launchpad, APC mini, Launchkey); null in tests. */
+    controllers::GridControllerDevice* getGridControllers() noexcept { return gridControllers.get(); }
+    void createGridControllers();
     /** Called from the timer when the user switches perf_rec; also notifies listeners. */
     std::function<void (const juce::File&)> onRecordingFinished;
     // ---- end v1.6 features
@@ -327,6 +331,7 @@ private:
 
     // v1.6 features
     PerformanceRecorder recorder;
+    std::unique_ptr<controllers::GridControllerDevice> gridControllers;
     std::atomic<float>* perfRecParam {};
     std::atomic<bool> clipExportRequested { false };
     void updatePerformanceRecorder();

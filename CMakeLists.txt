@@ -86,7 +86,9 @@ juce_add_binary_data(livelooper_resources
         docs/brand/beattactics-logo-transparent.png
         resources/livelooper-icon-256.png
         ${LIVELOOPER_DRUM_SAMPLES}
-        ${LIVELOOPER_DEMO_LOOPS})
+        ${LIVELOOPER_DEMO_LOOPS}
+        resources/fonts/Manrope-800.ttf
+        resources/fonts/Manrope-600.ttf)
 set_target_properties(livelooper_resources PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # ---------------------------------------------------------------- shared sources
@@ -125,10 +127,23 @@ set(LIVELOOPER_PLUGIN_SOURCES
     src/plugin/push/PushDevice.cpp
     # v1.6 features
     src/plugin/PerformanceRecorder.cpp
-    src/plugin/Features16.cpp)
+    src/plugin/Features16.cpp
+    src/plugin/ClipExport.cpp
+    src/plugin/VideoWriterWin.cpp
+    src/plugin/EditorFeatures16.cpp
+    src/plugin/controllers/GridControllers.cpp)
+if(APPLE)
+    list(APPEND LIVELOOPER_PLUGIN_SOURCES src/plugin/VideoWriterMac.mm)
+endif()
 set(LIVELOOPER_DEFINES LIVELOOPER_VERSION="${PROJECT_VERSION}" JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_VST3_CAN_REPLACE_VST2=0 JUCE_DISPLAY_SPLASH_SCREEN=0
     ${LIVELOOPER_LINK_DEFINES})
 set(LIVELOOPER_MODULES juce::juce_audio_utils juce::juce_audio_formats juce::juce_gui_extra juce::juce_dsp juce::juce_cryptography livelooper_resources ${LIVELOOPER_LINK_TARGET})
+# v1.6 clip export: native video encoders
+if(APPLE)
+    list(APPEND LIVELOOPER_MODULES "-framework AVFoundation" "-framework CoreMedia" "-framework CoreVideo")
+elseif(WIN32)
+    list(APPEND LIVELOOPER_MODULES mfplat mfreadwrite mfuuid)
+endif()
 
 # ---------------------------------------------------------------- plugin
 set(LIVELOOPER_FORMATS VST3 Standalone)

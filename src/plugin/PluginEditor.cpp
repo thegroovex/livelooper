@@ -2,6 +2,7 @@
 #include "AppSettings.h"
 #include "InfoWindows.h"
 #include "Updates.h"
+#include "GuidedTour.h"   // v1.6
 
 namespace livelooper
 {
@@ -61,8 +62,8 @@ LiveLooperEditor::LiveLooperEditor (LiveLooperProcessor& p)
     mapBtn.setTooltip ("Show / remove MIDI assignments, load the default map");
     setupBtn.onClick = [this] { showSetupMenu(); };
     setupBtn.setTooltip ("Settings, sets, Link, updates, about, language");
-    helpBtn.onClick = [this] { showHelp(); };
-    helpBtn.setTooltip ("Help: every function explained (searchable)");
+    helpBtn.onClick = [this] { showHelpMenu(); };      // v1.6: help + guided tour
+    helpBtn.setTooltip ("Help: every function explained (searchable), guided tour");
     for (auto* b : { &learnBtn, &mapBtn, &setupBtn, &helpBtn })
         surface.addAndMakeVisible (b);
 
@@ -257,6 +258,7 @@ LiveLooperEditor::LiveLooperEditor (LiveLooperProcessor& p)
              master.get(), monitor.get(), fade.get(), &allStartStop, &clearAll, &capture })
         surface.addAndMakeVisible (c);
 
+    initFeatures16();      // v1.6
     surface.addChildComponent (overlay);
     tempo->slider.setTooltip ("Internal tempo - right-click to type in the BPM, or click the tempo on the display");
 
@@ -276,6 +278,7 @@ LiveLooperEditor::LiveLooperEditor (LiveLooperProcessor& p)
         if (safe == nullptr)
             return;
         safe->askStartupSettingsOnce();
+        safe->handleFirstRun();          // v1.6: demo set + guided tour on the very first start
         if (safe->proc.wrapperType != juce::AudioProcessor::wrapperType_Undefined && appsettings::getCheckUpdatesOnStart())
             safe->checkForUpdates (false);
     });
@@ -283,6 +286,9 @@ LiveLooperEditor::LiveLooperEditor (LiveLooperProcessor& p)
 
 LiveLooperEditor::~LiveLooperEditor()
 {
+    if (clipThread != nullptr)          // v1.6
+        clipThread->stopThread (10000);
+    proc.onRecordingFinished = nullptr;
     proc.cancelMidiLearn();
     proc.removeChangeListener (this);
     i18n::removeListener (this);
@@ -334,6 +340,7 @@ void LiveLooperEditor::layoutSurface()
     setupBtn.setBounds (1066 + dx, 28, 64, 36);
     helpBtn.setBounds (1136 + dx, 28, 32, 36);
     layoutPerformanceRow (dx);
+    layoutFeatures16 (dx);      // v1.6
 
     auto slotRow = [] (juce::Rectangle<int> panel) { return panel.reduced (8).withTrimmedTop (22); };
     auto in = slotRow (layout::inputFx), tr = slotRow (layout::trackFx.translated (dx, 0));
@@ -591,6 +598,7 @@ void LiveLooperEditor::updateFxEditorLabels()
 //==============================================================================
 void LiveLooperEditor::timerCallback()
 {
+    timerFeatures16();     // v1.6
     blinkCounter = (blinkCounter + 1) % 16;
     const bool blink = blinkCounter < 8;
     for (auto& s : strips)
@@ -1200,6 +1208,7 @@ void LiveLooperEditor::showSetupMenu()
     menu.addSubMenu (tr ("Last used sets"), recentMenu);
     menu.addItem (10, tr ("Export stems (one WAV per track) ..."));
     menu.addSeparator();
+    addFeatures16Menu (menu);      // v1.6
     menu.addSubMenu (tr ("Tracks"), tracksMenu);
     menu.addSubMenu (tr ("Capture length"), captureMenu);
     menu.addSubMenu (tr ("Auto record"), autoRecMenu);
@@ -1239,6 +1248,8 @@ void LiveLooperEditor::showSetupMenu()
                         [safe, recAction, follow, lengths, clickSound, captureBars, autoRec, autoRecThresh, duckSource, thresholds,
                          recent, linkOn, linkStartStop, groove, fills] (int r) {
         if (safe == nullptr || r == 0)
+            return;
+        if (safe->handleFeatures16Menu (r))      // v1.6
             return;
         auto setParam = [] (juce::RangedAudioParameter* p, float plain) {
             p->beginChangeGesture();
@@ -1411,7 +1422,7 @@ void LiveLooperEditor::saveSet()
 void LiveLooperEditor::loadSet()
 {
     const auto dir = juce::File::getSpecialLocation (juce::File::userMusicDirectory);
-    chooser = std::make_unique<juce::FileChooser> (tr ("Load set"), dir, "*.llset");
+    chooser = std::make_unique<juce::FileChooser> (tr ("Load set"), dir, "*.llset;*.livelooper");
     juce::Component::SafePointer<LiveLooperEditor> safe (this);
     chooser->launchAsync (juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
                           [safe] (const juce::FileChooser& fc) {
@@ -1477,14 +1488,14 @@ bool LiveLooperEditor::isInterestedInFileDrag (const juce::StringArray& files)
         if (juce::File (f).isAChildOf (LiveLooperProcessor::getDragExportFolder()))
             return false;
     for (const auto& f : files)
-        if (juce::File (f).hasFileExtension ("wav;aif;aiff;flac;ogg;mp3;llset"))
+        if (juce::File (f).hasFileExtension ("wav;aif;aiff;flac;ogg;mp3;llset;livelooper"))
             return true;
     return false;
 }
 
 void LiveLooperEditor::filesDropped (const juce::StringArray& files, int x, int y)
 {
-    if (juce::File (files[0]).hasFileExtension ("llset"))
+    if (juce::File (files[0]).hasFileExtension ("llset;livelooper"))
     {
         loadSetFile (juce::File (files[0]));
         return;

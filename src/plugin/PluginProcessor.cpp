@@ -2,6 +2,7 @@
 #include "PluginEditor.h"
 #include "Localisation.h"
 #include "push/PushDevice.h"
+#include "controllers/GridControllers.h"   // v1.6
 #include "AppSettings.h"
 #include "DrumSampleLoader.h"
 
@@ -200,7 +201,10 @@ LiveLooperProcessor::LiveLooperProcessor (bool withCueOutput, bool withTrackOutp
 
     keyboardAvailable = wrapperType == wrapperType_Standalone;
     if (wrapperType != wrapperType_Undefined)      // a real host or the standalone app (not the unit tests)
+    {
         createPushDevice();
+        createGridControllers();                  // v1.6
+    }
     startTimerHz (30);
 }
 
@@ -211,6 +215,7 @@ LiveLooperProcessor::~LiveLooperProcessor()
         saveLastSettings();
     linkPtr.store (nullptr);
     pushDevice.reset();
+    gridControllers.reset();      // v1.6
 }
 
 void LiveLooperProcessor::createPushDevice()

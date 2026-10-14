@@ -8,6 +8,7 @@
 #include "AppSettings.h"
 #include "BinaryData.h"
 #include "Localisation.h"
+#include "controllers/GridControllers.h"
 
 namespace livelooper
 {
@@ -124,6 +125,13 @@ bool LiveLooperProcessor::loadSetContainer (const juce::File& file, juce::String
             e->removeAttribute ("file");
         }
     return loadSetXml (std::move (xml), error);
+}
+
+//============================================================================== grid controller templates
+void LiveLooperProcessor::createGridControllers()
+{
+    if (gridControllers == nullptr)
+        gridControllers = std::make_unique<controllers::GridControllerDevice> (*this);
 }
 
 //============================================================================== demo set / empty set

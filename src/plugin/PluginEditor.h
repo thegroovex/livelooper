@@ -3,6 +3,8 @@
 #include "Widgets.h"
 #include "KeyMapEditor.h"
 
+namespace livelooper { class GuidedTour; }
+
 namespace livelooper
 {
 /**
@@ -66,7 +68,35 @@ public:
     /** Checks a held clear key; called from the timer (public for tests). */
     void updateKeyClearHold (juce::uint32 now, bool keyStillDown);
 
+    //============================================================================== v1.6 features (branch v1.6-wip)
+    /** Guided tour (5 steps); shown once after the first start, always in the help menu. */
+    void startTour();
+    bool isTourVisible() const;
+    GuidedTour* getTour() noexcept { return tour.get(); }
+    /** First start: demo set + tour, once (force: also in tests). */
+    void handleFirstRun (bool force = false);
+    /** 9:16 clip of the last 20 s (or the last performance recording) in the background. */
+    void exportClip (bool fromRecording);
+    bool isClipExportRunning() const noexcept { return clipThread != nullptr; }
+    void saveSharedSet();
+    void addFeatures16Menu (juce::PopupMenu& menu);
+    bool handleFeatures16Menu (int result);
+    juce::Button& getPerfRecButton() noexcept { return perfRecBtn; }
+    // ---- end v1.6 features
+
 private:
+    // ---- v1.6 features
+    void initFeatures16();
+    void layoutFeatures16 (int dx);
+    void timerFeatures16();
+    void showHelpMenu();
+    LLButton perfRecBtn { "REC", colours::red };
+    std::unique_ptr<APVTS::ButtonAttachment> perfRecAtt;
+    std::unique_ptr<GuidedTour> tour;
+    std::unique_ptr<juce::Thread> clipThread;
+    std::atomic<float> clipProgress { -1.0f };
+    // ---- end v1.6 features
+
     class Surface : public juce::Component
     {
     public:

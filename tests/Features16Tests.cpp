@@ -391,3 +391,360 @@ public:
 };
 
 static Features16ProcessorTests features16ProcessorTests;
+
+//============================================================================== Push 1: SHIFT combos for the loop tricks
+#include "plugin/push/PushSurface.h"
+
+namespace
+{
+struct PushRig16
+{
+    LiveLooperProcessor proc { false, false };
+    push::PushSurface surface { proc };
+    juce::AudioBuffer<float> buffer { 2, kBlock16 };
+    juce::MidiBuffer midi;
+    juce::uint32 ms = 10000;
+
+    PushRig16()
+    {
+        proc.prepareToPlay (kRate16, kBlock16);
+        for (auto [id, v] : { std::pair<const char*, float> { "quantize", 0.0f }, { "recaction", 1.0f }, { "sync", 0.0f }, { "monitor", 0.0f } })
+            proc.getState().getParameter (id)->setValueNotifyingHost (v);
+        surface.setClock ([this] { return ms; });
+    }
+    void run (int blocks, float in = 0.0f)
+    {
+        for (int b = 0; b < blocks; ++b)
+        {
+            for (int ch = 0; ch < 2; ++ch)
+                juce::FloatVectorOperations::fill (buffer.getWritePointer (ch), in, kBlock16);
+            proc.processBlock (buffer, midi);
+            ms += 10;
+            for (auto* p : proc.getParameters())
+                if (auto* r = dynamic_cast<juce::RangedAudioParameter*> (p))
+                    if (params::isTrigger (r->getParameterID()) && r->getValue() >= 0.5f)
+                        r->setValueNotifyingHost (0.0f);
+        }
+    }
+    void button (int number, bool down) { surface.handleMidi (juce::MidiMessage::controllerEvent (1, number, down ? 127 : 0)); }
+    void shiftPress (int number)
+    {
+        button (push::cc::shift, true);
+        button (number, true);
+        run (1);
+        button (number, false);
+        button (push::cc::shift, false);
+    }
+};
+}
+
+class Features16PushTests : public juce::UnitTest
+{
+public:
+    Features16PushTests() : juce::UnitTest ("1.6 loop tricks on Push 1", "livelooper") {}
+
+    void runTest() override
+    {
+        using namespace params;
+        beginTest ("SHIFT+OCTAVE DOWN / UP = half / double speed, SHIFT+SCALES = reverse, OCTAVE alone still transposes");
+        {
+            PushRig16 r;
+            r.proc.getState().getParameter (trackId (0, kMeasure))->setValueNotifyingHost (0.2f);
+            r.proc.pressTrigger (trackId (0, kRecPlay));
+            r.run (kBar16 / kBlock16 + 1, 0.5f);
+            auto& tr = r.proc.getEngine().getTrack (0);
+            expectEquals (tr.getLength(), kBar16);
+
+            r.shiftPress (push::cc::octaveDown);
+            expectEquals (tr.getLength(), 2 * kBar16, "half speed");
+            r.shiftPress (push::cc::undo);          // SHIFT+UNDO = redo: nothing to redo yet
+            r.button (push::cc::undo, true); r.run (1); r.button (push::cc::undo, false);
+            expectEquals (tr.getLength(), kBar16, "UNDO");
+
+            r.shiftPress (push::cc::octaveUp);
+            expectEquals (tr.getLength(), kBar16, "double speed keeps the length");
+            expect (tr.canUndo());
+            r.button (push::cc::undo, true); r.run (1); r.button (push::cc::undo, false);
+
+            r.shiftPress (push::cc::scales);
+            expect (tr.canUndo(), "reversed");
+
+            auto* pitch = r.proc.getState().getParameter (trackId (0, kPitch));
+            r.button (push::cc::octaveUp, true); r.run (1); r.button (push::cc::octaveUp, false);
+            expectWithinAbsoluteError (pitch->convertFrom0to1 (pitch->getValue()), 12.0f, 1.0e-3f);
+        }
+    }
+};
+
+static Features16PushTests features16PushTests;
+
+//============================================================================== clip export, guided tour, grid controller templates
+#include "plugin/ClipExport.h"
+#include "plugin/GuidedTour.h"
+#include "plugin/PluginEditor.h"
+#include "plugin/controllers/GridControllers.h"
+
+class Features16UiTests : public juce::UnitTest
+{
+public:
+    Features16UiTests() : juce::UnitTest ("1.6 clip export, tour, controller templates", "plugin") {}
+
+    static juce::AudioBuffer<float> tone (double rate, double seconds)
+    {
+        juce::AudioBuffer<float> b (2, (int) (rate * seconds));
+        for (int i = 0; i < b.getNumSamples(); ++i)
+        {
+            const float env = (i % (int) (rate / 2)) < (int) (rate / 8) ? 1.0f : 0.2f;     // beats, so the meter moves
+            const float v = 0.5f * env * std::sin ((float) i * 440.0f * juce::MathConstants<float>::twoPi / (float) rate);
+            b.setSample (0, i, v);
+            b.setSample (1, i, v);
+        }
+        return b;
+    }
+
+    void runTest() override
+    {
+        using namespace params;
+
+        beginTest ("Clip audio: last 20 s, resampled to 48 kHz");
+        {
+            auto a = clip::prepareAudio (tone (44100.0, 25.0), 44100.0, 20.0, false);
+            expectEquals (a.getNumChannels(), 2);
+            expectWithinAbsoluteError (a.getNumSamples(), 960000, 2);
+            auto b = clip::prepareAudio (tone (48000.0, 3.0), 48000.0, 20.0, true);
+            expectEquals (b.getNumSamples(), 144000);
+        }
+
+        beginTest ("Clip frames: 9:16, branded, waveform and progress move");
+        {
+            const auto audio = clip::prepareAudio (tone (48000.0, 4.0), 48000.0, 20.0, false);
+            clip::Options opt;
+            opt.subtitle = "test";
+            clip::Renderer r (audio, 48000.0, opt);
+            expectWithinAbsoluteError (r.getDuration(), 4.0, 1.0e-6);
+            const auto f0 = r.renderFrame (0.0), f1 = r.renderFrame (3.9);
+            expectEquals (f0.getWidth(), 1080);
+            expectEquals (f0.getHeight(), 1920);
+            // the left part of the waveform is in the brand colours once played
+            const auto before = f0.getPixelAt (120, (int) (1920 * 0.47f));
+            const auto after = f1.getPixelAt (120, (int) (1920 * 0.47f));
+            expect (after.getRed() > before.getRed() + 40, "played part is coloured");
+            // title area is not empty
+            bool bright = false;
+            for (int x = 300; x < 780 && ! bright; x += 4)
+                bright = f0.getPixelAt (x, 230).getBrightness() > 0.8f;
+            expect (bright, "livelooper title drawn");
+        }
+
+        beginTest ("Clip export writes a video (system encoder) or PNG frames + WAV");
+        {
+            TempFolder16 tmp;
+            const auto audio = clip::prepareAudio (tone (48000.0, 1.5), 48000.0, 20.0, false);
+            clip::Options opt;
+            opt.width = 216; opt.height = 384; opt.fps = 10;
+            const auto target = tmp.dir.getChildFile ("clip.mp4");
+            float lastProgress = 0.0f;
+            auto res = clip::exportClip (audio, target, opt, [&lastProgress] (float p) { lastProgress = p; return true; });
+            expect (res.ok(), res.error);
+            expect (res.cover.existsAsFile(), "cover image");
+            expectWithinAbsoluteError (lastProgress, 1.0f, 1.0e-4f);
+            logMessage ("clip encoder: " + res.encoder + (res.error.isNotEmpty() ? " (" + res.error + ")" : juce::String()));
+           #if JUCE_MAC
+            expect (res.kind == clip::Result::Kind::Video && res.encoder == "AVFoundation", "macOS: AVFoundation");
+           #endif
+            if (res.kind == clip::Result::Kind::Video)
+                expect (res.file.getSize() > 1000, "mp4 written");
+
+            // forced fallback: frames + WAV + instructions
+            opt.allowNative = false;
+            opt.allowFfmpeg = false;
+            auto fb = clip::exportClip (audio, tmp.dir.getChildFile ("fallback.mp4"), opt);
+            expect (fb.kind == clip::Result::Kind::Frames);
+            expect (fb.file.getChildFile ("audio.wav").existsAsFile());
+            expect (fb.file.getChildFile ("frame_00001.png").existsAsFile());
+            expect (fb.file.getChildFile ("frame_00015.png").existsAsFile());
+            expect (! fb.file.getChildFile ("frame_00016.png").existsAsFile());
+            expect (fb.file.getChildFile ("cover.png").existsAsFile());
+            expect (fb.file.getChildFile ("make-video.txt").loadFileAsString().contains ("ffmpeg"));
+
+            auto tooShort = clip::exportClip (juce::AudioBuffer<float> (2, 100), tmp.dir.getChildFile ("x.mp4"), opt);
+            expect (! tooShort.ok());
+        }
+
+        beginTest ("Clip export parameter is a MIDI-mappable trigger that reaches the editor");
+        {
+            Proc16 h;
+            expect (! h.proc.takeClipExportRequest());
+            h.press (gClipExport);
+            expect (h.proc.takeClipExportRequest());
+            expect (! h.proc.takeClipExportRequest(), "only once");
+        }
+
+        beginTest ("Guided tour: five steps, next / back / close, first start loads the demo set");
+        {
+            TempFolder16 tmp;
+            Proc16 h;
+            std::unique_ptr<LiveLooperEditor> ed (dynamic_cast<LiveLooperEditor*> (h.proc.createEditor()));
+            expect (ed != nullptr);
+            ed->handleFirstRun();                         // tests: nothing happens without force
+            expect (! ed->isTourVisible());
+            expect (h.track (0).isEmpty());
+            ed->handleFirstRun (true);
+            expect (ed->isTourVisible(), "tour after the first start");
+            expect (h.track (0).getState() == LoopTrack::State::Stopped, "demo set loaded");
+            expectEquals (appsettings::getValue ("firstRunDone"), juce::String ("1"));
+            auto* tour = ed->getTour();
+            expectEquals (tour->getNumSteps(), 5);
+            tour->back();
+            expectEquals (tour->getStep(), 0);
+            for (int i = 1; i < 5; ++i)
+            {
+                tour->next();
+                expectEquals (tour->getStep(), i);
+                expect (tour->getCardBounds().getBottom() <= tour->getHeight() && tour->getCardBounds().getY() >= 0, "card on screen");
+            }
+            tour->next();                                  // DONE
+            h.pump();
+            expect (! ed->isTourVisible());
+            ed->startTour();
+            expect (ed->isTourVisible(), "from the help menu any time");
+            ed->getTour()->close();
+            h.pump();
+            expect (! ed->isTourVisible());
+            ed.reset();
+        }
+
+        beginTest ("Controller templates: detection by MIDI port name");
+        {
+            using controllers::detectTemplate;
+            using controllers::TemplateId;
+            expectEquals (detectTemplate ("Launchpad Mini MK3 LPMiniMK3 MIDI"), (int) TemplateId::LaunchpadMiniMk3);
+            expectEquals (detectTemplate ("LPMiniMK3 MIDI"), (int) TemplateId::LaunchpadMiniMk3);
+            expectEquals (detectTemplate ("Launchpad Mini MK3 LPMiniMK3 DAW"), -1, "the DAW port is not used");
+            expectEquals (detectTemplate ("MIDIIN2 (LPMiniMK3 MIDI)"), -1);
+            expectEquals (detectTemplate ("Launchpad X LPX MIDI"), (int) TemplateId::LaunchpadX);
+            expectEquals (detectTemplate ("APC mini mk2"), (int) TemplateId::ApcMiniMk2);
+            expectEquals (detectTemplate ("APC mini mk2 Control"), (int) TemplateId::ApcMiniMk2);
+            expectEquals (detectTemplate ("APC mini mk2 Notes"), -1);
+            expectEquals (detectTemplate ("APC MINI"), (int) TemplateId::ApcMini);
+            expectEquals (detectTemplate ("Launchkey MK3 49 LKMK3 DAW Out"), (int) TemplateId::LaunchkeyMk3);
+            expectEquals (detectTemplate ("MIDIIN2 (LKMK3 MIDI)"), (int) TemplateId::LaunchkeyMk3);
+            expectEquals (detectTemplate ("Launchkey MK3 49 LKMK3 MIDI Out"), -1, "the keys port is left to the DAW");
+            expectEquals (detectTemplate ("Launchkey MK4 37 DAW In"), (int) TemplateId::LaunchkeyMk4);
+            expectEquals (detectTemplate ("Ableton Push User Port"), -1);
+            expectEquals (detectTemplate ("IAC Driver Bus 1"), -1);
+        }
+
+        beginTest ("Controller templates: pads and buttons do the looper functions");
+        {
+            using namespace controllers;
+            const Template lp (TemplateId::LaunchpadMiniMk3);
+            expectEquals (lp.padNote (0, 0), 81, "top left in programmer mode");
+            expectEquals (lp.padNote (7, 7), 18);
+            auto a = lp.translate (juce::MidiMessage::noteOn (1, 81, (juce::uint8) 100), false);
+            expect (a.kind == Action::Kind::RecPlay && a.index == 0);
+            a = lp.translate (juce::MidiMessage::noteOn (1, 73, (juce::uint8) 100), false);
+            expect (a.kind == Action::Kind::Stop && a.index == 2);
+            a = lp.translate (juce::MidiMessage::noteOn (1, 73, (juce::uint8) 100), true);
+            expect (a.kind == Action::Kind::Clear, "SHIFT + STOP = clear");
+            a = lp.translate (juce::MidiMessage::noteOn (1, 41, (juce::uint8) 100), false);
+            expect (a.kind == Action::Kind::HalfSpeed && a.index == 0);
+            a = lp.translate (juce::MidiMessage::controllerEvent (1, 89, 127), false);
+            expect (a.kind == Action::Kind::Scene && a.index == 0);
+            a = lp.translate (juce::MidiMessage::controllerEvent (1, 19, 127), true);
+            expect (a.kind == Action::Kind::SceneStore && a.index == 7);
+            a = lp.translate (juce::MidiMessage::controllerEvent (1, 98, 127), false);
+            expect (a.kind == Action::Kind::Shift && a.pressed);
+            a = lp.translate (juce::MidiMessage::controllerEvent (1, 98, 0), false);
+            expect (a.kind == Action::Kind::Shift && ! a.pressed);
+            a = lp.translate (juce::MidiMessage::noteOff (1, 81), false);
+            expect (a.kind == Action::Kind::None, "release does nothing");
+            const auto enter = lp.enterMessages();
+            expect (enter.size() == 1 && enter[0].isSysEx() && enter[0].getSysExData()[4] == 0x0d && enter[0].getSysExData()[6] == 1);
+
+            const Template apc (TemplateId::ApcMiniMk2);
+            expectEquals (apc.padNote (0, 0), 56, "APC: top left");
+            a = apc.translate (juce::MidiMessage::noteOn (1, 56 + 3, (juce::uint8) 127), false);
+            expect (a.kind == Action::Kind::RecPlay && a.index == 3);
+            a = apc.translate (juce::MidiMessage::controllerEvent (1, 49, 64), false);
+            expect (a.kind == Action::Kind::Level && a.index == 1 && std::abs (a.value - 64.0f / 127.0f) < 1.0e-5f);
+            a = apc.translate (juce::MidiMessage::controllerEvent (1, 56, 127), false);
+            expect (a.kind == Action::Kind::MasterLevel);
+            a = apc.translate (juce::MidiMessage::noteOn (1, 112, (juce::uint8) 127), false);
+            expect (a.kind == Action::Kind::Scene && a.index == 0);
+            a = apc.translate (juce::MidiMessage::noteOn (1, 100, (juce::uint8) 127), false);
+            expect (a.kind == Action::Kind::AllStartStop);
+
+            const Template lk (TemplateId::LaunchkeyMk3);
+            expectEquals (lk.getRows(), 2);
+            a = lk.translate (juce::MidiMessage::noteOn (1, 0x60 + 4, (juce::uint8) 127), false);
+            expect (a.kind == Action::Kind::RecPlay && a.index == 4);
+            a = lk.translate (juce::MidiMessage::noteOn (1, 0x70 + 1, (juce::uint8) 127), false);
+            expect (a.kind == Action::Kind::Stop && a.index == 1);
+            a = lk.translate (juce::MidiMessage::controllerEvent (1, 0x68, 127), false);
+            expect (a.kind == Action::Kind::AllStartStop);
+            expect (lk.enterMessages().front().isNoteOn() && lk.enterMessages().front().getChannel() == 16);
+
+            // actions reach the looper
+            Proc16 h;
+            GridControllerDevice::apply (h.proc, { Action::Kind::RecPlay, 0 });
+            h.run (100, 0.5f);
+            h.set (trackId (0, kRecPlay), 0.0f);           // what the timer does
+            h.run (1, 0.5f);
+            expect (h.track (0).getState() == LoopTrack::State::Recording, "recording");
+            GridControllerDevice::apply (h.proc, { Action::Kind::RecPlay, 0 });
+            h.run (2);
+            h.set (trackId (0, kRecPlay), 0.0f);
+            expect (h.track (0).getState() == LoopTrack::State::Playing, "playing");
+            GridControllerDevice::apply (h.proc, { Action::Kind::Mute, 0 });
+            expect (h.get (trackId (0, kMute)) >= 0.5f);
+            Action lvl { Action::Kind::Level, 1 };
+            lvl.value = 0.5f;
+            GridControllerDevice::apply (h.proc, lvl);
+            expectWithinAbsoluteError (h.proc.getState().getParameter (trackId (1, kLevel))->convertFrom0to1 (h.get (trackId (1, kLevel))), 0.5f, 1.0e-3f);
+            GridControllerDevice::apply (h.proc, { Action::Kind::RecPlay, 7 });      // hidden track (5 tracks shown)
+            h.run (2);
+            expect (h.track (7).isEmpty());
+        }
+
+        beginTest ("Controller templates: LED feedback follows the track states");
+        {
+            using namespace controllers;
+            Proc16 h;
+            h.recordBar (0);
+            auto state = GridControllerDevice::makeState (h.proc, false);
+            expectEquals (state.tracks[0].state, (int) LoopTrack::State::Playing);
+            expect (! state.tracks[5].exists);
+
+            const Template lp (TemplateId::LaunchpadMiniMk3);
+            std::vector<juce::MidiMessage> out;
+            lp.render (state, out);
+            auto find = [&out] (int note) -> const juce::MidiMessage* {
+                for (auto& m : out)
+                    if (m.isNoteOn (true) && m.getNoteNumber() == note)
+                        return &m;
+                return nullptr;
+            };
+            const auto* recPad = find (81);
+            expect (recPad != nullptr && recPad->getVelocity() == 21 && recPad->getChannel() == 1, "playing = green");
+            expect (find (82) != nullptr && find (82)->getVelocity() == 0, "empty track dark");
+            state.tracks[1].state = (int) LoopTrack::State::Recording;
+            out.clear();
+            lp.render (state, out);
+            expect (find (82)->getVelocity() == 5 && find (82)->getChannel() == 3, "recording = red, pulsing");
+
+            const Template apc (TemplateId::ApcMiniMk2);
+            out.clear();
+            apc.render (state, out);
+            const auto* apcPad = find (56);
+            expect (apcPad != nullptr && apcPad->getChannel() == 7 && apcPad->getVelocity() == 21, "APC mk2: green at 100 %");
+            const Template apc1 (TemplateId::ApcMini);
+            out.clear();
+            apc1.render (state, out);
+            expect (find (56) != nullptr && find (56)->getVelocity() == 1, "first APC mini: green");
+            expect (find (57) != nullptr && find (57)->getVelocity() == 4, "first APC mini: red blinking");
+        }
+    }
+};
+
+static Features16UiTests features16UiTests;

@@ -576,6 +576,14 @@ void PushSurface::handleButton (int number, bool pressed)
             break;
         case cc::octaveUp:
         case cc::octaveDown:
+            if (shift)
+            {
+                // v1.6 loop tricks: SHIFT+OCTAVE DOWN = half speed, SHIFT+OCTAVE UP = double speed (quantized)
+                const bool up = number == cc::octaveUp;
+                proc.pressTrigger (trackId (selectedTrack, up ? kDblSpeed : kHalfSpeed));
+                showNotice (i18n::tr (up ? "T%1 double speed" : "T%1 half speed", juce::String (selectedTrack + 1)));
+                break;
+            }
             if (auto* p = proc.getState().getParameter (trackId (selectedTrack, kPitch)))
             {
                 const bool up = number == cc::octaveUp;
@@ -585,6 +593,13 @@ void PushSurface::handleButton (int number, bool pressed)
             }
             break;
         case cc::newBtn:     toggleParam (gSceneStore); break;
+        case cc::scales:     // v1.6: SHIFT+SCALES = reverse the loop audio (quantized, undoable)
+            if (shift)
+            {
+                proc.pressTrigger (trackId (selectedTrack, kRevLoop));
+                showNotice (i18n::tr ("T%1 loop reversed", juce::String (selectedTrack + 1)));
+            }
+            break;
         case cc::quantize:
             if (auto* p = proc.getState().getParameter (gQuantize))
             {
@@ -1074,6 +1089,7 @@ void PushSurface::render (std::vector<juce::MidiMessage>& out, bool full)
     setCC (cc::fixedLength, button::dim);
     setCC (cc::left, button::dim);
     setCC (cc::right, button::dim);
+    setCC (cc::scales, shift ? button::on : button::dim);     // v1.6: SHIFT+SCALES = reverse loop
 
     // ---- display
     const auto lines = buildDisplay();

@@ -147,9 +147,13 @@ void PushDevice::processIncoming()
 
 void PushDevice::sendChanges (bool full)
 {
+    // v1.6 fix: this called itself (endless recursion on the first incoming message while connected)
     if (output == nullptr)
         return;
-    sendChanges (full);
+    std::vector<juce::MidiMessage> out;
+    surface.render (out, full);
+    for (const auto& m : out)
+        output->sendMessageNow (m);
 }
 
 void PushDevice::handleAsyncUpdate()
