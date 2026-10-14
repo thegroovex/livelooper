@@ -6,6 +6,7 @@
 #include "KeyMap.h"
 #include "LinkSync.h"
 #include "PerformanceRecorder.h"
+#include "SoundPacks.h"
 
 #include <juce_audio_formats/juce_audio_formats.h>
 #include <juce_audio_processors/juce_audio_processors.h>
@@ -163,6 +164,23 @@ public:
     /** Sound packs: rescans the packs folder / imports a pack folder or .zip (message thread). */
     void refreshSoundPacks();
     bool importSoundPack (const juce::File& folderOrZip, juce::String& error);
+    /** v1.6 beat library: a beat with its name, steps, velocities, length, swing and row mixer
+        (level / pitch / mute / solo) as a .llpattern file - in Music/livelooper/Patterns or anywhere. */
+    SoundPacks::BeatSettings captureBeatSettings() const;
+    void applyBeatSettings (const SoundPacks::BeatSettings& s);
+    /** Saves user slot 'slot' (target empty = into the library under 'name'); returns the file or empty. */
+    juce::File saveBeat (int slot, const juce::String& name, const juce::File& target = {});
+    /** The slot a loaded beat goes to: the edit slot when it is empty (or replaceCurrent), otherwise the first
+        free slot; when all 16 are used, the edit slot. */
+    int  slotForLoading (bool replaceCurrent) const;
+    /** Loads a beat into 'slot' (steps + name + swing / mixer when saved), makes it the edit slot and plays it. */
+    void loadBeat (const SoundPacks::NamedPattern& beat, int slot);
+    bool loadBeatFile (const juce::File& file, int slot, juce::String& error);
+    /** Host parameters "Next / Previous Library Beat": steps through the library (wraps around). The first
+        step picks a slot with slotForLoading(false); later steps reuse it while it still holds that beat.
+        Returns the index in the library, -1 when it is empty. */
+    int  browseLibraryBeat (int delta);
+    int  takeBeatLibraryRequest() noexcept { return beatLibRequest.exchange (0); }
 
     //============================================================================== AudioProcessor
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
@@ -246,7 +264,7 @@ private:
         int scene = -1;
         int arg = 0;            // extra command argument (copy: -1 = first empty track)
         int octave = 0;         // v1.4: octave up / down trigger (changes the pitch parameter)
-        int special = 0;        // v1.6: 1 = clip export (message thread)
+        int special = 0;        // v1.6: 1 = clip export, 2 / 3 = next / previous library beat (message thread)
         bool last = false;
         std::atomic<bool> needsReset { false };
     };
@@ -335,6 +353,9 @@ private:
     BeatPatternBank userPatterns;
     std::array<juce::String, BeatPatternBank::kNumSlots> userPatternNames;
     int beatsEditSlot = 0;
+    std::atomic<int> beatLibRequest { 0 };       // v1.6: +n / -n library steps requested by the host parameters
+    int browseSlot = -1, browseIndex = -1;       // v1.6: where library browsing loads to, and what it loaded
+    BeatPattern browseLoaded;
     std::shared_ptr<const DrumBank> currentBank;
     int soundPackVersion = -1;
     void writeBeatsState (juce::XmlElement& root) const;

@@ -84,6 +84,7 @@ juce_add_binary_data(livelooper_resources
         LICENSE
         THIRD-PARTY.md
         docs/brand/beattactics-logo-transparent.png
+        docs/brand/beattactics-icon.svg
         resources/livelooper-icon-256.png
         ${LIVELOOPER_DRUM_SAMPLES}
         ${LIVELOOPER_DEMO_LOOPS}
@@ -133,6 +134,7 @@ set(LIVELOOPER_PLUGIN_SOURCES
     src/plugin/ClipExport.cpp
     src/plugin/VideoWriterWin.cpp
     src/plugin/EditorFeatures16.cpp
+    src/plugin/WelcomeScreen.cpp
     src/plugin/controllers/GridControllers.cpp)
 if(APPLE)
     list(APPEND LIVELOOPER_PLUGIN_SOURCES src/plugin/VideoWriterMac.mm)

@@ -66,9 +66,9 @@ BeatsPage::BeatsPage (LiveLooperProcessor& p) : proc (p)
     for (auto* b : { &loadBtn, &saveBtn, &clearBtn, &copyBtn, &pasteBtn, &randomBtn, &importBtn, &packsBtn })
         addAndMakeVisible (*b);
     loadBtn.onClick = [this] { showLoadMenu(); };
-    loadBtn.setTooltip ("Load a groove, a saved pattern or a sound-pack pattern into this slot");
-    saveBtn.onClick = [this] { saveToLibrary(); };
-    saveBtn.setTooltip ("Save this pattern as a user pattern (Music/livelooper/Patterns), usable in every set");
+    loadBtn.setTooltip ("LOAD: a saved beat from your library, a beat file, a groove or a sound-pack pattern");
+    saveBtn.onClick = [this] { showSaveDialog(); };
+    saveBtn.setTooltip ("SAVE: store this beat under a name in your beat library (Music/livelooper/Patterns) or as a file anywhere");
     clearBtn.onClick = [this] { clearPattern(); };
     copyBtn.onClick = [this] { copyPattern(); };
     pasteBtn.onClick = [this] { pastePattern(); };
@@ -308,20 +308,109 @@ void BeatsPage::loadPreset (int presetIndex)
 
 void BeatsPage::loadPattern (const BeatPattern& p, const juce::String& name)
 {
-    proc.storeUserPattern (getEditSlot(), p, name);
-    ensurePlaying();
+    const int slot = getLoadTargetSlot();
+    SoundPacks::NamedPattern beat;
+    beat.pattern = p;
+    beat.name = name;
+    proc.loadBeat (beat, slot);            // no saved swing / mixer: those stay as they are
     barPage = 0;
+    status (tr ("Beat \"%1\" loaded into User %2", name, juce::String (slot + 1)));
     refreshTexts();
 }
 
 juce::File BeatsPage::saveToLibrary()
 {
+    return saveBeat (proc.getUserPatternName (getEditSlot()));
+}
+
+juce::File BeatsPage::saveBeat (const juce::String& name, const juce::File& target)
+{
+    const auto f = proc.saveBeat (getEditSlot(), name, target);
+    status (f != juce::File() ? tr ("Beat saved: %1", f.getFileNameWithoutExtension()) : tr ("Could not save the beat"));
+    refreshTexts();
+    return f;
+}
+
+void BeatsPage::showSaveDialog()
+{
     auto name = proc.getUserPatternName (getEditSlot());
     if (name.isEmpty())
         name = tr ("User %1", juce::String (getEditSlot() + 1));
-    const auto f = SoundPacks::get().saveUserPattern (proc.getUserPatterns().load (getEditSlot()), name);
-    status (f != juce::File() ? tr ("Saved user pattern \"%1\"", name) : tr ("Could not save the pattern"));
-    return f;
+    saveDialog = std::make_unique<juce::AlertWindow> (tr ("Save beat"),
+                                                      tr ("Name of the beat - it is saved in your beat library (Music/livelooper/Patterns) "
+                                                          "with steps, velocities, length, swing and the row mixer."),
+                                                      juce::MessageBoxIconType::NoIcon, this);
+    saveDialog->addTextEditor ("name", name, tr ("Name"));
+    saveDialog->addButton (tr ("Save"), 1, juce::KeyPress (juce::KeyPress::returnKey));
+    saveDialog->addButton (tr ("Save as file..."), 2);
+    saveDialog->addButton (tr ("Cancel"), 0, juce::KeyPress (juce::KeyPress::escapeKey));
+    saveDialog->enterModalState (true, juce::ModalCallbackFunction::create ([this] (int r) {
+        if (saveDialog == nullptr)
+            return;
+        const auto chosen = saveDialog->getTextEditorContents ("name").trim();
+        saveDialog.reset();
+        if (r == 2)
+            showSaveAsChooser (chosen);
+        else if (r == 1 && chosen.isNotEmpty())
+        {
+            const auto existing = SoundPacks::get().getLibraryFileFor (chosen);
+            if (! existing.existsAsFile())
+            {
+                saveBeat (chosen);
+                return;
+            }
+            juce::AlertWindow::showOkCancelBox (juce::MessageBoxIconType::QuestionIcon, tr ("Save beat"),
+                                                tr ("A beat named \"%1\" is already in your library. Replace it?", chosen),
+                                                tr ("Replace"), tr ("Cancel"), this,
+                                                juce::ModalCallbackFunction::create ([this, chosen] (int ok) { if (ok != 0) saveBeat (chosen); }));
+        }
+    }), false);
+}
+
+void BeatsPage::showSaveAsChooser (const juce::String& name)
+{
+    const auto start = SoundPacks::get().getLibraryFileFor (name.isNotEmpty() ? name : juce::String ("Beat"));
+    chooser = std::make_unique<juce::FileChooser> (tr ("Save beat as file"), start, juce::String ("*") + SoundPacks::kPatternExtension);
+    chooser->launchAsync (juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles
+                              | juce::FileBrowserComponent::warnAboutOverwriting,
+                          [this, name] (const juce::FileChooser& fc) {
+                              const auto f = fc.getResult();
+                              if (f != juce::File())
+                                  saveBeat (name.isNotEmpty() ? name : f.getFileNameWithoutExtension(), f);
+                          });
+}
+
+int BeatsPage::getLoadTargetSlot() const
+{
+    return proc.slotForLoading (replaceOnLoad);
+}
+
+int BeatsPage::loadLibraryBeat (int index)
+{
+    const auto lib = SoundPacks::get().getUserPatterns();
+    if (! juce::isPositiveAndBelow (index, (int) lib.size()))
+        return -1;
+    const int slot = getLoadTargetSlot();
+    proc.loadBeat (lib[(size_t) index], slot);
+    barPage = 0;
+    status (tr ("Beat \"%1\" loaded into User %2", lib[(size_t) index].name, juce::String (slot + 1)));
+    refreshTexts();
+    return slot;
+}
+
+bool BeatsPage::openBeatFile (const juce::File& file)
+{
+    const int slot = getLoadTargetSlot();
+    juce::String error;
+    if (! proc.loadBeatFile (file, slot, error))
+    {
+        status (error);
+        return false;
+    }
+    barPage = 0;
+    status (tr ("Beat \"%1\" loaded into User %2", proc.getUserPatternName (slot), juce::String (slot + 1)));
+    refreshTexts();
+    return true;
 }
 
 void BeatsPage::setBarPage (int b)
@@ -332,24 +421,32 @@ void BeatsPage::setBarPage (int b)
 
 void BeatsPage::showLoadMenu()
 {
-    juce::PopupMenu menu, presets, library, packs;
+    juce::PopupMenu menu, presets, packs, slots;
+    const int target = getLoadTargetSlot();
+    menu.addSectionHeader (tr ("Load into User %1", juce::String (target + 1))
+                           + (proc.getUserPatterns().isEmpty (target) ? " " + tr ("(free)") : juce::String()));
+    // the library first: the beats you saved
+    const auto user = SoundPacks::get().getUserPatterns();
+    if (user.empty())
+        menu.addItem (-1, tr ("No saved beats yet - SAVE stores the beat you build here"), false);
+    for (int i = 0; i < (int) user.size(); ++i)
+        menu.addItem (2000 + i, user[(size_t) i].name);
+    menu.addItem (5, tr ("Open file..."));
+    menu.addSeparator();
     for (int i = 1; i < RhythmGenerator::getNumPatterns(); ++i)
         presets.addItem (1000 + i, tr (RhythmGenerator::getPatternName (i)));
-    const auto user = SoundPacks::get().getUserPatterns();
-    for (int i = 0; i < (int) user.size(); ++i)
-        library.addItem (2000 + i, user[(size_t) i].name);
     const auto packPatterns = SoundPacks::get().getPackPatterns();
     for (int i = 0; i < (int) packPatterns.size(); ++i)
         packs.addItem (3000 + i, packPatterns[(size_t) i].source + " / " + packPatterns[(size_t) i].name);
     menu.addSubMenu (tr ("Grooves"), presets);
-    menu.addSubMenu (tr ("User patterns"), library, ! user.empty());
     menu.addSubMenu (tr ("Sound packs"), packs, ! packPatterns.empty());
-    menu.addSeparator();
-    juce::PopupMenu slots;
     for (int s = 0; s < BeatPatternBank::kNumSlots; ++s)
         if (s != getEditSlot())
             slots.addItem (4000 + s, proc.getPatternDisplayName (RhythmGenerator::getNumPatterns() + s), ! proc.getUserPatterns().isEmpty (s));
     menu.addSubMenu (tr ("Other slot of this set"), slots);
+    menu.addSeparator();
+    menu.addItem (6, tr ("Replace this slot (otherwise: a free slot)"), true, replaceOnLoad);
+    menu.addItem (7, tr ("Show beat library folder"));
     menu.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&loadBtn),
                         [this, user, packPatterns] (int r) {
                             if (r >= 4000)
@@ -357,9 +454,33 @@ void BeatsPage::showLoadMenu()
                             else if (r >= 3000)
                                 loadPattern (packPatterns[(size_t) (r - 3000)].pattern, packPatterns[(size_t) (r - 3000)].name);
                             else if (r >= 2000)
-                                loadPattern (user[(size_t) (r - 2000)].pattern, user[(size_t) (r - 2000)].name);
+                            {
+                                const int slot = getLoadTargetSlot();
+                                proc.loadBeat (user[(size_t) (r - 2000)], slot);
+                                barPage = 0;
+                                status (tr ("Beat \"%1\" loaded into User %2", user[(size_t) (r - 2000)].name, juce::String (slot + 1)));
+                                refreshTexts();
+                            }
                             else if (r >= 1000)
                                 loadPreset (r - 1000);
+                            else if (r == 5)
+                            {
+                                chooser = std::make_unique<juce::FileChooser> (tr ("Open beat file"), SoundPacks::get().getPatternFolder(),
+                                                                               juce::String ("*") + SoundPacks::kPatternExtension);
+                                chooser->launchAsync (juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+                                                      [this] (const juce::FileChooser& fc) {
+                                                          if (fc.getResult() != juce::File())
+                                                              openBeatFile (fc.getResult());
+                                                      });
+                            }
+                            else if (r == 6)
+                                replaceOnLoad = ! replaceOnLoad;
+                            else if (r == 7)
+                            {
+                                auto f = SoundPacks::get().getPatternFolder();
+                                f.createDirectory();
+                                f.revealToUser();
+                            }
                         });
 }
 

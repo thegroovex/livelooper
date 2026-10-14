@@ -4,7 +4,8 @@
 #include "KeyMapEditor.h"
 #include "BeatsPage.h"
 
-namespace livelooper { class GuidedTour; }
+namespace livelooper { class GuidedTour;
+class WelcomeScreen; }
 
 namespace livelooper
 {
@@ -74,8 +75,16 @@ public:
     void startTour();
     bool isTourVisible() const;
     GuidedTour* getTour() noexcept { return tour.get(); }
-    /** First start: demo set + tour, once (force: also in tests). */
+    /** First start: the welcome screen (demo set or empty set), then the tour - once (force: also in tests). */
     void handleFirstRun (bool force = false);
+    /** v1.6 welcome screen (also SETUP > Welcome / demo set ...). */
+    void showWelcome (bool firstStart);
+    bool isWelcomeVisible() const noexcept;
+    WelcomeScreen* getWelcome() noexcept { return welcome.get(); }
+    /** What the welcome buttons do; asks first when the current set holds loops (confirm = false: tests skip the question). */
+    void chooseDemoSet (bool confirm = true);
+    void chooseEmptySet (bool confirm = true);
+    bool currentSetHasLoops() const;
     /** 9:16 clip of the last 20 s (or the last performance recording) in the background. */
     void exportClip (bool fromRecording);
     bool isClipExportRunning() const noexcept { return clipThread != nullptr; }
@@ -98,6 +107,8 @@ private:
     LLButton perfRecBtn { "REC", colours::red };
     std::unique_ptr<APVTS::ButtonAttachment> perfRecAtt;
     std::unique_ptr<GuidedTour> tour;
+    std::unique_ptr<WelcomeScreen> welcome;
+    void closeWelcome (bool startTourAfter);
     std::unique_ptr<juce::Thread> clipThread;
     std::atomic<float> clipProgress { -1.0f };
     // ---- end v1.6 features

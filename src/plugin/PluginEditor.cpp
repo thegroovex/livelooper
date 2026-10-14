@@ -4,6 +4,7 @@
 #include "InfoWindows.h"
 #include "Updates.h"
 #include "GuidedTour.h"   // v1.6
+#include "WelcomeScreen.h" // v1.6
 
 namespace livelooper
 {

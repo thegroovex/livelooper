@@ -448,11 +448,8 @@ std::vector<SoundPacks::NamedPattern> SoundPacks::getUserPatterns() const
     for (const auto& f : files)
     {
         NamedPattern np;
-        if (patternFromVar (juce::JSON::parse (f.loadFileAsString()), np.pattern, np.name))
-        {
-            np.file = f;
+        if (loadBeatFile (f, np))
             r.push_back (std::move (np));
-        }
     }
     return r;
 }
@@ -467,5 +464,110 @@ juce::File SoundPacks::saveUserPattern (const BeatPattern& p, const juce::String
         o->setProperty ("format", "livelooper-pattern");
     const auto file = folder.getChildFile (safeName (name) + kPatternExtension);
     return file.replaceWithText (juce::JSON::toString (v)) ? file : juce::File();
+}
+
+//============================================================================== v1.6 beats with settings
+bool SoundPacks::BeatSettings::operator== (const BeatSettings& o) const noexcept
+{
+    if (hasSwing != o.hasSwing || hasMix != o.hasMix || (hasSwing && std::abs (swing - o.swing) > 0.05f))
+        return false;
+    if (hasMix)
+        for (size_t r = 0; r < rows.size(); ++r)
+            if (rows[r].mute != o.rows[r].mute || rows[r].solo != o.rows[r].solo
+                || std::abs (rows[r].level - o.rows[r].level) > 0.001f || std::abs (rows[r].pitch - o.rows[r].pitch) > 0.01f)
+                return false;
+    return true;
+}
+
+void SoundPacks::settingsToVar (const BeatSettings& st, juce::var& v)
+{
+    auto* o = v.getDynamicObject();
+    if (o == nullptr)
+        return;
+    if (st.hasSwing)
+        o->setProperty ("swing", std::round (st.swing * 10.0f) / 10.0f);
+    if (st.hasMix)
+    {
+        auto mixer = std::make_unique<juce::DynamicObject>();
+        for (int r = 0; r < BeatPattern::kRows; ++r)
+        {
+            const auto& row = st.rows[(size_t) r];
+            auto ro = std::make_unique<juce::DynamicObject>();
+            ro->setProperty ("level", std::round (row.level * 1000.0f) / 1000.0f);
+            ro->setProperty ("pitch", juce::roundToInt (row.pitch));
+            ro->setProperty ("mute", row.mute);
+            ro->setProperty ("solo", row.solo);
+            mixer->setProperty (voiceKey (r), juce::var (ro.release()));
+        }
+        o->setProperty ("mixer", juce::var (mixer.release()));
+    }
+}
+
+SoundPacks::BeatSettings SoundPacks::settingsFromVar (const juce::var& v)
+{
+    BeatSettings st;
+    if (v.hasProperty ("swing"))
+    {
+        st.hasSwing = true;
+        st.swing = juce::jlimit (50.0f, 75.0f, (float) (double) v.getProperty ("swing", 50.0));
+    }
+    if (auto* mixer = v.getProperty ("mixer", {}).getDynamicObject())
+    {
+        st.hasMix = true;
+        for (const auto& prop : mixer->getProperties())
+        {
+            const int r = voiceFromKey (prop.name.toString());
+            if (r < 0)
+                continue;
+            auto& row = st.rows[(size_t) r];
+            row.level = juce::jlimit (0.0f, 1.5f, (float) (double) prop.value.getProperty ("level", 1.0));
+            row.pitch = (float) juce::jlimit (-12, 12, (int) prop.value.getProperty ("pitch", 0));
+            row.mute = (bool) prop.value.getProperty ("mute", false);
+            row.solo = (bool) prop.value.getProperty ("solo", false);
+        }
+    }
+    return st;
+}
+
+juce::File SoundPacks::getLibraryFileFor (const juce::String& name) const
+{
+    return getPatternFolder().getChildFile (safeName (name) + kPatternExtension);
+}
+
+juce::File SoundPacks::saveBeat (const BeatPattern& p, const juce::String& name, const BeatSettings& settings, const juce::File& target)
+{
+    auto file = target;
+    if (file == juce::File())
+    {
+        if (! getPatternFolder().createDirectory())
+            return {};
+        file = getLibraryFileFor (name);
+    }
+    else if (! file.hasFileExtension (juce::String (kPatternExtension).substring (1)))
+        file = file.withFileExtension (kPatternExtension);
+    if (! file.getParentDirectory().createDirectory())
+        return {};
+    auto v = patternToVar (p, name);
+    if (auto* o = v.getDynamicObject())
+    {
+        o->setProperty ("format", "livelooper-pattern");
+        o->setProperty ("format_version", 2);
+    }
+    settingsToVar (settings, v);
+    return file.replaceWithText (juce::JSON::toString (v)) ? file : juce::File();
+}
+
+bool SoundPacks::loadBeatFile (const juce::File& file, NamedPattern& out)
+{
+    if (! file.existsAsFile())
+        return false;
+    const auto v = juce::JSON::parse (file.loadFileAsString());
+    if (! patternFromVar (v, out.pattern, out.name))
+        return false;
+    out.pattern.name = out.name.toStdString();
+    out.settings = settingsFromVar (v);
+    out.file = file;
+    out.source = {};
+    return true;
 }
 } // namespace livelooper

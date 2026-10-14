@@ -30,7 +30,7 @@ juce::String sceneId (int scene)
 bool isTrigger (const juce::String& id)
 {
     static const juce::StringArray globalTriggers { gAllStartStop, gAllStart, gAllStop, gClearAll, gTap, gCapture,
-                                                    gClipExport /* v1.6 */ };
+                                                    gClipExport /* v1.6 */, gBeatLibNext, gBeatLibPrev };
     if (globalTriggers.contains (id))
         return true;
     if (id.startsWith ("scene") && id.substring (5).containsOnly ("0123456789"))
@@ -187,7 +187,9 @@ namespace
         { "perf_rec", "Performance Recorder" }, { "clip_export", "Export 9:16 Clip" },
         // v1.6 rhythm
         { "rhythm_variation", "Drum Variation" }, { "rhythm_fill", "Fill (hold)" }, { "beat_switch", "Pattern Switch" },
-        { "drums_bfx", "Drums through Beat FX" }, { "drums_repeat", "Drums through Repeat/Stutter" }
+        { "drums_bfx", "Drums through Beat FX" }, { "drums_repeat", "Drums through Repeat/Stutter" },
+        // v1.6 beat library
+        { "beat_lib_next", "Next Library Beat" }, { "beat_lib_prev", "Previous Library Beat" }
     };
 
     template <size_t N>
@@ -462,6 +464,13 @@ APVTS::ParameterLayout createLayout()
                     .withStringFromValueFunction ([] (float v, int) { const int st = juce::roundToInt (v); return (st > 0 ? "+" : "") + juce::String (st); })
                     .withLabel ("st")));
         }
+        layout.add (std::move (group));
+    }
+    // ---------------------------------------------------------------- v1.6 beat library (appended after the rhythm block)
+    {
+        auto group = std::make_unique<juce::AudioProcessorParameterGroup> ("beatlib", i18n::tr ("Beat Library"), "|");
+        for (const auto& id : { gBeatLibNext, gBeatLibPrev })
+            group->addChild (std::make_unique<juce::AudioParameterBool> (PID { id, 7 }, localisedName (id), false));
         layout.add (std::move (group));
     }
 

@@ -601,7 +601,23 @@ public:
             expect (! ed->isTourVisible());
             expect (h.track (0).isEmpty());
             ed->handleFirstRun (true);
-            expect (ed->isTourVisible(), "tour after the first start");
+            expect (ed->isWelcomeVisible(), "first start: the welcome screen with the choice");
+            expect (! ed->isTourVisible(), "the tour waits for the choice");
+            expect (h.track (0).isEmpty(), "nothing replaced before the choice");
+            expect (ed->getWelcome()->isFirstStart());
+            expect (ed->getWelcome()->getCardBounds().getWidth() > 400 && ed->getWelcome()->getDemoButton().isShowing()
+                    && ed->getWelcome()->getEmptyButton().isShowing());
+            if (auto path = juce::SystemStats::getEnvironmentVariable ("LIVELOOPER_UI_PREVIEW", {}); path.isNotEmpty())
+            {
+                const juce::File file (path + "welcome.png");
+                file.deleteFile();
+                juce::FileOutputStream out (file);
+                juce::PNGImageFormat().writeImageToStream (ed->createComponentSnapshot (ed->getLocalBounds()), out);
+            }
+            ed->chooseDemoSet (false);
+            h.pump();
+            expect (! ed->isWelcomeVisible());
+            expect (ed->isTourVisible(), "tour after the choice on the first start");
             expect (h.track (0).getState() == LoopTrack::State::Stopped, "demo set loaded");
             expectEquals (appsettings::getValue ("firstRunDone"), juce::String ("1"));
             auto* tour = ed->getTour();
@@ -633,6 +649,20 @@ public:
             ed->getTour()->close();
             h.pump();
             expect (! ed->isTourVisible());
+
+            // SETUP > Welcome / demo set ...: the same choice any time, no tour afterwards
+            expect (ed->currentSetHasLoops());
+            ed->showWelcome (false);
+            expect (ed->isWelcomeVisible() && ! ed->getWelcome()->isFirstStart());
+            ed->chooseEmptySet (false);
+            h.pump();
+            expect (! ed->isWelcomeVisible());
+            expect (! ed->isTourVisible(), "no tour from the menu");
+            expect (! ed->currentSetHasLoops(), "empty set: all loops cleared");
+            ed->showWelcome (false);
+            ed->getWelcome()->getCloseButton().triggerClick();
+            h.pump();
+            expect (! ed->isWelcomeVisible(), "CLOSE leaves the set as it is");
             ed.reset();
         }
 

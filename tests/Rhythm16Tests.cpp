@@ -4,6 +4,7 @@
 #include "engine/LooperEngine.h"
 #include "engine/RhythmGenerator.h"
 #include "plugin/AppSettings.h"
+#include "plugin/BeatsPage.h"
 #include "plugin/PluginProcessor.h"
 #include "plugin/SoundPacks.h"
 
@@ -529,6 +530,152 @@ public:
                                     "beat_mute1", "beat_solo8", "beat_vol4", "beat_pitch8" })
                 expect (proc.getState().getParameter (id) != nullptr, id);
             expect (params::isMomentary (params::gRhythmFill), "FILL is momentary (note on / off via MIDI)");
+        }
+
+        beginTest ("Beat library: SAVE / LOAD keep name, steps, velocities, length, swing and row mixer");
+        {
+            const auto tmp = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("ll_beatlib_test");
+            tmp.deleteRecursively();
+            appsettings::setStorageFolderForTests (tmp.getChildFile ("settings"));
+            auto& packs = SoundPacks::get();
+            packs.setFoldersForTests (tmp.getChildFile ("packs"), tmp.getChildFile ("patterns"));
+            packs.rescan();
+
+            LiveLooperProcessor proc (false, false);
+            proc.prepareToPlay (48000.0, 512);
+            auto& st = proc.getState();
+            auto setPlain = [&st] (const juce::String& id, float v) { auto* p = st.getParameter (id); p->setValueNotifyingHost (p->convertTo0to1 (v)); };
+            auto plain = [&st] (const juce::String& id) { auto* p = st.getParameter (id); return p->convertFrom0to1 (p->getValue()); };
+
+            BeatPattern p;
+            p.resize (32, 2);
+            p.set (0, 0, 127);
+            p.set (1, 9, 40);
+            p.set (3, 63, 96);
+            proc.storeUserPattern (2, p, "Night Drive");
+            proc.setBeatsEditSlot (2);
+            setPlain (params::gRhythmSwing, 61.0f);
+            setPlain (params::beatRowId (params::kBeatVol, 1), 0.6f);
+            setPlain (params::beatRowId (params::kBeatPitch, 3), -5.0f);
+            setPlain (params::beatRowId (params::kBeatMute, 6), 1.0f);
+            setPlain (params::beatRowId (params::kBeatSolo, 0), 1.0f);
+
+            const auto f = proc.saveBeat (2, "Night Drive");
+            expect (f.existsAsFile(), "saved into the library");
+            expectEquals (f.getParentDirectory().getFileName(), juce::String ("patterns"));
+            expectEquals (f.getFileExtension(), juce::String (SoundPacks::kPatternExtension));
+            const auto json = juce::JSON::parse (f.loadFileAsString());
+            expectEquals ((int) json.getProperty ("format_version", 0), 2);
+            const auto anywhere = tmp.getChildFile ("elsewhere/my beat");
+            const auto f2 = proc.saveBeat (2, "Night Drive", anywhere);
+            expect (f2.existsAsFile() && f2.hasFileExtension ("llpattern"), "Save as: any folder, extension added");
+
+            // change everything, then load it back
+            setPlain (params::gRhythmSwing, 50.0f);
+            for (int r = 0; r < BeatPattern::kRows; ++r)
+            {
+                setPlain (params::beatRowId (params::kBeatVol, r), 1.0f);
+                setPlain (params::beatRowId (params::kBeatPitch, r), 0.0f);
+                setPlain (params::beatRowId (params::kBeatMute, r), 0.0f);
+                setPlain (params::beatRowId (params::kBeatSolo, r), 0.0f);
+            }
+            const auto lib = packs.getUserPatterns();
+            expectEquals ((int) lib.size(), 1);
+            expectEquals (lib[0].name, juce::String ("Night Drive"));
+            expect (lib[0].pattern == p, "steps, velocities, resolution, length");
+            expect (lib[0].settings.hasSwing && lib[0].settings.hasMix);
+            expect (proc.slotForLoading (false) == 0, "edit slot 2 is used: the first free slot");
+            proc.loadBeat (lib[0], proc.slotForLoading (false));
+            expectEquals (proc.getBeatsEditSlot(), 0);
+            expect (proc.getUserPatterns().load (0) == p);
+            expectEquals (proc.getUserPatternName (0), juce::String ("Night Drive"));
+            expectWithinAbsoluteError (plain (params::gRhythmSwing), 61.0f, 0.06f);
+            expectWithinAbsoluteError (plain (params::beatRowId (params::kBeatVol, 1)), 0.6f, 0.01f);
+            expectWithinAbsoluteError (plain (params::beatRowId (params::kBeatPitch, 3)), -5.0f, 0.01f);
+            expect (plain (params::beatRowId (params::kBeatMute, 6)) >= 0.5f, "row mute");
+            expect (plain (params::beatRowId (params::kBeatSolo, 0)) >= 0.5f, "row solo");
+            expectEquals (proc.getCurrentPattern(), RhythmGenerator::getNumPatterns() + 0, "the loaded beat plays");
+            expect (proc.slotForLoading (true) == 0, "replace: the edit slot");
+
+            // Open file... (a file anywhere) into the edit slot when it is empty
+            proc.setBeatsEditSlot (9);
+            juce::String error;
+            expect (proc.loadBeatFile (f2, proc.slotForLoading (false), error), error);
+            expect (proc.getUserPatterns().load (9) == p);
+            expect (! proc.loadBeatFile (tmp.getChildFile ("nothing.llpattern"), 9, error), "missing file refused");
+            expect (error.isNotEmpty());
+
+            // old library files without swing / mixer still load; the settings stay as they are
+            packs.saveUserPattern (RhythmGenerator::presetToPattern (2), "Old Beat");
+            const auto lib2 = packs.getUserPatterns();
+            expectEquals ((int) lib2.size(), 2);
+            expectEquals (lib2[1].name, juce::String ("Old Beat"));
+            expect (! lib2[1].settings.hasSwing && ! lib2[1].settings.hasMix);
+            setPlain (params::gRhythmSwing, 55.0f);
+            proc.loadBeat (lib2[1], 9);
+            expectWithinAbsoluteError (plain (params::gRhythmSwing), 55.0f, 0.06f);
+
+            // next / previous library beat (host parameters): one slot, wraps around
+            for (int s = 0; s < BeatPatternBank::kNumSlots; ++s)
+                proc.storeUserPattern (s, {}, {});
+            proc.setBeatsEditSlot (4);
+            expectEquals (proc.browseLibraryBeat (1), 0, "first: Night Drive");
+            expectEquals (proc.getBeatsEditSlot(), 4);
+            expectEquals (proc.getUserPatternName (4), juce::String ("Night Drive"));
+            expectEquals (proc.browseLibraryBeat (1), 1, "next: Old Beat");
+            expectEquals (proc.getBeatsEditSlot(), 4, "browsing reuses its slot");
+            expectEquals (proc.browseLibraryBeat (1), 0, "wraps around");
+            expectEquals (proc.browseLibraryBeat (-1), 1, "previous wraps too");
+            proc.getUserPatterns().setCell (4, 0, 1, 90);          // edited: the next step keeps the edit
+            proc.browseLibraryBeat (1);
+            expect (proc.getBeatsEditSlot() != 4, "an edited slot is not overwritten");
+            expectEquals (proc.getUserPatterns().getCell (4, 0, 1), 90);
+
+            // the host parameters reach the message thread
+            expect (params::isTrigger (params::gBeatLibNext) && params::isTrigger (params::gBeatLibPrev));
+            juce::AudioBuffer<float> buf (2, 512);
+            juce::MidiBuffer midi;
+            st.getParameter (params::gBeatLibNext)->setValueNotifyingHost (1.0f);
+            buf.clear();
+            proc.processBlock (buf, midi);
+            st.getParameter (params::gBeatLibPrev)->setValueNotifyingHost (1.0f);
+            buf.clear();
+            proc.processBlock (buf, midi);
+            st.getParameter (params::gBeatLibPrev)->setValueNotifyingHost (0.0f);
+            st.getParameter (params::gBeatLibNext)->setValueNotifyingHost (0.0f);
+            buf.clear();
+            proc.processBlock (buf, midi);
+            st.getParameter (params::gBeatLibPrev)->setValueNotifyingHost (1.0f);
+            buf.clear();
+            proc.processBlock (buf, midi);
+            expectEquals (proc.takeBeatLibraryRequest(), 1 - 1 - 1, "next + 2 x previous");
+            expectEquals (proc.takeBeatLibraryRequest(), 0);
+
+            // the BEATS page: SAVE / LOAD buttons do the same
+            {
+                BeatsPage page (proc);
+                page.setSize (1100, 700);
+                page.setEditSlot (3);
+                proc.storeUserPattern (3, p, "Page Beat");
+                const auto pf = page.saveBeat ("Page Beat");
+                expect (pf.existsAsFile(), "SAVE writes into the library");
+                expectEquals ((int) packs.getUserPatterns().size(), 3);
+                page.setReplaceOnLoad (true);
+                expectEquals (page.getLoadTargetSlot(), 3, "replace: the edit slot");
+                page.setReplaceOnLoad (false);
+                const int target = page.getLoadTargetSlot();
+                expect (target != 3 && proc.getUserPatterns().isEmpty (target), "otherwise a free slot");
+                expectEquals (page.loadLibraryBeat (2), target);
+                expectEquals (proc.getUserPatternName (target), juce::String ("Page Beat"));
+                expectEquals (page.getEditSlot(), target, "the page shows the loaded beat");
+                expect (page.openBeatFile (f2));
+                expect (! page.openBeatFile (tmp.getChildFile ("nope.llpattern")));
+            }
+
+            packs.setFoldersForTests ({}, {});
+            packs.rescan();
+            appsettings::setStorageFolderForTests ({});
+            tmp.deleteRecursively();
         }
     }
 };

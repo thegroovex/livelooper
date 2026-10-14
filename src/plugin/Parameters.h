@@ -132,6 +132,9 @@ inline constexpr const char* kBeatVol   = "beat_vol";
 inline constexpr const char* kBeatPitch = "beat_pitch";
 juce::StringArray beatSwitchChoices();
 // ---- end v1.6 rhythm
+// ---- v1.6 beat library (appended after the rhythm block): step through the saved beats (Music/livelooper/Patterns)
+inline const juce::String gBeatLibNext { "beat_lib_next" };   // trigger: next beat of the library
+inline const juce::String gBeatLibPrev { "beat_lib_prev" };   // trigger: previous beat of the library
 
 inline constexpr int kNumScenes = 8;
 inline constexpr int kCaptureBars[] = { 1, 2, 4, 8, 16, 32 };   // 16 / 32 since 1.5 (appended)

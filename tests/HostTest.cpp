@@ -91,9 +91,11 @@ int main (int argc, char* argv[])
             ++looperParams;
     // 400 up to 1.5, + 26 v1.6 features (loop tricks x 8 tracks, performance recorder, clip export)
     // + 37 v1.6 rhythm (variation, fill, pattern switch, drum FX routing x 2, BEATS rows x 8 x 4)
+    // + 2 v1.6 beat library (next / previous library beat)
     constexpr int kExpectedParams = 400
                                   + 26    // v1.6 features
-                                  + 37;   // v1.6 rhythm
+                                  + 37    // v1.6 rhythm
+                                  + 2;    // v1.6 beat library
     check (looperParams == kExpectedParams, juce::String (kExpectedParams) + " looper parameters exposed (" + juce::String (looperParams) + ")");
 
     plugin->enableAllBuses();

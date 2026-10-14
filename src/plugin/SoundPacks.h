@@ -31,12 +31,25 @@ public:
     static constexpr const char* kPatternExtension = ".llpattern";
     static constexpr int kMaxSamplesPerVoice = 32;
 
+    /** v1.6: what a saved beat keeps besides the steps - swing and the BEATS row mixer.
+        Optional in the file (pack patterns and beats saved before have none). */
+    struct BeatSettings
+    {
+        struct Row { bool mute = false, solo = false; float level = 1.0f; float pitch = 0.0f; };
+        bool  hasSwing = false;
+        float swing = 50.0f;                     // percent, 50 = straight .. 75
+        bool  hasMix = false;
+        std::array<Row, BeatPattern::kRows> rows {};
+        bool operator== (const BeatSettings& o) const noexcept;
+    };
+
     struct NamedPattern
     {
         juce::String name;      // pattern name
         juce::String source;    // pack name, or empty for the user library
         juce::File file;        // user library file (empty for pack patterns)
         BeatPattern pattern;
+        BeatSettings settings;  // v1.6: swing + row mixer, when the file has them
     };
     struct PackInfo
     {
@@ -83,12 +96,23 @@ public:
     std::vector<NamedPattern> getUserPatterns() const;
     /** Writes the pattern as <name>.llpattern into the library; returns the file (empty on error). */
     juce::File saveUserPattern (const BeatPattern& p, const juce::String& name);
+    /** v1.6: saves a beat with its swing and row mixer - into the library (target empty) or to any file
+        ("Save as..."). Returns the file written, empty on error. */
+    juce::File saveBeat (const BeatPattern& p, const juce::String& name, const BeatSettings& settings,
+                         const juce::File& target = {});
+    /** The library file a beat with this name is saved to (it may exist already). */
+    juce::File getLibraryFileFor (const juce::String& name) const;
+    /** Reads one .llpattern file (library or anywhere). */
+    static bool loadBeatFile (const juce::File& file, NamedPattern& out);
 
     // ---- format helpers (public for tests)
     static bool loadPack (const juce::File& folder, LoadedPack& out, juce::String& error);
     /** Pattern object of a pack / .llpattern: name, steps_per_bar, bars, rows { kick: "X..." or [127, 0, ...] }. */
     static bool patternFromVar (const juce::var& v, BeatPattern& out, juce::String& name);
     static juce::var patternToVar (const BeatPattern& p, const juce::String& name);
+    /** "swing": 56.0, "mixer": { "kick": { "level": 1.0, "pitch": 0, "mute": false, "solo": false }, ... } */
+    static void settingsToVar (const BeatSettings& s, juce::var& patternObject);
+    static BeatSettings settingsFromVar (const juce::var& patternObject);
     /** "kick", "snare", "clap", "hat_closed", "hat_open", "rim", "shaker", "tom" */
     static const char* voiceKey (int voice) noexcept;
     static int voiceFromKey (const juce::String& key) noexcept;

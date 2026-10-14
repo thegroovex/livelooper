@@ -46,6 +46,16 @@ public:
     void loadPreset (int presetIndex);
     void loadPattern (const BeatPattern& p, const juce::String& name);
     juce::File saveToLibrary();
+    /** v1.6 beat library: SAVE (name dialog -> library, or "Save as file..." anywhere) and LOAD (library list,
+        "Open file...", grooves, packs, other slots). A loaded beat goes into the edit slot when it is empty,
+        otherwise into a free slot (or always into the edit slot with "Replace this slot"). */
+    juce::File saveBeat (const juce::String& name, const juce::File& target = {});
+    int  loadLibraryBeat (int index);
+    bool openBeatFile (const juce::File& file);
+    int  getLoadTargetSlot() const;
+    void setReplaceOnLoad (bool r) noexcept { replaceOnLoad = r; }
+    void showSaveDialog();
+    void showSaveAsChooser (const juce::String& name);
     int  getBarPage() const noexcept { return barPage; }
     void setBarPage (int b);
     /** Velocity steps of a click: 40 ghost, 96 normal, 127 accent. */
@@ -87,7 +97,7 @@ private:
     LLButton playBtn { "PLAY", colours::green }, backBtn { "LOOPER", colours::cyan };
     LLCombo kitBox, stepsBox, barsBox, switchBox, grooveBox, fillsBox;
     std::unique_ptr<APVTS::ComboBoxAttachment> kitAtt, switchAtt, grooveAtt, fillsAtt;
-    LLButton loadBtn { "LOAD", colours::cyan }, saveBtn { "SAVE TO LIBRARY", colours::cyan }, clearBtn { "CLEAR", colours::red };
+    LLButton loadBtn { "LOAD", colours::cyan }, saveBtn { "SAVE", colours::cyan }, clearBtn { "CLEAR", colours::red };
     LLButton copyBtn { "COPY", colours::yellow }, pasteBtn { "PASTE", colours::yellow }, randomBtn { "VARY", colours::orange };
     LLButton importBtn { "IMPORT PACK", colours::learn }, packsBtn { "PACKS", colours::learn };
     std::unique_ptr<MomentaryButton> fillBtn;
@@ -102,6 +112,8 @@ private:
 
     juce::Rectangle<int> topBar, toolBar, rowHeader, bottomBar, captionArea;
     std::unique_ptr<juce::FileChooser> chooser;
+    std::unique_ptr<juce::AlertWindow> saveDialog;
+    bool replaceOnLoad = false;
     int barPage = 0;
     int lastVersion = -1, lastCell = -2, lastKit = -1, lastPattern = -1, lastPackVersion = -1;
     static BeatPattern clipboard;

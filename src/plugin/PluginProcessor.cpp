@@ -135,6 +135,10 @@ LiveLooperProcessor::LiveLooperProcessor (bool withCueOutput, bool withTrackOutp
     addTrigger (gCapture,      C::Capture, -1);
     addTrigger (gClipExport,   C::Capture, -1);          // v1.6: handled on the message thread
     triggers.back()->special = 1;
+    addTrigger (gBeatLibNext,  C::Capture, -1);          // v1.6 beat library: message thread
+    triggers.back()->special = 2;
+    addTrigger (gBeatLibPrev,  C::Capture, -1);
+    triggers.back()->special = 3;
     perfRecParam = apvts.getRawParameterValue (gPerfRec);
     for (int i = 0; i < kNumScenes; ++i)
     {
@@ -467,6 +471,8 @@ void LiveLooperProcessor::fireTrigger (Trigger& t) noexcept
         handleScene (t.scene);
     else if (t.special == 1)
         clipExportRequested.store (true);
+    else if (t.special == 2 || t.special == 3)
+        beatLibRequest.fetch_add (t.special == 2 ? 1 : -1);
     else if (t.octave != 0)
         pendingOctave[(size_t) t.track].fetch_add (t.octave);      // the message thread changes the pitch
     else
@@ -790,6 +796,9 @@ void LiveLooperProcessor::timerCallback()
     // v1.6: sound packs changed (import in another instance / rescan)
     if (SoundPacks::get().getVersion() != soundPackVersion)
         updateDrumBank();
+    // v1.6: next / previous library beat (host parameters)
+    if (const int steps = takeBeatLibraryRequest(); steps != 0)
+        browseLibraryBeat (steps);
 
     // momentary trigger parameters go back to "off" after they fired
     for (auto& t : triggers)
@@ -1544,6 +1553,124 @@ int LiveLooperProcessor::prepareEditSlot()
     beatsEditSlot = slot;
     selectUserPattern (slot);
     return slot;
+}
+
+//============================================================================== v1.6 beat library
+SoundPacks::BeatSettings LiveLooperProcessor::captureBeatSettings() const
+{
+    SoundPacks::BeatSettings st;
+    auto plain = [this] (const juce::String& id, float fallback)
+    {
+        if (auto* p = apvts.getParameter (id))
+            return p->convertFrom0to1 (p->getValue());
+        return fallback;
+    };
+    st.hasSwing = true;
+    st.swing = plain (gRhythmSwing, 50.0f);
+    st.hasMix = true;
+    for (int r = 0; r < BeatPattern::kRows; ++r)
+    {
+        auto& row = st.rows[(size_t) r];
+        row.mute = plain (beatRowId (kBeatMute, r), 0.0f) >= 0.5f;
+        row.solo = plain (beatRowId (kBeatSolo, r), 0.0f) >= 0.5f;
+        row.level = plain (beatRowId (kBeatVol, r), 1.0f);
+        row.pitch = plain (beatRowId (kBeatPitch, r), 0.0f);
+    }
+    return st;
+}
+
+void LiveLooperProcessor::applyBeatSettings (const SoundPacks::BeatSettings& st)
+{
+    auto set = [this] (const juce::String& id, float plainValue)
+    {
+        if (auto* p = apvts.getParameter (id))
+        {
+            p->beginChangeGesture();
+            p->setValueNotifyingHost (p->convertTo0to1 (plainValue));
+            p->endChangeGesture();
+        }
+    };
+    if (st.hasSwing)
+        set (gRhythmSwing, st.swing);
+    if (st.hasMix)
+        for (int r = 0; r < BeatPattern::kRows; ++r)
+        {
+            const auto& row = st.rows[(size_t) r];
+            set (beatRowId (kBeatMute, r), row.mute ? 1.0f : 0.0f);
+            set (beatRowId (kBeatSolo, r), row.solo ? 1.0f : 0.0f);
+            set (beatRowId (kBeatVol, r), row.level);
+            set (beatRowId (kBeatPitch, r), row.pitch);
+        }
+}
+
+juce::File LiveLooperProcessor::saveBeat (int slot, const juce::String& name, const juce::File& target)
+{
+    if (! juce::isPositiveAndBelow (slot, BeatPatternBank::kNumSlots))
+        return {};
+    auto beatName = name.trim().substring (0, 40);
+    if (beatName.isEmpty())
+        beatName = i18n::tr ("User %1", juce::String (slot + 1));
+    auto p = userPatterns.load (slot);
+    p.name = beatName.toStdString();
+    const auto f = SoundPacks::get().saveBeat (p, beatName, captureBeatSettings(), target);
+    if (f != juce::File())
+        setUserPatternName (slot, beatName);
+    return f;
+}
+
+int LiveLooperProcessor::slotForLoading (bool replaceCurrent) const
+{
+    if (replaceCurrent || userPatterns.isEmpty (beatsEditSlot))
+        return beatsEditSlot;
+    for (int s = 0; s < BeatPatternBank::kNumSlots; ++s)
+        if (userPatterns.isEmpty (s))
+            return s;
+    return beatsEditSlot;
+}
+
+void LiveLooperProcessor::loadBeat (const SoundPacks::NamedPattern& beat, int slot)
+{
+    slot = juce::jlimit (0, BeatPatternBank::kNumSlots - 1, slot);
+    storeUserPattern (slot, beat.pattern, beat.name);
+    applyBeatSettings (beat.settings);
+    beatsEditSlot = slot;
+    selectUserPattern (slot);
+}
+
+bool LiveLooperProcessor::loadBeatFile (const juce::File& file, int slot, juce::String& error)
+{
+    SoundPacks::NamedPattern beat;
+    if (! SoundPacks::loadBeatFile (file, beat))
+    {
+        error = file.getFileName() + ": " + i18n::tr ("not a livelooper beat");
+        return false;
+    }
+    loadBeat (beat, slot);
+    return true;
+}
+
+int LiveLooperProcessor::browseLibraryBeat (int delta)
+{
+    const auto lib = SoundPacks::get().getUserPatterns();
+    if (lib.empty() || delta == 0)
+        return -1;
+    const int n = (int) lib.size();
+    // keep using the browse slot while it still holds what browsing put there; otherwise pick a new one
+    const bool reuse = browseSlot >= 0 && browseIndex >= 0 && userPatterns.load (browseSlot) == browseLoaded;
+    if (! reuse)
+    {
+        browseSlot = slotForLoading (false);
+        // start next to the beat that plays (if it came from the library), else at the start / end
+        browseIndex = delta > 0 ? -1 : n;
+        const auto playing = userPatterns.load (browseSlot);
+        for (int i = 0; i < n; ++i)
+            if (lib[(size_t) i].pattern == playing && lib[(size_t) i].name == userPatternNames[(size_t) browseSlot])
+                browseIndex = i;
+    }
+    browseIndex = ((browseIndex + delta) % n + n) % n;
+    loadBeat (lib[(size_t) browseIndex], browseSlot);
+    browseLoaded = userPatterns.load (browseSlot);
+    return browseIndex;
 }
 
 juce::String LiveLooperProcessor::getKitDisplayName (int k) const

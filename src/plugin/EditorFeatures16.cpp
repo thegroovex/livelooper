@@ -6,6 +6,7 @@
 #include "AppSettings.h"
 #include "ClipExport.h"
 #include "GuidedTour.h"
+#include "WelcomeScreen.h"
 #include "InfoWindows.h"
 #include "controllers/GridControllers.h"
 
@@ -151,6 +152,8 @@ void LiveLooperEditor::layoutFeatures16 (int)
     perfRecBtn.setBounds (204, 46, 88, 26);
     if (tour != nullptr)
         tour->setBounds (surface.getLocalBounds());
+    if (welcome != nullptr)
+        welcome->setBounds (surface.getLocalBounds());
 }
 
 void LiveLooperEditor::timerFeatures16()
@@ -178,16 +181,96 @@ void LiveLooperEditor::handleFirstRun (bool force)
                     || appsettings::getValue ("firstRunDone") == "1"))
         return;
     appsettings::setValue ("firstRunDone", "1");
-    bool empty = true;
+    showWelcome (true);           // the tour follows the choice
+}
+
+//============================================================================== welcome screen
+bool LiveLooperEditor::isWelcomeVisible() const noexcept
+{
+    return welcome != nullptr && welcome->isVisible();
+}
+
+bool LiveLooperEditor::currentSetHasLoops() const
+{
     for (int t = 0; t < kNumTracks; ++t)
-        empty = empty && proc.getEngine().getTrack (t).isEmpty();
-    if (empty && ! proc.hasLoadedState())
-    {
+        if (! proc.getEngine().getTrack (t).isEmpty())
+            return true;
+    return false;
+}
+
+void LiveLooperEditor::showWelcome (bool firstStart)
+{
+    if (tour != nullptr)
+        tour->setVisible (false);
+    welcome = std::make_unique<WelcomeScreen> (firstStart);
+    juce::Component::SafePointer<LiveLooperEditor> safe (this);
+    welcome->onDemo  = [safe] { if (safe != nullptr) safe->chooseDemoSet(); };
+    welcome->onEmpty = [safe] { if (safe != nullptr) safe->chooseEmptySet(); };
+    welcome->onClose = [safe] {
+        if (safe != nullptr)
+            safe->closeWelcome (safe->welcome != nullptr && safe->welcome->isFirstStart());
+    };
+    surface.addAndMakeVisible (*welcome);
+    welcome->setBounds (surface.getLocalBounds());
+    welcome->toFront (false);
+}
+
+void LiveLooperEditor::closeWelcome (bool startTourAfter)
+{
+    if (welcome != nullptr)
+        welcome->setVisible (false);
+    juce::Component::SafePointer<LiveLooperEditor> safe (this);
+    juce::MessageManager::callAsync ([safe] { if (safe != nullptr && safe->welcome != nullptr && ! safe->welcome->isVisible()) safe->welcome.reset(); });
+    if (startTourAfter && appsettings::getValue ("tourShown") != "1")
+        startTour();
+}
+
+void LiveLooperEditor::chooseDemoSet (bool confirm)
+{
+    const bool first = welcome != nullptr && welcome->isFirstStart();
+    auto load = [this, first] {
         proc.loadDemoSet();
         showStatus (tr ("DEMO SET LOADED - PRESS ALL START / STOP"));
+        closeWelcome (first);
+    };
+    if (! confirm || ! currentSetHasLoops())
+    {
+        load();
+        return;
     }
-    if (appsettings::getValue ("tourShown") != "1")
-        startTour();
+    juce::Component::SafePointer<LiveLooperEditor> safe (this);
+    juce::AlertWindow::showOkCancelBox (juce::MessageBoxIconType::WarningIcon, tr ("Load demo set"),
+                                        tr ("The demo set replaces the current set - your loops and settings are lost "
+                                            "unless you saved them. Load the demo set?"),
+                                        tr ("Load demo set"), tr ("Cancel"), this,
+                                        juce::ModalCallbackFunction::create ([safe, load] (int ok) {
+                                            if (safe != nullptr && ok != 0)
+                                                load();
+                                        }));
+}
+
+void LiveLooperEditor::chooseEmptySet (bool confirm)
+{
+    const bool first = welcome != nullptr && welcome->isFirstStart();
+    auto clear = [this, first] {
+        if (currentSetHasLoops() || ! first)
+            proc.loadEmptySet();
+        showStatus (tr ("EMPTY SET"));
+        closeWelcome (first);
+    };
+    if (! confirm || ! currentSetHasLoops())
+    {
+        clear();
+        return;
+    }
+    juce::Component::SafePointer<LiveLooperEditor> safe (this);
+    juce::AlertWindow::showOkCancelBox (juce::MessageBoxIconType::WarningIcon, tr ("Empty set (clear everything)"),
+                                        tr ("All loops are cleared and every setting goes back to its default. Continue?"),
+                                        tr ("Clear everything"), tr ("Cancel"), this,
+                                        juce::ModalCallbackFunction::create ([safe, clear] (int ok) {
+                                            if (safe != nullptr && ok != 0)
+                                                clear();
+                                        }));
 }
 
 bool LiveLooperEditor::isTourVisible() const
@@ -255,6 +338,7 @@ void LiveLooperEditor::showHelpMenu()
 void LiveLooperEditor::addFeatures16Menu (juce::PopupMenu& menu)
 {
     menu.addItem (600, tr ("Save set to share (.livelooper, one file with all audio) ..."));
+    menu.addItem (604, tr ("Welcome / demo set ..."));
     menu.addItem (601, tr ("Load demo set"));
     menu.addItem (602, tr ("Empty set (clear everything)"));
     menu.addSeparator();
@@ -295,8 +379,9 @@ bool LiveLooperEditor::handleFeatures16Menu (int r)
     switch (r)
     {
         case 600: saveSharedSet(); return true;
-        case 601: proc.loadDemoSet(); showStatus (tr ("DEMO SET LOADED - PRESS ALL START / STOP")); return true;
-        case 602: proc.loadEmptySet(); showStatus (tr ("EMPTY SET")); return true;
+        case 604: showWelcome (false); return true;
+        case 601: chooseDemoSet(); return true;
+        case 602: chooseEmptySet(); return true;
         case 603: startTour(); return true;
         case 610:
             if (proc.isPerformanceRecording()) proc.stopPerformanceRecording();
