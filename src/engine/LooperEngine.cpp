@@ -38,12 +38,18 @@ void LooperEngine::prepare (double newSampleRate, int maxBlockSize, double newMa
     inputFx.prepare (sampleRate);
     trackFx.prepare (sampleRate);
     rhythm.prepare (sampleRate);
+    metronome.prepare (sampleRate);
+    beatFx.prepare (sampleRate, 12.0);
+    beatRepeat.prepare (sampleRate, 6.0);
+    for (auto& c : colorFx)
+        c.prepare (sampleRate);
 
     for (auto* v : { &inProcL, &inProcR, &fxBusL, &fxBusR, &clickBuf, &kickBuf, &duckEnvBuf,
                      &tOutL, &tOutR, &tFxL, &tFxR, &resL, &resR, &loopBusL, &loopBusR })
         v->assign ((size_t) maxBlock, 0.0f);
 
-    const auto ringSize = (size_t) (sampleRate * maxLoopSeconds);
+    // one extra bar at the slowest tempo (40 BPM = 6 s) + crossfade: a capture as long as the track memory still fits
+    const auto ringSize = (size_t) (sampleRate * (maxLoopSeconds + 7.0));
     if (ringL.size() != ringSize)
     {
         ringL.assign (ringSize, 0.0f);
@@ -170,7 +176,7 @@ int LooperEngine::autoFinishSamples (int t) const noexcept
 
 bool LooperEngine::anythingNeedsClock() const noexcept
 {
-    if (rhythmOn)
+    if (rhythmOn || metronomeOn)
         return true;
     for (int t = 0; t < kNumTracks; ++t)
         if (tracks[(size_t) t].isRunning() || pending[(size_t) t].type != Pending::None)
@@ -755,13 +761,16 @@ void LooperEngine::processChunk (const float* inL, const float* inR, float* outL
         if (! fading)
             internalRunning = running = false;
     }
-    if (! hostDriven && ! internalRunning && rhythmOn)
+    if (! hostDriven && ! internalRunning && (rhythmOn || metronomeOn))
         ensureClockRunning();
+    const double fxPpq = running ? blockPpq : freePpq;   // v1.5: grid of the performance FX
 
     // ---------------------------------------------------------------- input + input FX
     std::copy (inL, inL + n, inProcL.data());
     std::copy (inR, inR + n, inProcR.data());
     inputFx.process (inProcL.data(), inProcR.data(), n, blockPpq, ppqPerSample, bpm);
+    if (fxTarget == (int) FxTarget::Input)
+        applyPerformanceFx (inProcL.data(), inProcR.data(), n, fxPpq);
 
     std::fill (outL, outL + n, 0.0f);
     std::fill (outR, outR + n, 0.0f);
@@ -788,6 +797,8 @@ void LooperEngine::processChunk (const float* inL, const float* inR, float* outL
     std::fill (kickBuf.begin(), kickBuf.begin() + n, 0.0f);
     rhythm.process (clickBuf.data(), clickBuf.data(), n, chunkStartPpq, ppqPerSample,
                     (int) std::lround (measurePpq), running && rhythmOn, kickBuf.data());
+    metronome.process (clickBuf.data(), clickBuf.data(), n, chunkStartPpq, ppqPerSample,
+                       (int) std::lround (measurePpq), running && metronomeOn, nullptr);
     // process() adds to both pointers: they are the same buffer, so halve it again
     for (int i = 0; i < n; ++i)
         clickBuf[(size_t) i] *= 0.5f;
@@ -852,6 +863,15 @@ void LooperEngine::processChunk (const float* inL, const float* inR, float* outL
             }
             status[(size_t) t].duckGain.store (minGain, std::memory_order_relaxed);
 
+            // v1.5: colour FX of the track, then the beat FX when this track is the FX target
+            {
+                float* cl = ts.trackFx ? tFxL.data() : tOutL.data();
+                float* cr = ts.trackFx ? tFxR.data() : tOutR.data();
+                colorFx[(size_t) t].process (cl, cr, n, colorType, colorAmount[(size_t) t], ppqPerSample);
+                if (fxTarget == (int) FxTarget::Track1 + t)
+                    applyPerformanceFx (cl, cr, n, fxPpq);
+            }
+
             // routing: main output (FX-routed tracks via the track FX bus) and / or the direct output
             float* dL = extra.directL[(size_t) t] != nullptr ? extra.directL[(size_t) t] + offset : nullptr;
             float* dR = extra.directR[(size_t) t] != nullptr ? extra.directR[(size_t) t] + offset : nullptr;
@@ -895,16 +915,29 @@ void LooperEngine::processChunk (const float* inL, const float* inR, float* outL
     }
     tapeStop.process (loopBusL.data(), loopBusR.data(), n);
     perfFilter.process (loopBusL.data(), loopBusR.data(), n);
+    if (fxTarget == (int) FxTarget::Loops)
+        applyPerformanceFx (loopBusL.data(), loopBusR.data(), n, fxPpq);
 
     const float mon = global.monitorLevel;
     const float master = global.masterLevel;
+    if (fxTarget == (int) FxTarget::Master)
+    {
+        // v1.5: the master channel of the beat FX = loops + input monitor (the click stays dry)
+        for (int i = 0; i < n; ++i)
+        {
+            loopBusL[(size_t) i] += inProcL[(size_t) i] * mon;
+            loopBusR[(size_t) i] += inProcR[(size_t) i] * mon;
+        }
+        applyPerformanceFx (loopBusL.data(), loopBusR.data(), n, fxPpq);
+    }
+    const float monMix = fxTarget == (int) FxTarget::Master ? 0.0f : mon;
     float pl = 0.0f, pr = 0.0f, pc = 0.0f;
     for (int i = 0; i < n; ++i)
     {
         const float click = clickBuf[(size_t) i];
         const float cm = clickToMain ? click : 0.0f;
-        outL[i] = (loopBusL[(size_t) i] + cm + inProcL[(size_t) i] * mon) * master;
-        outR[i] = (loopBusR[(size_t) i] + cm + inProcR[(size_t) i] * mon) * master;
+        outL[i] = (loopBusL[(size_t) i] + cm + inProcL[(size_t) i] * monMix) * master;
+        outR[i] = (loopBusR[(size_t) i] + cm + inProcR[(size_t) i] * monMix) * master;
         pl = std::max (pl, std::abs (outL[i]));
         pr = std::max (pr, std::abs (outR[i]));
     }
@@ -931,6 +964,7 @@ void LooperEngine::processChunk (const float* inL, const float* inR, float* outL
     else if (internalRunning)
         internalPpq = endPpq;
     blockPpq = running ? endPpq : blockPpq;
+    freePpq = running ? endPpq : freePpq + n * ppqPerSample;
 
     updateStatus();
 }

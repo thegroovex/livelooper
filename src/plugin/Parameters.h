@@ -1,5 +1,6 @@
 #pragma once
 
+#include "engine/BeatFx.h"
 #include "engine/Effects.h"
 #include "engine/MidiMap.h"
 
@@ -87,8 +88,29 @@ inline const juce::String gSceneStore   { "scene_store" };
 // v1.4
 inline const juce::String gTapeStop     { "tape_stop" };     // 0 = running, 1 = tape stands still
 inline const juce::String gPerfFilter   { "perf_filter" };   // -1 low-pass .. 0 off .. 1 high-pass
+// v1.5 performance FX (beat FX, colour FX, beat repeat / stutter), metronome block, Link
+inline const juce::String gBfxOn        { "bfx_on" };
+inline const juce::String gBfxHold      { "bfx_hold" };     // momentary: on while held
+inline const juce::String gBfxType      { "bfx_type" };
+inline const juce::String gBfxBeat      { "bfx_beat" };
+inline const juce::String gBfxDepth     { "bfx_depth" };
+inline const juce::String gBfxTarget    { "bfx_target" };
+inline const juce::String gColorType    { "color_type" };
+inline constexpr const char* kColor     = "color";        // per track: colour FX knob -1 .. 1
+inline const juce::String gRepeatHold   { "brep_hold" };    // momentary
+inline const juce::String gRepeatLatch  { "brep_latch" };
+inline const juce::String gRepeatRate   { "brep_rate" };
+inline const juce::String gStutterHold  { "stut_hold" };    // momentary
+inline const juce::String gStutterLatch { "stut_latch" };
+inline const juce::String gStutterRate  { "stut_rate" };
+inline const juce::String gMetroOn      { "metro_on" };
+inline const juce::String gMetroLevel   { "metro_level" };
+inline const juce::String gMetroAccent  { "metro_accent" };
+inline const juce::String gLinkOn       { "link_on" };
+inline const juce::String gLinkStartStop{ "link_startstop" };
 inline constexpr int kNumScenes = 8;
-inline constexpr int kCaptureBars[] = { 1, 2, 4, 8 };
+inline constexpr int kCaptureBars[] = { 1, 2, 4, 8, 16, 32 };   // 16 / 32 since 1.5 (appended)
+inline constexpr int kNumCaptureChoices = 6;
 /** "scene1" .. "scene8" */
 juce::String sceneId (int scene);
 
@@ -114,6 +136,11 @@ juce::StringArray outputChoices();
 juce::StringArray duckSourceChoices();
 juce::StringArray captureBarsChoices();
 juce::StringArray recLengthChoices();
+juce::StringArray beatFxChoices();
+juce::StringArray beatFractionChoices();
+juce::StringArray fxTargetChoices();
+juce::StringArray colorFxChoices();
+juce::StringArray repeatRateChoices();
 
 /** The choice lists above are English; this translates a list into the current UI language. */
 juce::StringArray translated (const juce::StringArray& englishChoices);

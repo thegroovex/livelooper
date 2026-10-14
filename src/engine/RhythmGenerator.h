@@ -35,6 +35,8 @@ public:
     void setPattern (int index) noexcept  { pattern = index; }
     void setLevel (float l) noexcept      { level = l; }
     void setClickSound (int s) noexcept   { clickSound = s; }
+    /** v1.5: metronome accent on the first beat of the bar (default on). */
+    void setClickAccent (bool a) noexcept { clickAccent = a; }
     void setKit (int k) noexcept          { kit = k; }
     /** 0.5 = straight ... 0.75 = hard swing (the odd 16th notes are delayed). */
     void setSwing (float s) noexcept      { swing = s; }
@@ -72,6 +74,7 @@ private:
     double samplesPerStep = 5512.5;
     int    pattern = 0;
     int    clickSound = 0;
+    bool   clickAccent = true;
     int    kit = 0;
     float  swing = 0.5f, humanize = 0.25f;
     float  level = 0.7f;

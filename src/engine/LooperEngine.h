@@ -1,5 +1,6 @@
 #pragma once
 
+#include "BeatFx.h"
 #include "Effects.h"
 #include "LoopTrack.h"
 #include "Performance.h"
@@ -81,7 +82,7 @@ public:
     void setInputFx (int slot, const FxSettings& s) noexcept     { inputFx.setSlot (slot, s); }
     void setTrackFx (int slot, const FxSettings& s) noexcept     { trackFx.setSlot (slot, s); }
     void setRhythm (bool on, int pattern, float level) noexcept;
-    void setClickSound (int sound) noexcept                     { rhythm.setClickSound (sound); }
+    void setClickSound (int sound) noexcept                     { rhythm.setClickSound (sound); metronome.setClickSound (sound); }
     /** kit index, swing 0.5 (straight) ... 0.75, humanize 0 ... 1 */
     void setRhythmFeel (int kit, float swing, float humanize) noexcept
     {
@@ -90,6 +91,33 @@ public:
         rhythm.setHumanize (humanize);
     }
     void setFollowHostTransport (bool f) noexcept               { followHostTransport = f; }
+
+    // ---- v1.5 performance FX (audio thread, once per block)
+    /** Beat FX + beat repeat / stutter on the target channel (FxTarget, Track1 + n = track n + 1).
+        repeatOn: held or latched; stutter: chop every repeat; rate: index into kRepeatPpq. */
+    void setPerformanceFx (const BeatFxSettings& s, int target, bool repeatOn, int repeatRate, bool stutter) noexcept
+    {
+        beatFx.setSettings (s);
+        fxTarget = std::clamp (target, 0, kNumFxTargets - 1);
+        beatRepeat.set (repeatOn, repeatRate, stutter);
+    }
+    /** Colour FX: one type for all channels (like a DJ mixer), one knob per track (-1 .. 1). */
+    void setColorFx (ColorFxType type, int track, float amount) noexcept
+    {
+        colorType = type;
+        colorAmount[(size_t) std::clamp (track, 0, kNumTracks - 1)] = amount;
+    }
+    /** v1.5 metronome, independent of the rhythm. */
+    void setMetronome (bool on, float level, bool accent) noexcept
+    {
+        metronomeOn = on;
+        metronome.setPattern (0);
+        metronome.setLevel (level);
+        metronome.setClickAccent (accent);
+    }
+    const BeatFx& getBeatFx() const noexcept { return beatFx; }
+    const BeatRepeat& getBeatRepeat() const noexcept { return beatRepeat; }
+    int getFxTarget() const noexcept { return fxTarget; }
 
     // ---- commands (audio thread). Executed at the start of the next process() call.
     void queueCommand (Command c, int track = -1, int arg = 0) noexcept;
@@ -180,6 +208,21 @@ private:
     FxChain inputFx, trackFx;
     RhythmGenerator rhythm;
     bool rhythmOn = false;
+    // v1.5
+    RhythmGenerator metronome;
+    bool metronomeOn = false;
+    BeatFx beatFx;
+    BeatRepeat beatRepeat;
+    int fxTarget = 0;
+    std::array<ColorFx, kNumTracks> colorFx;
+    std::array<float, kNumTracks> colorAmount {};
+    ColorFxType colorType = ColorFxType::Filter;
+    double freePpq = 0.0;              // grid for the performance FX while the timeline stands still
+    void applyPerformanceFx (float* l, float* r, int n, double ppq) noexcept
+    {
+        beatRepeat.process (l, r, n, ppq, ppqPerSample);
+        beatFx.process (l, r, n, ppq, ppqPerSample);
+    }
     bool followHostTransport = false;
 
     std::array<PendingCut, kNumTracks> cutPending {};

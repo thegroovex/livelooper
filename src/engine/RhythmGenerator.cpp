@@ -228,7 +228,7 @@ void RhythmGenerator::scheduleStep (long long step, int beatsPerMeasure) noexcep
         if (((step % 4) + 4) % 4 != 0)
             return;
         const long long stepsPerMeasure = std::max (1, beatsPerMeasure) * 4;
-        const bool accent = ((step % stepsPerMeasure) + stepsPerMeasure) % stepsPerMeasure == 0;
+        const bool accent = clickAccent && ((step % stepsPerMeasure) + stepsPerMeasure) % stepsPerMeasure == 0;
         events[(size_t) std::min (numEvents, (int) events.size() - 1)] = { 0.0, Click, accent ? 1.0f : 0.7f, (uint8_t) (accent ? 1 : 0) };
         numEvents = std::min (numEvents + 1, (int) events.size());
         return;

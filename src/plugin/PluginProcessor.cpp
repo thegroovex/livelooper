@@ -165,6 +165,26 @@ LiveLooperProcessor::LiveLooperProcessor (bool withCueOutput, bool withTrackOutp
     sceneStore    = apvts.getRawParameterValue (gSceneStore);
     tapeStopParam = apvts.getRawParameterValue (gTapeStop);
     perfFilterParam = apvts.getRawParameterValue (gPerfFilter);
+    bfxOn        = apvts.getRawParameterValue (gBfxOn);
+    bfxHold      = apvts.getRawParameterValue (gBfxHold);
+    bfxType      = apvts.getRawParameterValue (gBfxType);
+    bfxBeat      = apvts.getRawParameterValue (gBfxBeat);
+    bfxDepth     = apvts.getRawParameterValue (gBfxDepth);
+    bfxTarget    = apvts.getRawParameterValue (gBfxTarget);
+    colorType    = apvts.getRawParameterValue (gColorType);
+    for (int t = 0; t < kNumTracks; ++t)
+        colorKnob[(size_t) t] = apvts.getRawParameterValue (trackId (t, kColor));
+    repeatHold   = apvts.getRawParameterValue (gRepeatHold);
+    repeatLatch  = apvts.getRawParameterValue (gRepeatLatch);
+    repeatRate   = apvts.getRawParameterValue (gRepeatRate);
+    stutterHold  = apvts.getRawParameterValue (gStutterHold);
+    stutterLatch = apvts.getRawParameterValue (gStutterLatch);
+    stutterRate  = apvts.getRawParameterValue (gStutterRate);
+    metroOn      = apvts.getRawParameterValue (gMetroOn);
+    metroLevel   = apvts.getRawParameterValue (gMetroLevel);
+    metroAccent  = apvts.getRawParameterValue (gMetroAccent);
+    linkOn       = apvts.getRawParameterValue (gLinkOn);
+    linkStartStop = apvts.getRawParameterValue (gLinkStartStop);
 
     keyboardAvailable = wrapperType == wrapperType_Standalone;
     if (wrapperType != wrapperType_Undefined)      // a real host or the standalone app (not the unit tests)
@@ -319,7 +339,7 @@ void LiveLooperProcessor::pushSettingsToEngine() noexcept
     g.masterLevel   = master->load();
     g.monitorLevel  = monitor->load();
     g.clickRoute    = (ClickRoute) clickRoute.load();
-    g.captureBars   = kCaptureBars[juce::jlimit (0, 3, juce::roundToInt (captureBars->load()))];
+    g.captureBars   = kCaptureBars[juce::jlimit (0, kNumCaptureChoices - 1, juce::roundToInt (captureBars->load()))];
     g.autoRecord    = autoRec->load() >= 0.5f;
     g.autoRecThreshold = juce::Decibels::decibelsToGain (autoRecThresh->load());
     g.duckSource    = (DuckSource) juce::jlimit (0, 1, juce::roundToInt (duckSource->load()));
@@ -327,6 +347,23 @@ void LiveLooperProcessor::pushSettingsToEngine() noexcept
     engine.setFollowHostTransport (follow->load() >= 0.5f);
     engine.setRhythm (rhythmOn->load() >= 0.5f, juce::roundToInt (rhythmPattern->load()), rhythmLevel->load());
     engine.setClickSound (juce::roundToInt (clickSound->load()));
+
+    // v1.5 performance FX + metronome
+    {
+        BeatFxSettings b;
+        b.on       = bfxOn->load() >= 0.5f || bfxHold->load() >= 0.5f;
+        b.type     = (BeatFxType) juce::jlimit (0, (int) BeatFxType::NumTypes - 1, juce::roundToInt (bfxType->load()));
+        b.fraction = juce::jlimit (0, (int) kBeatFractions.size() - 1, juce::roundToInt (bfxBeat->load()));
+        b.depth    = bfxDepth->load();
+        const bool stutter = stutterHold->load() >= 0.5f || stutterLatch->load() >= 0.5f;
+        const bool repeat  = repeatHold->load() >= 0.5f || repeatLatch->load() >= 0.5f;
+        const int rate = juce::roundToInt ((stutter ? stutterRate : repeatRate)->load());
+        engine.setPerformanceFx (b, juce::roundToInt (bfxTarget->load()), stutter || repeat, rate, stutter);
+        const auto ct = (ColorFxType) juce::jlimit (0, (int) ColorFxType::NumTypes - 1, juce::roundToInt (colorType->load()));
+        for (int t = 0; t < kNumTracks; ++t)
+            engine.setColorFx (ct, t, colorKnob[(size_t) t]->load());
+        engine.setMetronome (metroOn->load() >= 0.5f, metroLevel->load(), metroAccent->load() >= 0.5f);
+    }
     engine.setRhythmFeel (juce::roundToInt (rhythmKit->load()), rhythmSwing->load() * 0.01f, rhythmHuman->load() * 0.01f);
     engine.setPerformance (tapeStopParam->load(), perfFilterParam->load());
 

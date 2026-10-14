@@ -40,6 +40,8 @@ bool isTrigger (const juce::String& id)
 
 bool isMomentary (const juce::String& id)
 {
+    if (id == gBfxHold || id == gRepeatHold || id == gStutterHold)
+        return true;
     if (id.startsWithChar ('t') && id.length() > 3 && id[2] == '_')
     {
         const auto name = id.substring (3);
@@ -56,7 +58,33 @@ juce::StringArray clickSoundChoices() { return { "Beep", "Woodblock", "Click", "
 juce::StringArray inputChoices()     { return { "Stereo", "Left", "Right", "Resample" }; }
 juce::StringArray outputChoices()    { return { "Main", "Direct", "Main + Direct" }; }
 juce::StringArray duckSourceChoices() { return { "Rhythm Kick", "Track 1" }; }
-juce::StringArray captureBarsChoices() { return { "1", "2", "4", "8" }; }
+juce::StringArray captureBarsChoices() { return { "1", "2", "4", "8", "16", "32" }; }
+juce::StringArray beatFractionChoices() { return { "1/32", "1/16", "1/8", "1/4", "1/2", "3/4", "1", "2", "4", "8", "16" }; }
+juce::StringArray repeatRateChoices() { return { "1/2", "1/4", "1/8", "1/16", "1/32" }; }
+
+juce::StringArray beatFxChoices()
+{
+    juce::StringArray s;
+    for (int i = 0; i < (int) BeatFxType::NumTypes; ++i)
+        s.add (getBeatFxName ((BeatFxType) i));
+    return s;
+}
+
+juce::StringArray colorFxChoices()
+{
+    juce::StringArray s;
+    for (int i = 0; i < (int) ColorFxType::NumTypes; ++i)
+        s.add (getColorFxName ((ColorFxType) i));
+    return s;
+}
+
+juce::StringArray fxTargetChoices()
+{
+    juce::StringArray s { "Master", "Loops", "Input" };
+    for (int t = 0; t < kNumTracks; ++t)
+        s.add ("Track " + juce::String (t + 1));
+    return s;
+}
 juce::StringArray recLengthChoices() { return { "-", "1 Bar", "2 Bars", "4 Bars", "8 Bars", "16 Bars", "32 Bars" }; }
 juce::StringArray startModeChoices() { return { "Immediate", "Fade In" }; }
 juce::StringArray stopModeChoices()  { return { "Immediate", "Fade Out", "Loop End" }; }
@@ -108,7 +136,8 @@ namespace
         { "slice1", "Slice 1" }, { "slice2", "Slice 2" }, { "slice3", "Slice 3" }, { "slice4", "Slice 4" },
         { "slice5", "Slice 5" }, { "slice6", "Slice 6" }, { kCutSync, "Back in Sync" }, { kMute, "Mute" },
         { kSolo, "Solo" }, { kDouble, "Double Loop" }, { kHalve, "Halve Loop" }, { kOctUp, "Octave Up" },
-        { kOctDown, "Octave Down" }, { kCopy, "Copy to Empty Track" }, { kRecLen, "Rec Length" }
+        { kOctDown, "Octave Down" }, { kCopy, "Copy to Empty Track" }, { kRecLen, "Rec Length" },
+        { kColor, "Color FX" }
     };
     const std::pair<const char*, const char*> kFxNames[] = {
         { kFxOn, "On" }, { kFxType, "Type" }, { kFxP1, "Param 1" }, { kFxP2, "Param 2" }, { kFxMix, "Mix" }
@@ -123,7 +152,13 @@ namespace
         { "rhythm_kit", "Drum Kit" }, { "rhythm_swing", "Swing" }, { "rhythm_humanize", "Humanize" },
         { "capture", "Capture" }, { "capture_bars", "Capture Bars" }, { "autorec", "Auto Record" },
         { "autorec_threshold", "Auto Record Threshold" }, { "duck_source", "Ducking Source" }, { "scene_store", "Store Scene" },
-        { "tape_stop", "Tape Stop" }, { "perf_filter", "Performance Filter" }
+        { "tape_stop", "Tape Stop" }, { "perf_filter", "Performance Filter" },
+        { "bfx_on", "Beat FX On" }, { "bfx_hold", "Beat FX Hold" }, { "bfx_type", "Beat FX Type" },
+        { "bfx_beat", "Beat FX Beat" }, { "bfx_depth", "Beat FX Level/Depth" }, { "bfx_target", "Beat FX Channel" },
+        { "color_type", "Color FX Type" }, { "brep_hold", "Beat Repeat Hold" }, { "brep_latch", "Beat Repeat Latch" },
+        { "brep_rate", "Beat Repeat Timing" }, { "stut_hold", "Stutter Hold" }, { "stut_latch", "Stutter Latch" },
+        { "stut_rate", "Stutter Timing" }, { "metro_on", "Metronome On" }, { "metro_level", "Metronome Level" },
+        { "metro_accent", "Metronome Accent" }, { "link_on", "Link" }, { "link_startstop", "Link Start/Stop Sync" }
     };
 
     template <size_t N>
@@ -319,6 +354,41 @@ APVTS::ParameterLayout createLayout()
             group->addChild (percentParam (fxId (input, s, kFxP2), localisedName (fxId (input, s, kFxP2)), 1.0f, 0.5f));
             group->addChild (percentParam (fxId (input, s, kFxMix), localisedName (fxId (input, s, kFxMix)), 1.0f, 0.5f));
         }
+        layout.add (std::move (group));
+    }
+
+    // ---------------------------------------------------------------- v1.5 performance FX, metronome, Link (appended)
+    {
+        auto group = std::make_unique<juce::AudioProcessorParameterGroup> ("perform", i18n::tr ("Performance FX"), "|");
+        auto b = [] (const juce::String& id, bool def) { return std::make_unique<juce::AudioParameterBool> (PID { id, 6 }, localisedName (id), def); };
+        auto ch = [] (const juce::String& id, const juce::StringArray& choices, int def) {
+            return std::make_unique<juce::AudioParameterChoice> (PID { id, 6 }, localisedName (id), choices, def);
+        };
+        group->addChild (b (gBfxOn, false));
+        group->addChild (b (gBfxHold, false));
+        group->addChild (ch (gBfxType, translated (beatFxChoices()), (int) BeatFxType::Echo));
+        group->addChild (ch (gBfxBeat, beatFractionChoices(), kDefaultBeatFraction));
+        group->addChild (percentParam (gBfxDepth, localisedName (gBfxDepth), 1.0f, 0.5f, 6));
+        group->addChild (ch (gBfxTarget, translated (fxTargetChoices()), 0));
+        group->addChild (ch (gColorType, translated (colorFxChoices()), 0));
+        for (int t = 0; t < kNumTracks; ++t)
+            group->addChild (std::make_unique<juce::AudioParameterFloat> (
+                PID { trackId (t, kColor), 6 }, localisedName (trackId (t, kColor)), juce::NormalisableRange<float> (-1.0f, 1.0f), 0.0f,
+                juce::AudioParameterFloatAttributes().withStringFromValueFunction ([] (float v, int) {
+                    const int p = juce::roundToInt (v * 100.0f);
+                    return p == 0 ? i18n::tr ("Off") : (p < 0 ? "L" + juce::String (-p) : "R" + juce::String (p));
+                })));
+        group->addChild (b (gRepeatHold, false));
+        group->addChild (b (gRepeatLatch, false));
+        group->addChild (ch (gRepeatRate, repeatRateChoices(), 2));
+        group->addChild (b (gStutterHold, false));
+        group->addChild (b (gStutterLatch, false));
+        group->addChild (ch (gStutterRate, repeatRateChoices(), 3));
+        group->addChild (b (gMetroOn, false));
+        group->addChild (percentParam (gMetroLevel, localisedName (gMetroLevel), 1.0f, 0.7f, 6));
+        group->addChild (b (gMetroAccent, true));
+        group->addChild (b (gLinkOn, false));
+        group->addChild (b (gLinkStartStop, false));
         layout.add (std::move (group));
     }
 

@@ -979,7 +979,7 @@ void LiveLooperEditor::showSetupMenu()
             safe->proc.setVisibleTracks (r == 100 ? 5 : 8);
             return;
         }
-        if (r >= 110 && r < 114)
+        if (r >= 110 && r < 110 + kNumCaptureChoices)
         {
             setParam (captureBars, (float) (r - 110));
             return;

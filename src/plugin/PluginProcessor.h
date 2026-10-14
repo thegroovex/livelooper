@@ -243,6 +243,14 @@ private:
     std::atomic<float>* captureBars {}; std::atomic<float>* autoRec {}; std::atomic<float>* autoRecThresh {};
     std::atomic<float>* duckSource {}; std::atomic<float>* sceneStore {};
     std::atomic<float>* tapeStopParam {}; std::atomic<float>* perfFilterParam {};
+    // v1.5
+    std::atomic<float>* bfxOn {}; std::atomic<float>* bfxHold {}; std::atomic<float>* bfxType {};
+    std::atomic<float>* bfxBeat {}; std::atomic<float>* bfxDepth {}; std::atomic<float>* bfxTarget {};
+    std::atomic<float>* colorType {}; std::array<std::atomic<float>*, kNumTracks> colorKnob {};
+    std::atomic<float>* repeatHold {}; std::atomic<float>* repeatLatch {}; std::atomic<float>* repeatRate {};
+    std::atomic<float>* stutterHold {}; std::atomic<float>* stutterLatch {}; std::atomic<float>* stutterRate {};
+    std::atomic<float>* metroOn {}; std::atomic<float>* metroLevel {}; std::atomic<float>* metroAccent {};
+    std::atomic<float>* linkOn {}; std::atomic<float>* linkStartStop {};
     std::array<SliceState, kNumTracks> sliceState {};
     std::array<std::atomic<bool>, kNumTracks> recLenFired {};
     std::array<std::atomic<int>, kNumTracks> pendingOctave {};
