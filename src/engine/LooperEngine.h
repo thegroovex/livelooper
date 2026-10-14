@@ -100,6 +100,8 @@ public:
         beatFx.setSettings (s);
         fxTarget = std::clamp (target, 0, kNumFxTargets - 1);
         beatRepeat.set (repeatOn, repeatRate, stutter);
+        drumBeatFx.setSettings (s);                       // v1.6: the drums' own instances (same settings)
+        drumRepeat.set (repeatOn, repeatRate, stutter);
     }
     /** Colour FX: one type for all channels (like a DJ mixer), one knob per track (-1 .. 1). */
     void setColorFx (ColorFxType type, int track, float amount) noexcept
@@ -119,6 +121,23 @@ public:
     void setDrumBank (std::shared_ptr<const DrumBank> b) noexcept { rhythm.setDrumBank (std::move (b)); }
     void setRhythmGroove (int groove, int fills) noexcept { rhythm.setGroove (groove); rhythm.setFills (fills); }
     const RhythmGenerator& getRhythm() const noexcept { return rhythm; }
+
+    // ---- v1.6 rhythm (branch v1.6-rhythm): BEATS sequencer, fill on demand, drums through the FX
+    RhythmGenerator& getRhythmGenerator() noexcept { return rhythm; }
+    void setUserPatterns (const BeatPatternBank* b) noexcept { rhythm.setUserPatterns (b); }
+    void setDrumBankPointer (const DrumBank* b) noexcept  { rhythm.setDrumBankPointer (b); }
+    /** variation 0 .. 1, pattern switch quantize 0 = immediately, 1 = beat, 2 = bar, fill held */
+    void setRhythmExtras (float variation, int switchQuantize, bool fillHeld) noexcept
+    {
+        rhythm.setVariation (variation);
+        rhythm.setSwitchQuantize (switchQuantize);
+        rhythm.setFillHeld (fillHeld);
+    }
+    void setDrumVoiceMix (int voice, float level, float pitch, bool muted) noexcept { rhythm.setVoiceMix (voice, level, pitch, muted); }
+    /** Drums through the beat FX / through beat repeat + stutter (default off: the drums stay dry). */
+    void setDrumFxRouting (bool throughBeatFx, bool throughRepeat) noexcept { drumsThroughBeatFx = throughBeatFx; drumsThroughRepeat = throughRepeat; }
+    bool isDrumThroughBeatFx() const noexcept { return drumsThroughBeatFx; }
+    bool isDrumThroughRepeat() const noexcept { return drumsThroughRepeat; }
     const BeatFx& getBeatFx() const noexcept { return beatFx; }
     const BeatRepeat& getBeatRepeat() const noexcept { return beatRepeat; }
     int getFxTarget() const noexcept { return fxTarget; }
@@ -217,6 +236,11 @@ private:
     bool metronomeOn = false;
     BeatFx beatFx;
     BeatRepeat beatRepeat;
+    // v1.6: the drums get their own beat FX / repeat with the same settings, so each group can be switched
+    BeatFx drumBeatFx;
+    BeatRepeat drumRepeat;
+    bool drumsThroughBeatFx = false, drumsThroughRepeat = false;
+    std::vector<float> drumL, drumR;
     int fxTarget = 0;
     std::array<ColorFx, kNumTracks> colorFx;
     std::array<float, kNumTracks> colorAmount {};

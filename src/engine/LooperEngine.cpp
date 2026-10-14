@@ -41,9 +41,13 @@ void LooperEngine::prepare (double newSampleRate, int maxBlockSize, double newMa
     metronome.prepare (sampleRate);
     beatFx.prepare (sampleRate, 12.0);
     beatRepeat.prepare (sampleRate, 6.0);
+    drumBeatFx.prepare (sampleRate, 12.0);
+    drumRepeat.prepare (sampleRate, 6.0);
     for (auto& c : colorFx)
         c.prepare (sampleRate);
 
+    for (auto* v : { &drumL, &drumR })
+        v->assign ((size_t) maxBlock, 0.0f);
     for (auto* v : { &inProcL, &inProcR, &fxBusL, &fxBusR, &clickBuf, &kickBuf, &duckEnvBuf,
                      &tOutL, &tOutR, &tFxL, &tFxR, &resL, &resR, &loopBusL, &loopBusR })
         v->assign ((size_t) maxBlock, 0.0f);
@@ -84,6 +88,8 @@ void LooperEngine::reset()
     inputFx.reset();
     trackFx.reset();
     rhythm.reset();
+    drumBeatFx.reset();
+    drumRepeat.reset();
     tapeStop.reset();
     perfFilter.reset();
 }
@@ -795,8 +801,16 @@ void LooperEngine::processChunk (const float* inL, const float* inR, float* outL
     const double chunkStartPpq = blockPpq;
     std::fill (clickBuf.begin(), clickBuf.begin() + n, 0.0f);
     std::fill (kickBuf.begin(), kickBuf.begin() + n, 0.0f);
-    rhythm.process (clickBuf.data(), clickBuf.data(), n, chunkStartPpq, ppqPerSample,
+    std::fill (drumL.begin(), drumL.begin() + n, 0.0f);
+    rhythm.process (drumL.data(), drumL.data(), n, chunkStartPpq, ppqPerSample,
                     (int) std::lround (measurePpq), running && rhythmOn, kickBuf.data());
+    for (int i = 0; i < n; ++i)
+        drumR[(size_t) i] = drumL[(size_t) i] *= 0.5f;     // process() added to both pointers (same buffer)
+    // v1.6: the drums through beat repeat / stutter and / or the beat FX (switch per group, default dry)
+    if (drumsThroughRepeat)
+        drumRepeat.process (drumL.data(), drumR.data(), n, fxPpq, ppqPerSample);
+    if (drumsThroughBeatFx)
+        drumBeatFx.process (drumL.data(), drumR.data(), n, fxPpq, ppqPerSample);
     metronome.process (clickBuf.data(), clickBuf.data(), n, chunkStartPpq, ppqPerSample,
                        (int) std::lround (measurePpq), running && metronomeOn, nullptr);
     // process() adds to both pointers: they are the same buffer, so halve it again
@@ -935,9 +949,10 @@ void LooperEngine::processChunk (const float* inL, const float* inR, float* outL
     for (int i = 0; i < n; ++i)
     {
         const float click = clickBuf[(size_t) i];
-        const float cm = clickToMain ? click : 0.0f;
-        outL[i] = (loopBusL[(size_t) i] + cm + inProcL[(size_t) i] * monMix) * master;
-        outR[i] = (loopBusR[(size_t) i] + cm + inProcR[(size_t) i] * monMix) * master;
+        const float cmL = clickToMain ? click + drumL[(size_t) i] : 0.0f;
+        const float cmR = clickToMain ? click + drumR[(size_t) i] : 0.0f;
+        outL[i] = (loopBusL[(size_t) i] + cmL + inProcL[(size_t) i] * monMix) * master;
+        outR[i] = (loopBusR[(size_t) i] + cmR + inProcR[(size_t) i] * monMix) * master;
         pl = std::max (pl, std::abs (outL[i]));
         pr = std::max (pr, std::abs (outR[i]));
     }
@@ -946,9 +961,9 @@ void LooperEngine::processChunk (const float* inL, const float* inR, float* outL
         for (int i = 0; i < n; ++i)
         {
             const float c = clickToCue ? clickBuf[(size_t) i] : 0.0f;
-            cueL[i] = c;
-            cueR[i] = c;
-            pc = std::max (pc, std::abs (c));
+            cueL[i] = c + (clickToCue ? drumL[(size_t) i] : 0.0f);
+            cueR[i] = c + (clickToCue ? drumR[(size_t) i] : 0.0f);
+            pc = std::max (pc, std::max (std::abs (cueL[i]), std::abs (cueR[i])));
         }
     }
     if (pl > masterPeakL.load (std::memory_order_relaxed)) masterPeakL.store (pl, std::memory_order_relaxed);

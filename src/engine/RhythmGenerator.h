@@ -4,30 +4,110 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace livelooper
 {
-/** v1.5: the recorded drum samples of the built-in kits (filled by the plug-in from its
-    embedded CC0 / public-domain samples, see resources/drums/SOURCES.md). Without a bank the
-    rhythm falls back to the synthesised voices. */
+/** v1.5: the recorded drum samples of the kits (filled by the plug-in from its embedded CC0 /
+    public-domain / self-synthesised samples, see resources/drums/SOURCES.md, and since v1.6 from
+    sound packs). Without samples for a kit the rhythm falls back to the synthesised voices. */
 struct DrumBank
 {
-    static constexpr int kNumKits = 4, kNumVoices = 8;   // voices: kick, snare, clap, closed hat, open hat, rim, shaker, tom
+    static constexpr int kNumVoices = 8;   // voices: kick, snare, clap, closed hat, open hat, rim, shaker, tom
     struct Sample
     {
         std::vector<float> data;    // mono
         double sampleRate = 44100.0;
         float layer = 1.0f;         // velocity layer 0 .. 1
     };
-    std::array<std::array<std::vector<Sample>, kNumVoices>, kNumKits> kits;
-    int numSamples() const noexcept
+    /** v1.6: one kit (built-in or from a sound pack). */
+    struct Kit
+    {
+        std::string name;                                    // display name (packs; built-ins use getKitName)
+        std::array<std::vector<Sample>, kNumVoices> voices;
+        std::array<float, kNumVoices> trim { 1.0f, 0.8f, 0.6f, 0.45f, 0.4f, 0.55f, 0.4f, 0.65f };   // level per voice
+        float room = 0.08f;                                  // amount of the small room
+        std::array<std::string, kNumVoices> voiceNames;      // empty = the standard voice name
+        int fillStyle = -1;                                  // RhythmGenerator::FillStyle, -1 = default
+        bool empty() const noexcept { return voices[0].empty() && voices[1].empty() && voices[3].empty(); }
+    };
+    /** Index = value of the kit parameter (built-in kits first, then the sound-pack slots). */
+    std::vector<std::shared_ptr<const Kit>> kits;
+
+    const Kit* getKit (int index) const noexcept
+    {
+        return index >= 0 && index < (int) kits.size() && kits[(size_t) index] != nullptr && ! kits[(size_t) index]->empty()
+                 ? kits[(size_t) index].get() : nullptr;
+    }
+    int numSamples() const
     {
         int n = 0;
-        for (auto& k : kits) for (auto& v : k) n += (int) v.size();
+        for (auto& k : kits)
+            if (k != nullptr)
+                for (auto& v : k->voices) n += (int) v.size();
         return n;
     }
+};
+
+/** v1.6 BEATS: one step-sequencer pattern (8 rows = the kit voices). Plain data for the message
+    thread (editing, saving); the audio thread reads the BeatPatternBank. */
+struct BeatPattern
+{
+    static constexpr int kRows = 8, kMaxBars = 4, kMaxStepsPerBar = 32, kMaxSteps = kMaxBars * kMaxStepsPerBar;
+    std::string name;
+    int stepsPerBar = 16;          // 16 (16th notes) or 32 (32nd notes)
+    int bars = 1;                  // 1 .. 4
+    /** velocity 0 = off, 1 .. 127 */
+    std::array<std::array<uint8_t, kMaxSteps>, kRows> cells {};
+
+    int numSteps() const noexcept { return stepsPerBar * bars; }
+    bool isEmpty() const noexcept
+    {
+        for (auto& r : cells) for (auto c : r) if (c != 0) return false;
+        return true;
+    }
+    uint8_t get (int row, int step) const noexcept
+    {
+        return row >= 0 && row < kRows && step >= 0 && step < kMaxSteps ? cells[(size_t) row][(size_t) step] : (uint8_t) 0;
+    }
+    void set (int row, int step, int velocity) noexcept
+    {
+        if (row >= 0 && row < kRows && step >= 0 && step < kMaxSteps)
+            cells[(size_t) row][(size_t) step] = (uint8_t) std::clamp (velocity, 0, 127);
+    }
+    /** Changes the resolution / length; existing steps are kept where they still fit. */
+    void resize (int newStepsPerBar, int newBars) noexcept;
+    bool operator== (const BeatPattern& o) const noexcept { return stepsPerBar == o.stepsPerBar && bars == o.bars && cells == o.cells; }
+};
+
+/** v1.6: the user pattern slots, shared lock-free between the editor (message thread) and the
+    rhythm (audio thread): every cell is an atomic, so editing while playing never blocks. */
+class BeatPatternBank
+{
+public:
+    static constexpr int kNumSlots = 16;
+    BeatPatternBank();
+    void store (int slot, const BeatPattern& p) noexcept;   // name is kept by the caller
+    BeatPattern load (int slot) const noexcept;
+    void setCell (int slot, int row, int step, int velocity) noexcept;
+    int  getCell (int slot, int row, int step) const noexcept;
+    int  getStepsPerBar (int slot) const noexcept;
+    int  getBars (int slot) const noexcept;
+    bool isEmpty (int slot) const noexcept;
+    /** Increases with every change (UI repaint). */
+    int  getVersion() const noexcept { return version.load (std::memory_order_relaxed); }
+
+private:
+    struct Slot
+    {
+        std::array<std::array<std::atomic<uint8_t>, BeatPattern::kMaxSteps>, BeatPattern::kRows> cells;
+        std::atomic<int> stepsPerBar { 16 }, bars { 1 };
+    };
+    std::array<Slot, kNumSlots> slots;
+    std::atomic<int> version { 0 };
 };
 
 /**
@@ -60,10 +140,59 @@ public:
     static float grooveAccent (int groove, int step) noexcept;
     static constexpr int kNumClickSounds = 4;   // 0 = beep, 1 = woodblock, 2 = click, 3 = rimshot
 
+    // ---- v1.6 rhythm: kits, BEATS step sequencer, fill on demand
+    static constexpr int kNumPackKitSlots = 8;
+    /** Kit parameter choices: the built-in kits, then the sound-pack slots "Pack Kit 1 .. 8". */
+    static int getNumKitChoices() noexcept { return getNumKits() + kNumPackKitSlots; }
+    /** Pattern parameter choices: the presets, then the user slots "User 1 .. 16". */
+    static int getNumPatternChoices() noexcept { return getNumPatterns() + BeatPatternBank::kNumSlots; }
+    static bool isUserPattern (int index) noexcept { return index >= getNumPatterns(); }
+    static int  userSlotOf (int index) noexcept    { return index - getNumPatterns(); }
+    /** Level trims / room of the built-in sample kits (used by the sample loader). */
+    static float builtInTrim (int kit, int voice) noexcept;
+    static float builtInRoom (int kit) noexcept;
+    /** English voice names: "Kick", "Snare", "Clap", "Closed Hat", "Open Hat", "Rim", "Shaker", "Tom". */
+    static const char* getVoiceName (int voice) noexcept;
+    /** English name of a voice in a built-in kit ("Conga" for the tom of Afro Latin). */
+    static const char* getKitVoiceName (int kit, int voice) noexcept;
+    enum FillStyle : int { FillToms = 0, FillSnareRoll, FillKickRoll, FillHatRoll, FillBreaks, FillConga, FillClapRoll, FillDisco, kNumFillStyles };
+    static int kitFillStyle (int kit) noexcept;
+    /** Fill style of a preset pattern, -1 = the kit decides. */
+    static int patternFillStyle (int pattern) noexcept;
+    /** A preset pattern as a 16-step BEATS pattern (rolls become single hits). */
+    static BeatPattern presetToPattern (int pattern);
+    /** Kick accent shape: velocity factor of a kick on a 16th step for a variation amount (tests). */
+    static float kickAccent (int step, long long bar, float variation) noexcept;
+
+    /** 0 = machine-like, 1 = lots of variation (round robin across layers, pitch / decay, blend). */
+    void setVariation (float v) noexcept  { variation = std::clamp (v, 0.0f, 1.0f); }
+    void setUserPatterns (const BeatPatternBank* b) noexcept { userBank = b; }
+    /** Pattern changes while playing: 0 = immediately, 1 = on the next beat, 2 = on the next bar. */
+    void setSwitchQuantize (int q) noexcept { switchQuantize = std::clamp (q, 0, 2); }
+    int  getActivePattern() const noexcept { return activePattern.load (std::memory_order_relaxed); }
+    int  getRequestedPattern() const noexcept { return requestedPattern; }
+    /** Fill on demand: fills while held, back to the groove on the next downbeat after release. */
+    void setFillHeld (bool held) noexcept { if (held && ! fillHeld) fillPressed = true; fillHeld = held; }
+    bool isFillPlaying() const noexcept   { return fillPlaying.load (std::memory_order_relaxed); }
+    /** Row mixer of the voices (all patterns): level 0 .. 2, pitch in semitones, muted (solo resolved by the caller). */
+    void setVoiceMix (int voice, float levelGain, float pitchSemitones, bool muted) noexcept
+    {
+        if (voice < 0 || voice >= DrumBank::kNumVoices) return;
+        voiceGain[(size_t) voice] = levelGain;
+        voicePitch[(size_t) voice] = pitchSemitones;
+        voiceMuted[(size_t) voice] = muted;
+    }
+    /** The 16th step of the timeline that sounds now (-1 = stopped), for the step display. */
+    long long getCurrentStep() const noexcept { return currentStep.load (std::memory_order_relaxed); }
+    /** Tests: velocity of the last fired hit per voice. */
+    float getLastVelocity (int voice) const noexcept { return lastVelocity[(size_t) std::clamp (voice, 0, 7)]; }
+    /** Tests: number of hits fired per voice since prepare(). */
+    int getHitCount (int voice) const noexcept { return hitCount[(size_t) std::clamp (voice, 0, 7)]; }
+
     void prepare (double sampleRate);
     void reset() noexcept;
 
-    void setPattern (int index) noexcept  { pattern = index; }
+    void setPattern (int index) noexcept  { requestedPattern = index; }
     void setLevel (float l) noexcept      { level = l; }
     void setClickSound (int s) noexcept   { clickSound = s; }
     /** v1.5: metronome accent on the first beat of the bar (default on). */
@@ -77,7 +206,9 @@ public:
     /** 0 = no fills, 1 = a fill in the last beat of every 4th bar, 2 = every 8th bar. */
     void setFills (int f) noexcept        { fills = f; }
     /** Samples for the kits (message thread, before playing). */
-    void setDrumBank (std::shared_ptr<const DrumBank> b) noexcept { bank = std::move (b); }
+    void setDrumBank (std::shared_ptr<const DrumBank> b) noexcept { bank = std::move (b); bankPtr.store (bank.get()); }
+    /** v1.6: replaces the bank while playing (audio-thread safe; the caller keeps the bank alive). */
+    void setDrumBankPointer (const DrumBank* b) noexcept { bankPtr.store (b); }
     bool isUsingSamples() const noexcept;
     /** Tests: the sample chosen last for a voice (index in the kit's list), -1 = none. */
     int getLastSampleIndex (int voice) const noexcept { return lastSampleIndex[(size_t) std::clamp (voice, 0, 7)]; }
@@ -103,8 +234,13 @@ public:
 
 private:
     void scheduleStep (long long step, int beatsPerMeasure, double baseDelay, bool allowEarly) noexcept;
+    void scheduleUserStep (int slot, long long step, double base, bool allowEarly) noexcept;
+    void scheduleFill (int style, int f, double base, int s, bool allowEarly) noexcept;
+    const DrumBank::Kit* currentKit() const noexcept;
     void addEvent (double delaySamples, Voice v, float velocity, uint8_t variant = 0, int step = 0, bool allowEarly = false) noexcept;
     bool fireSample (Voice v, float vel) noexcept;
+    struct Player;
+    Player* startPlayer (const DrumBank::Sample& sample, Voice v, float gain, double inc, double fadeAt, uint32_t age) noexcept;
     void fire (Voice v, float velocity, uint8_t variant) noexcept;
     float decayFor (double seconds) const noexcept;
     float noise() noexcept;
@@ -121,6 +257,20 @@ private:
     long long lastStep = -1;
 
     struct Event { double delay; Voice voice; float velocity; uint8_t variant; };
+    // v1.6
+    float variation = 0.5f;
+    const BeatPatternBank* userBank = nullptr;
+    int switchQuantize = 2, requestedPattern = 0;
+    std::atomic<int> activePattern { 0 };
+    bool fillHeld = false, fillPressed = false, fillActive = false;
+    int fillSteps = 0;
+    std::atomic<bool> fillPlaying { false };
+    std::atomic<long long> currentStep { -1 };
+    std::atomic<const DrumBank*> bankPtr { nullptr };
+    std::array<float, 8> voiceGain { 1, 1, 1, 1, 1, 1, 1, 1 }, voicePitch {}, lastVelocity {};
+    std::array<bool, 8> voiceMuted {};
+    std::array<int, 8> hitCount {}, lastRrIndex { -1, -1, -1, -1, -1, -1, -1, -1 };
+    long long scheduleBar = 0;
     std::array<Event, 96> events {};
     // v1.5
     int groove = 1, fills = 0;
@@ -130,6 +280,7 @@ private:
         const DrumBank::Sample* sample = nullptr;
         double pos = 0.0, inc = 1.0;
         float gain = 0.0f, fade = 1.0f, fadeStep = 0.0f, room = 0.0f;
+        double fadeAt = 1.0e18, fadeLen = 0.0;   // v1.6: humanised decay (tail fades from fadeAt)
         Voice voice = Kick;
         bool active = false;
         uint32_t age = 0;
