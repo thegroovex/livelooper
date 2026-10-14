@@ -57,8 +57,8 @@ Die Anfänge der Stücke liegen auf 16tel-Noten des Loops, ein Schnitt bleibt al
 | PLAY | alle starten / stoppen |
 | STOP | alle stoppen |
 | RECORD | Capture (die letzten Takte werden ein Loop) |
-| METRONOME | Rhythmus ein / aus |
-| TAP TEMPO | Tap-Tempo |
+| METRONOME | Rhythmus ein / aus · **SHIFT** + METRONOME = **Ableton Link** ein / aus |
+| TAP TEMPO | Tap-Tempo · **SHIFT** + TAP TEMPO = Metronom-Klick ein / aus |
 | UNDO | Undo der ausgewählten Spur (**SHIFT** = Redo) |
 | DELETE + Pad | Spur löschen |
 | MUTE + Pad | **antippen**: Spur stoppen (wie bisher) · **halten** (> ¼ s): die Spur ist **nur stumm, solange das Pad gehalten wird** (sie läuft weiter: ein Drop) |
@@ -72,6 +72,8 @@ Die Anfänge der Stücke liegen auf 16tel-Noten des Loops, ein Schnitt bleibt al
 | AUTOMATION | Auto-Aufnahme ein / aus |
 | NEW | Speichermodus für Szenen |
 | QUANTIZE | nächster Quantisierungswert |
+| FIXED LENGTH | **Capture-Länge**: 1 → 2 → 4 → 8 → 16 → 32 Takte und wieder von vorn (**SHIFT** = kürzer); RECORD macht den Capture |
+| ADD EFFECT · ADD TRACK · LEFT / RIGHT · BROWSE · REPEAT · ACCENT | Performance-FX, siehe [unten](#performance-fx-seit-15) |
 
 ### Touchstrip
 
@@ -79,6 +81,8 @@ Die Anfänge der Stücke liegen auf 16tel-Noten des Loops, ein Schnitt bleibt al
 |---|---|
 | Strip berühren, nach unten ziehen | **Tape-Stopp**: Die Loops werden langsamer wie ein anhaltendes Tonband (oben = normale Geschwindigkeit, unten = Stillstand). **Loslassen**: Das Band läuft wieder an und landet genau dort, wo die Musik jetzt wäre – die Zeitachse hält nie an |
 | **SHIFT** + berühren, ziehen | **Performance-Filter** auf den Loops: untere Hälfte = Tiefpass schließt, Mitte = aus, obere Hälfte = Hochpass öffnet. Loslassen schaltet ihn aus |
+| **REPEAT** halten + berühren, schieben | **Beat Repeat** mit dem Timing unter deinem Finger: unten = 1/2, dann 1/4, 1/8, 1/16, oben = 1/32. Es wiederholt, solange der Finger auf dem Strip liegt (oder REPEAT gehalten wird) |
+| **ACCENT** halten + berühren, schieben | dasselbe für **Stutter** |
 
 Beides wirkt auf die Loop-Summe (Spuren und Spur-FX); Eingangs-Monitor und Metronom bleiben unberührt. Beides sind Host-Parameter (*Tape-Stopp*, *Performance-Filter*), ein Expression-Pedal oder ein Ribbon kann sie also auch spielen.
 
@@ -106,16 +110,17 @@ Die 8 × 8 Pads werden ein **XY-Pad** für einen Effekt: X (links nach rechts) =
 | TRACK | Tonhöhe (Halbtöne) |
 | CLIP | Feedback |
 | DEVICE | Parameter 1 der Eingangs-FX A – D (1 – 4) und der Spur-FX A – D (5 – 8). **SHIFT** = Mix |
+| BROWSE | Performance-FX: 1 Beat-FX-Typ · 2 Schlag · 3 Pegel / Tiefe · 4 Kanal · 5 Color-FX-Typ · 6 Repeat-Timing · 7 Stutter-Timing · 8 Metronom-Pegel (Zeile 3 zeigt ON / off) |
 
 Master-Encoder = Gesamtpegel · Tempo-Encoder = Tempo (1 BPM, mit **SHIFT** 0,1 BPM). Mit **SHIFT** wird fein eingestellt.
 
-**Master-Sektion**: Bei bis zu 6 sichtbaren Spuren sind die beiden Encoder ganz rechts eine Master-Sektion: **Encoder 7 = Gesamtpegel**, **Encoder 8 = Tempo** (BPM, mit **SHIFT** 0,1 BPM); das Display zeigt darüber *Master* und *Tempo*. Bei 8 Spuren (und im DEVICE-Modus) steuern alle acht Encoder Spuren bzw. Effekte; dann gelten der Master-Encoder (oben rechts) und der Tempo-Encoder (oben links), und Zeile 4 zeigt den Gesamtpegel. Mit **HOST SYNC** bestimmt der Host (deine DAW) das Tempo (Display: *Host*); das interne Tempo gilt nur ohne Host-Sync.
+**Master-Sektion**: Bei bis zu 6 sichtbaren Spuren sind die beiden Encoder ganz rechts eine Master-Sektion: **Encoder 7 = Gesamtpegel**, **Encoder 8 = Tempo** (BPM, mit **SHIFT** 0,1 BPM); das Display zeigt darüber *Master* und *Tempo*. Bei 8 Spuren (und im DEVICE- und BROWSE-Modus) steuern alle acht Encoder Spuren bzw. Effekte; dann gelten der Master-Encoder (oben rechts) und der Tempo-Encoder (oben links), und Zeile 4 zeigt den Gesamtpegel. Mit **HOST SYNC** bestimmt der Host (deine DAW) das Tempo (Display: *Host*); das interne Tempo gilt nur ohne Host-Sync.
 
 Swing-Encoder = **Swing** des Rhythmus, **SHIFT** + Swing-Encoder = Rhythmus-Pegel.
 
 ### Display
 
-Zeile 1: was die Encoder steuern · Zeile 2: ihre Werte · Zeile 3: Status der Spuren (`>` = ausgewählte Spur) · Zeile 4: Tempo, letzte Szene, Auto-Aufnahme, XY-Effekt. Kurze Meldungen (Loop-Länge, Kopie, Oktave …) erscheinen kurz in Zeile 4 (auf Deutsch, wenn livelooper auf Deutsch eingestellt ist).
+Zeile 1: was die Encoder steuern · Zeile 2: ihre Werte · Zeile 3: Status der Spuren (`>` = ausgewählte Spur) · Zeile 4: Tempo, letzte Szene, Auto-Aufnahme, Link (mit Anzahl der Teilnehmer), XY-Effekt. Kurze Meldungen (Loop-Länge, Kopie, Oktave …) erscheinen kurz in Zeile 4 (auf Deutsch, wenn livelooper auf Deutsch eingestellt ist).
 
 **Pegelanzeige** (Taste MASTER): Zeile 3 zeigt unter jeder Spur einen Pegelbalken aus den eigenen Balkenzeichen des Displays (wie Lives Push-Skript), 0 bis −48 dB, 25-mal pro Sekunde aktualisiert. Vor jedem Balken: `>` für die ausgewählte Spur und ein Statusbuchstabe:
 
@@ -132,6 +137,25 @@ Zeile 1: was die Encoder steuern · Zeile 2: ihre Werte · Zeile 3: Status der S
 
 Ein voller Block am Ende eines Balkens = die Spur hat 0 dBFS erreicht. Bei bis zu 6 Spuren steht der Master-Pegel in der Master-Sektion (*M*), bei 8 Spuren am Anfang von Zeile 4 (*Out*).
 
+### Performance-FX (seit 1.5)
+
+Beat-FX, Beat Repeat / Stutter, Color-FX und Metronom der Performance-Reihe (Bedienungsanleitung, Abschnitte 25–28) liegen ohne Mapping auf dem Push:
+
+| Taste | Funktion |
+|---|---|
+| ADD EFFECT | **Beat-FX** ein / aus |
+| ADD TRACK | Beat-FX **solange gehalten** (ein kurzer Einwurf) |
+| LEFT / RIGHT (Pfeile) | Schlagwert kürzer / länger (1/32 … 16 Schläge) |
+| BROWSE | Encoder für die Performance-FX (siehe *Encoder*) |
+| REPEAT | **Beat Repeat solange gehalten** mit dem Repeat-Timing · **SHIFT** + REPEAT = Latch ein / aus |
+| ACCENT | **Stutter solange gehalten** mit dem Stutter-Timing · **SHIFT** + ACCENT = Latch ein / aus |
+| REPEAT / ACCENT gehalten + Touchstrip | Timing mit dem Finger wählen: 1/2 (unten) … 1/32 (oben) |
+| FIXED LENGTH | Capture-Länge 1 – 32 Takte (**SHIFT** = kürzer) |
+| SHIFT + METRONOME | Ableton Link ein / aus (Zeile 4 zeigt *Link* und die Teilnehmer) |
+| SHIFT + TAP TEMPO | Metronom-Klick ein / aus |
+
+Die Tasten leuchten, solange ihre Funktion an ist. Alles beginnt auf dem Raster des gewählten Timings und kehrt beim Loslassen synchron zurück.
+
 ### MIDI und Host-Parameter
 
-Jede Push-Geste nutzt Funktionen, die auch Host-Parameter sind – jeder MIDI-Controller kann sie also spielen (siehe [MIDI](MIDI.md)): *Slice 1 – 6* (pro Spur; gehalten = Note an, losgelassen = Note aus), *Zurück in Sync*, *Stumm*, *Solo*, *Loop verdoppeln*, *Loop halbieren*, *Oktave hoch / runter*, *In leere Spur kopieren*, *Aufnahmelänge*, *Tape-Stopp* und *Performance-Filter*.
+Jede Push-Geste nutzt Funktionen, die auch Host-Parameter sind – jeder MIDI-Controller kann sie also spielen (siehe [MIDI](MIDI.md)): *Slice 1 – 6* (pro Spur; gehalten = Note an, losgelassen = Note aus), *Zurück in Sync*, *Stumm*, *Solo*, *Loop verdoppeln*, *Loop halbieren*, *Oktave hoch / runter*, *In leere Spur kopieren*, *Aufnahmelänge*, *Tape-Stopp* und *Performance-Filter* – und seit 1.5 *Beat-FX an / Halten / Typ / Schlag / Pegel/Tiefe / Kanal*, *Color-FX-Typ*, *Color 1 – 8*, *Beat Repeat Halten / Latch / Timing*, *Stutter Halten / Latch / Timing*, *Metronom an / Pegel / Betonung*, *Link*, *Capture-Takte*.

@@ -8,7 +8,7 @@ Jede Funktion von livelooper ist frei per MIDI steuerbar – jeder Knopf, jeder 
 
 ## Weg 1: MIDI-Learn im Plug-in
 
-Vorbereitung (einmalig): das MIDI deines Controllers an livelooper schicken. Wie, hängt von der DAW ab – über den MIDI-Eingang der Spur, auf der livelooper sitzt, oder über eine MIDI-Spur, die auf das Plug-in geroutet ist. In der Standalone-App den Controller unter *Options → Audio/MIDI Settings* einschalten. Beispiel Ableton Live:
+Vorbereitung (einmalig): das MIDI deines Controllers an livelooper schicken. Wie, hängt von der DAW ab – über den MIDI-Eingang der Spur, auf der livelooper sitzt, oder über eine MIDI-Spur, die auf das Plug-in geroutet ist. In der Standalone-App den Controller unter **Audio-/MIDI-Einstellungen** (oben links im Fenster) einschalten. Beispiel Ableton Live:
 
 1. MIDI-Spur anlegen.
 2. *MIDI From*: dein Controller / Fußschalter, *Monitor*: **In**.
@@ -32,7 +32,7 @@ Die Zuweisungen werden mit dem DAW-Projekt gespeichert.
 | Schalter | RÜCKW., 1SHOT, FX, Loop-Sync, Effekt A–D an/aus, RHYTHMUS, HOST-SYNC | Note-On schaltet um | steigende Flanke schaltet um |
 | Auswahl | Effekttyp, Quantisierung, Muster, Start-/Stopp-/Dub-Modus | Note-On → nächster Wert | CC wählt direkt (0–127 über alle Werte) |
 | Regler | Pegel, Pan, Effekt-Parameter, Tempo, Fade, Tape-Stopp, Performance-Filter | Anschlagstärke setzt den Wert | CC setzt den Wert |
-| Gehalten (seit 1.4) | Slice 1–6 (Loop-Cutting) | an, solange die Note gehalten wird, aus mit Note-Off | an, solange der CC ≥ 64 ist |
+| Gehalten (seit 1.4) | Slice 1–6 (Loop-Cutting); seit 1.5 Beat-FX halten, Beat Repeat halten, Stutter halten | an, solange die Note gehalten wird, aus mit Note-Off | an, solange der CC ≥ 64 ist |
 
 Die Slice-Funktionen verhalten sich wie die Positions-Pads am Push: kurz drücken springt (zur nächsten 16tel-Note) in dieses Sechstel des Loops und bleibt dort, länger als ¼ s halten stottert und springt beim Loslassen synchron zurück. *Stumm* und *Solo* sind für MIDI Schalter (drücken = an, nochmal = aus); das Stummschalten / Solo nur solange gehalten ist eine Push-Geste.
 
@@ -67,7 +67,7 @@ Auch Automation ist möglich (in Live z. B. in der Arrangement-Ansicht), etwa um
 
 ## Parameterliste
 
-372 Parameter. Mit deutscher Oberfläche zeigt deine DAW die deutschen Namen, mit englischer die englischen (in Klammern). Die internen IDs und gespeicherte Zuweisungen bleiben in beiden Sprachen gleich – ein Sprachwechsel zerstört also keine MIDI-Map und keine Automation.
+400 Parameter. Mit deutscher Oberfläche zeigt deine DAW die deutschen Namen, mit englischer die englischen (in Klammern). Die internen IDs und gespeicherte Zuweisungen bleiben in beiden Sprachen gleich – ein Sprachwechsel zerstört also keine MIDI-Map und keine Automation.
 
 **Pro Spur (S1 … S5 / T1 … T5)** – je 16:
 `Rec/Play`, `Stop`, `Löschen` (Clear), `Rückgängig` (Undo), `Wiederherstellen` (Redo) – Taster · `Pegel` (Level), `Panorama` (Pan) · `Rückwärts` (Reverse), `One Shot`, `Loop-Sync` (Loop Sync), `Spur-FX` (Track FX) – Schalter · `Eingang` (Input), `Startmodus` (Start Mode), `Stoppmodus` (Stop Mode), `Dub-Modus` (Dub Mode), `Takte` (Measures) – Auswahl
@@ -82,4 +82,9 @@ Auch Automation ist möglich (in Live z. B. in der Arrangement-Ansicht), etwa um
 
 **Seit 1.4 (Performance)** – pro Spur 15 weitere: `Slice 1 … 6` (gehalten), `Zurück in Sync` (Back in Sync), `Loop verdoppeln` (Double Loop), `Loop halbieren` (Halve Loop), `Oktave hoch` (Octave Up), `Oktave runter` (Octave Down), `In leere Spur kopieren` (Copy to Empty Track) – Taster · `Stumm` (Mute), `Solo` – Schalter · `Aufnahmelänge` (Rec Length, Auswahl, die einmal auslöst: `1 Takt` … `32 Takte` für die nächste oder laufende erste Aufnahme, danach wieder `-`); global: `Tape-Stopp` (Tape Stop: 0 % = läuft, 100 % = das Band steht; zurück auf 0 % = läuft synchron wieder an), `Performance-Filter` (−100 = Tiefpass zu, 0 = aus, +100 = Hochpass offen).
 
-Die internen Parameter-IDs (für Entwickler und gespeicherte Zuweisungen) lauten z. B. `t1_recplay`, `t3_level`, `allstartstop`, `inB_type`, `trD_mix`.
+**Seit 1.5 (Live-Performance-FX, Metronom, Link)** – 28 weitere, alle angehängt (bestehende IDs, MIDI-Maps und Automation bleiben unverändert):
+- global: `Beat-FX an` (Beat FX On, Schalter), `Beat-FX halten` (Beat FX Hold, gehalten), `Beat-FX-Typ` (Beat FX Type, 16 Typen), `Beat-FX-Schlag` (Beat FX Beat, 1/32 … 16), `Beat-FX Pegel/Tiefe` (Beat FX Level/Depth), `Beat-FX-Kanal` (Beat FX Channel: Master, Loops, Eingang, Spur 1 … 8) · `Color-FX-Typ` (Color FX Type: Filter, Dub Echo, Space, Crush, Noise, Sweep) · `Beat Repeat halten` (Beat Repeat Hold, gehalten), `Beat Repeat Latch` (Schalter), `Beat-Repeat-Timing` (Beat Repeat Timing, 1/2 … 1/32) · `Stutter halten` (Stutter Hold, gehalten), `Stutter Latch` (Schalter), `Stutter-Timing` (Stutter Timing, 1/2 … 1/32) · `Metronom an` (Metronome On), `Metronom-Betonung` (Metronome Accent) – Schalter, `Metronom-Pegel` (Metronome Level) · `Link`, `Link Start/Stopp-Sync` (Link Start/Stop Sync) – Schalter · `Groove` (Gerade, Natürlich, Laid Back, Treibend, Drunk, Drive), `Fills` (Aus, Alle 4 Takte, Alle 8 Takte)
+- pro Spur (S1 … S8): `Color-FX` (Color FX, −100 … +100, 0 = aus)
+- `Capture-Takte` (Capture Bars) reicht jetzt bis 16 und 32 Takte.
+
+Die internen Parameter-IDs (für Entwickler und gespeicherte Zuweisungen) lauten z. B. `t1_recplay`, `t3_level`, `allstartstop`, `inB_type`, `trD_mix`, `bfx_type`, `brep_hold`, `t2_color`, `link_on`.

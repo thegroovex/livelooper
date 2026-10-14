@@ -10,10 +10,11 @@ The interface is laid out like a hardware looper:
 
 | Area | Contents |
 |---|---|
-| Header | display (tempo, bar/beat, quantization, messages), **MIDI LEARN**, **MIDI MAP**, **SETUP** |
+| Header | display (tempo, bar/beat, quantization, Link, master VU in dB, messages), **MIDI LEARN**, **MIDI MAP**, **SETUP**, **?** (help) |
 | INPUT FX (left) | four effect slots A–D for the input signal |
 | FX EDIT (centre) | effect type and knobs of the selected slot |
 | TRACK FX (right) | four effect slots A–D for the tracks with **FX** switched on |
+| Performance row (since 1.5) | **BEAT FX**, **BEAT REPEAT / STUTTER**, **COLOR FX**, **METRONOME** (sections 25–28) |
 | TRACK 1–5 (or 1–8) | the loop tracks (SETUP → Tracks) |
 | RHYTHM | drum machine, tempo, tap |
 | MASTER | quantization, host sync, levels, fade time, ALL START/STOP, CAPTURE, CLEAR ALL |
@@ -129,13 +130,28 @@ Switching on and off is crossfaded without clicks.
 
 | Control | Function |
 |---|---|
-| **Kit** | **Studio** (tight, modern), **808** (deep boom kick, crisp hats), **909** (punchy house / techno), **Lo-Fi** (warm, dusty, soft top end) |
+| **Kit** | **Studio** (tight, modern acoustic kit), **808** (deep boom kick, crisp hats), **909 Style** (punchy house / techno), **Lo-Fi** (warm, dusty, soft top end) – all four play recorded drum samples (CC0 / public domain, see [THIRD-PARTY.md](../../THIRD-PARTY.md)) with several velocity layers and round robin |
 | **LEVEL** | volume of the rhythm |
 | **SWING** | delays every second 16th note. 50 % = straight, 54–58 % = a light groove, 66 % = triplet shuffle, 75 % = maximum. Tip: Hip Hop / Lo-Fi 56–60 %, UK Garage 60–64 %, Neo Soul 60–66 % |
 | **FEEL** | humanize: small variations in timing (a few ms late, never early) and velocity. 0 % = machine-exact |
 | **TEMPO / TAP** | internal tempo |
 
 Every pattern has accents and ghost notes, hi-hat rolls (Trap) and percussion (rimshot, shaker, tom). Snare, clap and rimshot sit in a short room. The metronome is never swung.
+
+The kit names describe a sound style; "909 Style" and "808" are not the original machines and imply no endorsement by any manufacturer.
+
+**Groove** (*SETUP → Rhythm groove*, since 1.5): the feel of a drummer – small, fixed timing offsets per instrument and an accent curve, on top of SWING and FEEL:
+
+| Groove | Feel |
+|---|---|
+| Straight | machine-exact |
+| Natural (default) | a few ms of human looseness, slightly behind on the backbeat |
+| Laid Back | snare and hats clearly behind the beat – hip hop, neo soul |
+| Pushed | everything slightly ahead – urgent, driving |
+| Drunk | loose, wobbly, behind the beat (think late-night beat tapes) |
+| Drive | kick and hats on top of the beat – rock, techno |
+
+**Fills** (*SETUP → Rhythm fills*): *Off*, *Every 4 Bars* or *Every 8 Bars* – the drummer plays a short fill (snare / tom run) in the last beat before the next phrase.
 
 ---
 
@@ -150,6 +166,7 @@ Every pattern has accents and ghost notes, hi-hat rolls (Trap) and percussion (r
 | FADE | fade time for fade in/fade out (10 ms – 8 s) |
 | ALL START / STOP | if any track is playing: stop all; otherwise start all tracks that have a loop (quantized) |
 | CLEAR ALL | clear all tracks (asks first) |
+| CAPTURE | the last 1–32 bars become a loop (section 16) |
 
 ---
 
@@ -165,6 +182,13 @@ Every pattern has accents and ghost notes, hi-hat rolls (Trap) and percussion (r
 | Keyboard mapping … | standalone app only: own key mapping (section 10) |
 | Type in tempo (BPM) … | type the internal tempo (section 11) |
 | Language / Sprache | Automatic (system language) · English · Deutsch |
+| Last used sets | the last 10 sets you saved or loaded, one click to load (section 13) |
+| Capture length | 1 · 2 · 4 · 8 · 16 · 32 bars (section 16) |
+| Rhythm groove / Rhythm fills | feel and fills of the drum machine (section 4) |
+| Ableton Link | Link on / off, sync start / stop, number of peers (section 29) |
+| Settings on start | start with the last used or the default settings, reset now (section 31) |
+| Updates | check now, check automatically, install automatically (section 32) |
+| Help … / About livelooper … | in-app help and the about window (sections 30 and 32) |
 
 ---
 
@@ -187,7 +211,8 @@ Your DAW project stores all parameters, the MIDI assignments and – if switched
 ## 9. Display
 
 - big number: current tempo – click it to type in the BPM
-- line 1: tempo source (HOST, internal clock)
+- top row: **master VU** of the main output in dBFS, left and right, with a scale from -60 to +6 dB and the peak value in numbers – green up to -12 dB, yellow up to -3 dB, orange up to 0 dB, red above (section 12)
+- line 1: tempo source (HOST, INTERNAL, internal clock) and **Link** status: *LINK 2 PEERS* while Link drives the tempo, *LINK (HOST SYNC HAS PRIORITY)* when HOST SYNC wins in a DAW
 - line 2: bar . beat and quantization
 - line 3: messages (export, import, MIDI learn) or the memory per track
 - dot at top right: lights up yellow on incoming MIDI
@@ -231,7 +256,7 @@ Click the big tempo number on the display (or press **B**, or right-click the TE
 ## 12. Meters, waveform and clip LED
 
 - **Track meter** (stereo, next to the level fader): while a track records or overdubs it shows the **input** level (orange, caption **IN**), otherwise the track's **output** level (green, **OUT**). Yellow from -12 dB, red from -1 dB; the thin line holds the peak for about a second.
-- **Master meter**: the top row of the display (**MASTER**) shows the level of the main output, left and right.
+- **Master VU** (since 1.5): the top row of the display (**MASTER**) shows the level of the main output in dBFS, left and right, on a scale from -60 to +6 dB, with the peak as a number on the right. Green up to -12 dB, yellow up to -3 dB, orange up to 0 dB, red above – keep the loud parts in the yellow.
 - **Waveform**: the track display shows an overview of the loop instead of a plain progress bar. The part already played is bright, a white line marks the play position. While recording, the waveform grows from left to right; overdubs and undo show up right away. Reversed tracks show the waveform mirrored.
 - **Clip LED** (top right of every track): off = empty, green = the track holds a loop, red = first recording, blinking red = waiting for the next bar to start recording.
 
@@ -242,6 +267,7 @@ A set stores the whole looper in one file (`.llset`): all loops, levels, pan, tr
 - **SETUP → Save set ...** writes a set (a set always contains its loops, even if *Save loops with the project* is off).
 - **SETUP → Load set ...** loads one; you can also drop a `.llset` file onto the window.
 - Your MIDI mapping, keyboard mapping and cue routing belong to the app and stay as they are when you load a set.
+- **SETUP → Last used sets** lists the last 10 sets you saved or loaded (files that no longer exist are left out); *Clear list* empties it.
 
 ## 14. Cue output (standalone app)
 
@@ -254,11 +280,11 @@ Without a cue pair (or in a plug-in) the rhythm always plays on the main output,
 
 ## 15. Metronome sound
 
-**SETUP → Metronome sound**: **Beep** (classic), **Woodblock** (short, wooden knock), **Click** (dry tick without pitch) or **Rimshot**. The drum sounds are synthesised, see section 4.
+**SETUP → Metronome sound** (or the sound menu in the **METRONOME** block, section 28): **Beep** (classic), **Woodblock** (short, wooden knock), **Click** (dry tick without pitch) or **Rimshot**.
 
 ## 16. Capture (retrospective recording)
 
-You played something great without pressing record? Press **CAPTURE** (MASTER panel). The last bars you played become a loop on the first empty track and play on at once, in time. The length is set in **SETUP → Capture length** (1, 2, 4 or 8 bars). If less was played, livelooper takes the largest length that fits. Every track's SETUP also has a **CAPTURE** button for that track. **UNDO** removes a captured loop.
+You played something great without pressing record? Press **CAPTURE** (MASTER panel). The last bars you played become a loop on the first empty track and play on at once, in time. The length is set in **SETUP → Capture length** (1, 2, 4, 8, 16 or 32 bars; on Push: FIXED LENGTH). If less was played, livelooper takes the largest length that fits. Every track's SETUP also has a **CAPTURE** button for that track. **UNDO** removes a captured loop.
 
 ## 17. Auto record
 
@@ -329,3 +355,104 @@ New functions for playing live. They are host parameters (MIDI learn, your DAW's
 - **Rec Length**: a fixed length (1 – 32 bars) for the next or the running first recording, without changing the track's Measures setting.
 - **Tape Stop**: the loops slow down like a stopping tape machine; back at 0 % they spin up and continue in sync – the timeline never stops.
 - **Performance Filter**: a DJ-style filter on the loops (low-pass to the left, high-pass to the right, off in the middle).
+
+## 25. Beat FX (since 1.5)
+
+![Performance row](../images/livelooper-performance.png)
+
+The **BEAT FX** block works like the beat FX section of a DJ mixer: one effect, locked to the beat, that you throw on and off while you play.
+
+| Control | Function |
+|---|---|
+| Type (top left) | the effect, see the table |
+| Channel (below) | where it works: **Master** (everything), **Loops** (all tracks), **Input** (what you play live) or **Track 1 … 8** |
+| **<  1/32 … 16  >** | beat fraction: the length of the effect in beats (1/32, 1/16, 1/8, 1/4, 1/2, 3/4, 1, 2, 4, 8, 16 – 16 beats = 4 bars). The arrows step through it |
+| **LEVEL** | level / depth of the effect (what it does depends on the type) |
+| **ON** | effect on / off (latched) |
+| **HOLD** | effect on while held – for a quick throw |
+
+| Type | What it does |
+|---|---|
+| Delay | clean echo of the beat fraction |
+| Echo | echo that fades out naturally, also after the effect is switched off |
+| Ping Pong | echo bouncing left / right |
+| Spiral | echo that rises and feeds back into itself |
+| Reverb | big room, tails out after switching off |
+| Trans | rhythmic cuts (volume gate) on the beat fraction |
+| Filter | filter that sweeps in the beat fraction |
+| Flanger / Phaser | sweep cycle of the beat fraction |
+| Pitch | pitch shift (LEVEL = pitch) |
+| Roll | repeats the last beat fraction (like beat repeat) |
+| Slip Roll | roll that returns to where the music is now when released |
+| Reverse Roll | the roll plays backwards |
+| Vinyl Brake | the sound slows down like a stopping turntable |
+| Helix | a roll that rises in pitch with every repeat |
+| Noise | filtered noise sweep for builds |
+
+Switching is crossfaded, echo and reverb tails ring out. Every control is a host parameter (MIDI learn, DAW mapping) and is on [Ableton Push](PUSH.md#performance-fx-since-15) (ADD EFFECT, ADD TRACK, LEFT / RIGHT, BROWSE).
+
+## 26. Beat repeat and stutter
+
+**BEAT REPEAT / STUTTER** catches a slice of the music and repeats it:
+
+- **REPEAT** (hold): from the next grid line of the chosen timing (**1/2, 1/4, 1/8, 1/16, 1/32** note) the slice is repeated as long as you hold the button.
+- **STUTTER** (hold): the same with a short gate on every repeat – a choppy, machine-gun stutter. It has its own timing.
+- **LATCH**: keeps it on without holding; press again to stop.
+
+It works on the channel chosen in the BEAT FX block. The music keeps running underneath, so when you let go you are exactly on the beat again. On Push: **REPEAT** / **ACCENT**, hold them and slide on the touch strip for 1/2 … 1/32.
+
+## 27. Color FX
+
+A one-knob effect per track, like the colour FX of a DJ mixer: the six buttons in the **COLOR FX** block choose the effect, the **COLOR** knob of each track sets it – **centre = off**, turn left or right for more.
+
+| Effect | Left | Right |
+|---|---|---|
+| Filter | low-pass | high-pass |
+| Dub Echo | dark dotted-8th echo | bright echo |
+| Space | reverb | reverb |
+| Crush | bit crush, darker | bit crush, thinner |
+| Noise | dark noise | bright noise |
+| Sweep | 16th-note gate | band-pass sweeping up |
+
+In the centre the track is untouched (bit-exact). The knob is mappable per track (*Color 1 … 8*).
+
+## 28. Metronome block
+
+The **METRONOME** block plays a click independent of the RHYTHM: **METRONOME** = on / off, **ACCENT** = louder downbeat, the menu below = sound (Beep, Woodblock, Click, Rimshot), **LEVEL** = volume. In the standalone app the click can go to the cue output only (section 14), so the audience does not hear it. On Push: SHIFT + TAP TEMPO.
+
+## 29. Ableton Link
+
+livelooper can share tempo and beat with other apps and devices on the same network (Ableton Live, other Link apps on Mac, PC, iPhone or iPad):
+
+1. **SETUP → Ableton Link → Ableton Link (tempo and beat with other apps)** – or SHIFT + METRONOME on Push.
+2. The display shows *LINK 1 PEER*, *LINK 2 PEERS* … – livelooper follows the session tempo and beat; turning TEMPO or TAP changes the tempo for everyone.
+3. **Sync start / stop with Link** (optional): starting and stopping is shared too.
+
+Joining a session never changes its tempo – livelooper takes over the tempo of the others. In the **standalone app** Link drives livelooper's clock. In a **DAW**, HOST SYNC has priority (the display shows *LINK (HOST SYNC HAS PRIORITY)*) – switch HOST SYNC off to follow Link, or use your DAW's own Link. Link needs no setup on the computer; all devices just have to be in the same network.
+
+## 30. Help
+
+The **?** button (top right) or **SETUP → Help …** opens the help: this user guide, the Push guide and the MIDI guide in your language, split into sections, with a search field (e.g. *stutter*, *Link*, *capture*). Hover over any control for a short tooltip.
+
+![Help](../images/livelooper-help.png)
+
+## 31. Settings on start
+
+On the first start livelooper asks once how it should start from then on:
+
+- **Last settings**: every start – and every new plug-in without a saved project – uses the settings you used last: effects, rhythm, metronome, MIDI and keyboard mapping, tracks, Push (no loops).
+- **Default settings**: always start fresh.
+
+Change it any time under **SETUP → Settings on start**; *Reset all settings to the defaults now* resets the controls without clearing the loops. A DAW project always loads its own saved state.
+
+## 32. About and updates
+
+**SETUP → About livelooper …** shows the version (with build number, git hash and date), the license (AGPLv3) and the third-party notices. **Check for updates** asks GitHub for a newer release:
+
+- **Standalone app**: *Download and install* – the new version is downloaded, checked and replaces the app when you quit livelooper.
+- **Plug-in**: the update is downloaded and prepared; install it with your DAW closed (button *Install plug-ins* or with the standalone app). A plug-in is never replaced while a DAW uses it.
+
+*Check automatically on start* and *Install updates automatically* are off until you switch them on (also under **SETUP → Updates**).
+
+![About](../images/livelooper-about.png)
+

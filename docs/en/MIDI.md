@@ -8,7 +8,7 @@ Every function of livelooper can be controlled freely via MIDI – every button,
 
 ## Way 1: MIDI learn inside the plug-in
 
-Preparation (once): send your controller's MIDI to livelooper. How depends on the DAW – through the MIDI input of the track livelooper sits on, or a MIDI track routed to the plug-in. In the standalone app, enable your controller under *Options → Audio/MIDI Settings*. Example Ableton Live:
+Preparation (once): send your controller's MIDI to livelooper. How depends on the DAW – through the MIDI input of the track livelooper sits on, or a MIDI track routed to the plug-in. In the standalone app, enable your controller under **Audio/MIDI Settings** (top left of the window). Example Ableton Live:
 
 1. Create a MIDI track.
 2. *MIDI From*: your controller / foot switch, *Monitor*: **In**.
@@ -32,7 +32,7 @@ Assignments are saved with your DAW project.
 | Switch | REV, 1SHOT, FX, Loop Sync, effect A–D on/off, RHYTHM, HOST SYNC | note-on toggles | rising edge toggles |
 | Selector | effect type, Quantize, pattern, start/stop/dub mode | note-on → next value | CC selects directly (0–127 across all values) |
 | Continuous | level, pan, effect parameters, tempo, fade, tape stop, performance filter | velocity sets the value | CC sets the value |
-| Held (since 1.4) | Slice 1–6 (loop cutting) | on while the note is held, off with note-off | on while the CC is ≥ 64 |
+| Held (since 1.4) | Slice 1–6 (loop cutting); since 1.5 Beat FX Hold, Beat Repeat Hold, Stutter Hold | on while the note is held, off with note-off | on while the CC is ≥ 64 |
 
 The slice functions behave like the Push position pads: a short press jumps to that sixth of the loop (at the next 16th note) and stays there, a press held longer than ¼ s stutters and returns in sync on release. *Mute* and *Solo* are switches for MIDI (press = on, press again = off); the momentary mute / solo is a Push gesture.
 
@@ -67,7 +67,7 @@ Automation works too (in Live, e.g., in Arrangement view), for example to start 
 
 ## Parameter list
 
-372 parameters, names as shown in your DAW with the English interface (with the German interface they are localised, e.g. "S1 Pegel" instead of "T1 Level"; the internal IDs and your saved assignments stay the same):
+400 parameters, names as shown in your DAW with the English interface (with the German interface they are localised, e.g. "S1 Pegel" instead of "T1 Level"; the internal IDs and your saved assignments stay the same):
 
 **Per track (T1 … T5)** – 16 each:
 `Rec/Play`, `Stop`, `Clear`, `Undo`, `Redo` (buttons) · `Level`, `Pan` · `Reverse`, `One Shot`, `Loop Sync`, `Track FX` (switches) · `Input`, `Start Mode`, `Stop Mode`, `Dub Mode`, `Measures` (selectors)
@@ -82,6 +82,11 @@ Automation works too (in Live, e.g., in Arrangement view), for example to start 
 
 **Since 1.4 (performance)** – per track, 15 more: `Slice 1 … 6` (held), `Back in Sync`, `Double Loop`, `Halve Loop`, `Octave Up`, `Octave Down`, `Copy to Empty Track` (buttons), `Mute`, `Solo` (switches), `Rec Length` (selector that fires once: `1 Bar` … `32 Bars` for the next or running first recording, then it goes back to `-`); global: `Tape Stop` (0 % = running, 100 % = the tape stands still; back to 0 % = spins up in sync), `Performance Filter` (−100 = low-pass closed, 0 = off, +100 = high-pass open).
 
-The internal parameter IDs (for developers and saved assignments) are e.g. `t1_recplay`, `t3_level`, `allstartstop`, `inB_type`, `trD_mix`.
+**Since 1.5 (live performance FX, metronome, Link)** – 28 more, all appended (existing IDs, MIDI maps and automation are unchanged):
+- global: `Beat FX On` (switch), `Beat FX Hold` (held), `Beat FX Type` (16 types), `Beat FX Beat` (1/32 … 16), `Beat FX Level/Depth`, `Beat FX Channel` (Master, Loops, Input, Track 1 … 8) · `Color FX Type` (Filter, Dub Echo, Space, Crush, Noise, Sweep) · `Beat Repeat Hold` (held), `Beat Repeat Latch` (switch), `Beat Repeat Timing` (1/2 … 1/32) · `Stutter Hold` (held), `Stutter Latch` (switch), `Stutter Timing` (1/2 … 1/32) · `Metronome On`, `Metronome Accent` (switches), `Metronome Level` · `Link`, `Link Start/Stop Sync` (switches) · `Groove` (Straight, Natural, Laid Back, Pushed, Drunk, Drive), `Fills` (Off, Every 4 Bars, Every 8 Bars)
+- per track (T1 … T8): `Color FX` (−100 … +100, 0 = off)
+- `Capture Bars` now goes up to 16 and 32 bars.
+
+The internal parameter IDs (for developers and saved assignments) are e.g. `t1_recplay`, `t3_level`, `allstartstop`, `inB_type`, `trD_mix`, `bfx_type`, `brep_hold`, `t2_color`, `link_on`.
 
 Tip: the host identifies parameters by their internal ID, not by their name, so switching the language does not break existing MIDI maps or automation.

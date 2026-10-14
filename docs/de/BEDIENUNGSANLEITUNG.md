@@ -10,10 +10,11 @@ Die Oberfläche ist wie ein Hardware-Looper aufgebaut. Die Bezeichnungen in dies
 
 | Bereich | Inhalt |
 |---|---|
-| Kopfzeile | Display (Tempo, Takt/Schlag, Quantisierung, Meldungen), **MIDI LEARN**, **MIDI MAP**, **SETUP** |
+| Kopfzeile | Display (Tempo, Takt/Schlag, Quantisierung, Link, Master-VU in dB, Meldungen), **MIDI LEARN**, **MIDI MAP**, **SETUP**, **?** (Hilfe) |
 | EINGANGS-FX (links) | vier Effekt-Slots A–D für das Eingangssignal |
 | … BEARBEITEN (Mitte) | Effekttyp und Regler des gerade gewählten Slots |
 | SPUR-FX (rechts) | vier Effekt-Slots A–D für die Spuren mit eingeschaltetem **FX** |
+| Performance-Reihe (seit 1.5) | **BEAT-FX**, **BEAT REPEAT / STUTTER**, **COLOR-FX**, **METRONOM** (Abschnitte 25–28) |
 | SPUR 1–5 (oder 1–8) | die Loop-Spuren (SETUP → Spuren) |
 | RHYTHMUS | Drumcomputer, Tempo, Tap |
 | MASTER | Quantisierung, Host-Sync, Pegel, Fade-Zeit, ALLE START / STOP, CAPTURE, ALLE LÖSCHEN |
@@ -129,13 +130,28 @@ Ein- und Ausschalten wird ohne Knackser überblendet.
 
 | Regler | Funktion |
 |---|---|
-| **Kit** | **Studio** (straff, modern), **808** (tiefe Boom-Kick, knackige Hi-Hats), **909** (druckvoll für House / Techno), **Lo-Fi** (warm, staubig, weiche Höhen) |
+| **Kit** | **Studio** (straffes, modernes akustisches Kit), **808** (tiefe Boom-Kick, knackige Hi-Hats), **909 Style** (druckvoll für House / Techno), **Lo-Fi** (warm, staubig, weiche Höhen) – alle vier spielen aufgenommene Drum-Samples (CC0 / gemeinfrei, siehe [THIRD-PARTY.md](../../THIRD-PARTY.md)) mit mehreren Anschlagstufen und Round Robin |
 | **PEGEL** | Lautstärke des Rhythmus |
 | **SWING** | verzögert jede zweite Sechzehntel. 50 % = gerade, 54–58 % = leichter Groove, 66 % = Triolen-Shuffle, 75 % = maximal. Tipp: Hip Hop / Lo-Fi 56–60 %, UK Garage 60–64 %, Neo Soul 60–66 % |
 | **FEEL** | Humanisierung: kleine Schwankungen im Timing (ein paar ms später, nie früher) und in der Anschlagstärke. 0 % = maschinengenau |
 | **TEMPO / TAP** | internes Tempo |
 
 Jedes Muster hat Akzente und Ghost-Notes, Hi-Hat-Rolls (Trap) und Percussion (Rimshot, Shaker, Tom). Snare, Clap und Rimshot klingen in einem kurzen Raum. Das Metronom wird nie geswingt.
+
+Die Kit-Namen beschreiben einen Klangstil; „909 Style“ und „808“ sind nicht die Original-Geräte und bedeuten keine Unterstützung durch einen Hersteller.
+
+**Groove** (*SETUP → Rhythmus-Groove*, seit 1.5): das Gefühl eines Drummers – kleine, feste Timing-Verschiebungen pro Instrument und eine Akzentkurve, zusätzlich zu SWING und FEEL:
+
+| Groove | Gefühl |
+|---|---|
+| Gerade (Straight) | maschinengenau |
+| Natürlich (Natural, Standard) | ein paar ms menschliche Lockerheit, beim Backbeat leicht dahinter |
+| Laid Back | Snare und Hi-Hats deutlich hinter dem Schlag – Hip Hop, Neo Soul |
+| Treibend (Pushed) | alles leicht vor dem Schlag – drängend, nach vorn |
+| Drunk | locker, wackelig, hinter dem Schlag (wie späte Beat-Tapes) |
+| Drive | Kick und Hi-Hats auf dem Schlag – Rock, Techno |
+
+**Fills** (*SETUP → Rhythmus-Fills*): *Aus*, *Alle 4 Takte* oder *Alle 8 Takte* – der Drummer spielt im letzten Schlag vor der nächsten Phrase einen kurzen Fill (Snare- / Tom-Lauf).
 
 ---
 
@@ -150,6 +166,7 @@ Jedes Muster hat Akzente und Ghost-Notes, Hi-Hat-Rolls (Trap) und Percussion (Ri
 | FADE | Fade-Zeit für Ein-/Ausblenden (10 ms – 8 s) |
 | ALLE START / STOP | läuft irgendeine Spur: alle stoppen; sonst alle Spuren mit Loop starten (quantisiert) |
 | ALLE LÖSCHEN | alle Spuren löschen (mit Rückfrage) |
+| CAPTURE | die letzten 1–32 Takte werden ein Loop (Abschnitt 16) |
 
 ---
 
@@ -165,6 +182,13 @@ Jedes Muster hat Akzente und Ghost-Notes, Hi-Hat-Rolls (Trap) und Percussion (Ri
 | Tastaturbelegung … | nur Standalone-App: eigene Tastenbelegung (Abschnitt 10) |
 | Tempo eintippen (BPM) … | internes Tempo eintippen (Abschnitt 11) |
 | Language / Sprache | Automatisch (Systemsprache) · English · Deutsch |
+| Zuletzt verwendete Sets | die letzten 10 gespeicherten oder geladenen Sets, ein Klick lädt (Abschnitt 13) |
+| Capture-Länge | 1 · 2 · 4 · 8 · 16 · 32 Takte (Abschnitt 16) |
+| Rhythmus-Groove / Rhythmus-Fills | Gefühl und Fills des Drumcomputers (Abschnitt 4) |
+| Ableton Link | Link an / aus, Start / Stopp synchronisieren, Anzahl Teilnehmer (Abschnitt 29) |
+| Einstellungen beim Start | mit den zuletzt verwendeten oder den Standard-Einstellungen starten, jetzt zurücksetzen (Abschnitt 31) |
+| Updates | jetzt prüfen, automatisch prüfen, automatisch installieren (Abschnitt 32) |
+| Hilfe … / Über livelooper … | Hilfe in der App und Info-Fenster (Abschnitte 30 und 32) |
 
 ---
 
@@ -187,7 +211,8 @@ Mit dem DAW-Projekt werden gespeichert: alle Parameter, die MIDI-Zuweisungen und
 ## 9. Display
 
 - große Zahl: aktuelles Tempo – anklicken, um die BPM einzutippen
-- Zeile 1: Tempoquelle (HOST, INTERN, interne Clock)
+- oberste Reihe: **Master-VU** des Hauptausgangs in dBFS, links und rechts, mit Skala von -60 bis +6 dB und dem Spitzenwert als Zahl – grün bis -12 dB, gelb bis -3 dB, orange bis 0 dB, rot darüber (Abschnitt 12)
+- Zeile 1: Tempoquelle (HOST, INTERN, interne Clock) und **Link**-Status: *LINK 2 TEILNEHMER*, solange Link das Tempo vorgibt, *LINK: HOST-SYNC ZUERST*, wenn in einer DAW HOST-SYNC Vorrang hat
 - Zeile 2: Takt . Schlag und Quantisierung
 - Zeile 3: Meldungen (Export, Import, MIDI Learn) oder der Speicher pro Spur
 - Punkt oben rechts: leuchtet gelb bei eingehenden MIDI-Daten
@@ -233,7 +258,7 @@ Auf die große Tempo-Zahl im Display klicken (oder **B** drücken, oder Rechtskl
 ## 12. Pegelanzeigen, Wellenform und Clip-LED
 
 - **Spur-Pegel** (Stereo, neben dem Fader): Während eine Spur aufnimmt oder overdubbt, zeigt er den **Eingangspegel** (orange, Beschriftung **IN**), sonst den **Ausgangspegel** der Spur (grün, **OUT**). Gelb ab -12 dB, rot ab -1 dB; der dünne Strich hält die Spitze etwa eine Sekunde.
-- **Master-Pegel**: Die oberste Zeile im Display (**MASTER**) zeigt den Pegel des Hauptausgangs, links und rechts.
+- **Master-VU** (seit 1.5): Die oberste Zeile im Display (**MASTER**) zeigt den Pegel des Hauptausgangs in dBFS, links und rechts, auf einer Skala von -60 bis +6 dB, rechts den Spitzenwert als Zahl. Grün bis -12 dB, gelb bis -3 dB, orange bis 0 dB, rot darüber – laute Stellen am besten im Gelben halten.
 - **Wellenform**: Das Spur-Display zeigt statt eines Fortschrittsbalkens eine Übersicht des Loops. Der schon gespielte Teil ist hell, ein weißer Strich markiert die Abspielposition. Bei der Aufnahme wächst die Wellenform von links nach rechts; Overdubs und Undo sind sofort sichtbar. Bei REVERSE wird sie gespiegelt.
 - **Clip-LED** (oben rechts an jeder Spur): aus = leer, grün = Spur enthält einen Loop, rot = erste Aufnahme läuft, rot blinkend = wartet auf den nächsten Takt, um aufzunehmen.
 
@@ -244,19 +269,20 @@ Ein Set speichert den kompletten Looper in einer Datei (`.llset`): alle Loops, P
 - **SETUP → Set speichern ...** schreibt ein Set (ein Set enthält immer seine Loops, auch wenn *Loops mit dem Projekt speichern* aus ist).
 - **SETUP → Set laden ...** lädt eins; alternativ eine `.llset`-Datei auf das Fenster ziehen.
 - MIDI-Zuweisungen, Tastatur-Belegung und Cue-Routing gehören zur App und bleiben beim Laden eines Sets erhalten.
+- **SETUP → Zuletzt verwendete Sets** listet die letzten 10 gespeicherten oder geladenen Sets (nicht mehr vorhandene Dateien fallen weg); *Liste leeren* leert sie.
 
 ## 14. Cue-Ausgang (Standalone-App)
 
 Die Standalone-App hat einen zweiten Ausgangsbus für **Rhythmus und Metronom**: Du hörst den Click im Kopfhörer, das Publikum nicht.
 
-1. Unter **Options → Audio/MIDI Settings** die zusätzlichen Ausgänge des Audio-Interfaces aktivieren (Ausgang 3 und höher).
+1. Unter **Audio-/MIDI-Einstellungen** (oben links im Fenster) die zusätzlichen Ausgänge des Audio-Interfaces aktivieren (Ausgang 3 und höher).
 2. **SETUP → Cue-Ausgang (Click / Rhythmus)**: Ausgangspaar wählen (z. B. *Ausgänge 3 / 4*) und festlegen, wo der Rhythmus spielt: **Hauptausgang**, **Nur Cue-Ausgang** oder **Haupt- und Cue-Ausgang**.
 
 Ohne Cue-Paar (und im Plug-in) spielt der Rhythmus immer auf dem Hauptausgang – der Click geht also nie verloren. Die Einstellung wird mit der App gespeichert.
 
 ## 15. Metronomklang
 
-**SETUP → Metronomklang**: **Piep** (klassisch), **Holzblock** (kurzer, hölzerner Schlag), **Klick** (trockener Tick ohne Tonhöhe) oder **Rimshot**. Die Drum-Sounds sind synthetisiert, siehe Abschnitt 4.
+**SETUP → Metronomklang** (oder das Klang-Menü im **METRONOM**-Block, Abschnitt 28): **Piep** (klassisch), **Holzblock** (kurzer, hölzerner Schlag), **Klick** (trockener Tick ohne Tonhöhe) oder **Rimshot**.
 
 ## Bezeichnungen Deutsch / Englisch
 
@@ -277,10 +303,15 @@ Ohne Cue-Paar (und im Plug-in) spielt der Rhythmus immer auf dem Hauptausgang �
 | Dub-Modus: Overdub · Ersetzen | Dub mode: Overdub · Replace |
 | Takte | Measures |
 | LEER · STOPPT · WARTET · ENDE · GELÖSCHT | EMPTY · STOPPING · WAIT · END · CLEARED |
+| BEAT-FX · Kanal · PEGEL | BEAT FX · Channel · LEVEL |
+| COLOR-FX | COLOR FX |
+| METRONOM · BETONUNG | METRONOME · ACCENT |
+| Einstellungen beim Start | Settings on start |
+| Zuletzt verwendete Sets | Last used sets |
 
 ## 16. Capture (rückwirkende Aufnahme)
 
-Du hast etwas Gutes gespielt, ohne Aufnahme zu drücken? Drück **CAPTURE** (MASTER-Bereich). Die zuletzt gespielten Takte werden ein Loop auf der ersten leeren Spur und laufen sofort im Takt weiter. Die Länge stellst du unter **SETUP → Capture-Länge** ein (1, 2, 4 oder 8 Takte). Wurde weniger gespielt, nimmt livelooper die größte Länge, die passt. Im SETUP jeder Spur gibt es außerdem einen **CAPTURE**-Knopf für genau diese Spur. **UNDO** entfernt einen Capture-Loop wieder.
+Du hast etwas Gutes gespielt, ohne Aufnahme zu drücken? Drück **CAPTURE** (MASTER-Bereich). Die zuletzt gespielten Takte werden ein Loop auf der ersten leeren Spur und laufen sofort im Takt weiter. Die Länge stellst du unter **SETUP → Capture-Länge** ein (1, 2, 4, 8, 16 oder 32 Takte; am Push: FIXED LENGTH). Wurde weniger gespielt, nimmt livelooper die größte Länge, die passt. Im SETUP jeder Spur gibt es außerdem einen **CAPTURE**-Knopf für genau diese Spur. **UNDO** entfernt einen Capture-Loop wieder.
 
 ## 17. Auto-Aufnahme
 
@@ -351,3 +382,104 @@ Neue Funktionen fürs Live-Spielen. Sie sind Host-Parameter (MIDI Learn, MIDI-Ma
 - **Aufnahmelänge**: eine feste Länge (1 – 32 Takte) für die nächste oder die laufende erste Aufnahme, ohne die Takte-Einstellung der Spur zu ändern.
 - **Tape-Stopp**: Die Loops werden langsamer wie ein anhaltendes Tonband; zurück auf 0 % laufen sie wieder an und spielen synchron weiter – die Zeitachse hält nie an.
 - **Performance-Filter**: ein DJ-Filter auf den Loops (links Tiefpass, rechts Hochpass, in der Mitte aus).
+
+## 25. Beat-FX (seit 1.5)
+
+![Performance-Reihe](../images/livelooper-performance-de.png)
+
+Der **BEAT-FX**-Block funktioniert wie die Beat-FX-Sektion eines DJ-Mixers: ein Effekt, fest am Schlag, den du beim Spielen ein- und auswirfst.
+
+| Element | Funktion |
+|---|---|
+| Typ (oben links) | der Effekt, siehe Tabelle |
+| Kanal (darunter) | wo er wirkt: **Master** (alles), **Loops** (alle Spuren), **Eingang** (was du live spielst) oder **Spur 1 … 8** |
+| **<  1/32 … 16  >** | Schlagwert: die Länge des Effekts in Schlägen (1/32, 1/16, 1/8, 1/4, 1/2, 3/4, 1, 2, 4, 8, 16 – 16 Schläge = 4 Takte). Die Pfeile schalten weiter |
+| **PEGEL** (LEVEL) | Pegel / Tiefe des Effekts (was er tut, hängt vom Typ ab) |
+| **ON** | Effekt an / aus (rastet ein) |
+| **HOLD** | Effekt an, solange gehalten – für einen kurzen Einwurf |
+
+| Typ | Was er tut |
+|---|---|
+| Delay | sauberes Echo im Schlagwert |
+| Echo | Echo, das natürlich ausklingt, auch nach dem Ausschalten |
+| Ping Pong | Echo, das links / rechts springt |
+| Spiral | Echo, das ansteigt und in sich selbst zurückläuft |
+| Hall (Reverb) | großer Raum, klingt nach dem Ausschalten aus |
+| Trans | rhythmische Schnitte (Lautstärke-Gate) im Schlagwert |
+| Filter | Filter, das im Schlagwert wandert |
+| Flanger / Phaser | Sweep-Zyklus im Schlagwert |
+| Pitch | Tonhöhe verschieben (PEGEL = Tonhöhe) |
+| Roll | wiederholt den letzten Schlagwert (wie Beat Repeat) |
+| Slip Roll | Roll, der beim Loslassen dorthin zurückkehrt, wo die Musik jetzt ist |
+| Reverse Roll | der Roll läuft rückwärts |
+| Vinyl Brake | der Klang bremst ab wie ein stoppender Plattenspieler |
+| Helix | ein Roll, der mit jeder Wiederholung höher wird |
+| Noise | gefilterter Rausch-Sweep für Steigerungen |
+
+Umschalten wird überblendet, Echo- und Hallfahnen klingen aus. Jedes Element ist ein Host-Parameter (MIDI Learn, DAW-Mapping) und liegt auf dem [Ableton Push](PUSH.md#performance-fx-seit-15) (ADD EFFECT, ADD TRACK, LEFT / RIGHT, BROWSE).
+
+## 26. Beat Repeat und Stutter
+
+**BEAT REPEAT / STUTTER** fängt ein Stück der Musik ein und wiederholt es:
+
+- **REPEAT** (halten): Ab der nächsten Rasterlinie des gewählten Timings (**1/2, 1/4, 1/8, 1/16, 1/32** Note) wird das Stück wiederholt, solange du den Knopf hältst.
+- **STUTTER** (halten): dasselbe mit einem kurzen Gate bei jeder Wiederholung – ein abgehacktes Maschinengewehr-Stottern. Es hat ein eigenes Timing.
+- **LATCH**: hält es ohne Festhalten an; nochmal drücken beendet es.
+
+Es wirkt auf den im BEAT-FX-Block gewählten Kanal. Die Musik läuft darunter weiter – beim Loslassen bist du also genau wieder auf dem Schlag. Am Push: **REPEAT** / **ACCENT**, dabei über den Touchstrip streichen für 1/2 … 1/32.
+
+## 27. Color-FX
+
+Ein Ein-Regler-Effekt pro Spur, wie die Color-FX eines DJ-Mixers: Die sechs Knöpfe im **COLOR-FX**-Block wählen den Effekt, der **COLOR**-Regler jeder Spur stellt ihn ein – **Mitte = aus**, nach links oder rechts für mehr.
+
+| Effekt | Links | Rechts |
+|---|---|---|
+| Filter | Tiefpass | Hochpass |
+| Dub Echo | dunkles punktiertes Achtel-Echo | helles Echo |
+| Space | Hall | Hall |
+| Crush | Bit-Crush, dunkler | Bit-Crush, dünner |
+| Noise | dunkles Rauschen | helles Rauschen |
+| Sweep | Gate in Sechzehnteln | Bandpass, der nach oben wandert |
+
+In der Mitte bleibt die Spur unberührt (bit-genau). Der Regler ist pro Spur zuweisbar (*Color 1 … 8*).
+
+## 28. Metronom-Block
+
+Der **METRONOM**-Block spielt einen Klick unabhängig vom RHYTHMUS: **METRONOM** = an / aus, **ACCENT** = lautere Eins, das Menü darunter = Klang (Piep, Holzblock, Klick, Rimshot), **PEGEL** = Lautstärke. In der Standalone-App kann der Klick nur auf den Cue-Ausgang gehen (Abschnitt 14), damit das Publikum ihn nicht hört. Am Push: SHIFT + TAP TEMPO.
+
+## 29. Ableton Link
+
+livelooper kann Tempo und Schlag mit anderen Apps und Geräten im selben Netzwerk teilen (Ableton Live, andere Link-Apps auf Mac, PC, iPhone oder iPad):
+
+1. **SETUP → Ableton Link → Ableton Link (Tempo und Beat mit anderen Apps)** – oder am Push SHIFT + METRONOME.
+2. Das Display zeigt *LINK 1 TEILNEHMER*, *LINK 2 TEILNEHMER* … – livelooper folgt Tempo und Schlag der Session; TEMPO oder TAP ändern das Tempo für alle.
+3. **Start / Stopp mit Link synchronisieren** (optional): Auch Starten und Stoppen wird geteilt.
+
+Das Beitreten ändert nie das Tempo einer Session – livelooper übernimmt das Tempo der anderen. In der **Standalone-App** gibt Link den Takt von livelooper vor. In einer **DAW** hat HOST-SYNC Vorrang (das Display zeigt *LINK: HOST-SYNC ZUERST*) – schalte HOST-SYNC aus, um Link zu folgen, oder nutze das Link deiner DAW. Link braucht keine Einrichtung am Computer; alle Geräte müssen nur im selben Netzwerk sein.
+
+## 30. Hilfe
+
+Der Knopf **?** (oben rechts) oder **SETUP → Hilfe …** öffnet die Hilfe: diese Bedienungsanleitung, die Push-Anleitung und die MIDI-Anleitung in deiner Sprache, in Abschnitte aufgeteilt, mit Suchfeld (z. B. *Stutter*, *Link*, *Capture*). Fährt man mit der Maus über ein Element, erscheint ein kurzer Hinweis.
+
+![Hilfe](../images/livelooper-help-de.png)
+
+## 31. Einstellungen beim Start
+
+Beim ersten Start fragt livelooper einmal, wie es künftig starten soll:
+
+- **Letzte Einstellungen**: Jeder Start – und jedes neue Plug-in ohne gespeichertes Projekt – nutzt die zuletzt verwendeten Einstellungen: Effekte, Rhythmus, Metronom, MIDI- und Tastatur-Zuordnung, Spuren, Push (keine Loops).
+- **Standard-Einstellungen**: immer frisch starten.
+
+Jederzeit änderbar unter **SETUP → Einstellungen beim Start**; *Alle Einstellungen jetzt zurücksetzen (Loops bleiben)* setzt die Bedienelemente zurück, ohne die Loops zu löschen. Ein DAW-Projekt lädt immer seinen eigenen gespeicherten Zustand.
+
+## 32. Info und Updates
+
+**SETUP → Über livelooper …** zeigt die Version (mit Build-Nummer, Git-Hash und Datum), die Lizenz (AGPLv3) und die Hinweise zu Drittkomponenten. **Nach Updates suchen** fragt bei GitHub nach einer neueren Version:
+
+- **Standalone-App**: *Herunterladen und installieren* – die neue Version wird geladen, geprüft und ersetzt die App, wenn du livelooper beendest.
+- **Plug-in**: Das Update wird geladen und vorbereitet; installiere es bei geschlossener DAW (Knopf *Plug-ins installieren* oder mit der Standalone-App). Ein Plug-in wird nie ersetzt, solange eine DAW es benutzt.
+
+*Beim Start automatisch prüfen* und *Updates automatisch installieren* sind aus, bis du sie einschaltest (auch unter **SETUP → Updates**).
+
+![Info](../images/livelooper-about-de.png)
+
