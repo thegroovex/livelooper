@@ -13,6 +13,12 @@ Sources (download them first, see SOURCES.md for the URLs):
   SRC/open-drums  fluid-music/open-drums tr-707 (public domain)
   SRC/sonicpi     Sonic Pi samples from freesound.org (CC0 1.0)
   SRC/sampled     oramics/sampled DM/LM-2 (public domain)
+  SRC/vcsl16      more VCSL files for the v1.6 Rock and Afro Latin kits (CC0 1.0)
+
+v1.6: the style kits House, Techno, Boom Bap, Trap, Breaks and Disco are synthesised by
+synth_kits.py (no recordings), Rock and Afro Latin combine VCSL recordings with synthesised
+kick layers, and the Studio kick / snare get extra takes derived from their VCSL recordings
+(pitch, decay and transient variants) for more variation.
 
 usage: build_drum_samples.py <SRC> <repo root>
 """
@@ -22,6 +28,9 @@ import sys
 import numpy as np
 import soundfile as sf
 from scipy.signal import resample_poly
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import synth_kits  # noqa: E402
 
 RATE = 44100
 
@@ -33,11 +42,32 @@ SAMPLED_URL = "https://github.com/oramics/sampled/tree/master/DM/LM-2"
 
 LIC_CC0 = "CC0 1.0 Universal"
 LIC_PD = "Public domain"
+SELF_URL = "tools/samples/synth_kits.py (this repository)"
+LIC_SELF = "CC0 1.0 Universal (self-synthesised for livelooper)"
 
 # max length in seconds per voice
 MAXLEN = {"kick": 0.75, "snare": 0.6, "clap": 0.5, "hatc": 0.28, "hato": 0.9, "rim": 0.3, "shaker": 0.3, "tom": 0.8}
 
-# kit -> voice -> list of (layer velocity 0..1, source path, source name, url, license)
+def variant(x, pitch, decay, punch):
+    """A new take derived from a recording: resampled (pitch factor), shorter / longer decay
+    envelope, transient emphasis."""
+    from scipy.signal import resample
+    n = max(16, int(len(x) / pitch))
+    y = resample(x, n)
+    t = np.arange(len(y)) / RATE
+    y = y * np.exp(-t * decay)
+    att = int(0.006 * RATE)
+    y[:att] *= 1.0 + punch * np.linspace(1.0, 0.0, att)
+    return y
+
+
+def synth_voice(kit, voice):
+    """[(layer, audio, name, url, license)] for a synthesised voice."""
+    return [(vel, a, f"self-synthesised {kit} {voice} (layer {vel:.2f}, take {take + 1})", SELF_URL, LIC_SELF)
+            for (v, vel, take, a) in synth_kits.kit_entries(kit, [voice])]
+
+
+# kit -> voice -> list of (layer velocity 0..1, source path or audio, source name, url, license)
 def kits(src):
     v = os.path.join(src, "vcsl")
     e = os.path.join(src, "808")
@@ -50,17 +80,52 @@ def kits(src):
     def tr7(f): return (os.path.join(o, f), "TR-707 " + f, OPEN_DRUMS_URL, LIC_PD)
     def sp(f, fs): return (os.path.join(s, f), "Sonic Pi " + f + " (freesound " + fs + ")", SONICPI_URL, LIC_CC0)
     def lm(f): return (os.path.join(l, f), "LinnDrum LM-2 " + f, SAMPLED_URL, LIC_PD)
+    w = os.path.join(src, "vcsl16")
+    def v16(f): return (os.path.join(w, f + ".wav"), "VCSL " + f + ".wav", VCSL_URL, LIC_CC0)
+
+    def studio_takes(files, voice):
+        # v1.6: one extra take per recording (pitch / decay / transient variant)
+        out = []
+        for i, (vel, f) in enumerate(files):
+            a = load(os.path.join(v, f))
+            pitch = [0.97, 1.03, 0.985, 1.02][i % 4]
+            out.append((vel, variant(a, pitch, [1.5, 3.0, 0.5, 2.2][i % 4], [0.5, 0.2, 0.8, 0.3][i % 4]),
+                        f"VCSL {f}, derived take (pitch x{pitch})", VCSL_URL, LIC_CC0))
+        return out
+
+    def rock_kick():
+        # VCSL kick with more attack and a short synthesised low layer underneath
+        out = []
+        layers = [(0.4, "BDrumNew_hit_v3_rr1_Sum.wav"), (0.4, "BDrumNew_hit_v3_rr2_Sum.wav"),
+                  (0.7, "BDrumNew_hit_v5_rr1_Sum.wav"), (0.7, "BDrumNew_hit_v5_rr2_Sum.wav"),
+                  (1.0, "BDrumNew_hit_v7_rr1_Sum.wav"), (1.0, "BDrumNew_hit_v7_rr2_Sum.wav")]
+        for i, (vel, f) in enumerate(layers):
+            a = variant(load(os.path.join(v, f)), 0.94, 4.0, 1.2)
+            a = a / (np.max(np.abs(a)) + 1e-12)
+            sub = synth_kits.render("rock", "kick", vel, i)
+            n = max(len(a), len(sub))
+            mix = np.zeros(n)
+            mix[:len(a)] += a
+            mix[:len(sub)] += sub * 0.55 * vel
+            out.append((vel, np.tanh(mix * 1.4), f"VCSL {f} + self-synthesised low layer", VCSL_URL, LIC_CC0))
+        return out
 
     return {
         "studio": {
             "kick":  [(0.3, *vc("BDrumNew_hit_v2_rr1_Sum.wav")), (0.3, *vc("BDrumNew_hit_v2_rr2_Sum.wav")),
                       (0.55, *vc("BDrumNew_hit_v3_rr1_Sum.wav")), (0.55, *vc("BDrumNew_hit_v3_rr2_Sum.wav")),
                       (0.8, *vc("BDrumNew_hit_v5_rr1_Sum.wav")), (0.8, *vc("BDrumNew_hit_v5_rr2_Sum.wav")),
-                      (1.0, *vc("BDrumNew_hit_v7_rr1_Sum.wav")), (1.0, *vc("BDrumNew_hit_v7_rr2_Sum.wav"))],
+                      (1.0, *vc("BDrumNew_hit_v7_rr1_Sum.wav")), (1.0, *vc("BDrumNew_hit_v7_rr2_Sum.wav"))]
+                     + studio_takes([(0.3, "BDrumNew_hit_v2_rr1_Sum.wav"), (0.55, "BDrumNew_hit_v3_rr2_Sum.wav"),
+                                     (0.8, "BDrumNew_hit_v5_rr1_Sum.wav"), (0.8, "BDrumNew_hit_v5_rr2_Sum.wav"),
+                                     (1.0, "BDrumNew_hit_v7_rr1_Sum.wav"), (1.0, "BDrumNew_hit_v7_rr2_Sum.wav"),
+                                     (1.0, "BDrumNew_hit_v7_rr2_Sum.wav"), (1.0, "BDrumNew_hit_v7_rr1_Sum.wav")], "kick"),
             "snare": [(0.3, *vc("Snare2_HitSN_v3_rr1_Mid.wav")), (0.3, *vc("Snare2_HitSN_v3_rr2_Mid.wav")),
                       (0.55, *vc("Snare2_HitSN_v5_rr1_Mid.wav")), (0.55, *vc("Snare2_HitSN_v5_rr2_Mid.wav")),
                       (0.8, *vc("Snare2_HitSN_v7_rr1_Mid.wav")), (0.8, *vc("Snare2_HitSN_v7_rr2_Mid.wav")),
-                      (1.0, *vc("Snare2_HitSN_v9_rr1_Mid.wav")), (1.0, *vc("Snare2_HitSN_v9_rr2_Mid.wav"))],
+                      (1.0, *vc("Snare2_HitSN_v9_rr1_Mid.wav")), (1.0, *vc("Snare2_HitSN_v9_rr2_Mid.wav"))]
+                     + studio_takes([(0.8, "Snare2_HitSN_v7_rr1_Mid.wav"), (1.0, "Snare2_HitSN_v9_rr2_Mid.wav"),
+                                     (1.0, "Snare2_HitSN_v9_rr1_Mid.wav"), (0.55, "Snare2_HitSN_v5_rr2_Mid.wav")], "snare"),
             "clap":  [(0.8, *vc("Clap_rr1.wav")), (0.8, *vc("Clap_rr2.wav")), (0.8, *vc("Clap_rr3.wav"))],
             "hatc":  [(0.3, *vc("HiHat_HitC_v1_rr1_Mid.wav")), (0.3, *vc("HiHat_HitC_v1_rr2_Mid.wav")),
                       (0.55, *vc("HiHat_HitC_v2_rr1_Mid.wav")), (0.55, *vc("HiHat_HitC_v2_rr2_Mid.wav")),
@@ -106,6 +171,45 @@ def kits(src):
             "rim":   [(0.5, *lm("stick-l.wav")), (0.8, *lm("stick-m.wav")), (1.0, *lm("stick-h.wav"))],
             "shaker":[(0.8, *lm("cabasa.wav"))],
             "tom":   [(0.8, *lm("tom-m.wav")), (0.8, *lm("tom-l.wav"))],
+        },
+        # ---- v1.6 style kits
+        **{k: {vn: synth_voice(k, vn) for vn in ["kick", "snare", "clap", "hatc", "hato", "rim", "shaker", "tom"]}
+           for k in ["house", "techno", "boombap", "trap", "breaks"]},
+        "rock": {
+            "kick":  rock_kick(),
+            "snare": [(0.3, *v16("Snare3M_HitSN_v2_rr1_Mid")), (0.3, *v16("Snare3M_HitSN_v2_rr2_Mid")),
+                      (0.55, *v16("Snare3M_HitSN_v3_rr1_Mid")), (0.55, *v16("Snare3M_HitSN_v3_rr2_Mid")),
+                      (0.8, *v16("Snare3M_HitSN_v4_rr1_Mid")), (0.8, *v16("Snare3M_HitSN_v4_rr2_Mid")),
+                      (1.0, *v16("Snare3M_HitSN_v5_rr1_Mid")), (1.0, *v16("Snare3M_HitSN_v5_rr2_Mid"))],
+            "clap":  [(0.8, *v16("Clap_rr4")), (0.8, *v16("Clap_rr5")), (0.8, *v16("Clap_rr6"))],
+            "hatc":  [(0.4, *v16("HiHat_HitC_v2_rr1_Mid")), (0.4, *v16("HiHat_HitC_v2_rr2_Mid")),
+                      (0.7, *v16("HiHat_HitC_v3_rr1_Mid")), (0.7, *v16("HiHat_HitC_v3_rr2_Mid")),
+                      (1.0, *v16("HiHat_HitLoose_rr1_Mid")), (1.0, *v16("HiHat_HitLoose_rr2_Mid")),
+                      (1.0, *v16("HiHat_HitC_v4_rr1_Mid")), (1.0, *v16("HiHat_HitC_v4_rr2_Mid"))],
+            "hato":  [(0.8, *v16("HiHat_HitO_rr1_Mid")), (0.8, *v16("HiHat_HitO_rr2_Mid")), (0.8, *v16("HiHat_HitOC_rr5_Mid"))],
+            "rim":   [(0.7, *v16("Snare3M_Xstick_v2_rr1_Mid")), (0.7, *v16("Snare3M_Xstick_v2_rr2_Mid"))],
+            "shaker":[(0.6, *v16("Tamb1_Hit_v1_rr1_Mid")), (1.0, *v16("Tamb1_Hit_v2_rr1_Mid"))],
+            "tom":   [(0.6, *v16("TomL_HitS_v3_rr1_Mid")), (0.6, *v16("TomL_HitS_v3_rr2_Mid")),
+                      (1.0, *v16("TomL_HitS_v4_rr1_Mid")), (1.0, *v16("TomL_HitS_v4_rr2_Mid"))],
+        },
+        "disco": {vn: synth_voice("disco", vn) for vn in ["kick", "snare", "clap", "hatc", "hato", "rim", "shaker", "tom"]},
+        "afrolatin": {
+            # voices: kick, bongo, claves, shaker, tambourine, cowbell, cabasa, conga
+            "kick":  synth_voice("afrolatin", "kick"),
+            "snare": [(0.35, *v16("BongoH_Hit1_v1_rr1_Mid")), (0.35, *v16("BongoH_Hit1_v1_rr2_Mid")),
+                      (0.7, *v16("BongoH_Hit1_v2_rr1_Mid")), (0.7, *v16("BongoH_Hit1_v2_rr2_Mid")),
+                      (1.0, *v16("BongoH_Hit1_v3_rr1_Mid")), (1.0, *v16("BongoH_Hit1_v3_rr2_Mid"))],
+            "clap":  [(0.4, *v16("Claves1_Hit_v1_rr1_Mid")), (0.7, *v16("Claves1_Hit_v2_rr1_Mid")), (1.0, *v16("Claves1_Hit_v3_rr1_Mid")),
+                      (0.7, *v16("Claves2_Hit_v2_rr1_Mid")), (1.0, *v16("Claves2_Hit_v3_rr1_Mid"))],
+            "hatc":  [(0.5, *v16("Mid_ShakerLowFaster_Down_rr1")), (0.5, *v16("Mid_ShakerLowFaster_Up_rr1")),
+                      (0.8, *v16("Mid_ShakerLowFaster_Down_rr2")), (0.8, *v16("Mid_ShakerLowFaster_Up_rr2")),
+                      (1.0, *v16("Mid_ShakerDouble_Down_rr1")), (1.0, *v16("Mid_ShakerDouble_Up_rr1"))],
+            "hato":  [(0.6, *v16("Tamb1_Hit_v1_rr1_Mid")), (1.0, *v16("Tamb1_Hit_v2_rr1_Mid")), (0.8, *v16("Tamb1_Shake_rr1_Mid"))],
+            "rim":   [(0.5, *v16("Cowbell1_Hit_v2_rr1_Mid")), (0.8, *v16("Cowbell1_Hit_v3_rr1_Mid")), (1.0, *v16("Cowbell1_Hit_v4_rr1_Mid"))],
+            "shaker":[(0.8, *v16("Cabasa1_Hit_rr1_Mid")), (0.8, *v16("Cabasa1_Hit_rr2_Mid"))],
+            "tom":   [(0.4, *v16("Conga_HitN_v1_rr1_Sum")), (0.4, *v16("Conga_HitN_v1_rr2_Sum")),
+                      (0.7, *v16("Conga_HitN_v2_rr1_Sum")), (0.7, *v16("Conga_HitN_v2_rr2_Sum")),
+                      (1.0, *v16("Conga_HitN_v3_rr1_Sum")), (1.0, *v16("Conga_HitN_v3_rr2_Sum"))],
         },
     }
 
@@ -155,20 +259,26 @@ def main():
             os.remove(os.path.join(out_dir, f))
 
     voices = ["kick", "snare", "clap", "hatc", "hato", "rim", "shaker", "tom"]
-    kit_order = ["studio", "808", "909style", "lofi"]
+    kit_order = ["studio", "808", "909style", "lofi",
+                 "house", "techno", "boombap", "trap", "breaks", "rock", "disco", "afrolatin"]   # index = kit parameter
     table = []
     sources = []
     total = 0
+    all_kits = kits(src)
     for k in kit_order:
-        kit = kits(src)[k]
+        kit = all_kits[k]
         for vname in voices:
             entries = kit[vname]
-            audio = [trim(load(p), MAXLEN[vname], k == "lofi") for (_, p, _, _, _) in entries]
+            maxlen = 1.3 if (k == "trap" and vname == "kick") else MAXLEN[vname]
+            audio = [trim(load(p) if isinstance(p, str) else np.asarray(p, dtype=np.float64), maxlen, k == "lofi")
+                     for (_, p, _, _, _) in entries]
             peak = max(np.max(np.abs(a)) for a in audio) + 1e-12
             for i, ((vel, path, name, url, lic), a) in enumerate(zip(entries, audio)):
                 a = a / peak * 10 ** (-1.0 / 20)
                 fname = f"drum_{k}_{vname}_{i + 1}.flac"
-                sf.write(os.path.join(out_dir, fname), a.astype(np.float32), RATE, subtype="PCM_24")
+                # v1.6 kits: 16 bit (smaller plug-in, no audible difference for drum one-shots)
+                sf.write(os.path.join(out_dir, fname), a.astype(np.float32), RATE,
+                         subtype="PCM_24" if k in ("studio", "808", "909style", "lofi") else "PCM_16")
                 total += os.path.getsize(os.path.join(out_dir, fname))
                 table.append((k, vname, vel, fname))
                 sources.append((fname, name, url, lic))
@@ -184,10 +294,14 @@ def main():
     with open(os.path.join(out_dir, "SOURCES.md"), "w") as f:
         f.write("# Drum samples - sources and licenses\n\n")
         f.write("Every drum sample in livelooper comes from a source released under **CC0 1.0** or into the "
-                "**public domain**. The files here were converted to mono 44.1 kHz / 24-bit FLAC, trimmed, faded "
-                "and normalised by `tools/samples/build_drum_samples.py` (the Lo-Fi kit is additionally reduced to "
-                "12 bit / 26 kHz). Built-in kit names describe a sound style; they do not imply endorsement by any "
-                "manufacturer.\n\n")
+                "**public domain**, or was synthesised for livelooper by `tools/samples/synth_kits.py` (oscillators "
+                "and noise, no recordings; released under CC0 1.0). The files here were converted to mono 44.1 kHz "
+                "FLAC (24 bit; the v1.6 style kits 16 bit), trimmed, faded and normalised by "
+                "`tools/samples/build_drum_samples.py` (the Lo-Fi kit is additionally reduced to 12 bit / 26 kHz). "
+                "Built-in kit names describe a sound style; they do not imply endorsement by any manufacturer.\n\n"
+                "v1.6 kits: House, Techno, Boom Bap, Trap, Breaks and Disco are fully self-synthesised; Rock and "
+                "Afro Latin use VCSL recordings (CC0) plus self-synthesised kick layers; the Studio kick and snare "
+                "got extra takes derived from their VCSL recordings.\n\n")
         f.write("| File | Source sample | Source | License |\n|---|---|---|---|\n")
         for (fname, name, url, lic) in sources:
             f.write(f"| {fname} | {name} | {url} | {lic} |\n")
@@ -197,6 +311,7 @@ def main():
         f.write(f"- TR-707 set: \"All samples are public domain, so use em however ya want\" - {OPEN_DRUMS_URL}/TR707WAV/README.txt\n")
         f.write(f"- Sonic Pi samples: \"placed in the public domain via the Creative Commons 0 License\" - {SONICPI_URL}/README.md\n")
         f.write(f"- LinnDrum LM-2: license \"Public Domain\" (from machines.hyperreal.org) - {SAMPLED_URL}/README.md\n")
+        f.write("- Self-synthesised sounds (tools/samples/synth_kits.py): CC0 1.0 Universal, dedicated by the livelooper authors\n")
     print(f"{len(table)} samples, {total / 1024 / 1024:.2f} MB")
 
 
