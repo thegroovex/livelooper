@@ -16,6 +16,7 @@ install_bundle () {
     rm -rf "$dst/$(basename "$src")"
     cp -R "$src" "$dst/"
     xattr -dr com.apple.quarantine "$dst/$(basename "$src")" 2>/dev/null || true
+    codesign --force --deep --sign - "$dst/$(basename "$src")" 2>/dev/null || true
     echo "installed: $dst/$(basename "$src")"
 }
 install_bundle "livelooper.app" "$HOME/Applications"

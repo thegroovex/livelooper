@@ -54,6 +54,17 @@ Der Installer entfernt die Download-Quarantäne von den installierten Dateien un
    xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/VST3/livelooper.vst3
    ```
 
+### D. Plug-in weiterhin blockiert? fix-gatekeeper.command
+
+Meldet deine DAW livelooper weiter als blockiert („Apple konnte nicht überprüfen …“) und hilft **Dennoch öffnen** nicht – das passiert bei Plug-ins, die in einem Host laden –, starte das Reparatur-Skript. Es findet App, VST3 und AU im Benutzer- und Systemordner, entfernt die Quarantäne und signiert sie neu (ad hoc):
+
+- im ZIP: `fix-gatekeeper.command`
+- nach dem `.pkg`-Installer: `/Library/Application Support/livelooper/fix-gatekeeper.command`
+
+Weil das Skript selbst heruntergeladen ist, startest du es im Terminal: `bash ` (mit Leerzeichen) tippen, die Datei ins Fenster ziehen und Return drücken. Bei Nachfrage dein Mac-Passwort eingeben. Danach die DAW beenden, neu starten und Plug-ins neu scannen (in Ableton Live: **Wahltaste** gedrückt halten und auf **Neu scannen** klicken für einen vollständigen Scan).
+
+Der Installer und `install.command` erledigen das bereits automatisch.
+
 ### „livelooper kann nicht geöffnet werden“ – Dennoch öffnen, Schritt für Schritt
 
 Wenn macOS die App blockiert (oder eine DAW das Plug-in als beschädigt / nicht überprüft meldet):

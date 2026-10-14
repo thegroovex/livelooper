@@ -127,8 +127,8 @@ jobs:
           if [ "${{ runner.os }}" = "macOS" ]; then
             cp -R build/livelooper_artefacts/Release/AU/livelooper.component dist/livelooper/
             cp -R build/livelooper_artefacts/Release/Standalone/livelooper.app dist/livelooper/
-            cp installer/macos/install.command dist/livelooper/
-            chmod +x dist/livelooper/install.command
+            cp installer/macos/install.command installer/macos/fix-gatekeeper.command dist/livelooper/
+            chmod +x dist/livelooper/install.command dist/livelooper/fix-gatekeeper.command
             # ditto keeps the executable bits and the signatures intact
             ditto -c -k --sequesterRsrc --keepParent dist/livelooper livelooper-${{ matrix.name }}.zip
           else
@@ -149,7 +149,8 @@ jobs:
           ditto "$A/Standalone/livelooper.app" "$W/root/app/livelooper.app"
           ditto "$A/VST3/livelooper.vst3" "$W/root/vst3/livelooper.vst3"
           ditto "$A/AU/livelooper.component" "$W/root/au/livelooper.component"
-          chmod +x installer/macos/scripts/postinstall
+          cp installer/macos/fix-gatekeeper.command installer/macos/scripts/fix-gatekeeper.command
+          chmod +x installer/macos/scripts/postinstall installer/macos/scripts/fix-gatekeeper.command
           # install exactly where the choice says (no "relocation" to an older copy elsewhere)
           for c in app vst3 au; do
             pkgbuild --analyze --root "$W/root/$c" "$W/$c.plist"
@@ -158,7 +159,7 @@ jobs:
           pkgbuild --root "$W/root/app" --component-plist "$W/app.plist" --identifier com.groovex.livelooper.app \
             --version "$V" --install-location /Applications --scripts installer/macos/scripts "$W/pkgs/livelooper-app.pkg"
           pkgbuild --root "$W/root/vst3" --component-plist "$W/vst3.plist" --identifier com.groovex.livelooper.vst3 \
-            --version "$V" --install-location /Library/Audio/Plug-Ins/VST3 "$W/pkgs/livelooper-vst3.pkg"
+            --version "$V" --install-location /Library/Audio/Plug-Ins/VST3 --scripts installer/macos/scripts "$W/pkgs/livelooper-vst3.pkg"
           pkgbuild --root "$W/root/au" --component-plist "$W/au.plist" --identifier com.groovex.livelooper.au \
             --version "$V" --install-location /Library/Audio/Plug-Ins/Components --scripts installer/macos/scripts "$W/pkgs/livelooper-au.pkg"
           cp -R installer/macos/resources/. "$W/res/"

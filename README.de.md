@@ -77,7 +77,7 @@ Die neueste Version gibt es auf der **[Release-Seite](https://github.com/thegroo
 | macOS (Apple Silicon und Intel) | `livelooper-macOS.pkg` – Installer für App, VST3 und AU | `livelooper-macOS.zip` – von Hand kopieren oder `install.command` doppelklicken |
 | Windows (64 Bit) | `livelooper-Windows-Setup.exe` – Installer für App (Startmenü) und VST3 | `livelooper-Windows.zip` – von Hand kopieren |
 
-livelooper ist noch nicht mit einer Apple-Developer-ID oder einem Windows-Zertifikat signiert, deshalb warnen macOS (Gatekeeper) und Windows (SmartScreen) einmal – [INSTALLATION.md](docs/de/INSTALLATION.md) zeigt Schritt für Schritt, wie du es trotzdem öffnest.
+livelooper ist noch nicht mit einer Apple-Developer-ID oder einem Windows-Zertifikat signiert, deshalb warnen macOS (Gatekeeper) und Windows (SmartScreen) einmal – [INSTALLATION.md](docs/de/INSTALLATION.md) zeigt Schritt für Schritt, wie du es trotzdem öffnest. Blockiert deine DAW das Plug-in weiterhin, starte `fix-gatekeeper.command` (im ZIP, nach dem Installer unter `/Library/Application Support/livelooper`).
 
 ## Welche DAWs?
 

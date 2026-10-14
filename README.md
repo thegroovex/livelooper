@@ -77,7 +77,7 @@ Get the latest version from the **[releases page](https://github.com/thegroovex/
 | macOS (Apple silicon and Intel) | `livelooper-macOS.pkg` – installer for the app, VST3 and AU | `livelooper-macOS.zip` – copy by hand or double-click `install.command` |
 | Windows (64-bit) | `livelooper-Windows-Setup.exe` – installer for the app (Start menu) and VST3 | `livelooper-Windows.zip` – copy by hand |
 
-livelooper is not signed with an Apple Developer ID or a Windows certificate yet, so macOS (Gatekeeper) and Windows (SmartScreen) warn once – [INSTALLATION.md](docs/en/INSTALLATION.md) shows step by step how to open it anyway.
+livelooper is not signed with an Apple Developer ID or a Windows certificate yet, so macOS (Gatekeeper) and Windows (SmartScreen) warn once – [INSTALLATION.md](docs/en/INSTALLATION.md) shows step by step how to open it anyway. If your DAW still blocks the plug-in, run `fix-gatekeeper.command` (in the ZIP, and after the installer in `/Library/Application Support/livelooper`).
 
 ## Which DAWs?
 
