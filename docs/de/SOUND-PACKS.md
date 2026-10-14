@@ -128,9 +128,11 @@ Text: ein Zeichen pro Schritt – `.` oder `-` = aus, `g` = Ghost Note (Velocity
 `"X...|x...|X...|x..."` geht also auch. Eine Zahlenliste gibt die Velocity jedes Schritts an
 (0 = aus, 1 … 127).
 
-**BEATS → IN BIBLIOTHEK** schreibt dasselbe Format (mit `"format": "livelooper-pattern"`) als
-`<Name>.llpattern` in den User-Pattern-Ordner; solche Dateien kannst du in die `patterns`-Liste
-eines Packs übernehmen.
+**BEATS → SPEICHERN** schreibt dasselbe Format (mit `"format": "livelooper-pattern"`) als
+`<Name>.llpattern` in die Beat-Bibliothek (User-Pattern-Ordner); solche Dateien kannst du in die
+`patterns`-Liste eines Packs übernehmen. Seit 1.6 kann ein gespeicherter Beat zusätzlich
+`"format_version": 2`, `"swing"` (50 – 75 %) und ein `"mixer"`-Objekt (`"kick": { "level": 1.0,
+"pitch": 0, "mute": false, "solo": false }`, …) enthalten; beides ist optional, Packs ignorieren es.
 
 ## Lizenzen und Packs verkaufen
 

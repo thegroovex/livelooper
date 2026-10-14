@@ -67,7 +67,7 @@ Auch Automation ist möglich (in Live z. B. in der Arrangement-Ansicht), etwa um
 
 ## Parameterliste
 
-463 Parameter. Mit deutscher Oberfläche zeigt deine DAW die deutschen Namen, mit englischer die englischen (in Klammern). Die internen IDs und gespeicherte Zuweisungen bleiben in beiden Sprachen gleich – ein Sprachwechsel zerstört also keine MIDI-Map und keine Automation.
+465 Parameter. Mit deutscher Oberfläche zeigt deine DAW die deutschen Namen, mit englischer die englischen (in Klammern). Die internen IDs und gespeicherte Zuweisungen bleiben in beiden Sprachen gleich – ein Sprachwechsel zerstört also keine MIDI-Map und keine Automation.
 
 **Pro Spur (S1 … S5 / T1 … T5)** – je 16:
 `Rec/Play`, `Stop`, `Löschen` (Clear), `Rückgängig` (Undo), `Wiederherstellen` (Redo) – Taster · `Pegel` (Level), `Panorama` (Pan) · `Rückwärts` (Reverse), `One Shot`, `Loop-Sync` (Loop Sync), `Spur-FX` (Track FX) – Schalter · `Eingang` (Input), `Startmodus` (Start Mode), `Stoppmodus` (Stop Mode), `Dub-Modus` (Dub Mode), `Takte` (Measures) – Auswahl
@@ -100,3 +100,5 @@ Die internen Parameter-IDs (für Entwickler und gespeicherte Zuweisungen) lauten
 - BEATS-Zeilen 1 – 8 (= Kit-Instrumente Kick … Tom): `Beat Zeile N stumm`, `Beat Zeile N solo` (Schalter), `Beat Zeile N Pegel` (0 – 150 %), `Beat Zeile N Tonhöhe` (±12 Halbtöne)
 - `Drum-Kit` hat 8 weitere Kits (House … Afro Latin) und die Plätze `Pack-Kit 1 … 8`; `Rhythmus-Pattern` hat 18 weitere Grooves und die User-Plätze `User 1 … 16` (BEATS) – neue Einträge stehen am Ende dieser Listen
 - IDs: `rhythm_variation`, `rhythm_fill`, `beat_switch`, `drums_bfx`, `drums_repeat`, `beat_mute1` … `beat_mute8`, `beat_solo1` …, `beat_vol1` …, `beat_pitch1` …
+
+**Seit 1.6 (Beat-Bibliothek)** – 2 weitere, nach den Rhythmus-Parametern angehängt: `Nächster Bibliotheks-Beat` (Next Library Beat), `Vorheriger Bibliotheks-Beat` (Previous Library Beat) (Tasten: blättern durch die mit BEATS → SPEICHERN gesicherten Beats; IDs `beat_lib_next`, `beat_lib_prev`).

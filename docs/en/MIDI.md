@@ -67,7 +67,7 @@ Automation works too (in Live, e.g., in Arrangement view), for example to start 
 
 ## Parameter list
 
-463 parameters, names as shown in your DAW with the English interface (with the German interface they are localised, e.g. "S1 Pegel" instead of "T1 Level"; the internal IDs and your saved assignments stay the same):
+465 parameters, names as shown in your DAW with the English interface (with the German interface they are localised, e.g. "S1 Pegel" instead of "T1 Level"; the internal IDs and your saved assignments stay the same):
 
 **Per track (T1 … T5)** – 16 each:
 `Rec/Play`, `Stop`, `Clear`, `Undo`, `Redo` (buttons) · `Level`, `Pan` · `Reverse`, `One Shot`, `Loop Sync`, `Track FX` (switches) · `Input`, `Start Mode`, `Stop Mode`, `Dub Mode`, `Measures` (selectors)
@@ -98,6 +98,8 @@ Automation works too (in Live, e.g., in Arrangement view), for example to start 
 - BEATS rows 1 – 8 (= kit voices kick … tom): `Beat Row N Mute`, `Beat Row N Solo` (switches), `Beat Row N Level` (0 – 150 %), `Beat Row N Pitch` (±12 semitones)
 - `Drum Kit` has 8 more kits (House … Afro Latin) and the slots `Pack Kit 1 … 8`; `Rhythm Pattern` has 18 more grooves and the user slots `User 1 … 16` (BEATS) – new entries are appended at the end of these lists
 - IDs: `rhythm_variation`, `rhythm_fill`, `beat_switch`, `drums_bfx`, `drums_repeat`, `beat_mute1` … `beat_mute8`, `beat_solo1` …, `beat_vol1` …, `beat_pitch1` …
+
+**Since 1.6 (beat library)** – 2 more, appended after the rhythm parameters: `Next Library Beat`, `Previous Library Beat` (buttons: step through the beats saved with BEATS → SAVE; IDs `beat_lib_next`, `beat_lib_prev`).
 
 The internal parameter IDs (for developers and saved assignments) are e.g. `t1_recplay`, `t3_level`, `allstartstop`, `inB_type`, `trD_mix`, `bfx_type`, `brep_hold`, `t2_color`, `link_on`.
 

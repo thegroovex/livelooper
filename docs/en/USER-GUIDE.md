@@ -462,11 +462,16 @@ Change it any time under **SETUP → Settings on start**; *Reset all settings to
 <!-- v1.6 features (branch v1.6-wip) -->
 ## 33. Demo set and guided tour (new in 1.6)
 
-On the **very first start** livelooper loads a **demo set**: a drum groove (100 BPM) and three short loops – bass, keys and an arpeggio – on tracks 1 – 3. Press **ALL START / STOP** and you hear music within seconds; try the scenes 1 and 2, the beat FX, the loop tricks. The loops are self-made for livelooper and free to use (CC0).
+On the **very first start** livelooper shows its **welcome screen** and lets you choose how to start:
 
-- **SETUP → Load demo set** loads it again any time.
-- **SETUP → Empty set (clear everything)** returns to a blank looper: all loops cleared, every setting back to its default.
-- A DAW project or a set you load is never replaced by the demo – it appears only once, on the first start.
+- **LOAD DEMO SET** – a drum groove (100 BPM) and three short loops – bass, keys and an arpeggio – on tracks 1 – 3. Press **ALL START / STOP** and you hear music within seconds; try the scenes 1 and 2, the beat FX, the loop tricks. The loops are self-made for livelooper and free to use (CC0).
+- **START WITH EMPTY SET** – a blank looper for your own first loop.
+
+The note on the screen says it: **the demo set replaces the current set** (loops and settings), and an empty set can be loaded any time with **SETUP → Empty set (clear everything)**. After your choice the guided tour starts.
+
+- **SETUP → Welcome / demo set …** shows the same screen any time (without the tour). **SETUP → Load demo set** loads the demo directly.
+- When the current set holds loops, livelooper **asks before** the demo set (or the empty set) replaces it.
+- A DAW project or a set you load is never replaced without your choice.
 
 Right after the first start a **guided tour** (about 60 seconds) shows the five things to try first: **Record → Overdub → Groove → Beat FX → Scene**. Each step highlights the control and explains it; **NEXT**, **BACK** or **SKIP TOUR**. Start it again any time from the help button **?** → *Guided tour (60 seconds)* or **SETUP → Guided tour**.
 
@@ -578,8 +583,10 @@ Click **BEATS** in the rhythm panel. The page covers the looper until you click 
 - **Per row**: **M** mute, **S** solo, **LVL** level (0 – 150 %), **PITCH** ±12 semitones. These work on every pattern (also the built-in grooves) and are host parameters (*Beat Row 1 … 8 Mute / Solo / Level / Pitch*), so you can automate and MIDI-map them.
 - **Slot**: 16 user patterns per set, listed as **User 1 … 16** in the pattern selector (with their names). Type a name next to the slot.
 - **PLAY** plays the slot. Editing a slot also makes it play. When you open BEATS while a built-in groove plays, an empty slot starts as a copy of that groove.
-- **LOAD**: a built-in groove, a saved user pattern, a pattern from a sound pack or another slot of this set.
-- **SAVE TO LIBRARY**: saves the pattern as a user pattern (`Music/livelooper/Patterns/<name>.llpattern`) – available in every set and project.
+- **SAVE**: asks for a name and saves the beat in your **beat library** (`Music/livelooper/Patterns/<name>.llpattern`) – available in every set and project. A beat with the same name is replaced only after a question. **Save as file …** in the same dialog writes the `.llpattern` file anywhere (to share it).
+- **LOAD**: the list of your **saved beats** (library) comes first, then **Open file …** (a `.llpattern` file anywhere), the built-in grooves, sound-pack patterns and the other slots of this set. A beat goes into the **current slot when it is empty, otherwise into the next free slot** – nothing you built is overwritten (tick *Replace this slot* in the LOAD menu to load into the current slot instead). The slot then plays.
+- A saved beat keeps its **name, steps, velocities, steps per bar, length (bars), swing and the row mixer** (level, pitch, mute, solo of every row); loading it sets swing and the row mixer again. Older pattern files and sound-pack patterns have no swing / mixer – those stay as they are.
+- **Next / Previous Library Beat** (host parameters, MIDI learn): step through your library on stage – the beats load into one slot (a free one when the current slot holds your own edit) and play on the next beat / bar (PATTERN SWITCH).
 - **CLEAR**, **COPY** / **PASTE** (also between slots), **VARY**: a light variation (a few ghost notes, small velocity changes, maybe one kick pickup) – the groove stays.
 - **PATTERN SWITCH** (*Immediately*, *Next Beat*, *Next Bar* – default): when a new pattern (built-in or user, from the selector, BEATS, Push or automation) starts playing. Quantised switching keeps the groove in time.
 - Below the grid: RHYTHM on / off, GROOVE (micro-timing), FILLS (automatic), SWING, FEEL, VARIATION, LEVEL and the two DRUMS switches.

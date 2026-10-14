@@ -126,9 +126,11 @@ Text: one character per step – `.` or `-` = off, `g` = ghost note (velocity 40
 `"X...|x...|X...|x..."` is fine. A list of numbers gives the velocity of each step (0 = off,
 1 … 127).
 
-**BEATS → SAVE TO LIBRARY** writes the same format (with `"format": "livelooper-pattern"`) as
-`<name>.llpattern` into the user patterns folder; you can copy such files into the `patterns`
-list of a pack.
+**BEATS → SAVE** writes the same format (with `"format": "livelooper-pattern"`) as
+`<name>.llpattern` into the beat library (user patterns folder); you can copy such files into the
+`patterns` list of a pack. Since 1.6 a saved beat may also carry `"format_version": 2`,
+`"swing"` (50 – 75 %) and a `"mixer"` object (`"kick": { "level": 1.0, "pitch": 0, "mute": false,
+"solo": false }`, …); both are optional, and packs ignore them.
 
 ## Licences and selling packs
 

@@ -484,6 +484,7 @@ static Features16PushTests features16PushTests;
 //============================================================================== clip export, guided tour, grid controller templates
 #include "plugin/ClipExport.h"
 #include "plugin/GuidedTour.h"
+#include "plugin/WelcomeScreen.h"
 #include "plugin/PluginEditor.h"
 #include "plugin/controllers/GridControllers.h"
 #include "plugin/Localisation.h"
@@ -605,8 +606,14 @@ public:
             expect (! ed->isTourVisible(), "the tour waits for the choice");
             expect (h.track (0).isEmpty(), "nothing replaced before the choice");
             expect (ed->getWelcome()->isFirstStart());
-            expect (ed->getWelcome()->getCardBounds().getWidth() > 400 && ed->getWelcome()->getDemoButton().isShowing()
-                    && ed->getWelcome()->getEmptyButton().isShowing());
+            {
+                auto* w = ed->getWelcome();
+                const auto card = w->getCardBounds();
+                expect (card.getWidth() > 400 && w->getDemoButton().isVisible() && w->getEmptyButton().isVisible());
+                expect (card.contains (w->getDemoButton().getBounds()) && card.contains (w->getEmptyButton().getBounds())
+                        && card.contains (w->getCloseButton().getBounds()), "buttons inside the card");
+                expect (! w->getDemoButton().getBounds().intersects (w->getEmptyButton().getBounds()));
+            }
             if (auto path = juce::SystemStats::getEnvironmentVariable ("LIVELOOPER_UI_PREVIEW", {}); path.isNotEmpty())
             {
                 const juce::File file (path + "welcome.png");
@@ -663,6 +670,23 @@ public:
             ed->getWelcome()->getCloseButton().triggerClick();
             h.pump();
             expect (! ed->isWelcomeVisible(), "CLOSE leaves the set as it is");
+
+            // screenshots for the visual check (LIVELOOPER_UI_PREVIEW): BEATS page and welcome in German
+            ed->showBeatsPage (true);
+            h.pump();
+            expect (ed->isBeatsPageVisible());
+            snap ("beats");
+            const auto lang = i18n::getSetting();
+            i18n::setSetting (i18n::Language::German, false);
+            h.pump();
+            snap ("beats_de");
+            ed->showBeatsPage (false);
+            ed->showWelcome (true);
+            h.pump();
+            snap ("welcome_de");
+            ed->getWelcome()->getCloseButton().triggerClick();
+            h.pump();
+            i18n::setSetting (lang, false);
             ed.reset();
         }
 

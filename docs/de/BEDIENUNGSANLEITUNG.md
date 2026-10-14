@@ -489,11 +489,16 @@ Jederzeit änderbar unter **SETUP → Einstellungen beim Start**; *Alle Einstell
 <!-- v1.6 features (branch v1.6-wip) -->
 ## 33. Demo-Set und geführte Tour (neu in 1.6)
 
-Beim **allerersten Start** lädt livelooper ein **Demo-Set**: einen Drum-Groove (100 BPM) und drei kurze Loops – Bass, Keys und ein Arpeggio – auf den Spuren 1 – 3. Drück **ALLE START / STOP** und du hörst nach Sekunden Musik; probier die Szenen 1 und 2, die Beat-FX und die Loop-Tricks. Die Loops sind eigens für livelooper erzeugt und frei verwendbar (CC0).
+Beim **allerersten Start** zeigt livelooper seinen **Willkommensbildschirm** und lässt dich wählen, wie du startest:
 
-- **SETUP → Demo-Set laden** lädt es jederzeit wieder.
-- **SETUP → Leeres Set (alles löschen)** führt zurück zum leeren Looper: alle Loops gelöscht, alle Einstellungen auf Standard.
-- Ein DAW-Projekt oder ein geladenes Set wird nie durch das Demo ersetzt – es erscheint nur einmal, beim ersten Start.
+- **DEMO-SET LADEN** – ein Drum-Groove (100 BPM) und drei kurze Loops – Bass, Keys und ein Arpeggio – auf den Spuren 1 – 3. Drück **ALLE START / STOP** und du hörst nach Sekunden Musik; probier die Szenen 1 und 2, die Beat-FX und die Loop-Tricks. Die Loops sind eigens für livelooper erzeugt und frei verwendbar (CC0).
+- **MIT LEEREM SET STARTEN** – ein leerer Looper für deinen ersten eigenen Loop.
+
+Der Hinweis auf dem Bildschirm sagt es: **Das Demo-Set ersetzt das aktuelle Set** (Loops und Einstellungen), und ein leeres Set kannst du jederzeit mit **SETUP → Leeres Set (alles löschen)** laden. Nach deiner Wahl startet die geführte Tour.
+
+- **SETUP → Willkommen / Demo-Set …** zeigt denselben Bildschirm jederzeit (ohne Tour). **SETUP → Demo-Set laden** lädt das Demo direkt.
+- Enthält das aktuelle Set Loops, **fragt livelooper nach**, bevor das Demo-Set (oder das leere Set) es ersetzt.
+- Ein DAW-Projekt oder ein geladenes Set wird nie ohne deine Wahl ersetzt.
 
 Direkt nach dem ersten Start zeigt eine **geführte Tour** (etwa 60 Sekunden) die fünf Dinge, die du zuerst ausprobieren solltest: **Aufnehmen → Overdub → Groove → Beat-FX → Szene**. Jeder Schritt hebt das Bedienelement hervor und erklärt es; **WEITER**, **ZURÜCK** oder **TOUR ÜBERSPRINGEN**. Du startest sie jederzeit wieder über die Hilfe-Taste **?** → *Geführte Tour (60 Sekunden)* oder **SETUP → Geführte Tour**.
 
@@ -605,8 +610,10 @@ Klick auf **BEATS** im Rhythmus-Feld. Die Seite liegt über dem Looper, bis du *
 - **Pro Zeile**: **M** stumm, **S** solo, **PEGEL** (0 – 150 %), **TONHÖHE** ±12 Halbtöne. Sie wirken auf jedes Pattern (auch die eingebauten Grooves) und sind Host-Parameter (*Beat Zeile 1 … 8 stumm / solo / Pegel / Tonhöhe*), also automatisierbar und per MIDI steuerbar.
 - **Platz**: 16 User-Patterns pro Set, in der Pattern-Auswahl als **User 1 … 16** (mit Namen). Den Namen tippst du neben dem Platz ein.
 - **PLAY** spielt den Platz. Auch Bearbeiten lässt ihn spielen. Öffnest du BEATS, während ein eingebauter Groove läuft, startet ein leerer Platz als Kopie dieses Grooves.
-- **LADEN**: ein eingebauter Groove, ein gespeichertes User-Pattern, ein Pattern aus einem Sound-Pack oder ein anderer Platz dieses Sets.
-- **IN BIBLIOTHEK**: speichert das Pattern als User-Pattern (`Musik/livelooper/Patterns/<Name>.llpattern`) – in jedem Set und Projekt verfügbar.
+- **SPEICHERN**: fragt nach einem Namen und speichert den Beat in deiner **Beat-Bibliothek** (`Musik/livelooper/Patterns/<Name>.llpattern`) – in jedem Set und Projekt verfügbar. Ein Beat mit gleichem Namen wird nur nach Rückfrage ersetzt. **Als Datei speichern …** im selben Dialog schreibt die `.llpattern`-Datei an einen beliebigen Ort (zum Weitergeben).
+- **LADEN**: Zuerst kommt die Liste deiner **gespeicherten Beats** (Bibliothek), dann **Datei öffnen …** (eine `.llpattern`-Datei von irgendwo), die eingebauten Grooves, Sound-Pack-Patterns und die anderen Plätze dieses Sets. Ein Beat landet im **aktuellen Platz, wenn er leer ist, sonst im nächsten freien Platz** – nichts, was du gebaut hast, wird überschrieben (mit *Diesen Platz ersetzen* im LADEN-Menü lädst du stattdessen in den aktuellen Platz). Der Platz spielt danach.
+- Ein gespeicherter Beat behält **Name, Schritte, Dynamik, Schritte pro Takt, Länge (Takte), Swing und den Zeilen-Mixer** (Pegel, Tonhöhe, stumm, solo jeder Zeile); beim Laden werden Swing und Zeilen-Mixer wieder gesetzt. Ältere Pattern-Dateien und Sound-Pack-Patterns haben keinen Swing / Mixer – dort bleibt beides, wie es ist.
+- **Nächster / Vorheriger Bibliotheks-Beat** (Host-Parameter, MIDI Learn): blättert auf der Bühne durch deine Bibliothek – die Beats laden in einen Platz (einen freien, wenn der aktuelle Platz deine eigene Bearbeitung enthält) und setzen auf den nächsten Schlag / Takt ein (PATTERN-WECHSEL).
 - **LÖSCHEN**, **KOPIEREN** / **EINFÜGEN** (auch zwischen Plätzen), **VARIIEREN**: eine leichte Variation (ein paar Ghost Notes, kleine Dynamikänderungen, evtl. ein Kick-Auftakt) – der Groove bleibt.
 - **PATTERN-WECHSEL** (*Sofort*, *Nächster Schlag*, *Nächster Takt* – Standard): wann ein neues Pattern (eingebaut oder User, aus der Auswahl, BEATS, Push oder Automation) einsetzt. Quantisiertes Umschalten hält den Groove im Takt.
 - Unter dem Raster: RHYTHMUS an / aus, GROOVE (Mikro-Timing), FILLS (automatisch), SWING, FEEL, VARIATION, PEGEL und die beiden DRUMS-Schalter.

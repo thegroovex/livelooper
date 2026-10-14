@@ -11,7 +11,7 @@
 - **Live performance comes first.** Every function reacts instantly, lands on the beat and never stops the music. Nothing needs a menu while you play.
 - **Fun to play.** Beat FX, beat repeat and stutter, colour FX and a groove that feels like a drummer turn a loop into a performance – press, hold, let go, and you are back on the beat.
 - **Explore and play.** Capture what you just improvised, throw an effect on it with the XY pad, pitch it, reverse it, let it decay like tape – and keep what works.
-- **Hands on hardware.** Plug in an Ableton Push and livelooper takes it over – no mapping. Any other controller works through MIDI learn, every one of the 463 functions is mappable.
+- **Hands on hardware.** Plug in an Ableton Push and livelooper takes it over – no mapping. Any other controller works through MIDI learn, every one of the 465 functions is mappable.
 - **Your loops belong in your song.** Drag a loop straight from livelooper onto a track in your DAW, export stems, or keep everything saved with your project.
 
 ## Play it with Ableton Push
@@ -47,12 +47,23 @@ Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
 
 <!-- v1.6 features -->
 **New in 1.6 (in development)**
-- **Demo set and guided tour**: on the first start a groove and three loops are ready – press ALL START / STOP and you hear music in seconds; a 60-second tour shows record, overdub, groove, beat FX and scenes
+- **Welcome screen, demo set and guided tour**: on the first start choose *demo set* (a groove and three loops – press ALL START / STOP and you hear music in seconds) or *empty set*; a 60-second tour shows record, overdub, groove, beat FX and scenes
 - **Loop tricks**: half speed, double speed and reversing the loop audio – quantized, undoable, MIDI-mappable, on Push 1 with SHIFT
 - **Performance recorder**: the whole livelooper output as WAV with one button, with the elapsed time
 - **Clip export 9:16**: the last 20 seconds (or a recording) as a branded vertical video for Reels, TikTok and Shorts
 - **Share sets**: one `.livelooper` file with all audio, opened by drag and drop – the demo set is in [`presets`](presets/)
 - **Controller templates** for Launchpad Mini MK3 / X, APC mini mk2 and Launchkey MK3 / MK4 pads (auto-detected, with LED feedback) – *experimental – untested on hardware, feedback welcome*
+
+*Drums and BEATS*
+
+- **12 drum kits**: Studio, 808, 909 Style, Lo-Fi plus House, Techno, Boom Bap, Trap, Breaks, Rock, Disco and Afro Latin – each with matching grooves (39 in total) and its own fill style
+- **Lively drums**: more takes, velocity layers, round robin across layers, subtle pitch / decay variation and accent kicks (VARIATION) – no machine gun
+- **BEATS step sequencer**: 8 voices × 16 or 32 steps, 1 – 4 bars, velocity / accent per step, mute / solo / level / pitch per row, copy / paste / light variation, 16 user patterns per set plus a pattern library; pattern changes switch on the next beat or bar
+- **FILL on demand**: hold FILL for a fill, let go and the groove lands on the next downbeat
+- **Drums through beat FX and beat repeat / stutter** – a switch per effect group
+- **Sound packs**: import kits and patterns (folder or zip, open format) – see [SOUND-PACKS.md](docs/en/SOUND-PACKS.md)
+- **Push 1 STEP mode**: the pads as a step sequencer, FILL on IN
+- **Beat library**: SAVE stores a beat by name (steps, velocities, length, swing, row mixer), LOAD lists your saved beats or opens a file; step through them with the host parameters *Next / Previous Library Beat*
 <!-- end v1.6 features -->
 
 **Live performance FX (new in 1.5)**
@@ -61,15 +72,6 @@ Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
 - **Colour FX**: one knob per track (COLOR) – filter, dub echo, space, crush, noise, sweep; centre = off
 - **Metronome block**: click on / off, accent, level and sound right on the surface
 - **Ableton Link**: tempo and beat with other apps and devices on the same network (standalone app, or in a DAW with HOST SYNC off)
-
-**Drums and BEATS (new in 1.6)**
-- **12 drum kits**: Studio, 808, 909 Style, Lo-Fi plus House, Techno, Boom Bap, Trap, Breaks, Rock, Disco and Afro Latin – each with matching grooves (39 in total) and its own fill style
-- **Lively drums**: more takes, velocity layers, round robin across layers, subtle pitch / decay variation and accent kicks (VARIATION) – no machine gun
-- **BEATS step sequencer**: 8 voices × 16 or 32 steps, 1 – 4 bars, velocity / accent per step, mute / solo / level / pitch per row, copy / paste / light variation, 16 user patterns per set plus a pattern library; pattern changes switch on the next beat or bar
-- **FILL on demand**: hold FILL for a fill, let go and the groove lands on the next downbeat
-- **Drums through beat FX and beat repeat / stutter** – a switch per effect group
-- **Sound packs**: import kits and patterns (folder or zip, open format) – see [SOUND-PACKS.md](docs/en/SOUND-PACKS.md)
-- **Push 1 STEP mode**: the pads as a step sequencer, FILL on IN
 
 **Shape the sound**
 - **Input FX and track FX**: four slots each with 12 effects – LPF, HPF, BPF, phaser, flanger, delay (tempo-synced), reverb, slicer, tremolo, auto pan, lo-fi, overdrive
@@ -84,7 +86,7 @@ Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
 - **Saved with your project**: loops stored losslessly (FLAC, 24 bit) in your DAW project; whole **looper sets** as `.llset` files
 - **Meters and waveforms**: stereo meter per track, master VU in dB on the display (green / yellow / red), waveform with play position, clip LED
 - **Comfort**: in-app help (searchable user guide), about window with update check, start with the last used or the default settings, list of the last used sets
-- **All 463 functions** are host parameters for your DAW's MIDI mapping and automation
+- **All 465 functions** are host parameters for your DAW's MIDI mapping and automation
 - **English and German** interface (*SETUP → Language / Sprache*)
 
 ## Download
