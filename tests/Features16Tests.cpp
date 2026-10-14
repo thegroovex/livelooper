@@ -466,8 +466,11 @@ public:
             expect (tr.canUndo());
             r.button (push::cc::undo, true); r.run (1); r.button (push::cc::undo, false);
 
-            r.shiftPress (push::cc::scales);
+            // v1.6 merge: reverse moved from SHIFT+SCALES to SHIFT + bottom-row button (SCALES = STEP mode)
+            r.shiftPress (push::kBottomRowFirst + 0);
             expect (tr.canUndo(), "reversed");
+            expect (r.proc.getState().getParameter (trackId (0, kReverse))->getValue() < 0.5f,
+                    "SHIFT + bottom row does not toggle reverse playback");
 
             auto* pitch = r.proc.getState().getParameter (trackId (0, kPitch));
             r.button (push::cc::octaveUp, true); r.run (1); r.button (push::cc::octaveUp, false);

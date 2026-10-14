@@ -282,6 +282,111 @@ public:
             r.press (cc::metronome);
             expect (r.get (gRhythmOn) != rhythm, "METRONOME alone: rhythm as before");
         }
+
+        // ---------------------------------------------------------------- v1.6 rhythm (branch v1.6-rhythm)
+        beginTest ("v1.6 SCALES = STEP mode: pads edit the drum pattern, a built-in groove is copied first");
+        {
+            Rig r;
+            auto* pat = r.proc.getState().getParameter (gRhythmPattern);
+            pat->setValueNotifyingHost (pat->convertTo0to1 (1.0f));        // Rock
+            r.press (cc::scales);
+            expect (r.surface.getMode() == PushSurface::Mode::Step, "STEP mode");
+            r.run (2);
+            r.render();
+            expectEquals (r.surface.getPadColour (0, 0), (int) pad::red, "Rock kick on step 1 (accent)");
+            expectEquals (r.surface.getPadColour (1, 2), (int) pad::grey, "no snare on step 3 (beat 1 = lit background)");
+
+            // a pad press on a preset: copy into user slot 1, which then plays
+            r.surface.handleMidi (juce::MidiMessage::noteOn (1, padNote (1, 2), (juce::uint8) 70));
+            r.surface.handleMidi (juce::MidiMessage::noteOff (1, padNote (1, 2)));
+            const int user = RhythmGenerator::getNumPatterns();
+            expectEquals (juce::roundToInt (r.plain (gRhythmPattern)), user, "the copy plays");
+            auto& bank = r.proc.getUserPatterns();
+            expectEquals (bank.getCell (0, RhythmGenerator::Snare, 2), 70, "pad velocity = step velocity");
+            expectEquals (bank.getCell (0, RhythmGenerator::Kick, 0), 127, "the rest of Rock is there");
+            r.surface.handleMidi (juce::MidiMessage::noteOn (1, padNote (1, 2), (juce::uint8) 90));
+            expectEquals (bank.getCell (0, RhythmGenerator::Snare, 2), 0, "second press: off");
+            r.button (cc::shift, true);
+            r.surface.handleMidi (juce::MidiMessage::noteOn (1, padNote (3, 5), (juce::uint8) 20));
+            r.button (cc::shift, false);
+            expectEquals (bank.getCell (0, RhythmGenerator::HatClosed, 5), 127, "SHIFT + pad = accent");
+
+            // pages of 8 steps
+            r.press (cc::right);
+            expectEquals (r.surface.getStepPage(), 8);
+            r.surface.handleMidi (juce::MidiMessage::noteOn (1, padNote (7, 0), (juce::uint8) 100));
+            expectEquals (bank.getCell (0, RhythmGenerator::Tom, 8), 100, "page 2: step 9");
+            r.press (cc::right);
+            expectEquals (r.surface.getStepPage(), 8, "16 steps: no third page");
+            r.press (cc::left);
+            expectEquals (r.surface.getStepPage(), 0);
+
+            // DELETE + pad clears the row
+            r.button (cc::deleteBtn, true);
+            r.surface.handleMidi (juce::MidiMessage::noteOn (1, padNote (0, 3), (juce::uint8) 100));
+            r.button (cc::deleteBtn, false);
+            for (int s = 0; s < 16; ++s)
+                expectEquals (bank.getCell (0, RhythmGenerator::Kick, s), 0);
+
+            // rows: mute / solo buttons, encoders = level / pitch
+            r.press (kTopRowFirst + 1);
+            expectEquals (r.get (beatRowId (kBeatMute, 1)), 1.0f, "top button 2: snare row mute");
+            r.press (kBottomRowFirst + 2);
+            expectEquals (r.get (beatRowId (kBeatSolo, 2)), 1.0f, "lower button 3: clap row solo");
+            expectEquals (r.get (trackId (1, kTrackFx)), 0.0f, "track FX untouched in STEP mode");
+            const float vol = r.plain (beatRowId (kBeatVol, 0));
+            r.surface.handleMidi (juce::MidiMessage::controllerEvent (1, kEncoderFirst, 127));   // one step left
+            expectLessThan (r.plain (beatRowId (kBeatVol, 0)), vol, "encoder 1: kick level");
+            r.button (cc::shift, true);
+            r.surface.handleMidi (juce::MidiMessage::controllerEvent (1, kEncoderFirst + 7, 4));   // 4 ticks = 1 semitone
+            r.button (cc::shift, false);
+            expectEquals (r.plain (beatRowId (kBeatPitch, 7)), 1.0f, "SHIFT + encoder 8: tom pitch +1");
+            const auto lines = r.surface.buildDisplay();
+            expect (lines[2].startsWith ("STEP"), lines[2]);
+            expect (lines[0].contains ("Kick"), lines[0]);
+
+            // UP / DOWN = pattern, SESSION back
+            r.press (cc::up);
+            expectEquals (juce::roundToInt (r.plain (gRhythmPattern)), user + 1);
+            r.press (cc::session);
+            expect (r.surface.getMode() == PushSurface::Mode::Loop);
+            r.press (kTopRowFirst + 1);
+            expectEquals (r.get (trackId (1, kTrackFx)), 1.0f, "LOOP mode: top buttons = track FX again");
+        }
+
+        beginTest ("v1.6 IN = FILL while held (every mode), OUT = drums through beat FX, SHIFT + OUT = through repeat");
+        {
+            Rig r;
+            r.button (cc::inBtn, true);
+            expectEquals (r.get (gRhythmFill), 1.0f, "FILL held");
+            r.run (1);
+            r.button (cc::inBtn, false);
+            expectEquals (r.get (gRhythmFill), 0.0f, "released");
+            r.press (cc::outBtn);
+            expectEquals (r.get (gDrumsBfx), 1.0f);
+            r.button (cc::shift, true);
+            r.press (cc::outBtn);
+            r.button (cc::shift, false);
+            expectEquals (r.get (gDrumsRepeat), 1.0f);
+            expectEquals (r.get (gDrumsBfx), 1.0f, "SHIFT + OUT leaves beat FX routing alone");
+            r.press (cc::scales);
+            r.button (cc::inBtn, true);
+            expectEquals (r.get (gRhythmFill), 1.0f, "FILL in STEP mode too");
+            r.button (cc::inBtn, false);
+        }
+
+        beginTest ("v1.6 merge: SHIFT + SCALES is STEP mode too (reverse loop moved to SHIFT + bottom-row button)");
+        {
+            Rig r;
+            r.button (cc::shift, true);
+            r.press (cc::scales);
+            r.button (cc::shift, false);
+            expect (r.surface.getMode() == PushSurface::Mode::Step, "SHIFT + SCALES = STEP mode");
+            expect (! r.proc.getEngine().getTrack (0).canUndo(), "SHIFT + SCALES does not reverse a loop");
+            r.press (cc::scales);
+            expect (r.surface.getMode() == PushSurface::Mode::Loop);
+        }
+
     }
 };
 

@@ -5,6 +5,7 @@
 #include "controllers/GridControllers.h"   // v1.6
 #include "AppSettings.h"
 #include "DrumSampleLoader.h"
+#include "SoundPacks.h"
 
 namespace livelooper
 {
@@ -198,6 +199,21 @@ LiveLooperProcessor::LiveLooperProcessor (bool withCueOutput, bool withTrackOutp
     rhythmGroove = apvts.getRawParameterValue (gRhythmGroove);
     rhythmFills  = apvts.getRawParameterValue (gRhythmFills);
     engine.setDrumBank (getEmbeddedDrumBank());      // v1.5: recorded CC0 / public-domain kits
+    // v1.6 rhythm: BEATS user patterns, sound packs, new parameters
+    rhythmVariation = apvts.getRawParameterValue (gRhythmVariation);
+    rhythmFill      = apvts.getRawParameterValue (gRhythmFill);
+    beatSwitch      = apvts.getRawParameterValue (gBeatSwitch);
+    drumsBfx        = apvts.getRawParameterValue (gDrumsBfx);
+    drumsRepeat     = apvts.getRawParameterValue (gDrumsRepeat);
+    for (int r = 0; r < kNumBeatRows; ++r)
+    {
+        beatMute[(size_t) r]  = apvts.getRawParameterValue (beatRowId (kBeatMute, r));
+        beatSolo[(size_t) r]  = apvts.getRawParameterValue (beatRowId (kBeatSolo, r));
+        beatVol[(size_t) r]   = apvts.getRawParameterValue (beatRowId (kBeatVol, r));
+        beatPitch[(size_t) r] = apvts.getRawParameterValue (beatRowId (kBeatPitch, r));
+    }
+    engine.setUserPatterns (&userPatterns);
+    updateDrumBank();
 
     keyboardAvailable = wrapperType == wrapperType_Standalone;
     if (wrapperType != wrapperType_Undefined)      // a real host or the standalone app (not the unit tests)
@@ -385,6 +401,17 @@ void LiveLooperProcessor::pushSettingsToEngine() noexcept
             engine.setColorFx (ct, t, colorKnob[(size_t) t]->load());
         engine.setMetronome (metroOn->load() >= 0.5f, metroLevel->load(), metroAccent->load() >= 0.5f);
         engine.setRhythmGroove (juce::roundToInt (rhythmGroove->load()), juce::roundToInt (rhythmFills->load()));
+    }
+    // v1.6 rhythm: variation, pattern switch, fill on demand, drum FX routing, row mixer
+    {
+        engine.setRhythmExtras (rhythmVariation->load(), juce::roundToInt (beatSwitch->load()), rhythmFill->load() >= 0.5f);
+        engine.setDrumFxRouting (drumsBfx->load() >= 0.5f, drumsRepeat->load() >= 0.5f);
+        bool anyRowSolo = false;
+        for (int r = 0; r < kNumBeatRows; ++r)
+            anyRowSolo = anyRowSolo || beatSolo[(size_t) r]->load() >= 0.5f;
+        for (int r = 0; r < kNumBeatRows; ++r)
+            engine.setDrumVoiceMix (r, beatVol[(size_t) r]->load(), beatPitch[(size_t) r]->load(),
+                                    beatMute[(size_t) r]->load() >= 0.5f || (anyRowSolo && beatSolo[(size_t) r]->load() < 0.5f));
     }
     engine.setRhythmFeel (juce::roundToInt (rhythmKit->load()), rhythmSwing->load() * 0.01f, rhythmHuman->load() * 0.01f);
     engine.setPerformance (tapeStopParam->load(), perfFilterParam->load());
@@ -760,6 +787,10 @@ void LiveLooperProcessor::timerCallback()
             saveLastSettings();
     }
 
+    // v1.6: sound packs changed (import in another instance / rescan)
+    if (SoundPacks::get().getVersion() != soundPackVersion)
+        updateDrumBank();
+
     // momentary trigger parameters go back to "off" after they fired
     for (auto& t : triggers)
         if (t->needsReset.exchange (false) && t->param->getValue() >= 0.5f)
@@ -1107,6 +1138,7 @@ void LiveLooperProcessor::getStateInformation (juce::MemoryBlock& destData)
 
     root.addChildElement (midiMap.toXml ([this] (int i) { return getParamIdForIndex (i); }).release());
     root.addChildElement (keyMap.toXml().release());
+    writeBeatsState (root);     // v1.6
 
     if (saveLoops)
     {
@@ -1173,6 +1205,7 @@ void LiveLooperProcessor::setStateInformation (const void* data, int sizeInBytes
         midiMap.fromXml (*mm, [this] (const juce::String& id) { return getParamIndex (id); });
     if (auto* km = root->getChildByName ("KEYMAP"))
         keyMap.fromXml (*km);
+    readBeatsState (*root);     // v1.6
 
     if (auto* loops = root->getChildByName ("LOOPS"))
     {
@@ -1431,6 +1464,169 @@ bool LiveLooperProcessor::loadSetXml (std::unique_ptr<juce::XmlElement> xml, juc
 juce::AudioProcessorEditor* LiveLooperProcessor::createEditor()
 {
     return new LiveLooperEditor (*this);
+}
+//============================================================================== v1.6 rhythm (branch v1.6-rhythm)
+void LiveLooperProcessor::updateDrumBank()
+{
+    auto& packs = SoundPacks::get();
+    currentBank = packs.getBank();
+    soundPackVersion = packs.getVersion();
+    engine.setDrumBankPointer (currentBank.get());
+}
+
+void LiveLooperProcessor::refreshSoundPacks()
+{
+    SoundPacks::get().rescan();
+    updateDrumBank();
+}
+
+bool LiveLooperProcessor::importSoundPack (const juce::File& f, juce::String& error)
+{
+    const bool ok = SoundPacks::get().importPack (f, error);
+    updateDrumBank();
+    return ok;
+}
+
+juce::String LiveLooperProcessor::getUserPatternName (int slot) const
+{
+    if (! juce::isPositiveAndBelow (slot, BeatPatternBank::kNumSlots))
+        return {};
+    return userPatternNames[(size_t) slot];
+}
+
+void LiveLooperProcessor::setUserPatternName (int slot, const juce::String& name)
+{
+    if (juce::isPositiveAndBelow (slot, BeatPatternBank::kNumSlots))
+    {
+        userPatternNames[(size_t) slot] = name.substring (0, 40);
+        sendChangeMessage();
+    }
+}
+
+void LiveLooperProcessor::storeUserPattern (int slot, const BeatPattern& p, const juce::String& name)
+{
+    if (! juce::isPositiveAndBelow (slot, BeatPatternBank::kNumSlots))
+        return;
+    userPatterns.store (slot, p);
+    userPatternNames[(size_t) slot] = name.substring (0, 40);
+    sendChangeMessage();
+}
+
+void LiveLooperProcessor::selectUserPattern (int slot)
+{
+    if (auto* p = apvts.getParameter (gRhythmPattern))
+    {
+        const int idx = RhythmGenerator::getNumPatterns() + juce::jlimit (0, BeatPatternBank::kNumSlots - 1, slot);
+        p->beginChangeGesture();
+        p->setValueNotifyingHost (p->convertTo0to1 ((float) idx));
+        p->endChangeGesture();
+    }
+}
+
+int LiveLooperProcessor::getCurrentKit() const noexcept    { return juce::roundToInt (rhythmKit->load()); }
+int LiveLooperProcessor::getCurrentPattern() const noexcept { return juce::roundToInt (rhythmPattern->load()); }
+
+int LiveLooperProcessor::prepareEditSlot()
+{
+    const int current = getCurrentPattern();
+    if (RhythmGenerator::isUserPattern (current))
+    {
+        beatsEditSlot = RhythmGenerator::userSlotOf (current);
+        return beatsEditSlot;
+    }
+    // a preset plays: editing starts from a copy of it in the edit slot (an empty slot when the edit slot is used)
+    int slot = beatsEditSlot;
+    if (! userPatterns.isEmpty (slot))
+        for (int s = 0; s < BeatPatternBank::kNumSlots; ++s)
+            if (userPatterns.isEmpty (s)) { slot = s; break; }
+    if (current > 0)
+        storeUserPattern (slot, RhythmGenerator::presetToPattern (current), i18n::tr (RhythmGenerator::getPatternName (current)));
+    beatsEditSlot = slot;
+    selectUserPattern (slot);
+    return slot;
+}
+
+juce::String LiveLooperProcessor::getKitDisplayName (int k) const
+{
+    if (k < RhythmGenerator::getNumKits())
+        return i18n::tr (RhythmGenerator::getKitName (k));
+    const int slot = k - RhythmGenerator::getNumKits();
+    const auto name = SoundPacks::get().getSlotName (slot);
+    return name.isNotEmpty() ? name : i18n::tr ("Pack Kit %1 (empty)", juce::String (slot + 1));
+}
+
+juce::String LiveLooperProcessor::getPatternDisplayName (int p) const
+{
+    if (! RhythmGenerator::isUserPattern (p))
+        return i18n::tr (RhythmGenerator::getPatternName (p));
+    const int slot = RhythmGenerator::userSlotOf (p);
+    const auto name = getUserPatternName (slot);
+    return i18n::tr ("User %1", juce::String (slot + 1)) + (name.isNotEmpty() ? ": " + name
+                                                                             : (userPatterns.isEmpty (slot) ? i18n::tr (" (empty)") : juce::String()));
+}
+
+juce::String LiveLooperProcessor::getVoiceDisplayName (int voice) const
+{
+    const int k = getCurrentKit();
+    const int v = juce::jlimit (0, 7, voice);
+    if (currentBank != nullptr && k >= RhythmGenerator::getNumKits())
+        if (const auto* kit = currentBank->getKit (k); kit != nullptr && ! kit->voiceNames[(size_t) v].empty())
+            return juce::String (kit->voiceNames[(size_t) v]);
+    return i18n::tr (RhythmGenerator::getKitVoiceName (k, v));
+}
+
+void LiveLooperProcessor::writeBeatsState (juce::XmlElement& root) const
+{
+    auto* beats = root.createNewChildElement ("BEATS");
+    beats->setAttribute ("editSlot", beatsEditSlot);
+    for (int s = 0; s < BeatPatternBank::kNumSlots; ++s)
+    {
+        if (userPatterns.isEmpty (s) && userPatternNames[(size_t) s].isEmpty())
+            continue;
+        const auto p = userPatterns.load (s);
+        auto* e = beats->createNewChildElement ("PATTERN");
+        e->setAttribute ("slot", s);
+        e->setAttribute ("name", userPatternNames[(size_t) s]);
+        e->setAttribute ("stepsPerBar", p.stepsPerBar);
+        e->setAttribute ("bars", p.bars);
+        for (int r = 0; r < BeatPattern::kRows; ++r)
+        {
+            juce::String hex;
+            for (int st = 0; st < p.numSteps(); ++st)
+                hex << juce::String::toHexString ((int) p.get (r, st)).paddedLeft ('0', 2);
+            e->setAttribute ("row" + juce::String (r), hex);
+        }
+    }
+}
+
+void LiveLooperProcessor::readBeatsState (const juce::XmlElement& root)
+{
+    for (int s = 0; s < BeatPatternBank::kNumSlots; ++s)
+    {
+        userPatterns.store (s, BeatPattern());
+        userPatternNames[(size_t) s] = {};
+    }
+    const auto* beats = root.getChildByName ("BEATS");
+    if (beats == nullptr)
+        return;
+    beatsEditSlot = juce::jlimit (0, BeatPatternBank::kNumSlots - 1, beats->getIntAttribute ("editSlot", 0));
+    for (auto* e : beats->getChildWithTagNameIterator ("PATTERN"))
+    {
+        const int s = e->getIntAttribute ("slot", -1);
+        if (! juce::isPositiveAndBelow (s, BeatPatternBank::kNumSlots))
+            continue;
+        BeatPattern p;
+        p.stepsPerBar = e->getIntAttribute ("stepsPerBar", 16) >= 32 ? 32 : 16;
+        p.bars = juce::jlimit (1, BeatPattern::kMaxBars, e->getIntAttribute ("bars", 1));
+        for (int r = 0; r < BeatPattern::kRows; ++r)
+        {
+            const auto hex = e->getStringAttribute ("row" + juce::String (r));
+            for (int st = 0; st < p.numSteps() && st * 2 + 1 < hex.length(); ++st)
+                p.set (r, st, hex.substring (st * 2, st * 2 + 2).getHexValue32());
+        }
+        userPatterns.store (s, p);
+        userPatternNames[(size_t) s] = e->getStringAttribute ("name");
+    }
 }
 } // namespace livelooper
 

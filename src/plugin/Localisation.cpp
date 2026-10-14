@@ -684,11 +684,20 @@ namespace
         // ---------------------------------------------------------------- end v1.6 features
     };
 
+    // ---------------------------------------------------------------- v1.6 rhythm (branch v1.6-rhythm)
+    // kits, BEATS step sequencer, fill on demand, drum FX routing, sound packs. Kept as its own
+    // table so it merges cleanly with other v1.6 work.
+    const char* const kGermanRhythm16[][2] = {
+#include "Localisation_Rhythm16.inc"
+    };
+
     const std::map<juce::String, juce::String>& table()
     {
         static const std::map<juce::String, juce::String> map = [] {
             std::map<juce::String, juce::String> m;
             for (const auto& entry : kGerman)
+                m.emplace (juce::String::fromUTF8 (entry[0]), juce::String::fromUTF8 (entry[1]));
+            for (const auto& entry : kGermanRhythm16)
                 m.emplace (juce::String::fromUTF8 (entry[0]), juce::String::fromUTF8 (entry[1]));
             return m;
         }();

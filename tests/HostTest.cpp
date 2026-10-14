@@ -90,8 +90,10 @@ int main (int argc, char* argv[])
         if (! p->getName (64).startsWith ("MIDI CC") && p->getName (64) != "Bypass")
             ++looperParams;
     // 400 up to 1.5, + 26 v1.6 features (loop tricks x 8 tracks, performance recorder, clip export)
+    // + 37 v1.6 rhythm (variation, fill, pattern switch, drum FX routing x 2, BEATS rows x 8 x 4)
     constexpr int kExpectedParams = 400
-                                  + 26;   // v1.6 features
+                                  + 26    // v1.6 features
+                                  + 37;   // v1.6 rhythm
     check (looperParams == kExpectedParams, juce::String (kExpectedParams) + " looper parameters exposed (" + juce::String (looperParams) + ")");
 
     plugin->enableAllBuses();

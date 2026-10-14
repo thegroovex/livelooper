@@ -67,7 +67,7 @@ Die Anfänge der Stücke liegen auf 16tel-Noten des Loops, ein Schnitt bleibt al
 | DOUBLE | **Loop × 2** der ausgewählten Spur (der Loop wird verdoppelt, z. B. um über die zweite Hälfte eine Variation zu overdubben). **SHIFT** + DOUBLE = Loop halbieren |
 | OCTAVE UP / DOWN | Tonhöhe der ausgewählten Spur +12 / −12 Halbtöne |
 | SHIFT + OCTAVE DOWN / UP | *(neu in 1.6)* Loop-Trick der ausgewählten Spur: **halbe Geschwindigkeit** (doppelt so lang, eine Oktave tiefer) / **doppelte Geschwindigkeit** (zweimal hintereinander, eine Oktave höher) – auf den nächsten Schlag oder Takt, ZURÜCK (Undo) stellt den Loop wieder her |
-| SHIFT + SCALES | *(neu in 1.6)* **Loop-Audio umdrehen** der ausgewählten Spur (quantisiert, Undo stellt ihn wieder her) |
+| SHIFT + zweite Reihe 1 – 8 | *(neu in 1.6)* **Loop-Audio umdrehen** dieser Spur (quantisiert, Undo stellt ihn wieder her). SCALES (mit oder ohne SHIFT) öffnet den STEP-Modus |
 | MASTER | Pegelanzeige ein / aus (Display-Zeile 3) |
 | SELECT + Pad | Spur auswählen, ohne etwas anderes auszulösen |
 | SHIFT + Reihe 1 / Reihe 2 | Undo / Redo dieser Spur |
@@ -161,3 +161,32 @@ Die Tasten leuchten, solange ihre Funktion an ist. Alles beginnt auf dem Raster 
 ### MIDI und Host-Parameter
 
 Jede Push-Geste nutzt Funktionen, die auch Host-Parameter sind – jeder MIDI-Controller kann sie also spielen (siehe [MIDI](MIDI.md)): *Slice 1 – 6* (pro Spur; gehalten = Note an, losgelassen = Note aus), *Zurück in Sync*, *Stumm*, *Solo*, *Loop verdoppeln*, *Loop halbieren*, *Oktave hoch / runter*, *In leere Spur kopieren*, *Aufnahmelänge*, *Tape-Stopp* und *Performance-Filter* – und seit 1.5 *Beat-FX an / Halten / Typ / Schlag / Pegel/Tiefe / Kanal*, *Color-FX-Typ*, *Color 1 – 8*, *Beat Repeat Halten / Latch / Timing*, *Stutter Halten / Latch / Timing*, *Metronom an / Pegel / Betonung*, *Link*, *Capture-Takte*.
+
+
+### STEP-Modus und FILL (1.6)
+
+**SCALES** schaltet in den **STEP-Modus**: Die Pads werden zum Step-Sequencer für die Drums (nochmal SCALES, SESSION oder NOTE beendet ihn).
+
+| | STEP-Modus |
+|---|---|
+| Pad-Reihen | die acht Instrumente des Kits, **unterste Reihe = Kick**, dann Snare, Clap, Hi-Hat zu, Hi-Hat offen, Rim, Shaker, **oberste Reihe = Tom** (Afro Latin / Packs: ihre Instrumente) |
+| Pad-Spalten | 8 Schritte; die Anschlagstärke des Pads wird zur Dynamik des Schritts |
+| Pad | Schritt an / aus · **SHIFT** + Pad = Akzent an / aus |
+| LEFT / RIGHT | vorherige / nächste 8 Schritte (16 Schritte pro Takt = 2 Seiten, bis 4 Takte × 32 Schritte) |
+| UP / DOWN | nächstes / vorheriges Pattern (eingebaute Grooves und User 1 … 16; Wechsel wie unter PATTERN-WECHSEL eingestellt) |
+| DELETE + Pad | ganze Zeile löschen |
+| MUTE + Pad, obere Tasten 1 – 8 | Zeile stumm an / aus |
+| SOLO + Pad, untere Tasten 1 – 8 | Zeile solo an / aus |
+| Encoder 1 – 8 | Pegel der Zeile · **SHIFT**: Tonhöhe der Zeile (±12 Halbtöne) |
+
+Pad-Farben: grau = leerer Schritt auf dem 1. / 3. Schlag (Orientierung), gelb = Ghost, orange = normal, rot = Akzent, grün / weiß = der Schritt, der gerade spielt, gelb gedimmt = stumme Zeile. Läuft ein eingebauter Groove, kopiert der erste Pad-Druck ihn in einen freien User-Platz (User 1 … 16), der dann spielt – die eingebauten Grooves bleiben unverändert. Display: Zeile 1 Instrument-Namen, Zeile 2 Pegel (SHIFT: Tonhöhe) oder MUTE / SOLO, Zeile 3 Pattern und gezeigte Schritte, Zeile 4 Kit, FILL, DRUMS-Routing und Meldungen.
+
+In **jedem Modus**:
+
+| Taste | Funktion |
+|---|---|
+| IN | **FILL** solange gehalten – nach dem Loslassen setzt der Groove auf der nächsten Eins wieder ein |
+| OUT | Drums durch die **Beat FX** an / aus |
+| SHIFT + OUT | Drums durch **Beat Repeat / Stutter** an / aus |
+
+IN und OUT leuchten, solange der Fill spielt / ein DRUMS-Routing an ist. Neue Host-Parameter für andere Controller: *Fill (halten)*, *Drums durch Beat FX*, *Drums durch Repeat/Stutter*, *Pattern-Wechsel*, *Drum-Variation*, *Beat Zeile 1 … 8 stumm / solo / Pegel / Tonhöhe*.

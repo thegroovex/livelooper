@@ -108,6 +108,13 @@ Momentfunktionen sind Bool-Parameter. Der Processor reagiert auf die steigende F
 - Die Spracheinstellung liegt in der Datei `livelooper.settings` (macOS `~/Library/Application Support/livelooper/`, Windows `%APPDATA%\livelooper\`, Linux `~/.config/livelooper/`). Die Umgebungsvariable `LIVELOOPER_LANGUAGE=en|de` hat Vorrang (nutzt der Host-Test).
 - Neuer Text: englisch mit `tr()` in den Code schreiben und die deutsche Übersetzung in die Tabelle in `Localisation.cpp` eintragen; der Test „Every choice, effect and effect parameter has a German text" findet fehlende Auswahlwerte und Effekte.
 
+## Rhythmus 1.6: Samples, Texte, Packs
+
+- **Drum-Samples**: `tools/samples/build_drum_samples.py <SRC> .` baut `resources/drums` und `src/engine/DrumSamples.inc` neu. Die Stil-Kits House, Techno, Boom Bap, Trap, Breaks und Disco synthetisiert `tools/samples/synth_kits.py` (feste Seeds, reproduzierbar); Rock und Afro Latin nutzen VCSL-Aufnahmen (CC0, Liste in `SOURCES.md`) plus synthetisierte Kick-Layer. Die Kit-Indizes sind die Werte des Kit-Parameters – nur anhängen, nie umsortieren.
+- **Deutsche Texte der Rhythmus-Funktionen** stehen in einer eigenen Tabelle: `tools/i18n/rhythm16_de.py` bearbeiten und ausführen; es schreibt `src/plugin/Localisation_Rhythm16.inc` (eingebunden von `Localisation.cpp`).
+- **BEATS**: `BeatPattern` (reine Daten) und `BeatPatternBank` (16 Plätze aus Atomics, bearbeitet im Message-Thread, gelesen vom Audio-Thread) in `RhythmGenerator.h`; der Prozessor speichert die Plätze im Element `BEATS` des States. `src/plugin/BeatsPage.*` ist die Editor-Seite, `src/plugin/SoundPacks.*` liest Packs und die Pattern-Bibliothek und baut die Drum-Bank (Bänke werden zur Laufzeit nie freigegeben, der Audio-Thread darf also einen Rohzeiger halten).
+- **Tests**: `tests/Rhythm16Tests.cpp` (Kits, Variation, Sequencer-Timing, quantisierter Wechsel, Fill auf Knopfdruck, Zeilen-Mixer, Drum-FX-Routing, Pack-Format / Zip-Import / Plätze, BEATS-State) und die STEP-Modus-Tests in `tests/Push15Tests.cpp`.
+
 ## CI / Releases
 
 `.github/workflows/ci.yml`

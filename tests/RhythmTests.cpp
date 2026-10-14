@@ -68,7 +68,8 @@ public:
             for (int p = 0; p < RhythmGenerator::getNumPatterns(); ++p)
                 names.insert (RhythmGenerator::getPatternName (p));
             expectEquals ((int) names.size(), RhythmGenerator::getNumPatterns(), "pattern names are unique");
-            expectEquals (RhythmGenerator::getNumKits(), 4);
+            expectEquals (RhythmGenerator::getNumKits(), 12);    // v1.6: + 8 style kits
+            expectEquals (juce::String (RhythmGenerator::getKitName (3)), juce::String ("Lo-Fi"));
         }
 
         beginTest ("Swing offset: straight, triplet, hard");

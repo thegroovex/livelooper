@@ -17,6 +17,11 @@ juce::String fxId (bool inputFx, int slot, const char* name)
     return juce::String (inputFx ? "in" : "tr") + juce::String::charToString ((juce::juce_wchar) ('A' + slot)) + "_" + name;
 }
 
+juce::String beatRowId (const char* what, int row)
+{
+    return juce::String (what) + juce::String (row + 1);
+}
+
 juce::String sceneId (int scene)
 {
     return "scene" + juce::String (scene + 1);
@@ -42,7 +47,7 @@ bool isTrigger (const juce::String& id)
 
 bool isMomentary (const juce::String& id)
 {
-    if (id == gBfxHold || id == gRepeatHold || id == gStutterHold)
+    if (id == gBfxHold || id == gRepeatHold || id == gStutterHold || id == gRhythmFill)
         return true;
     if (id.startsWithChar ('t') && id.length() > 3 && id[2] == '_')
     {
@@ -64,6 +69,7 @@ juce::StringArray captureBarsChoices() { return { "1", "2", "4", "8", "16", "32"
 juce::StringArray beatFractionChoices() { return { "1/32", "1/16", "1/8", "1/4", "1/2", "3/4", "1", "2", "4", "8", "16" }; }
 juce::StringArray repeatRateChoices() { return { "1/2", "1/4", "1/8", "1/16", "1/32" }; }
 juce::StringArray fillChoices() { return { "Off", "Every 4 Bars", "Every 8 Bars" }; }
+juce::StringArray beatSwitchChoices() { return { "Immediately", "Next Beat", "Next Bar" }; }   // v1.6
 
 juce::StringArray grooveChoices()
 {
@@ -115,6 +121,8 @@ juce::StringArray kitChoices()
     juce::StringArray s;
     for (int i = 0; i < RhythmGenerator::getNumKits(); ++i)
         s.add (RhythmGenerator::getKitName (i));
+    for (int i = 0; i < RhythmGenerator::kNumPackKitSlots; ++i)   // v1.6: sound-pack slots
+        s.add ("Pack Kit " + juce::String (i + 1));
     return s;
 }
 
@@ -123,6 +131,8 @@ juce::StringArray rhythmChoices()
     juce::StringArray s;
     for (int i = 0; i < RhythmGenerator::getNumPatterns(); ++i)
         s.add (RhythmGenerator::getPatternName (i));
+    for (int i = 0; i < BeatPatternBank::kNumSlots; ++i)          // v1.6: BEATS user patterns
+        s.add ("User " + juce::String (i + 1));
     return s;
 }
 
@@ -174,7 +184,10 @@ namespace
         { "metro_accent", "Metronome Accent" }, { "link_on", "Link" }, { "link_startstop", "Link Start/Stop Sync" },
         { "rhythm_groove", "Groove" }, { "rhythm_fills", "Fills" },
         // v1.6 features
-        { "perf_rec", "Performance Recorder" }, { "clip_export", "Export 9:16 Clip" }
+        { "perf_rec", "Performance Recorder" }, { "clip_export", "Export 9:16 Clip" },
+        // v1.6 rhythm
+        { "rhythm_variation", "Drum Variation" }, { "rhythm_fill", "Fill (hold)" }, { "beat_switch", "Pattern Switch" },
+        { "drums_bfx", "Drums through Beat FX" }, { "drums_repeat", "Drums through Repeat/Stutter" }
     };
 
     template <size_t N>
@@ -197,6 +210,11 @@ namespace
             return t (g);
         if (paramId.startsWith ("scene") && paramId.substring (5).containsOnly ("0123456789"))
             return t2 ("Scene %1", paramId.substring (5), {});
+        // v1.6 BEATS rows
+        for (auto [prefix, text] : { std::pair<const char*, const char*> { kBeatMute, "Beat Row %1 Mute" }, { kBeatSolo, "Beat Row %1 Solo" },
+                                     { kBeatVol, "Beat Row %1 Level" }, { kBeatPitch, "Beat Row %1 Pitch" } })
+            if (paramId.startsWith (prefix) && paramId.substring ((int) strlen (prefix)).containsOnly ("0123456789"))
+                return t2 (text, paramId.substring ((int) strlen (prefix)), {});
 
         // track: "t1_level"
         if (paramId.length() > 3 && paramId[0] == 't' && paramId[2] == '_')
@@ -422,6 +440,30 @@ APVTS::ParameterLayout createLayout()
         layout.add (std::move (group));
     }
     // ---- end v1.6 features
+    // ---------------------------------------------------------------- v1.6 rhythm: BEATS, fill, drum FX routing (appended)
+    {
+        auto group = std::make_unique<juce::AudioProcessorParameterGroup> ("beats", i18n::tr ("Beats"), "|");
+        auto b = [] (const juce::String& id, bool def) { return std::make_unique<juce::AudioParameterBool> (PID { id, 7 }, localisedName (id), def); };
+        group->addChild (percentParam (gRhythmVariation, localisedName (gRhythmVariation), 1.0f, 0.5f, 7));
+        group->addChild (b (gRhythmFill, false));
+        group->addChild (std::make_unique<juce::AudioParameterChoice> (PID { gBeatSwitch, 7 }, localisedName (gBeatSwitch),
+                                                                       translated (beatSwitchChoices()), 2));
+        group->addChild (b (gDrumsBfx, false));
+        group->addChild (b (gDrumsRepeat, false));
+        for (int r = 0; r < kNumBeatRows; ++r)
+        {
+            group->addChild (b (beatRowId (kBeatMute, r), false));
+            group->addChild (b (beatRowId (kBeatSolo, r), false));
+            group->addChild (percentParam (beatRowId (kBeatVol, r), localisedName (beatRowId (kBeatVol, r)), 1.5f, 1.0f, 7));
+            group->addChild (std::make_unique<juce::AudioParameterFloat> (
+                PID { beatRowId (kBeatPitch, r), 7 }, localisedName (beatRowId (kBeatPitch, r)),
+                juce::NormalisableRange<float> (-12.0f, 12.0f, 1.0f), 0.0f,
+                juce::AudioParameterFloatAttributes()
+                    .withStringFromValueFunction ([] (float v, int) { const int st = juce::roundToInt (v); return (st > 0 ? "+" : "") + juce::String (st); })
+                    .withLabel ("st")));
+        }
+        layout.add (std::move (group));
+    }
 
     return layout;
 }

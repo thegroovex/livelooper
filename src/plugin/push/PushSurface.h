@@ -1,6 +1,7 @@
 #pragma once
 
 #include "PushProtocol.h"
+#include "engine/RhythmGenerator.h"
 
 #include <array>
 #include <functional>
@@ -48,11 +49,20 @@ namespace push
     touch strip = repeat / stutter rate 1/2 (bottom) .. 1/32 (top), FIXED LENGTH = capture
     length 1 .. 32 bars (SHIFT: shorter), SHIFT + METRONOME = Ableton Link on / off,
     SHIFT + TAP TEMPO = metronome click on / off.
+
+    v1.6 rhythm: SCALES = STEP mode (step sequencer for the drums): the pad rows are the eight
+    voices of the kit (bottom = kick), the columns 8 steps; LEFT / RIGHT = previous / next 8
+    steps, UP / DOWN = previous / next pattern (switches quantised), pad = step on / off (pad
+    velocity = step velocity, SHIFT + pad = accent), DELETE + pad = clear the row, MUTE / SOLO +
+    pad or the top / lower button row = row mute / solo, encoders = row level (SHIFT: pitch).
+    Editing a built-in groove copies it into a free user slot first. In every mode: IN = FILL
+    while held (back to the groove on the next downbeat), OUT = drums through the beat FX on / off
+    (SHIFT + OUT: drums through beat repeat / stutter).
 */
 class PushSurface
 {
 public:
-    enum class Mode { Loop, FxPad };
+    enum class Mode { Loop, FxPad, Step };
     enum class EncoderMode { Volume, Pan, Pitch, Feedback, Fx, BeatFx };
     enum class StripMode { TapeStop, Filter, RepeatRate, StutterRate };
 
@@ -84,6 +94,8 @@ public:
     int getPadColour (int row, int column) const noexcept { return padState[(size_t) (row * kGridSize + column)]; }
     juce::String getDisplayLine (int line) const { return displayState[(size_t) juce::jlimit (0, kDisplayLines - 1, line)]; }
     juce::String getNotice() const;
+    /** v1.6 STEP mode: first step shown on the pads (multiple of 8). */
+    int getStepPage() const noexcept { return stepPage; }
 
     /** Text of the four display lines as they should be now. */
     std::array<juce::String, kDisplayLines> buildDisplay() const;
@@ -117,6 +129,13 @@ private:
     /** first encoder of the master section (master level, tempo), -1 when the encoders are all in use */
     int masterColumn() const;
     int fxPadColour (int row, int column) const;
+    // v1.6 STEP mode
+    void handleStepPad (int row, int column, int velocity);
+    bool handleStepButton (int number);
+    int  stepPadColour (int row, int column, bool blinkOn) const;
+    BeatPattern stepView() const;
+    int  stepPlayingCell (const BeatPattern& p) const;
+    std::array<juce::String, kDisplayLines> buildStepDisplay() const;
 
     LiveLooperProcessor& proc;
     std::function<juce::uint32()> clock;
@@ -154,6 +173,9 @@ private:
     juce::String notice;
     juce::uint32 noticeUntil = 0;
 
+    int stepPage = 0;               // v1.6 STEP mode: page of 8 steps
+    BeatPattern stepCache;          // pattern shown on the pads (taken once per render)
+    int stepCachePlaying = -1;
     std::array<int, 64> padState {};
     std::array<int, 128> ccState {};
     std::array<juce::String, kDisplayLines> displayState;

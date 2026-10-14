@@ -108,6 +108,13 @@ Momentary functions are bool parameters. The processor reacts to the rising edge
 - The language setting is stored in the user settings file `livelooper.settings` (macOS `~/Library/Application Support/livelooper/`, Windows `%APPDATA%\livelooper\`, Linux `~/.config/livelooper/`). The environment variable `LIVELOOPER_LANGUAGE=en|de` overrides it (used by the host test).
 - New text: write it in English in the code with `tr()`, add the German translation to the table in `Localisation.cpp`; the test "Every choice, effect and effect parameter has a German text" catches missing choices and effects.
 
+## Rhythm 1.6: samples, texts, packs
+
+- **Drum samples**: `tools/samples/build_drum_samples.py <SRC> .` rebuilds `resources/drums` and `src/engine/DrumSamples.inc`. The v1.6 style kits House, Techno, Boom Bap, Trap, Breaks and Disco are synthesised by `tools/samples/synth_kits.py` (fixed seeds, reproducible); Rock and Afro Latin use VCSL recordings (CC0, download list in `SOURCES.md`) plus synthesised kick layers. Kit indices are the values of the kit parameter – append, never reorder.
+- **German texts of the rhythm features** live in their own table: edit `tools/i18n/rhythm16_de.py` and run it; it writes `src/plugin/Localisation_Rhythm16.inc` (included by `Localisation.cpp`).
+- **BEATS**: `BeatPattern` (plain data) and `BeatPatternBank` (16 slots of atomics, edited on the message thread, read by the audio thread) in `RhythmGenerator.h`; the processor saves the slots in the `BEATS` element of the state. `src/plugin/BeatsPage.*` is the editor page, `src/plugin/SoundPacks.*` reads packs and the pattern library and builds the drum bank (banks are never freed while the process runs, so the audio thread can hold a raw pointer).
+- **Tests**: `tests/Rhythm16Tests.cpp` (kits, variation, sequencer timing, quantised switching, fill on demand, row mixer, drum FX routing, pack format / zip import / slots, BEATS state) and the STEP mode tests in `tests/Push15Tests.cpp`.
+
 ## CI / releases
 
 `.github/workflows/ci.yml`

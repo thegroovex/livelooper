@@ -67,7 +67,7 @@ The slice starts are snapped to 16th notes of the loop, so a cut keeps the groov
 | DOUBLE | **loop × 2** of the selected track (the loop is duplicated, e.g. to overdub a variation over the second half). **SHIFT** + DOUBLE = half the loop |
 | OCTAVE UP / DOWN | pitch of the selected track +12 / −12 semitones |
 | SHIFT + OCTAVE DOWN / UP | *(new in 1.6)* loop trick of the selected track: **half speed** (twice as long, an octave lower) / **double speed** (played twice, an octave higher) – on the next beat or bar, UNDO restores the loop |
-| SHIFT + SCALES | *(new in 1.6)* **reverse the loop audio** of the selected track (quantized, UNDO restores it) |
+| SHIFT + second row 1 – 8 | *(new in 1.6)* **reverse the loop audio** of that track (quantized, UNDO restores it). SCALES (with or without SHIFT) opens the STEP mode |
 | MASTER | level meters on / off (display line 3) |
 | SELECT + pad | select a track without doing anything else |
 | SHIFT + row 1 / row 2 | undo / redo of that track |
@@ -161,3 +161,32 @@ The buttons light up while their function is on. Everything starts on the grid o
 ### MIDI and host parameters
 
 Every Push gesture uses functions that are also host parameters, so any MIDI controller can play them (see [MIDI](MIDI.md)): *Slice 1 – 6* (per track; held = note on, released = note off), *Back in Sync*, *Mute*, *Solo*, *Double Loop*, *Halve Loop*, *Octave Up / Down*, *Copy to Empty Track*, *Rec Length*, *Tape Stop* and *Performance Filter* – and since 1.5 *Beat FX On / Hold / Type / Beat / Level/Depth / Channel*, *Color FX Type*, *Color 1 – 8*, *Beat Repeat Hold / Latch / Timing*, *Stutter Hold / Latch / Timing*, *Metronome On / Level / Accent*, *Link*, *Capture Bars*.
+
+
+### STEP mode and FILL (1.6)
+
+**SCALES** switches to the **STEP mode**: the pads become a step sequencer for the drums (press SCALES again, SESSION or NOTE to leave it).
+
+| | STEP mode |
+|---|---|
+| Pad rows | the eight voices of the kit, **bottom row = kick**, then snare, clap, closed hat, open hat, rim, shaker, **top row = tom** (Afro Latin / packs: their instruments) |
+| Pad columns | 8 steps; the pad velocity becomes the step velocity |
+| Pad | step on / off · **SHIFT** + pad = accent on / off |
+| LEFT / RIGHT | previous / next 8 steps (16 steps per bar = 2 pages, up to 4 bars × 32 steps) |
+| UP / DOWN | next / previous pattern (built-in grooves and User 1 … 16; switches as set in PATTERN SWITCH) |
+| DELETE + pad | clear the whole row |
+| MUTE + pad, top buttons 1 – 8 | row mute on / off |
+| SOLO + pad, lower buttons 1 – 8 | row solo on / off |
+| Encoders 1 – 8 | row level · **SHIFT**: row pitch (±12 semitones) |
+
+Pad colours: grey = empty step on the 1st / 3rd beat (orientation), yellow = ghost, orange = normal, red = accent, green / white = the step that plays now, dim yellow = muted row. When a built-in groove plays, the first pad press copies it into a free user slot (User 1 … 16) which then plays – the built-in grooves are never changed. Display: line 1 voice names, line 2 level (SHIFT: pitch) or MUTE / SOLO, line 3 pattern and shown steps, line 4 kit, FILL, DRUMS routing and messages.
+
+In **every mode**:
+
+| Button | Function |
+|---|---|
+| IN | **FILL** while held – the groove comes back on the next downbeat after you let go |
+| OUT | drums through the **beat FX** on / off |
+| SHIFT + OUT | drums through **beat repeat / stutter** on / off |
+
+The IN and OUT buttons light up while the fill plays / a DRUMS routing is on. New host parameters for other controllers: *Fill (hold)*, *Drums through Beat FX*, *Drums through Repeat/Stutter*, *Pattern Switch*, *Drum Variation*, *Beat Row 1 … 8 Mute / Solo / Level / Pitch*.
