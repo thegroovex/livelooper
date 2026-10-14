@@ -113,6 +113,37 @@ int main (int argc, char* argv[])
         juce::MessageManager::getInstance()->runDispatchLoopUntil (200);
         save (*editor, outDir.getChildFile ("livelooper" + sfx + ".png"));
 
+        // v1.6 rhythm: the BEATS page with the Boom Bap kit and a user pattern
+        {
+            set (gRhythmKit, 6.0f);
+            set (gRhythmPattern, (float) (RhythmGenerator::getNumPatterns() - 14));    // Boom Bap
+            ed->showBeatsPage (true);
+            if (auto* page = ed->getBeatsPage())
+            {
+                page->loadPreset (RhythmGenerator::getNumPatterns() - 14);
+                proc.setUserPatternName (page->getEditSlot(), "Boom Bap Flip");
+                page->setResolution (16, 2);
+                auto& bank = proc.getUserPatterns();
+                bank.setCell (page->getEditSlot(), RhythmGenerator::Snare, 7, 40);
+                bank.setCell (page->getEditSlot(), RhythmGenerator::Rim, 14, 96);
+                bank.setCell (page->getEditSlot(), RhythmGenerator::HatOpen, 15, 110);
+            }
+            set (beatRowId (kBeatMute, 6), 1.0f);
+            set (gDrumsBfx, 1.0f);
+            for (int f = 0; f < 6; ++f)
+            {
+                runBlocks (proc, 3, 0.0f);
+                juce::MessageManager::getInstance()->runDispatchLoopUntil (40);
+            }
+            save (*editor, outDir.getChildFile ("livelooper-beats" + sfx + ".png"));
+            ed->showBeatsPage (false);
+            set (beatRowId (kBeatMute, 6), 0.0f);
+            set (gDrumsBfx, 0.0f);
+            set (gRhythmKit, 0.0f);
+            set (gRhythmPattern, 1.0f);
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
+        }
+
         // v1.5 live performance: beat FX, colour FX, beat repeat latch, metronome and Link on
         set (gBfxOn, 1.0f);
         set (gColorType, 1.0f);

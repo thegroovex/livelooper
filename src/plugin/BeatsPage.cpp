@@ -489,13 +489,14 @@ void BeatsPage::resized()
     bottomBar = r.removeFromBottom (84);
     {
         auto b = bottomBar.reduced (0, 4);
-        auto col = b.removeFromLeft (150);
+        auto col = b.removeFromLeft (130);
         rhythmOnBtn.setBounds (col.removeFromTop (34).reduced (0, 1));
+        b.removeFromLeft (12);
+        captionArea = b.removeFromLeft (70);
+        col = b.removeFromLeft (170);
+        grooveBox.setBounds (col.removeFromTop (34).reduced (0, 3));
         col.removeFromTop (6);
         fillsBox.setBounds (col.removeFromTop (30).reduced (0, 2));
-        b.removeFromLeft (10);
-        col = b.removeFromLeft (160);
-        grooveBox.setBounds (col.removeFromTop (34).reduced (0, 3));
         b.removeFromLeft (10);
         auto right = b.removeFromRight (190);
         drumsBfxBtn.setBounds (right.removeFromTop (34).reduced (0, 1));
@@ -525,7 +526,9 @@ void BeatsPage::resized()
 
 void BeatsPage::paint (juce::Graphics& g)
 {
-    g.setColour (colours::section.withAlpha (0.97f));
+    g.setColour (colours::panel);
+    g.fillRoundedRectangle (getLocalBounds().toFloat(), 8.0f);
+    g.setColour (colours::section);
     g.fillRoundedRectangle (getLocalBounds().toFloat(), 8.0f);
     g.setColour (colours::sectionEdge);
     g.drawRoundedRectangle (getLocalBounds().toFloat().reduced (0.5f), 8.0f, 1.0f);
@@ -542,7 +545,11 @@ void BeatsPage::paint (juce::Graphics& g)
         g.drawFittedText (i18n::upper (proc.getVoiceDisplayName (row)), rr.withTrimmedLeft (10.0f).toNearestInt(),
                           juce::Justification::centredLeft, 1, 0.8f);
     }
-    // bottom bar caption
+    // bottom bar captions
+    g.setColour (colours::textDim);
+    g.setFont (LooperLookAndFeel::font (11.0f, true));
+    g.drawText (tr ("GROOVE"), captionArea.withHeight (34), juce::Justification::centredRight);
+    g.drawText (tr ("FILLS"), captionArea.withTrimmedTop (40).withHeight (30), juce::Justification::centredRight);
     g.setColour (colours::sectionEdge);
     g.drawHorizontalLine (bottomBar.getY() - 3, (float) bottomBar.getX(), (float) bottomBar.getRight());
 }

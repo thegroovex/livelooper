@@ -91,6 +91,7 @@ DE = [
     ("Row %1 solo", "Zeile %1 solo"), ("Solo off", "Solo aus"),
     ("Drums through beat FX on", "Drums durch Beat FX an"), ("Drums through beat FX off", "Drums durch Beat FX aus"),
     ("Drums through repeat on", "Drums durch Repeat an"), ("Drums through repeat off", "Drums durch Repeat aus"),
+    ("GROOVE", "GROOVE"), ("FILLS", "FILLS"),
     ("Kit: %1", "Kit: %1"), ("Variation %1", "Variation %1"),
 ]
 

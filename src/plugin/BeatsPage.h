@@ -100,7 +100,7 @@ private:
     std::array<std::unique_ptr<Knob>, BeatPattern::kRows> volKnobs, pitchKnobs;
     std::unique_ptr<Knob> swingKnob, feelKnob, variationKnob, levelKnob;
 
-    juce::Rectangle<int> topBar, toolBar, rowHeader, bottomBar;
+    juce::Rectangle<int> topBar, toolBar, rowHeader, bottomBar, captionArea;
     std::unique_ptr<juce::FileChooser> chooser;
     int barPage = 0;
     int lastVersion = -1, lastCell = -2, lastKit = -1, lastPattern = -1, lastPackVersion = -1;
