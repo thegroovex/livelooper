@@ -1,0 +1,115 @@
+#!/usr/bin/env python3
+"""German texts of the v1.6 rhythm features (kits, BEATS, fill, drum FX routing, sound packs).
+Writes src/plugin/Localisation_Rhythm16.inc (UTF-8 as \\x escapes, like the main table).
+Usage: python3 tools/i18n/rhythm16_de.py"""
+import os
+
+DE = [
+    # kits
+    ("House", "House"), ("Techno", "Techno"), ("Boom Bap", "Boom Bap"), ("Breaks", "Breaks"), ("Rock", "Rock"),
+    ("Afro Latin", "Afro Latin"),
+    ("Pack Kit 1", "Pack-Kit 1"), ("Pack Kit 2", "Pack-Kit 2"), ("Pack Kit 3", "Pack-Kit 3"), ("Pack Kit 4", "Pack-Kit 4"),
+    ("Pack Kit 5", "Pack-Kit 5"), ("Pack Kit 6", "Pack-Kit 6"), ("Pack Kit 7", "Pack-Kit 7"), ("Pack Kit 8", "Pack-Kit 8"),
+    ("Pack Kit %1 (empty)", "Pack-Kit %1 (leer)"),
+    # patterns (v1.6)
+    ("Deep House", "Deep House"), ("Tech House", "Tech House"), ("Peak Techno", "Peak Techno"),
+    ("Hypnotic Techno", "Hypnotic Techno"), ("Boom Bap Swing", "Boom Bap Swing"), ("Trap Rolls", "Trap Rolls"),
+    ("Trap Half Time", "Trap Half Time"), ("Jungle", "Jungle"), ("Two Step", "Two Step"), ("Big Beat", "Big Beat"),
+    ("Rock Drive", "Rock Drive"), ("Rock Half Time", "Rock Half Time"), ("Disco Hustle", "Disco Hustle"),
+    ("Funk Groove", "Funk Groove"), ("Son Clave", "Son Clave"), ("Afro Groove", "Afro Groove"), ("Samba", "Samba"),
+    ("Pop", "Pop"), ("Funk", "Funk"), ("Hip Hop", "Hip Hop"), ("Breakbeat", "Breakbeat"), ("Reggae", "Reggae"),
+    ("Bossa", "Bossa"), ("Shuffle", "Shuffle"),
+    ("User %1", "User %1"), (" (empty)", " (leer)"),
+    ("User 1", "User 1"), ("User 2", "User 2"), ("User 3", "User 3"), ("User 4", "User 4"), ("User 5", "User 5"),
+    ("User 6", "User 6"), ("User 7", "User 7"), ("User 8", "User 8"), ("User 9", "User 9"), ("User 10", "User 10"),
+    ("User 11", "User 11"), ("User 12", "User 12"), ("User 13", "User 13"), ("User 14", "User 14"), ("User 15", "User 15"),
+    ("User 16", "User 16"),
+    # voices
+    ("Kick", "Kick"), ("Snare", "Snare"), ("Clap", "Clap"), ("Closed Hat", "Hi-Hat zu"), ("Open Hat", "Hi-Hat offen"),
+    ("Rim", "Rim"), ("Shaker", "Shaker"), ("Tom", "Tom"), ("Bongo", "Bongo"), ("Claves", "Claves"),
+    ("Tambourine", "Tamburin"), ("Cowbell", "Kuhglocke"), ("Cabasa", "Cabasa"), ("Conga", "Conga"),
+    # choices / parameter names
+    ("Immediately", "Sofort"), ("Next Beat", "N\u00e4chster Schlag"), ("Next Bar", "N\u00e4chster Takt"),
+    ("Drum Variation", "Drum-Variation"), ("Fill (hold)", "Fill (halten)"), ("Pattern Switch", "Pattern-Wechsel"),
+    ("Drums through Beat FX", "Drums durch Beat FX"), ("Drums through Repeat/Stutter", "Drums durch Repeat/Stutter"),
+    ("Beat Row %1 Mute", "Beat Zeile %1 stumm"), ("Beat Row %1 Solo", "Beat Zeile %1 solo"),
+    ("Beat Row %1 Level", "Beat Zeile %1 Pegel"), ("Beat Row %1 Pitch", "Beat Zeile %1 Tonh\u00f6he"),
+    ("Beats", "Beats"),
+    # editor / BEATS page
+    ("BEATS", "BEATS"), ("FILL", "FILL"), ("DRUMS", "DRUMS"), ("LOOPER", "LOOPER"), ("PLAY", "PLAY"),
+    ("LOAD", "LADEN"), ("SAVE TO LIBRARY", "IN BIBLIOTHEK"), ("COPY", "KOPIEREN"), ("PASTE", "EINF\u00dcGEN"),
+    ("VARY", "VARIIEREN"), ("IMPORT PACK", "PACK IMPORT"), ("PACKS", "PACKS"), ("M", "M"), ("S", "S"),
+    ("DRUMS > BEAT FX", "DRUMS > BEAT FX"), ("DRUMS > REPEAT", "DRUMS > REPEAT"),
+    ("Lvl", "Pegel"), ("Pitch", "Tonh\u00f6he"), ("Swing", "Swing"), ("Feel", "Feel"), ("Variation", "Variation"),
+    ("Pattern name", "Pattern-Name"), ("1 bar", "1 Takt"), ("%1 bars", "%1 Takte"),
+    ("Back to the looper", "Zur\u00fcck zum Looper"),
+    ("The user pattern slot you edit (User 1 - 16 in the pattern selector)",
+     "Der User-Pattern-Platz, den du bearbeitest (User 1 - 16 in der Pattern-Auswahl)"),
+    ("Play this pattern (switches on the next beat / bar, see PATTERN SWITCH)",
+     "Dieses Pattern spielen (wechselt auf den n\u00e4chsten Schlag / Takt, siehe PATTERN-WECHSEL)"),
+    ("Steps per bar: 16th or 32nd notes", "Schritte pro Takt: 16tel oder 32stel"),
+    ("Length of the pattern", "L\u00e4nge des Patterns"),
+    ("Pattern switch: when a new pattern starts playing", "Pattern-Wechsel: wann ein neues Pattern einsetzt"),
+    ("Load a groove, a saved pattern or a sound-pack pattern into this slot",
+     "Einen Groove, ein gespeichertes Pattern oder ein Sound-Pack-Pattern in diesen Platz laden"),
+    ("Save this pattern as a user pattern (Music/livelooper/Patterns), usable in every set",
+     "Dieses Pattern als User-Pattern speichern (Musik/livelooper/Patterns), in jedem Set verwendbar"),
+    ("Light variation: a few ghost notes and velocity changes, the groove stays",
+     "Leichte Variation: ein paar Ghost Notes und Dynamik\u00e4nderungen, der Groove bleibt"),
+    ("Import a sound pack (folder or .zip with livelooper-pack.json)",
+     "Ein Sound-Pack importieren (Ordner oder .zip mit livelooper-pack.json)"),
+    ("Show bar %1", "Takt %1 zeigen"),
+    ("Hold for a fill; on release the groove comes back on the next downbeat",
+     "Halten f\u00fcr ein Fill; beim Loslassen setzt der Groove auf der n\u00e4chsten Eins wieder ein"),
+    ("The drums go through the beat FX too (off: the drums stay dry)",
+     "Die Drums laufen auch durch die Beat FX (aus: die Drums bleiben trocken)"),
+    ("The drums go through beat repeat / stutter too (off: the drums stay dry)",
+     "Die Drums laufen auch durch Beat Repeat / Stutter (aus: die Drums bleiben trocken)"),
+    ("Groove: micro-timing and accents", "Groove: Mikro-Timing und Akzente"),
+    ("Automatic fills", "Automatische Fills"),
+    ("Variation: other samples, layers, pitch and decay on every hit - no machine gun",
+     "Variation: andere Samples, Layer, Tonh\u00f6he und Ausklang bei jedem Schlag - kein Maschinengewehr"),
+    ("Pattern copied", "Pattern kopiert"),
+    ("Saved user pattern \"%1\"", "User-Pattern \u201e%1\u201c gespeichert"),
+    ("Could not save the pattern", "Pattern konnte nicht gespeichert werden"),
+    ("Grooves", "Grooves"), ("User patterns", "User-Patterns"), ("Sound packs", "Sound-Packs"),
+    ("Other slot of this set", "Anderer Platz dieses Sets"),
+    ("No sound packs installed", "Keine Sound-Packs installiert"),
+    ("%1 kits, %2 patterns", "%1 Kits, %2 Patterns"),
+    ("Import pack...", "Pack importieren..."), ("Rescan packs folder", "Pack-Ordner neu einlesen"),
+    ("Show packs folder", "Pack-Ordner zeigen"), ("Show user patterns folder", "User-Pattern-Ordner zeigen"),
+    ("Sound packs rescanned", "Sound-Packs neu eingelesen"),
+    ("Import sound pack (folder or .zip)", "Sound-Pack importieren (Ordner oder .zip)"),
+    ("Sound pack imported: %1", "Sound-Pack importiert: %1"), ("Import failed: %1", "Import fehlgeschlagen: %1"),
+    ("BEATS: step sequencer for the drums - build your own patterns",
+     "BEATS: Step-Sequencer f\u00fcr die Drums - eigene Patterns bauen"),
+    ("Drum kit: the built-in kits and the sound-pack slots", "Drum-Kit: die eingebauten Kits und die Sound-Pack-Pl\u00e4tze"),
+    # Push
+    ("STEP mode: pads = steps, rows = voices", "STEP-Modus: Pads = Schritte, Reihen = Instrumente"),
+    ("Steps %1 - %2", "Schritte %1 - %2"), ("Pattern: %1", "Pattern: %1"), ("FILL", "FILL"),
+    ("Row %1 muted", "Zeile %1 stumm"), ("Row %1 on", "Zeile %1 an"), ("Row %1 cleared", "Zeile %1 gel\u00f6scht"),
+    ("Row %1 solo", "Zeile %1 solo"), ("Solo off", "Solo aus"),
+    ("Drums through beat FX on", "Drums durch Beat FX an"), ("Drums through beat FX off", "Drums durch Beat FX aus"),
+    ("Drums through repeat on", "Drums durch Repeat an"), ("Drums through repeat off", "Drums durch Repeat aus"),
+    ("Kit: %1", "Kit: %1"), ("Variation %1", "Variation %1"),
+]
+
+def esc(s):
+    out = ""
+    for ch in s:
+        if ord(ch) < 128:
+            out += '\\"' if ch == '"' else ch
+        else:
+            out += "".join(f"\\x{b:02x}" for b in ch.encode("utf-8")) + '" "'
+    return out
+
+root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+seen = set()
+with open(os.path.join(root, "src", "plugin", "Localisation_Rhythm16.inc"), "w") as f:
+    f.write("// Generated by tools/i18n/rhythm16_de.py - v1.6 rhythm texts (English -> German).\n")
+    for en, de in DE:
+        if en in seen:
+            continue
+        seen.add(en)
+        f.write(f'        {{ "{esc(en)}", "{esc(de)}" }},\n')
+print(len(seen), "entries")

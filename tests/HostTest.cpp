@@ -89,7 +89,7 @@ int main (int argc, char* argv[])
     for (auto* p : plugin->getParameters())
         if (! p->getName (64).startsWith ("MIDI CC") && p->getName (64) != "Bypass")
             ++looperParams;
-    check (looperParams == 400, "400 looper parameters exposed (" + juce::String (looperParams) + ")");
+    check (looperParams == 437, "437 looper parameters exposed (" + juce::String (looperParams) + ")");   // v1.6 rhythm: +37
 
     plugin->enableAllBuses();
     plugin->setPlayConfigDetails (2, 2, 48000.0, 512);

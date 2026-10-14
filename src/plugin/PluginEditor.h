@@ -2,6 +2,7 @@
 
 #include "Widgets.h"
 #include "KeyMapEditor.h"
+#include "BeatsPage.h"
 
 namespace livelooper
 {
@@ -65,6 +66,11 @@ public:
     int getPendingKeyClearTrack() const noexcept { return keyClear.track; }
     /** Checks a held clear key; called from the timer (public for tests). */
     void updateKeyClearHold (juce::uint32 now, bool keyStillDown);
+
+    // ---- v1.6 rhythm (branch v1.6-rhythm): BEATS page
+    void showBeatsPage (bool show);
+    bool isBeatsPageVisible() const noexcept { return beatsPage != nullptr && beatsPage->isVisible(); }
+    BeatsPage* getBeatsPage() noexcept { return beatsPage.get(); }
 
 private:
     class Surface : public juce::Component
@@ -150,6 +156,17 @@ private:
     std::unique_ptr<APVTS::ButtonAttachment> rhythmOnAtt, syncAtt;
     std::unique_ptr<APVTS::ComboBoxAttachment> quantizeAtt, rhythmPatternAtt, rhythmKitAtt;
     std::unique_ptr<Knob> tempo, rhythmLevel, rhythmSwing, rhythmHuman, master, monitor, fade;
+
+    // ---- v1.6 rhythm (branch v1.6-rhythm)
+    std::unique_ptr<BeatsPage> beatsPage;
+    LLButton beatsBtn { "BEATS", colours::learn };
+    std::unique_ptr<MomentaryButton> fillBtn;
+    LLButton drumsBfxBtn { "DRUMS", colours::orange }, drumsRepBtn { "DRUMS", colours::red };
+    std::unique_ptr<APVTS::ButtonAttachment> drumsBfxAtt, drumsRepAtt;
+    int lastPatternNamesVersion = -1;
+    void layoutRhythm16 (int dx);
+    void refreshPatternNames();
+    // ---- end v1.6 rhythm
 
     juce::TextEditor tempoEntry;
     juce::Array<int> heldKeys;

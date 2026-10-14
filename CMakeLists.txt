@@ -106,6 +106,7 @@ set(LIVELOOPER_PLUGIN_SOURCES
     src/plugin/Updates.cpp
     src/plugin/InfoWindows.cpp
     src/plugin/DrumSampleLoader.cpp
+    src/plugin/SoundPacks.cpp
     src/plugin/LinkSync.cpp
     src/plugin/KeyMap.cpp
     src/plugin/KeyMapEditor.cpp
@@ -114,6 +115,7 @@ set(LIVELOOPER_PLUGIN_SOURCES
     src/plugin/PluginEditor.cpp
     src/plugin/LooperLookAndFeel.cpp
     src/plugin/Widgets.cpp
+    src/plugin/BeatsPage.cpp
     src/plugin/push/PushProtocol.cpp
     src/plugin/push/PushSurface.cpp
     src/plugin/push/PushDevice.cpp)

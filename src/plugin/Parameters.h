@@ -110,6 +110,22 @@ inline const juce::String gLinkOn       { "link_on" };
 inline const juce::String gLinkStartStop{ "link_startstop" };
 inline const juce::String gRhythmGroove { "rhythm_groove" };
 inline const juce::String gRhythmFills  { "rhythm_fills" };
+// ---- v1.6 rhythm (branch v1.6-rhythm): kits, BEATS step sequencer, fill on demand, drum FX routing
+inline const juce::String gRhythmVariation { "rhythm_variation" };   // 0 .. 1: sample / accent variation
+inline const juce::String gRhythmFill   { "rhythm_fill" };          // momentary: fill while held
+inline const juce::String gBeatSwitch   { "beat_switch" };          // pattern change: immediately / beat / bar
+inline const juce::String gDrumsBfx     { "drums_bfx" };            // drums through the beat FX
+inline const juce::String gDrumsRepeat  { "drums_repeat" };         // drums through beat repeat / stutter
+inline constexpr int kNumBeatRows = 8;
+/** "beat_mute1" .. "beat_mute8", "beat_solo1".., "beat_vol1".., "beat_pitch1".. (row = kit voice) */
+juce::String beatRowId (const char* what, int row);
+inline constexpr const char* kBeatMute  = "beat_mute";
+inline constexpr const char* kBeatSolo  = "beat_solo";
+inline constexpr const char* kBeatVol   = "beat_vol";
+inline constexpr const char* kBeatPitch = "beat_pitch";
+juce::StringArray beatSwitchChoices();
+// ---- end v1.6 rhythm
+
 inline constexpr int kNumScenes = 8;
 inline constexpr int kCaptureBars[] = { 1, 2, 4, 8, 16, 32 };   // 16 / 32 since 1.5 (appended)
 inline constexpr int kNumCaptureChoices = 6;

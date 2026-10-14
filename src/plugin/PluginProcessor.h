@@ -112,6 +112,29 @@ public:
     bool loadSet (const juce::File& file, juce::String& error);
     static constexpr const char* kSetExtension = ".llset";
 
+    //============================================================================== v1.6 rhythm (branch v1.6-rhythm)
+    /** BEATS: the 16 user pattern slots ("User 1 .. 16" in the pattern selector), saved with the set. */
+    BeatPatternBank& getUserPatterns() noexcept { return userPatterns; }
+    juce::String getUserPatternName (int slot) const;
+    void setUserPatternName (int slot, const juce::String& name);
+    void storeUserPattern (int slot, const BeatPattern& p, const juce::String& name);
+    int  getBeatsEditSlot() const noexcept { return beatsEditSlot; }
+    void setBeatsEditSlot (int slot) noexcept { beatsEditSlot = juce::jlimit (0, BeatPatternBank::kNumSlots - 1, slot); }
+    /** Plays user slot 'slot' (sets the pattern parameter; the switch follows PATTERN SWITCH). */
+    void selectUserPattern (int slot);
+    /** The slot BEATS edits: when a preset plays, it is copied into the edit slot first and that slot plays. */
+    int  prepareEditSlot();
+    /** Names for the UI: kit choice (pack slots show their pack kit), pattern choice (user slots their name),
+        voice of the current kit ("Conga"). Localised. */
+    juce::String getKitDisplayName (int kitIndex) const;
+    juce::String getPatternDisplayName (int patternIndex) const;
+    juce::String getVoiceDisplayName (int voice) const;
+    int  getCurrentKit() const noexcept;
+    int  getCurrentPattern() const noexcept;
+    /** Sound packs: rescans the packs folder / imports a pack folder or .zip (message thread). */
+    void refreshSoundPacks();
+    bool importSoundPack (const juce::File& folderOrZip, juce::String& error);
+
     //============================================================================== AudioProcessor
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
     void releaseResources() override {}
@@ -275,6 +298,19 @@ private:
     std::atomic<float>* metroOn {}; std::atomic<float>* metroLevel {}; std::atomic<float>* metroAccent {};
     std::atomic<float>* linkOn {}; std::atomic<float>* linkStartStop {};
     std::atomic<float>* rhythmGroove {}; std::atomic<float>* rhythmFills {};
+    // ---- v1.6 rhythm (branch v1.6-rhythm)
+    std::atomic<float>* rhythmVariation {}; std::atomic<float>* rhythmFill {}; std::atomic<float>* beatSwitch {};
+    std::atomic<float>* drumsBfx {}; std::atomic<float>* drumsRepeat {};
+    std::array<std::atomic<float>*, params::kNumBeatRows> beatMute {}, beatSolo {}, beatVol {}, beatPitch {};
+    BeatPatternBank userPatterns;
+    std::array<juce::String, BeatPatternBank::kNumSlots> userPatternNames;
+    int beatsEditSlot = 0;
+    std::shared_ptr<const DrumBank> currentBank;
+    int soundPackVersion = -1;
+    void writeBeatsState (juce::XmlElement& root) const;
+    void readBeatsState (const juce::XmlElement& root);
+    void updateDrumBank();
+    // ---- end v1.6 rhythm
     std::unique_ptr<LinkSync> link;
     std::atomic<LinkSync*> linkPtr { nullptr };
     std::atomic<bool> linkDriving { false };

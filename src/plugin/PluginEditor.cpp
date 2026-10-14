@@ -1,4 +1,5 @@
 #include "PluginEditor.h"
+#include "SoundPacks.h"
 #include "AppSettings.h"
 #include "InfoWindows.h"
 #include "Updates.h"
@@ -257,6 +258,29 @@ LiveLooperEditor::LiveLooperEditor (LiveLooperProcessor& p)
              master.get(), monitor.get(), fade.get(), &allStartStop, &clearAll, &capture })
         surface.addAndMakeVisible (c);
 
+    // v1.6 rhythm: BEATS page, FILL, drums through the performance FX
+    beatsBtn.onClick = [this] { showBeatsPage (! isBeatsPageVisible()); };
+    beatsBtn.setTooltip ("BEATS: step sequencer for the drums - build your own patterns");
+    surface.addAndMakeVisible (beatsBtn);
+    fillBtn = std::make_unique<MomentaryButton> (st, gRhythmFill, "FILL", colours::orange);
+    fillBtn->setTooltip ("Hold for a fill; on release the groove comes back on the next downbeat");
+    surface.addAndMakeVisible (*fillBtn);
+    drumsBfxBtn.setClickingTogglesState (true);
+    drumsBfxAtt = std::make_unique<APVTS::ButtonAttachment> (st, gDrumsBfx, drumsBfxBtn);
+    setParamId (drumsBfxBtn, gDrumsBfx);
+    drumsBfxBtn.setTooltip ("The drums go through the beat FX too (off: the drums stay dry)");
+    surface.addAndMakeVisible (drumsBfxBtn);
+    drumsRepBtn.setClickingTogglesState (true);
+    drumsRepAtt = std::make_unique<APVTS::ButtonAttachment> (st, gDrumsRepeat, drumsRepBtn);
+    setParamId (drumsRepBtn, gDrumsRepeat);
+    drumsRepBtn.setTooltip ("The drums go through beat repeat / stutter too (off: the drums stay dry)");
+    surface.addAndMakeVisible (drumsRepBtn);
+    beatsPage = std::make_unique<BeatsPage> (proc);
+    beatsPage->onClose = [this] { showBeatsPage (false); };
+    beatsPage->onStatus = [this] (const juce::String& t) { showStatus (t); };
+    surface.addChildComponent (*beatsPage);
+    rhythmKit.setTooltip ("Drum kit: the built-in kits and the sound-pack slots");
+
     surface.addChildComponent (overlay);
     tempo->slider.setTooltip ("Internal tempo - right-click to type in the BPM, or click the tempo on the display");
 
@@ -334,6 +358,7 @@ void LiveLooperEditor::layoutSurface()
     setupBtn.setBounds (1066 + dx, 28, 64, 36);
     helpBtn.setBounds (1136 + dx, 28, 32, 36);
     layoutPerformanceRow (dx);
+    layoutRhythm16 (dx);
 
     auto slotRow = [] (juce::Rectangle<int> panel) { return panel.reduced (8).withTrimmedTop (22); };
     auto in = slotRow (layout::inputFx), tr = slotRow (layout::trackFx.translated (dx, 0));
@@ -591,6 +616,7 @@ void LiveLooperEditor::updateFxEditorLabels()
 //==============================================================================
 void LiveLooperEditor::timerCallback()
 {
+    refreshPatternNames();      // v1.6
     blinkCounter = (blinkCounter + 1) % 16;
     const bool blink = blinkCounter < 8;
     for (auto& s : strips)
@@ -904,6 +930,9 @@ void LiveLooperEditor::collectMappables (juce::Component& parent, juce::Array<ju
     for (auto* c : parent.getChildren())
     {
         if (! c->isVisible() || c == &overlay)
+            continue;
+        // v1.6: controls hidden under the BEATS page are not offered for MIDI learn
+        if (&parent == &surface && isBeatsPageVisible() && c != beatsPage.get() && beatsPage->getBounds().contains (c->getBounds()))
             continue;
         if (getParamId (*c).isNotEmpty())
             out.add (c);
@@ -1545,5 +1574,51 @@ void LiveLooperEditor::checkForUpdates (bool userInitiated)
         if (safe != nullptr)
             safe->showStatus (message);
     });
+}
+//============================================================================== v1.6 rhythm (branch v1.6-rhythm)
+void LiveLooperEditor::layoutRhythm16 (int dx)
+{
+    // header buttons: BEATS + FILL in the rhythm panel, DRUMS in the beat FX and beat repeat panels
+    const auto rh = layout::rhythm.translated (dx, 0);
+    beatsBtn.setBounds (rh.getRight() - 78, rh.getY() + 5, 68, 22);
+    fillBtn->setBounds (rh.getRight() - 140, rh.getY() + 5, 56, 22);
+    drumsBfxBtn.setBounds (beatFxArea.getRight() - 78, beatFxArea.getY() + 5, 68, 22);
+    drumsRepBtn.setBounds (repeatArea.getRight() - 78, repeatArea.getY() + 5, 68, 22);
+    if (beatsPage != nullptr)
+        beatsPage->setBounds (juce::Rectangle<int> (12, layout::inputFx.getY(), surfaceWidth() - 24,
+                                                    layout::tracks.getBottom() - layout::inputFx.getY()));
+}
+
+void LiveLooperEditor::showBeatsPage (bool show)
+{
+    if (beatsPage == nullptr)
+        return;
+    beatsPage->setVisible (show);
+    if (show)
+        beatsPage->toFront (false);
+    overlay.toFront (false);
+    beatsBtn.setToggleState (show, juce::dontSendNotification);
+}
+
+void LiveLooperEditor::refreshPatternNames()
+{
+    // the pattern / kit selectors show the names of the user patterns and the sound-pack kits
+    const int v = proc.getUserPatterns().getVersion() * 31 + SoundPacks::get().getVersion() * 7 + (i18n::isGerman() ? 1 : 0);
+    if (v == lastPatternNamesVersion && blinkCounter % 15 != 0)
+        return;
+    lastPatternNamesVersion = v;
+    const int presets = RhythmGenerator::getNumPatterns();
+    for (int i = presets; i < rhythmPattern.getNumItems(); ++i)
+    {
+        const auto name = proc.getPatternDisplayName (i);
+        if (rhythmPattern.getItemText (i) != name)
+            rhythmPattern.changeItemText (i + 1, name);
+    }
+    for (int k = RhythmGenerator::getNumKits(); k < rhythmKit.getNumItems(); ++k)
+    {
+        const auto name = proc.getKitDisplayName (k);
+        if (rhythmKit.getItemText (k) != name)
+            rhythmKit.changeItemText (k + 1, name);
+    }
 }
 } // namespace livelooper
