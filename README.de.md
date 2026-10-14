@@ -11,7 +11,7 @@
 - **Live-Performance zuerst.** Jede Funktion reagiert sofort, landet auf dem Schlag und hält die Musik nie an. Beim Spielen braucht nichts ein Menü.
 - **Spaß am Spielen.** Beat-FX, Beat Repeat und Stutter, Color-FX und ein Groove, der sich wie ein Drummer anfühlt, machen aus einem Loop eine Performance – drücken, halten, loslassen, und du bist wieder auf dem Schlag.
 - **Erforschen und spielen.** Halte fest, was du gerade improvisiert hast, leg mit dem XY-Pad einen Effekt darauf, verstimm es, dreh es um, lass es ausklingen wie ein Band – und behalte, was funktioniert.
-- **Hände an die Hardware.** Schließ einen Ableton Push an und livelooper übernimmt ihn – ohne Mapping. Jeder andere Controller funktioniert per MIDI Learn, alle 400 Funktionen sind zuweisbar.
+- **Hände an die Hardware.** Schließ einen Ableton Push an und livelooper übernimmt ihn – ohne Mapping. Jeder andere Controller funktioniert per MIDI Learn, alle 437 Funktionen sind zuweisbar.
 - **Deine Loops gehören in deinen Song.** Zieh einen Loop direkt aus livelooper auf eine Spur in deiner DAW, exportiere Stems oder behalte alles im Projekt gespeichert.
 
 ## Spielen mit Ableton Push
@@ -52,6 +52,15 @@ Einrichtung und komplette Belegung: **[PUSH.md](docs/de/PUSH.md)**.
 - **Metronom-Block**: Klick an / aus, Betonung, Pegel und Klang direkt auf der Oberfläche
 - **Ableton Link**: Tempo und Schlag mit anderen Apps und Geräten im selben Netzwerk (Standalone-App oder in der DAW mit HOST-SYNC aus)
 
+**Drums und BEATS (neu in 1.6)**
+- **12 Drum-Kits**: Studio, 808, 909 Style, Lo-Fi plus House, Techno, Boom Bap, Trap, Breaks, Rock, Disco und Afro Latin – jedes mit passenden Grooves (insgesamt 39) und eigenem Fill-Stil
+- **Lebendige Drums**: mehr Takes, Velocity-Layer, Round Robin über Layer hinweg, feine Tonhöhen- / Ausklang-Variation und Akzent-Kicks (VARIATION) – kein Maschinengewehr
+- **BEATS-Step-Sequencer**: 8 Instrumente × 16 oder 32 Schritte, 1 – 4 Takte, Dynamik / Akzent pro Schritt, stumm / solo / Pegel / Tonhöhe pro Zeile, Kopieren / Einfügen / leichte Variation, 16 User-Patterns pro Set plus Pattern-Bibliothek; Pattern-Wechsel auf den nächsten Schlag oder Takt
+- **FILL auf Knopfdruck**: FILL halten für einen Fill, loslassen und der Groove landet auf der nächsten Eins
+- **Drums durch Beat FX und Beat Repeat / Stutter** – ein Schalter pro Effektgruppe
+- **Sound-Packs**: Kits und Patterns importieren (Ordner oder Zip, offenes Format) – siehe [SOUND-PACKS.md](docs/de/SOUND-PACKS.md)
+- **Push-1-STEP-Modus**: die Pads als Step-Sequencer, FILL auf IN
+
 **Klang formen**
 - **Input-FX und Track-FX**: je vier Slots mit 12 Effekten – Tiefpass, Hochpass, Bandpass, Phaser, Flanger, Delay (tempo-synchron), Hall, Slicer, Tremolo, Auto-Pan, Lo-Fi, Overdrive
 - **Pro Spur**: Feedback (Ausklingen wie ein Band), Sidechain-Ducking, Tonhöhe ±12 Halbtöne, Tempo folgen (Time-Stretch, Signalsmith Stretch), Resample der anderen Spuren
@@ -65,7 +74,7 @@ Einrichtung und komplette Belegung: **[PUSH.md](docs/de/PUSH.md)**.
 - **Mit dem Projekt gespeichert**: Loops verlustfrei (FLAC, 24 Bit) im DAW-Projekt; komplette **Looper-Sets** als `.llset`-Datei
 - **Pegel und Wellenformen**: Stereo-Pegel pro Spur, Master-VU in dB im Display (grün / gelb / rot), Wellenform mit Abspielposition, Clip-LED
 - **Komfort**: Hilfe in der App (durchsuchbare Bedienungsanleitung), Info-Fenster mit Update-Prüfung, Start mit den zuletzt verwendeten oder den Standard-Einstellungen, Liste der zuletzt verwendeten Sets
-- **Alle 400 Funktionen** sind Host-Parameter für MIDI-Mapping und Automation deiner DAW
+- **Alle 437 Funktionen** sind Host-Parameter für MIDI-Mapping und Automation deiner DAW
 - **Deutsche und englische** Oberfläche (*SETUP → Language / Sprache*)
 
 ## Download
@@ -103,7 +112,8 @@ Alles Weitere steht in der **[Bedienungsanleitung](docs/de/BEDIENUNGSANLEITUNG.m
 | [DAW-EINRICHTUNG.md](docs/de/DAW-EINRICHTUNG.md) | Das Plug-in in deiner DAW: Looper-Spur, Monitoring, Mikro/Gitarre und Software-Instrumente loopen, live zwischen Quellen wechseln, Audio herausholen, MIDI-Routing (Live, Bitwig, Cubase, Logic, Reaper, Studio One) |
 | [BEDIENUNGSANLEITUNG.md](docs/de/BEDIENUNGSANLEITUNG.md) | Oberfläche, alle Funktionen, Beat-FX, Beat Repeat / Stutter, Color-FX, Rhythmus, Link, Setup, Sprache |
 | [MIDI.md](docs/de/MIDI.md) | MIDI-Learn, MIDI-Mapping deiner DAW, Standard-Belegung, Parameterliste |
-| [PUSH.md](docs/de/PUSH.md) | Steuerung mit Ableton Push (in jeder DAW und standalone): Einrichtung, Pad-Belegung, Encoder, FX-XY-Pad, Performance-FX |
+| [PUSH.md](docs/de/PUSH.md) | Steuerung mit Ableton Push (in jeder DAW und standalone): Einrichtung, Pad-Belegung, Encoder, FX-XY-Pad, Performance-FX, STEP-Modus |
+| [SOUND-PACKS.md](docs/de/SOUND-PACKS.md) | Sound-Packs: Installation, Ordner-Aufbau, Pack- und Pattern-Format (zum Bauen und Verkaufen von Packs) |
 | [ENTWICKLUNG.md](docs/de/ENTWICKLUNG.md) | Bauen aus dem Quellcode, Architektur, Tests, CI, Übersetzungen |
 
 Englische Dokumentation: [docs/en](docs/en/).

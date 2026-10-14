@@ -32,7 +32,7 @@ Die Zuweisungen werden mit dem DAW-Projekt gespeichert.
 | Schalter | RÜCKW., 1SHOT, FX, Loop-Sync, Effekt A–D an/aus, RHYTHMUS, HOST-SYNC | Note-On schaltet um | steigende Flanke schaltet um |
 | Auswahl | Effekttyp, Quantisierung, Muster, Start-/Stopp-/Dub-Modus | Note-On → nächster Wert | CC wählt direkt (0–127 über alle Werte) |
 | Regler | Pegel, Pan, Effekt-Parameter, Tempo, Fade, Tape-Stopp, Performance-Filter | Anschlagstärke setzt den Wert | CC setzt den Wert |
-| Gehalten (seit 1.4) | Slice 1–6 (Loop-Cutting); seit 1.5 Beat-FX halten, Beat Repeat halten, Stutter halten | an, solange die Note gehalten wird, aus mit Note-Off | an, solange der CC ≥ 64 ist |
+| Gehalten (seit 1.4) | Slice 1–6 (Loop-Cutting); seit 1.5 Beat-FX halten, Beat Repeat halten, Stutter halten; seit 1.6 Fill (halten) | an, solange die Note gehalten wird, aus mit Note-Off | an, solange der CC ≥ 64 ist |
 
 Die Slice-Funktionen verhalten sich wie die Positions-Pads am Push: kurz drücken springt (zur nächsten 16tel-Note) in dieses Sechstel des Loops und bleibt dort, länger als ¼ s halten stottert und springt beim Loslassen synchron zurück. *Stumm* und *Solo* sind für MIDI Schalter (drücken = an, nochmal = aus); das Stummschalten / Solo nur solange gehalten ist eine Push-Geste.
 
@@ -67,7 +67,7 @@ Auch Automation ist möglich (in Live z. B. in der Arrangement-Ansicht), etwa um
 
 ## Parameterliste
 
-400 Parameter. Mit deutscher Oberfläche zeigt deine DAW die deutschen Namen, mit englischer die englischen (in Klammern). Die internen IDs und gespeicherte Zuweisungen bleiben in beiden Sprachen gleich – ein Sprachwechsel zerstört also keine MIDI-Map und keine Automation.
+437 Parameter. Mit deutscher Oberfläche zeigt deine DAW die deutschen Namen, mit englischer die englischen (in Klammern). Die internen IDs und gespeicherte Zuweisungen bleiben in beiden Sprachen gleich – ein Sprachwechsel zerstört also keine MIDI-Map und keine Automation.
 
 **Pro Spur (S1 … S5 / T1 … T5)** – je 16:
 `Rec/Play`, `Stop`, `Löschen` (Clear), `Rückgängig` (Undo), `Wiederherstellen` (Redo) – Taster · `Pegel` (Level), `Panorama` (Pan) · `Rückwärts` (Reverse), `One Shot`, `Loop-Sync` (Loop Sync), `Spur-FX` (Track FX) – Schalter · `Eingang` (Input), `Startmodus` (Start Mode), `Stoppmodus` (Stop Mode), `Dub-Modus` (Dub Mode), `Takte` (Measures) – Auswahl
@@ -88,3 +88,9 @@ Auch Automation ist möglich (in Live z. B. in der Arrangement-Ansicht), etwa um
 - `Capture-Takte` (Capture Bars) reicht jetzt bis 16 und 32 Takte.
 
 Die internen Parameter-IDs (für Entwickler und gespeicherte Zuweisungen) lauten z. B. `t1_recplay`, `t3_level`, `allstartstop`, `inB_type`, `trD_mix`, `bfx_type`, `brep_hold`, `t2_color`, `link_on`.
+
+**Seit 1.6 (Rhythmus: Kits, BEATS, Fill, Drum-FX-Routing)** – 37 weitere, alle angehängt:
+- `Drum-Variation` (0 – 100 %), `Fill (halten)` (gehalten: Note an / aus), `Pattern-Wechsel` (Sofort, Nächster Schlag, Nächster Takt) · `Drums durch Beat FX`, `Drums durch Repeat/Stutter` (Schalter)
+- BEATS-Zeilen 1 – 8 (= Kit-Instrumente Kick … Tom): `Beat Zeile N stumm`, `Beat Zeile N solo` (Schalter), `Beat Zeile N Pegel` (0 – 150 %), `Beat Zeile N Tonhöhe` (±12 Halbtöne)
+- `Drum-Kit` hat 8 weitere Kits (House … Afro Latin) und die Plätze `Pack-Kit 1 … 8`; `Rhythmus-Pattern` hat 18 weitere Grooves und die User-Plätze `User 1 … 16` (BEATS) – neue Einträge stehen am Ende dieser Listen
+- IDs: `rhythm_variation`, `rhythm_fill`, `beat_switch`, `drums_bfx`, `drums_repeat`, `beat_mute1` … `beat_mute8`, `beat_solo1` …, `beat_vol1` …, `beat_pitch1` …

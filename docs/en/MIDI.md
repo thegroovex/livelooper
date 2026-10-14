@@ -32,7 +32,7 @@ Assignments are saved with your DAW project.
 | Switch | REV, 1SHOT, FX, Loop Sync, effect A–D on/off, RHYTHM, HOST SYNC | note-on toggles | rising edge toggles |
 | Selector | effect type, Quantize, pattern, start/stop/dub mode | note-on → next value | CC selects directly (0–127 across all values) |
 | Continuous | level, pan, effect parameters, tempo, fade, tape stop, performance filter | velocity sets the value | CC sets the value |
-| Held (since 1.4) | Slice 1–6 (loop cutting); since 1.5 Beat FX Hold, Beat Repeat Hold, Stutter Hold | on while the note is held, off with note-off | on while the CC is ≥ 64 |
+| Held (since 1.4) | Slice 1–6 (loop cutting); since 1.5 Beat FX Hold, Beat Repeat Hold, Stutter Hold; since 1.6 Fill (hold) | on while the note is held, off with note-off | on while the CC is ≥ 64 |
 
 The slice functions behave like the Push position pads: a short press jumps to that sixth of the loop (at the next 16th note) and stays there, a press held longer than ¼ s stutters and returns in sync on release. *Mute* and *Solo* are switches for MIDI (press = on, press again = off); the momentary mute / solo is a Push gesture.
 
@@ -67,7 +67,7 @@ Automation works too (in Live, e.g., in Arrangement view), for example to start 
 
 ## Parameter list
 
-400 parameters, names as shown in your DAW with the English interface (with the German interface they are localised, e.g. "S1 Pegel" instead of "T1 Level"; the internal IDs and your saved assignments stay the same):
+437 parameters, names as shown in your DAW with the English interface (with the German interface they are localised, e.g. "S1 Pegel" instead of "T1 Level"; the internal IDs and your saved assignments stay the same):
 
 **Per track (T1 … T5)** – 16 each:
 `Rec/Play`, `Stop`, `Clear`, `Undo`, `Redo` (buttons) · `Level`, `Pan` · `Reverse`, `One Shot`, `Loop Sync`, `Track FX` (switches) · `Input`, `Start Mode`, `Stop Mode`, `Dub Mode`, `Measures` (selectors)
@@ -86,6 +86,12 @@ Automation works too (in Live, e.g., in Arrangement view), for example to start 
 - global: `Beat FX On` (switch), `Beat FX Hold` (held), `Beat FX Type` (16 types), `Beat FX Beat` (1/32 … 16), `Beat FX Level/Depth`, `Beat FX Channel` (Master, Loops, Input, Track 1 … 8) · `Color FX Type` (Filter, Dub Echo, Space, Crush, Noise, Sweep) · `Beat Repeat Hold` (held), `Beat Repeat Latch` (switch), `Beat Repeat Timing` (1/2 … 1/32) · `Stutter Hold` (held), `Stutter Latch` (switch), `Stutter Timing` (1/2 … 1/32) · `Metronome On`, `Metronome Accent` (switches), `Metronome Level` · `Link`, `Link Start/Stop Sync` (switches) · `Groove` (Straight, Natural, Laid Back, Pushed, Drunk, Drive), `Fills` (Off, Every 4 Bars, Every 8 Bars)
 - per track (T1 … T8): `Color FX` (−100 … +100, 0 = off)
 - `Capture Bars` now goes up to 16 and 32 bars.
+
+**Since 1.6 (rhythm: kits, BEATS, fill, drum FX routing)** – 37 more, all appended:
+- `Drum Variation` (0 – 100 %), `Fill (hold)` (held: note on / off), `Pattern Switch` (Immediately, Next Beat, Next Bar) · `Drums through Beat FX`, `Drums through Repeat/Stutter` (switches)
+- BEATS rows 1 – 8 (= kit voices kick … tom): `Beat Row N Mute`, `Beat Row N Solo` (switches), `Beat Row N Level` (0 – 150 %), `Beat Row N Pitch` (±12 semitones)
+- `Drum Kit` has 8 more kits (House … Afro Latin) and the slots `Pack Kit 1 … 8`; `Rhythm Pattern` has 18 more grooves and the user slots `User 1 … 16` (BEATS) – new entries are appended at the end of these lists
+- IDs: `rhythm_variation`, `rhythm_fill`, `beat_switch`, `drums_bfx`, `drums_repeat`, `beat_mute1` … `beat_mute8`, `beat_solo1` …, `beat_vol1` …, `beat_pitch1` …
 
 The internal parameter IDs (for developers and saved assignments) are e.g. `t1_recplay`, `t3_level`, `allstartstop`, `inB_type`, `trD_mix`, `bfx_type`, `brep_hold`, `t2_color`, `link_on`.
 

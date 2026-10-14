@@ -11,7 +11,7 @@
 - **Live performance comes first.** Every function reacts instantly, lands on the beat and never stops the music. Nothing needs a menu while you play.
 - **Fun to play.** Beat FX, beat repeat and stutter, colour FX and a groove that feels like a drummer turn a loop into a performance – press, hold, let go, and you are back on the beat.
 - **Explore and play.** Capture what you just improvised, throw an effect on it with the XY pad, pitch it, reverse it, let it decay like tape – and keep what works.
-- **Hands on hardware.** Plug in an Ableton Push and livelooper takes it over – no mapping. Any other controller works through MIDI learn, every one of the 400 functions is mappable.
+- **Hands on hardware.** Plug in an Ableton Push and livelooper takes it over – no mapping. Any other controller works through MIDI learn, every one of the 437 functions is mappable.
 - **Your loops belong in your song.** Drag a loop straight from livelooper onto a track in your DAW, export stems, or keep everything saved with your project.
 
 ## Play it with Ableton Push
@@ -52,6 +52,15 @@ Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
 - **Metronome block**: click on / off, accent, level and sound right on the surface
 - **Ableton Link**: tempo and beat with other apps and devices on the same network (standalone app, or in a DAW with HOST SYNC off)
 
+**Drums and BEATS (new in 1.6)**
+- **12 drum kits**: Studio, 808, 909 Style, Lo-Fi plus House, Techno, Boom Bap, Trap, Breaks, Rock, Disco and Afro Latin – each with matching grooves (39 in total) and its own fill style
+- **Lively drums**: more takes, velocity layers, round robin across layers, subtle pitch / decay variation and accent kicks (VARIATION) – no machine gun
+- **BEATS step sequencer**: 8 voices × 16 or 32 steps, 1 – 4 bars, velocity / accent per step, mute / solo / level / pitch per row, copy / paste / light variation, 16 user patterns per set plus a pattern library; pattern changes switch on the next beat or bar
+- **FILL on demand**: hold FILL for a fill, let go and the groove lands on the next downbeat
+- **Drums through beat FX and beat repeat / stutter** – a switch per effect group
+- **Sound packs**: import kits and patterns (folder or zip, open format) – see [SOUND-PACKS.md](docs/en/SOUND-PACKS.md)
+- **Push 1 STEP mode**: the pads as a step sequencer, FILL on IN
+
 **Shape the sound**
 - **Input FX and track FX**: four slots each with 12 effects – LPF, HPF, BPF, phaser, flanger, delay (tempo-synced), reverb, slicer, tremolo, auto pan, lo-fi, overdrive
 - **Per track**: feedback (tape-style decay), sidechain ducking, pitch ±12 semitones, follow tempo (time-stretch, Signalsmith Stretch), resampling of the other tracks
@@ -65,7 +74,7 @@ Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
 - **Saved with your project**: loops stored losslessly (FLAC, 24 bit) in your DAW project; whole **looper sets** as `.llset` files
 - **Meters and waveforms**: stereo meter per track, master VU in dB on the display (green / yellow / red), waveform with play position, clip LED
 - **Comfort**: in-app help (searchable user guide), about window with update check, start with the last used or the default settings, list of the last used sets
-- **All 400 functions** are host parameters for your DAW's MIDI mapping and automation
+- **All 437 functions** are host parameters for your DAW's MIDI mapping and automation
 - **English and German** interface (*SETUP → Language / Sprache*)
 
 ## Download
@@ -103,7 +112,8 @@ Everything else is in the **[User Guide](docs/en/USER-GUIDE.md)**, MIDI control 
 | [DAW-SETUP.md](docs/en/DAW-SETUP.md) | Using the plug-in in your DAW: looper track, monitoring, looping mic/guitar and software instruments, switching sources live, getting audio out, MIDI routing (Live, Bitwig, Cubase, Logic, Reaper, Studio One) |
 | [USER-GUIDE.md](docs/en/USER-GUIDE.md) | Interface, all functions, beat FX, beat repeat / stutter, colour FX, rhythm, Link, setup, language |
 | [MIDI.md](docs/en/MIDI.md) | MIDI learn, your DAW's MIDI mapping, default mapping, parameter list |
-| [PUSH.md](docs/en/PUSH.md) | Ableton Push control (in any DAW and standalone): setup, pad layout, encoders, FX XY pad, performance FX |
+| [PUSH.md](docs/en/PUSH.md) | Ableton Push control (in any DAW and standalone): setup, pad layout, encoders, FX XY pad, performance FX, STEP mode |
+| [SOUND-PACKS.md](docs/en/SOUND-PACKS.md) | Sound packs: installing, folder layout, the pack and pattern format (for making and selling packs) |
 | [DEVELOPMENT.md](docs/en/DEVELOPMENT.md) | Building from source, architecture, tests, CI, translations |
 
 German documentation: [docs/de](docs/de/).

@@ -55,13 +55,18 @@ Version 1.0 (`third_party/link/modules/asio-standalone/LICENSE_1_0.txt`).
 
 ## Drum samples
 
-Every drum sample of the built-in kits (Studio, 808, 909 Style, Lo-Fi) comes from a source
-released under **CC0 1.0** or into the **public domain**; the file `resources/drums/SOURCES.md`
+Every drum sample of the built-in kits (Studio, 808, 909 Style, Lo-Fi and, since 1.6, House,
+Techno, Boom Bap, Trap, Breaks, Rock, Disco, Afro Latin) comes from a source released under
+**CC0 1.0** or into the **public domain**, or was synthesised for livelooper by
+`tools/samples/synth_kits.py` (oscillators and noise, no recordings; dedicated to the public
+domain under CC0 1.0); the file `resources/drums/SOURCES.md`
 lists every sample with its original file, source and license statement. The samples were
 converted, trimmed and normalised by `tools/samples/build_drum_samples.py`. The kit names
-describe a sound style and do not imply endorsement by any manufacturer. *Deutsch:* Alle
-Drum-Samples stammen aus Quellen unter CC0 1.0 oder sind gemeinfrei (Liste in
-`resources/drums/SOURCES.md`); die Kit-Namen beschreiben einen Klangstil.
+describe a sound style and do not imply endorsement by any manufacturer. Sound packs that users
+import carry their own licences. *Deutsch:* Alle
+Drum-Samples stammen aus Quellen unter CC0 1.0 oder sind gemeinfrei bzw. wurden für livelooper
+selbst synthetisiert (CC0 1.0; Liste in `resources/drums/SOURCES.md`); die Kit-Namen beschreiben
+einen Klangstil. Sound-Packs von Nutzern bringen ihre eigenen Lizenzen mit.
 
 ## Trademarks
 
