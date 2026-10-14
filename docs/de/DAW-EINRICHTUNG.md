@@ -187,5 +187,16 @@ So kommt das Controller-MIDI zum Plug-in (für Weg 2):
 | **Loops folgen nicht dem DAW-Tempo** | HOST-SYNC aus | MASTER → **HOST-SYNC** an |
 | **Push reagiert nicht** | Push nicht im User-Modus oder die DAW belegt den Port | **USER** drücken; unter Windows „MIDIIN2/MIDIOUT2 (Ableton Push)“ in der DAW ausschalten ([PUSH.md](PUSH.md#einrichtung)) |
 | **Controller reagiert nicht** | MIDI erreicht das Plug-in nicht | MIDI-Routing prüfen (Abschnitt 6) oder das MIDI-Mapping der DAW verwenden |
+| **Link zeigt „HOST-SYNC ZUERST“** | in einer DAW hat HOST-SYNC Vorrang vor Link | HOST-SYNC ausschalten oder Link in der DAW einschalten und HOST-SYNC anlassen (Abschnitt 8) |
 
 Keine DAW zur Hand? Die **Standalone-App** funktioniert ohne – siehe [INSTALLATION.md](INSTALLATION.md).
+
+## 8. Tempo mit Ableton Link (seit 1.5)
+
+Es gibt zwei Wege, mit anderen Link-Apps im Takt zu spielen (ein zweiter Laptop, ein iPad, eine Drumcomputer-App):
+
+- **Empfohlen in einer DAW**: Link in der **DAW** einschalten (z. B. Ableton Live: *Einstellungen → Link, Tempo & MIDI → Link-Schalter anzeigen*, dann der *Link*-Knopf) und **HOST-SYNC** in livelooper anlassen. livelooper folgt der DAW, die DAW folgt Link.
+- **Das eigene Link von livelooper**: *SETUP → Ableton Link* – in einer DAW nur mit **HOST-SYNC aus** (sonst hat der Host Vorrang und das Display zeigt *LINK: HOST-SYNC ZUERST*). Das ist der Weg für die **Standalone-App**, in der Link den Takt von livelooper direkt vorgibt.
+
+Start / Stopp synchronisieren ist optional (*SETUP → Ableton Link → Start / Stopp mit Link synchronisieren*). Das Beitreten ändert nie das Tempo einer Session.
+

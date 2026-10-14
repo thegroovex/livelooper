@@ -14,7 +14,11 @@ JUCE 8.0.15 is downloaded by CMake automatically. Use a local JUCE copy with `-D
 
 ## Building
 
+Ableton Link is a git submodule – clone with submodules (or fetch them later):
+
 ```bash
+git clone --recursive https://github.com/thegroovex/livelooper.git
+# existing clone: git submodule update --init --recursive
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release
 ```
@@ -35,14 +39,14 @@ ctest --test-dir build -C Release --output-on-failure      # Linux without a dis
 
 | Test | What is checked |
 |---|---|
-| `unit_tests` (`livelooper_tests`) | Engine: free and quantized recording (bar, beat), retroactive ending, fixed bar count, cancelling, large host blocks, input routing, overdub, replace, undo/redo (including the first recording), clear, reverse, one shot, stop modes, level/pan, all start/stop, track FX routing, loop sync after transport jumps, quantized start in phase, follow transport, internal clock, rhythm. Effects: all 12 types stable, bypass bit-exact, filter response, delay time, slicer grid. MIDI: learn, button/switch/selector/continuous, CC edges, uniqueness, saving. Processor: 137 unique MIDI-capable parameters, button parameters, MIDI via processBlock, learn, project save including loop audio, sample rate change, WAV export/import, editor. Features 1.2: cue routing (main / cue / both, no cue → main), both metronome sounds, all drum patterns in range, track meter input/output, master meter, waveform incl. overdub/undo, standalone cue bus channel pairs, sets save/load keeping mappings, STOP button release. Localisation: English/German texts, every choice/effect has a translation, parameter names, live switching. Features 1.4: loop cutting on the 16th grid (crossfaded, tap stays, hold stutters, back in sync), mute/solo, multiply/halve with undo, copy, rec length, tape stop, performance filter, slice parameters as MIDI momentary; Push: cutting gestures, REC + position pad length with progress bar, footswitches, touch strip, pad pressure, DOUBLE/OCTAVE/DUPLICATE, MUTE/SOLO hold, level meters with display glyphs (rate-limited) |
+| `unit_tests` (`livelooper_tests`) | Engine: free and quantized recording (bar, beat), retroactive ending, fixed bar count, cancelling, large host blocks, input routing, overdub, replace, undo/redo (including the first recording), clear, reverse, one shot, stop modes, level/pan, all start/stop, track FX routing, loop sync after transport jumps, quantized start in phase, follow transport, internal clock, rhythm. Effects: all 12 types stable, bypass bit-exact, filter response, delay time, slicer grid. MIDI: learn, button/switch/selector/continuous, CC edges, uniqueness, saving. Processor: 137 unique MIDI-capable parameters, button parameters, MIDI via processBlock, learn, project save including loop audio, sample rate change, WAV export/import, editor. Features 1.2: cue routing (main / cue / both, no cue → main), both metronome sounds, all drum patterns in range, track meter input/output, master meter, waveform incl. overdub/undo, standalone cue bus channel pairs, sets save/load keeping mappings, STOP button release. Localisation: English/German texts, every choice/effect has a translation, parameter names, live switching. Features 1.4: loop cutting on the 16th grid (crossfaded, tap stays, hold stutters, back in sync), mute/solo, multiply/halve with undo, copy, rec length, tape stop, performance filter, slice parameters as MIDI momentary; Push: cutting gestures, REC + position pad length with progress bar, footswitches, touch strip, pad pressure, DOUBLE/OCTAVE/DUPLICATE, MUTE/SOLO hold, level meters with display glyphs (rate-limited). Features 1.5: beat FX (all 16 types stable, beat sync, tails, channel routing), colour FX (centre bit-exact), beat repeat / stutter on the grid and back in sync, metronome block, sample kits / grooves / fills, capture 16 / 32 bars, master VU, help parser and search; Push 1.5: beat FX buttons and BROWSE encoders, REPEAT / ACCENT momentary + latch, touch strip rate 1/2 … 1/32, FIXED LENGTH capture length, SHIFT + METRONOME Link, SHIFT + TAP metronome; Link enable / disable (no network needed) and Link driving the timeline, app settings persistence in a temporary folder (start mode, last settings, recent sets, update options), `compareVersions` (pre-releases, v prefix) |
 | `vst3_host_test` (`livelooper_hosttest`) | loads the built `livelooper.vst3` through JUCE's VST3 hosting like a DAW: name, effect category, MIDI input, parameter count, recording and playback via parameters, stop, saving/loading state in a second instance, editor |
 
 Single group: `livelooper_tests engine`, or `midi`, `plugin`.
 
 The CI also runs [pluginval](https://github.com/Tracktion/pluginval) at strictness 5 on Linux, macOS and Windows.
 
-Documentation screenshots: `livelooper_screenshot docs/images` (on Linux with `xvfb-run -a`). It writes every picture in English (`livelooper*.png`) and German (`livelooper*-de.png`).
+Documentation screenshots: `livelooper_screenshot docs/images` (on Linux with `xvfb-run -a`). It writes every picture in English (`livelooper*.png`) and German (`livelooper*-de.png`): main view, live performance (beat FX, colour FX, repeat latch, metronome and Link on), MIDI learn, tempo entry, keyboard mapping, track setup, 8 tracks, help and about window.
 
 ## Architecture
 
@@ -54,16 +58,29 @@ src/
     LooperEngine.*        5 tracks, timeline/quantization, commands, FX buses, rhythm, status
     Effects.*             FxUnit (12 effects) and FxChain (4 slots)
     Performance.*         tape stop and performance filter on the loop bus (1.4)
-    RhythmGenerator.*     synthetic drum machine, 12 patterns
+    RhythmGenerator.*     drum machine: 21 patterns, sample kits (1.5), grooves and fills
+    DrumSamples.inc       sample slots of the built-in kits
+    BeatFx.*              beat FX (16 types), colour FX, beat repeat / stutter (1.5)
     MidiMap.*             MIDI learn table (lock-free)
   plugin/
     Localisation.*        English/German texts, language setting
-    Parameters.*          all 372 parameters (IDs, ranges, groups, English and localised names)
+    Parameters.*          all 400 parameters (IDs append-only, ranges, groups, English and localised names)
+    LinkSync.*            Ableton Link: tempo / beat / start-stop, latency-compensated (1.5)
+    AppSettings.*         settings of the user / computer: start mode, last settings, recent sets, updates (1.5)
+    Updates.*, InfoWindows.*  GitHub release check, download + verify, help window, about window (1.5)
+    DrumSampleLoader.*    decodes the embedded FLAC drum samples
+    push/                 Ableton Push (1) over its User port: protocol, device, surface
     PluginProcessor.*     AudioProcessor: parameters → engine, buttons, MIDI, state, import/export
     PluginEditor.*        interface, MIDI learn mode, menus, drag & drop
     Widgets.*             REC/PLAY pad, STOP pad, display, FX slot, track, track setup
     LooperLookAndFeel.*   hardware look
+  standalone/
+    StandaloneApp.cpp     custom standalone window (Audio/MIDI Settings button, start settings)
+    MacMicPermission.mm   asks for the microphone permission once (macOS)
 tests/                    unit tests and VST3 host test
+installer/macos/          .pkg: distribution.xml, welcome / readme (EN / DE), postinstall, install.command
+installer/windows/        livelooper.iss (Inno Setup: app + VST3, EN / DE, AGPLv3 page, uninstaller)
+resources/macos/          livelooper.entitlements (audio input)
 tools/Screenshot.cpp      renders the interface as PNG
 ```
 
@@ -96,8 +113,13 @@ Momentary functions are bool parameters. The processor reacts to the rising edge
 `.github/workflows/ci.yml`
 
 - every push / pull request: Linux build, all tests, pluginval
-- tag `v*` or manual start: additionally macOS (universal, VST3 + AU + app) and Windows (VST3 + app), tests, pluginval, ZIP artifacts
-- tag `v*`: GitHub release with the ZIPs
+- checkout with submodules (recursive) for Ableton Link
+- tag `v*` or manual start: additionally macOS (universal, VST3 + AU + app) and Windows (VST3 + app), tests, pluginval, and:
+  - **macOS**: ad-hoc code signature with a stable identifier (`codesign --sign - --identifier com.groovex.livelooper --entitlements resources/macos/livelooper.entitlements`, hardened runtime off), ZIP (with `install.command`, made with `ditto`) and **`livelooper-macOS.pkg`** (`pkgbuild` per component + `productbuild` with `installer/macos/distribution.xml`)
+  - **Windows**: ZIP and **`livelooper-Windows-Setup.exe`** (Inno Setup, installed with Chocolatey when `iscc` is missing)
+- tag `v*`: GitHub release with the ZIPs (still the primary / manual way) plus `livelooper-macOS.pkg` and `livelooper-Windows-Setup.exe`
+
+Signing: there is no Apple Developer ID / notarisation and no Windows certificate yet, so Gatekeeper and SmartScreen warn once (INSTALLATION.md). With a Developer ID, replace the ad-hoc `codesign` step (hardened runtime + entitlements), sign the pkg with `productsign` and notarise with `notarytool`.
 
 Creating a release:
 
@@ -107,9 +129,8 @@ git tag v1.0.0 && git push origin v1.0.0
 
 ## Known limitations
 
-- No time-stretching: tempo changes after recording do not change the loop speed.
-- One shared stereo output (no separate outputs per track).
+- Without *Follow tempo* (track SETUP) tempo changes after recording do not change the loop speed.
 - One undo step per track (the last overdub pass).
 - When the sample rate or the maximum loop length changes, loops are converted; recordings in progress are lost.
-- The macOS builds are not signed/notarized (see INSTALLATION.md).
+- The builds are only ad-hoc signed (macOS) / unsigned (Windows): Gatekeeper and SmartScreen warn once (see INSTALLATION.md).
 - Parameter names in the host change language only after reloading the plug-in.

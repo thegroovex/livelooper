@@ -187,5 +187,16 @@ How to get controller MIDI to the plug-in (for way 2):
 | **Loops don't follow the DAW tempo** | HOST SYNC off | MASTER → **HOST SYNC** on |
 | **Push does nothing** | Push is not in User mode or the DAW holds the port | press **USER**; on Windows switch off "MIDIIN2/MIDIOUT2 (Ableton Push)" in the DAW ([PUSH.md](PUSH.md#setup)) |
 | **Controller does nothing** | MIDI doesn't reach the plug-in | check the MIDI routing (section 6) or use your DAW's MIDI mapping |
+| **Link shows "HOST SYNC HAS PRIORITY"** | in a DAW, HOST SYNC wins over Link | switch HOST SYNC off, or turn on Link in your DAW and leave HOST SYNC on (section 8) |
 
 No DAW at hand? The **standalone app** works without one – see [INSTALLATION.md](INSTALLATION.md).
+
+## 8. Tempo with Ableton Link (since 1.5)
+
+There are two ways to play in time with other Link apps (another laptop, an iPad, a drum machine app):
+
+- **Recommended in a DAW**: switch on Link in your **DAW** (e.g. Ableton Live: *Settings → Link, Tempo & MIDI → Show Link Toggle*, then the *Link* button) and leave livelooper's **HOST SYNC** on. livelooper follows the DAW, the DAW follows Link.
+- **livelooper's own Link**: *SETUP → Ableton Link* – in a DAW only with **HOST SYNC off** (otherwise the host wins and the display says *LINK (HOST SYNC HAS PRIORITY)*). This is the way for the **standalone app**, where Link drives livelooper's clock directly.
+
+Start / stop sync is optional (*SETUP → Ableton Link → Sync start / stop with Link*). Joining a session never changes its tempo.
+

@@ -13,6 +13,10 @@ Lizenztexte sind unten wiedergegeben oder verlinkt.
 | JUCE framework | 8.0.15 | AGPLv3 (used under its AGPLv3 option) | https://github.com/juce-framework/JUCE |
 | Signalsmith Stretch | bundled in `third_party/signalsmith-stretch` | MIT | https://github.com/Signalsmith-Audio/signalsmith-stretch |
 | Signalsmith Linear | bundled in `third_party/signalsmith-linear` | MIT | https://github.com/Signalsmith-Audio/linear |
+| Ableton Link | 4.1 (git submodule `third_party/link`) | GPLv2 or later | https://github.com/Ableton/link |
+| asio-standalone (used by Link) | bundled with Link (`third_party/link/modules/asio-standalone`) | Boost Software License 1.0 | https://github.com/chriskohlhoff/asio |
+| Drum samples of the built-in kits | `resources/drums` | CC0 1.0 / public domain | see `resources/drums/SOURCES.md` |
+| Inno Setup (build tool for the Windows installer only, not part of livelooper) | 6.x | Inno Setup License | https://jrsoftware.org/isinfo.php |
 
 ## JUCE
 
@@ -34,6 +38,30 @@ Copyright (c) 2025 Signalsmith Audio. Full text: `third_party/signalsmith-stretc
 > conditions: The above copyright notice and this permission notice shall be included in
 > all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED "AS IS",
 > WITHOUT WARRANTY OF ANY KIND.
+
+## Ableton Link
+
+Copyright 2016, Ableton AG, Berlin. Ableton Link is dual-licensed: livelooper uses it under the
+**GNU General Public License version 2 or later** (full text: `third_party/link/GNU-GPL-v2.0.md`,
+`third_party/link/LICENSE.md`). GPLv2-or-later code may be combined into a work distributed
+under the AGPLv3 (via GPLv3), which is why the whole of livelooper is AGPLv3. livelooper follows
+the Ableton Link guidelines and test plan (joining a session never changes its tempo, start /
+stop sync is optional). *Deutsch:* Ableton Link wird unter der GPLv2 oder neuer genutzt.
+
+## asio-standalone
+
+Copyright (c) 2003-2026 Christopher M. Kohlhoff. Distributed under the Boost Software License,
+Version 1.0 (`third_party/link/modules/asio-standalone/LICENSE_1_0.txt`).
+
+## Drum samples
+
+Every drum sample of the built-in kits (Studio, 808, 909 Style, Lo-Fi) comes from a source
+released under **CC0 1.0** or into the **public domain**; the file `resources/drums/SOURCES.md`
+lists every sample with its original file, source and license statement. The samples were
+converted, trimmed and normalised by `tools/samples/build_drum_samples.py`. The kit names
+describe a sound style and do not imply endorsement by any manufacturer. *Deutsch:* Alle
+Drum-Samples stammen aus Quellen unter CC0 1.0 oder sind gemeinfrei (Liste in
+`resources/drums/SOURCES.md`); die Kit-Namen beschreiben einen Klangstil.
 
 ## Trademarks
 
