@@ -387,8 +387,10 @@ void drawMeterBar (juce::Graphics& g, juce::Rectangle<float> area, const MeterBa
     g.setColour (juce::Colours::black.withAlpha (0.55f));
     g.fillRect (area);
     const float pos = MeterBallistics::toPosition (m.level);
+    // v1.5: green up to -12 dB, yellow up to -3 dB, orange up to 0 dBFS, red above
     const float yellowPos = MeterBallistics::toPosition (juce::Decibels::decibelsToGain (-12.0f));
-    const float redPos = MeterBallistics::toPosition (juce::Decibels::decibelsToGain (-1.0f));
+    const float orangePos = MeterBallistics::toPosition (juce::Decibels::decibelsToGain (-3.0f));
+    const float redPos = MeterBallistics::toPosition (1.0f);
     auto segment = [&] (float from, float to, juce::Colour c) {
         const float a = juce::jmin (from, pos), b = juce::jmin (to, pos);
         if (b <= a)
@@ -400,13 +402,14 @@ void drawMeterBar (juce::Graphics& g, juce::Rectangle<float> area, const MeterBa
             g.fillRect (area.getX() + area.getWidth() * a, area.getY(), area.getWidth() * (b - a), area.getHeight());
     };
     segment (0.0f, yellowPos, base);
-    segment (yellowPos, redPos, colours::yellow);
+    segment (yellowPos, orangePos, colours::yellow);
+    segment (orangePos, redPos, colours::orange);
     segment (redPos, 1.0f, colours::red);
 
     const float hp = MeterBallistics::toPosition (m.hold);
     if (hp > 0.0f)
     {
-        g.setColour (hp >= redPos ? colours::red : colours::text.withAlpha (0.8f));
+        g.setColour (hp >= redPos ? colours::red : (hp >= orangePos ? colours::orange : colours::text.withAlpha (0.8f)));
         if (vertical)
             g.fillRect (area.getX(), area.getBottom() - area.getHeight() * hp, area.getWidth(), 1.5f);
         else
@@ -430,13 +433,13 @@ void Lcd::pushMasterMeter (float peakL, float peakR)
 {
     master[0].push (peakL);
     master[1].push (peakR);
-    repaint (getLocalBounds().removeFromTop (16));
+    repaint (getLocalBounds().removeFromTop (28));
 }
 
 juce::Rectangle<int> Lcd::getTempoArea() const
 {
     auto content = getLocalBounds().toFloat().reduced (3.0f).reduced (10.0f, 4.0f);
-    content.removeFromTop (10.0f);   // master meter row
+    content.removeFromTop (22.0f);   // master meter row with dB scale
     return content.removeFromLeft (content.getWidth() * 0.36f).toNearestInt();
 }
 
@@ -469,16 +472,42 @@ void Lcd::paint (juce::Graphics& g)
 
     auto content = inner.reduced (10.0f, 4.0f);
 
-    // master meter: top row of the display
+    // master meter: top row of the display, with a dB scale and the peak (hold) in numbers (v1.5)
     {
-        auto row = content.removeFromTop (9.0f).withTrimmedRight (14.0f);
+        auto row = content.removeFromTop (21.0f).withTrimmedRight (14.0f);
         g.setColour (colours::lcdText.withAlpha (0.55f));
         g.setFont (LooperLookAndFeel::font (8.5f, true));
         const float labelW = 46.0f;
-        g.drawText (tr ("MASTER"), row.removeFromLeft (labelW), juce::Justification::centredLeft);
-        auto bars = row.reduced (0.0f, 0.5f);
+        g.drawText (tr ("MASTER"), row.removeFromLeft (labelW).withHeight (10.0f), juce::Justification::centredLeft);
+
+        const float holdGain = juce::jmax (master[0].hold, master[1].hold);
+        const float holdDb = holdGain > 1.0e-5f ? juce::Decibels::gainToDecibels (holdGain) : -100.0f;
+        auto readout = row.removeFromRight (52.0f);
+        g.setColour (holdDb >= 0.0f ? colours::red : (holdDb >= -3.0f ? colours::orange : (holdDb >= -12.0f ? colours::yellow : colours::lcdText)));
+        g.setFont (LooperLookAndFeel::font (12.0f, true));
+        g.drawText (holdDb <= -99.0f ? juce::String ("-inf") : (holdDb > 0.0f ? "+" : "") + juce::String (holdDb, 1),
+                    readout.withTrimmedLeft (4.0f).withHeight (12.0f), juce::Justification::centredRight);
+        g.setColour (colours::lcdText.withAlpha (0.45f));
+        g.setFont (LooperLookAndFeel::font (7.5f, true));
+        g.drawText ("dBFS", readout.withTrimmedTop (12.0f), juce::Justification::centredRight);
+
+        auto bars = row.removeFromTop (10.0f).reduced (0.0f, 0.5f);
         drawMeterBar (g, bars.removeFromTop (bars.getHeight() * 0.5f).reduced (0.0f, 0.5f), master[0], false, colours::lcdText);
         drawMeterBar (g, bars.reduced (0.0f, 0.5f), master[1], false, colours::lcdText);
+
+        // scale: ticks and labels at -60 ... +6 dBFS
+        const auto scale = row.withTrimmedTop (1.0f);
+        g.setFont (LooperLookAndFeel::font (7.5f, true));
+        for (int db : { -60, -48, -36, -24, -18, -12, -6, -3, 0, 6 })
+        {
+            const float x = scale.getX() + scale.getWidth() * MeterBallistics::toPosition (juce::Decibels::decibelsToGain ((float) db));
+            const auto c2 = db >= 0 ? colours::red : (db >= -3 ? colours::orange : (db >= -12 ? colours::yellow : colours::lcdText));
+            g.setColour (c2.withAlpha (0.7f));
+            g.fillRect (x - 0.5f, scale.getY(), 1.0f, 2.5f);
+            if (db != -18)
+                g.drawText ((db > 0 ? "+" : "") + juce::String (db), juce::Rectangle<float> (x - 12.0f, scale.getY() + 2.0f, 24.0f, 8.0f),
+                            juce::Justification::centred);
+        }
         content.removeFromTop (1.0f);
     }
     const bool hasBig = bigText.isNotEmpty();

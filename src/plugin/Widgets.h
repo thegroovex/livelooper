@@ -153,7 +153,7 @@ struct MeterBallistics
     static float toPosition (float gain) noexcept;
 };
 
-/** Draws a vertical or horizontal stereo meter (green, yellow from -12 dB, red from -1 dB). */
+/** Draws a vertical or horizontal stereo meter (green, yellow from -12 dB, orange from -3 dB, red from 0 dBFS). */
 void drawMeterBar (juce::Graphics& g, juce::Rectangle<float> area, const MeterBallistics& m, bool vertical, juce::Colour base);
 
 //==============================================================================

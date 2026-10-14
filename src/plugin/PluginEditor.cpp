@@ -669,7 +669,17 @@ void LiveLooperEditor::updateLcd()
     const auto syncOn = proc.getState().getRawParameterValue (gSync)->load() >= 0.5f;
     const auto quant = quantizeChoices()[juce::roundToInt (proc.getState().getRawParameterValue (gQuantize)->load())];
     juce::StringArray lines;
-    lines.add (tr (host ? "BPM   HOST" : (syncOn ? "BPM   HOST (STOPPED) / INT CLOCK" : "BPM   INTERNAL")));
+    {
+        // v1.5: Link status (peers) on the display
+        juce::String l1 = proc.isLinkDriving() ? tr ("BPM   LINK") : tr (host ? "BPM   HOST" : (syncOn ? "BPM   HOST (STOPPED) / INT CLOCK" : "BPM   INTERNAL"));
+        if (proc.getState().getRawParameterValue (gLinkOn)->load() >= 0.5f)
+        {
+            const int peers = proc.getLinkPeers();
+            l1 << "   " << (proc.isLinkDriving() ? tr (peers == 1 ? "LINK 1 PEER" : "LINK %1 PEERS", juce::String (peers))
+                                                 : tr ("LINK (HOST SYNC HAS PRIORITY)"));
+        }
+        lines.add (l1);
+    }
     lines.add (bar + "     " + tr ("QUANTIZE %1", tr (quant).toUpperCase()));
 
     juce::Colour accent = colours::lcdText;

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<installer-gui-script minSpecVersion="2">
+    <title>livelooper</title>
+    <organization>com.groovex</organization>
+    <domains enable_localSystem="true"/>
+    <options customize="allow" require-scripts="false" hostArchitectures="arm64,x86_64"/>
+    <welcome file="welcome.html" mime-type="text/html"/>
+    <readme file="readme.html" mime-type="text/html"/>
+    <license file="license.txt" mime-type="text/plain"/>
+    <background file="background.png" mime-type="image/png" alignment="bottomleft" scaling="proportional"/>
+    <choices-outline>
+        <line choice="app"/>
+        <line choice="vst3"/>
+        <line choice="au"/>
+    </choices-outline>
+    <choice id="app" title="livelooper app (Standalone)" description="/Applications/livelooper.app">
+        <pkg-ref id="com.groovex.livelooper.app"/>
+    </choice>
+    <choice id="vst3" title="VST3 plug-in" description="/Library/Audio/Plug-Ins/VST3/livelooper.vst3">
+        <pkg-ref id="com.groovex.livelooper.vst3"/>
+    </choice>
+    <choice id="au" title="Audio Unit plug-in" description="/Library/Audio/Plug-Ins/Components/livelooper.component">
+        <pkg-ref id="com.groovex.livelooper.au"/>
+    </choice>
+    <pkg-ref id="com.groovex.livelooper.app">livelooper-app.pkg</pkg-ref>
+    <pkg-ref id="com.groovex.livelooper.vst3">livelooper-vst3.pkg</pkg-ref>
+    <pkg-ref id="com.groovex.livelooper.au">livelooper-au.pkg</pkg-ref>
+</installer-gui-script>

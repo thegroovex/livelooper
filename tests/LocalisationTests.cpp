@@ -6,6 +6,7 @@
 #include "plugin/PluginProcessor.h"
 #include "plugin/Widgets.h"
 #include "engine/Effects.h"
+#include "engine/BeatFx.h"
 
 using namespace livelooper;
 
@@ -53,13 +54,18 @@ public:
             juce::StringArray all;
             for (auto list : { params::quantizeChoices(), params::inputChoices(), params::startModeChoices(),
                                params::stopModeChoices(), params::dubModeChoices(), params::fxTypeChoices(),
-                               params::clickSoundChoices() })
+                               params::clickSoundChoices(),
+                               // v1.5
+                               params::beatFxChoices(), params::colorFxChoices(), params::fxTargetChoices(),
+                               params::grooveChoices(), params::fillChoices(), params::kitChoices() })
                 all.addArray (list);
             for (int i = 0; i < (int) FxType::NumTypes; ++i)
             {
                 all.add (getFxParam1Name ((FxType) i));
                 all.add (getFxParam2Name ((FxType) i));
             }
+            for (int i = 0; i < (int) BeatFxType::NumTypes; ++i)
+                all.add (getBeatFxDepthName ((BeatFxType) i));
             for (const auto& s : all)
                 expect (i18n::germanFor (s).isNotEmpty(), "missing German text for: " + s);
         }

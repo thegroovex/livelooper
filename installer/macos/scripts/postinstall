@@ -1,0 +1,12 @@
+#!/bin/bash
+# livelooper installer: remove the download quarantine from the installed bundles and
+# refresh the Audio Unit cache, so DAWs see the new AU right away.
+for b in "/Applications/livelooper.app" \
+         "/Library/Audio/Plug-Ins/VST3/livelooper.vst3" \
+         "/Library/Audio/Plug-Ins/Components/livelooper.component"; do
+    if [ -e "$b" ]; then
+        /usr/bin/xattr -dr com.apple.quarantine "$b" 2>/dev/null || true
+    fi
+done
+/usr/bin/killall -9 AudioComponentRegistrar 2>/dev/null || true
+exit 0
