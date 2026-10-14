@@ -1,30 +1,33 @@
 // v1.6 clip export: H.264 + AAC (.mp4) with AVFoundation (macOS).
 
-#include "ClipExport.h"
+#include "NativeVideo.h"
+
+#include <thread>
+#include <chrono>
 
 #import <AVFoundation/AVFoundation.h>
 #import <CoreMedia/CoreMedia.h>
 #import <CoreVideo/CoreVideo.h>
+#include <cstring>
 
-namespace livelooper::clip
+namespace livelooper::clip::native
 {
 namespace
 {
-class AVFoundationWriter : public VideoWriter
+class AVFoundationWriter : public Encoder
 {
 public:
     ~AVFoundationWriter() override { release(); }
 
-    juce::String getName() const override { return "AVFoundation"; }
+    const char* name() const override { return "AVFoundation"; }
 
-    bool open (const juce::File& file, int w, int h, int frameRate, double rate) override
+    bool open (const std::string& path, int w, int h, int frameRate, double rate) override
     {
         width = w; height = h; fps = frameRate; sampleRate = rate;
-        file.deleteFile();
         @autoreleasepool
         {
             NSError* err = nil;
-            NSURL* url = [NSURL fileURLWithPath: [NSString stringWithUTF8String: file.getFullPathName().toRawUTF8()]];
+            NSURL* url = [NSURL fileURLWithPath: [NSString stringWithUTF8String: path.c_str()]];
             writer = [[AVAssetWriter alloc] initWithURL: url fileType: AVFileTypeMPEG4 error: &err];
             if (writer == nil)
                 return false;
@@ -86,12 +89,12 @@ public:
         {
             if (writer.status == AVAssetWriterStatusFailed)
                 return false;
-            juce::Thread::sleep (1);
+            std::this_thread::sleep_for (std::chrono::milliseconds (1));
         }
         return input.readyForMoreMediaData;
     }
 
-    bool addFrame (const juce::Image& frame) override
+    bool addFrameBGRA (const std::uint8_t* pixels, int srcStride) override
     {
         @autoreleasepool
         {
@@ -103,19 +106,8 @@ public:
             CVPixelBufferLockBaseAddress (pb, 0);
             auto* dst = static_cast<uint8_t*> (CVPixelBufferGetBaseAddress (pb));
             const size_t dstStride = CVPixelBufferGetBytesPerRow (pb);
-            const juce::Image::BitmapData src (frame, juce::Image::BitmapData::readOnly);
             for (int y = 0; y < height; ++y)
-            {
-                auto* row = dst + (size_t) y * dstStride;
-                for (int x = 0; x < width; ++x)
-                {
-                    const auto c = src.getPixelColour (x, y);      // opaque frames: premultiplied == straight
-                    row[x * 4 + 0] = c.getBlue();
-                    row[x * 4 + 1] = c.getGreen();
-                    row[x * 4 + 2] = c.getRed();
-                    row[x * 4 + 3] = 255;
-                }
-            }
+                std::memcpy (dst + (size_t) y * dstStride, pixels + (size_t) y * (size_t) srcStride, (size_t) width * 4);
             CVPixelBufferUnlockBaseAddress (pb, 0);
             const BOOL ok = [adaptor appendPixelBuffer: pb withPresentationTime: CMTimeMake (frameIndex++, fps)];
             CVPixelBufferRelease (pb);
@@ -157,6 +149,9 @@ public:
         dispatch_semaphore_t done = dispatch_semaphore_create (0);
         [writer finishWritingWithCompletionHandler: ^{ dispatch_semaphore_signal (done); }];
         dispatch_semaphore_wait (done, dispatch_time (DISPATCH_TIME_NOW, (int64_t) 60 * NSEC_PER_SEC));
+       #if ! __has_feature(objc_arc)
+        dispatch_release (done);
+       #endif
         const bool ok = writer.status == AVAssetWriterStatusCompleted;
         release();
         return ok;
@@ -187,8 +182,8 @@ private:
 };
 } // namespace
 
-std::unique_ptr<VideoWriter> VideoWriter::createNative()
+std::unique_ptr<Encoder> create()
 {
     return std::make_unique<AVFoundationWriter>();
 }
-} // namespace livelooper::clip
+} // namespace livelooper::clip::native

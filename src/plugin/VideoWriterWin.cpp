@@ -1,8 +1,16 @@
 // v1.6 clip export: H.264 + AAC (.mp4) with Media Foundation (Windows).
 
-#include "ClipExport.h"
+#include "NativeVideo.h"
 
-#if JUCE_WINDOWS
+#ifdef _WIN32
+
+#ifndef NOMINMAX
+ #define NOMINMAX
+#endif
+#include <algorithm>
+#include <cmath>
+#include <cstring>
+#include <vector>
 
 #include <windows.h>
 #include <mfapi.h>
@@ -15,7 +23,7 @@
 #pragma comment (lib, "mfuuid.lib")
 #pragma comment (lib, "ole32.lib")
 
-namespace livelooper::clip
+namespace livelooper::clip::native
 {
 namespace
 {
@@ -30,7 +38,7 @@ struct ComPtr
     operator T*() const { return p; }
 };
 
-class MediaFoundationWriter : public VideoWriter
+class MediaFoundationWriter : public Encoder
 {
 public:
     ~MediaFoundationWriter() override
@@ -40,12 +48,16 @@ public:
         if (comStarted) CoUninitialize();
     }
 
-    juce::String getName() const override { return "Media Foundation"; }
+    const char* name() const override { return "Media Foundation"; }
 
-    bool open (const juce::File& file, int w, int h, int frameRate, double rate) override
+    bool open (const std::string& path, int w, int h, int frameRate, double rate) override
     {
         width = w; height = h; fps = frameRate; sampleRate = (UINT32) rate;
-        file.deleteFile();
+        const int wlen = MultiByteToWideChar (CP_UTF8, 0, path.c_str(), -1, nullptr, 0);
+        std::wstring wpath ((size_t) std::max (0, wlen), L'\0');
+        if (wlen > 0)
+            MultiByteToWideChar (CP_UTF8, 0, path.c_str(), -1, wpath.data(), wlen);
+        DeleteFileW (wpath.c_str());
         const HRESULT co = CoInitializeEx (nullptr, COINIT_MULTITHREADED);
         comStarted = SUCCEEDED (co);
         if (FAILED (MFStartup (MF_VERSION, MFSTARTUP_FULL)))
@@ -56,7 +68,7 @@ public:
         if (FAILED (MFCreateAttributes (&attrs, 1)))
             return false;
         attrs->SetUINT32 (MF_READWRITE_ENABLE_HARDWARE_TRANSFORMS, TRUE);
-        if (FAILED (MFCreateSinkWriterFromURL (file.getFullPathName().toWideCharPointer(), nullptr, attrs, &writer)))
+        if (FAILED (MFCreateSinkWriterFromURL (wpath.c_str(), nullptr, attrs, &writer)))
             return false;
 
         // ---- video: RGB32 in, H.264 out
@@ -125,20 +137,12 @@ public:
         return SUCCEEDED (writer->WriteSample (stream, sample));
     }
 
-    bool addFrame (const juce::Image& frame) override
+    bool addFrameBGRA (const std::uint8_t* src, int srcStride) override
     {
-        // RGB32 is bottom-up: the last image row goes first
+        // RGB32 (B, G, R, X bytes) is bottom-up: the last image row goes first
         pixels.resize ((size_t) width * (size_t) height);
-        const juce::Image::BitmapData src (frame, juce::Image::BitmapData::readOnly);
         for (int y = 0; y < height; ++y)
-        {
-            auto* row = pixels.data() + (size_t) (height - 1 - y) * (size_t) width;
-            for (int x = 0; x < width; ++x)
-            {
-                const auto c = src.getPixelColour (x, y);
-                row[x] = (uint32_t) 0xff000000u | ((uint32_t) c.getRed() << 16) | ((uint32_t) c.getGreen() << 8) | (uint32_t) c.getBlue();
-            }
-        }
+            std::memcpy (pixels.data() + (size_t) (height - 1 - y) * (size_t) width, src + (size_t) y * (size_t) srcStride, (size_t) width * 4);
         const LONGLONG dur = 10000000LL / fps;
         return writeBuffer (videoStream, pixels.data(), (DWORD) (pixels.size() * 4), frameIndex++ * dur, dur);
     }
@@ -147,7 +151,7 @@ public:
     {
         pcm.resize ((size_t) numFrames * 2);
         for (size_t i = 0; i < pcm.size(); ++i)
-            pcm[i] = (int16_t) juce::jlimit (-32768, 32767, (int) std::lrint (interleaved[i] * 32767.0f));
+            pcm[i] = (int16_t) std::clamp ((int) std::lrint (interleaved[i] * 32767.0f), -32768, 32767);
         const LONGLONG t = audioFrames * 10000000LL / sampleRate;
         const LONGLONG d = (LONGLONG) numFrames * 10000000LL / sampleRate;
         audioFrames += numFrames;
@@ -175,10 +179,10 @@ private:
 };
 } // namespace
 
-std::unique_ptr<VideoWriter> VideoWriter::createNative()
+std::unique_ptr<Encoder> create()
 {
     return std::make_unique<MediaFoundationWriter>();
 }
-} // namespace livelooper::clip
+} // namespace livelooper::clip::native
 
 #endif

@@ -1,6 +1,7 @@
 #include "ClipExport.h"
 
 #include "BinaryData.h"
+#include "NativeVideo.h"
 
 #include <juce_audio_formats/juce_audio_formats.h>
 
@@ -368,7 +369,61 @@ Result exportClip (const juce::AudioBuffer<float>& audio, const juce::File& targ
     return res;
 }
 
+//============================================================================== native encoders
+namespace
+{
+    class NativeWriter : public VideoWriter
+    {
+    public:
+        explicit NativeWriter (std::unique_ptr<native::Encoder> e) : enc (std::move (e)) {}
+        bool open (const juce::File& file, int w, int h, int fps, double rate) override
+        {
+            width = w; height = h;
+            file.deleteFile();
+            return enc->open (file.getFullPathName().toStdString(), w, h, fps, rate);
+        }
+        bool addFrame (const juce::Image& frame) override
+        {
+            const auto img = frame.convertedToFormat (juce::Image::ARGB);
+            const juce::Image::BitmapData bd (img, juce::Image::BitmapData::readOnly);
+            if (bd.width != width || bd.height != height)
+                return false;
+            // JUCE keeps ARGB pixels as B, G, R, A bytes in memory (premultiplied; the frames are opaque)
+            buffer.resize ((size_t) width * (size_t) height * 4);
+            for (int y = 0; y < height; ++y)
+            {
+                const auto* src = bd.getLinePointer (y);
+                auto* dst = buffer.data() + (size_t) y * (size_t) width * 4;
+                for (int x = 0; x < width; ++x)
+                {
+                    const auto c = reinterpret_cast<const juce::PixelARGB*> (src + x * bd.pixelStride);
+                    dst[x * 4 + 0] = c->getBlue();
+                    dst[x * 4 + 1] = c->getGreen();
+                    dst[x * 4 + 2] = c->getRed();
+                    dst[x * 4 + 3] = 255;
+                }
+            }
+            return enc->addFrameBGRA (buffer.data(), width * 4);
+        }
+        bool addAudio (const float* interleaved, int numFrames) override { return enc->addAudio (interleaved, numFrames); }
+        bool finish() override { return enc->finish(); }
+        juce::String getName() const override { return enc->name(); }
+
+    private:
+        std::unique_ptr<native::Encoder> enc;
+        std::vector<std::uint8_t> buffer;
+        int width = 0, height = 0;
+    };
+}
+
+std::unique_ptr<VideoWriter> VideoWriter::createNative()
+{
+    if (auto e = native::create())
+        return std::make_unique<NativeWriter> (std::move (e));
+    return nullptr;
+}
+
 #if ! JUCE_MAC && ! JUCE_WINDOWS
-std::unique_ptr<VideoWriter> VideoWriter::createNative() { return nullptr; }
+namespace native { std::unique_ptr<Encoder> create() { return nullptr; } }
 #endif
 } // namespace livelooper::clip
