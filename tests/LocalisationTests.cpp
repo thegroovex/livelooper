@@ -49,6 +49,13 @@ public:
             expect (i18n::getNumTranslations() > 150);
         }
 
+        beginTest ("Upper case keeps German umlauts readable");
+        {
+            expectEquals (i18n::upper (juce::CharPointer_UTF8 ("Tonh\xc3\xb6he")), juce::String (juce::CharPointer_UTF8 ("TONH\xc3\x96HE")));
+            expectEquals (i18n::upper (juce::CharPointer_UTF8 ("r\xc3\xbc""ckw\xc3\xa4rts")), juce::String (juce::CharPointer_UTF8 ("R\xc3\x9c""CKW\xc3\x84RTS")));
+            expectEquals (i18n::upper ("level"), juce::String ("LEVEL"));
+        }
+
         beginTest ("Every choice, effect and effect parameter has a German text");
         {
             juce::StringArray all;

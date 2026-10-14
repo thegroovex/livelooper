@@ -169,7 +169,7 @@ void Knob::paint (juce::Graphics& g)
 {
     g.setColour (colours::textDim);
     g.setFont (LooperLookAndFeel::font (11.0f, true));
-    g.drawFittedText (tr (caption).toUpperCase(), getLocalBounds().removeFromBottom (16), juce::Justification::centred, 1);
+    g.drawFittedText (i18n::upper (tr (caption)), getLocalBounds().removeFromBottom (16), juce::Justification::centred, 1);
 }
 
 //============================================================================== RecPlayButton
@@ -569,7 +569,7 @@ void FxSlot::paint (juce::Graphics& g)
         typeName = tr (fxTypeChoices()[p->getIndex()]);
     g.setColour (selected ? colours::text : colours::textDim);
     g.setFont (LooperLookAndFeel::font (11.0f, true));
-    g.drawFittedText (typeName.toUpperCase(), label, juce::Justification::centred, 1, 0.7f);
+    g.drawFittedText (i18n::upper (typeName), label, juce::Justification::centred, 1, 0.7f);
 }
 
 void FxSlot::mouseDown (const juce::MouseEvent&)
@@ -963,6 +963,6 @@ void TrackSettingsPanel::paint (juce::Graphics& g)
     g.setFont (LooperLookAndFeel::font (12.0f, true));
     g.setColour (colours::textDim);
     for (auto& r : rows)
-        g.drawText (tr (r.caption).toUpperCase(), b.removeFromTop (30).removeFromLeft (100), juce::Justification::centredLeft);
+        g.drawText (i18n::upper (tr (r.caption)), b.removeFromTop (30).removeFromLeft (100), juce::Justification::centredLeft);
 }
 } // namespace livelooper

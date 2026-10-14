@@ -742,4 +742,12 @@ int getNumTranslations()
 
 void addListener (Listener* l)    { listeners().addIfNotAlreadyThere (l); }
 void removeListener (Listener* l) { listeners().removeAllInstancesOf (l); }
+juce::String upper (const juce::String& text)
+{
+    return text.toUpperCase()
+               .replace (juce::CharPointer_UTF8 ("\xc3\xa4"), juce::CharPointer_UTF8 ("\xc3\x84"))
+               .replace (juce::CharPointer_UTF8 ("\xc3\xb6"), juce::CharPointer_UTF8 ("\xc3\x96"))
+               .replace (juce::CharPointer_UTF8 ("\xc3\xbc"), juce::CharPointer_UTF8 ("\xc3\x9c"));
+}
+
 } // namespace livelooper::i18n

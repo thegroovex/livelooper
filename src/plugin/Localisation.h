@@ -31,6 +31,10 @@ juce::String tr (const juce::String& english);
 juce::String tr (const juce::String& english, const juce::String& arg1);
 juce::String tr (const juce::String& english, const juce::String& arg1, const juce::String& arg2);
 
+/** Upper case that also handles the German umlauts on every platform (juce::String::toUpperCase
+    relies on towupper, which leaves ä/ö/ü alone in the "C" locale). */
+juce::String upper (const juce::String& text);
+
 /** Translation of a single text into German (empty if there is none) - for tests. */
 juce::String germanFor (const juce::String& english);
 

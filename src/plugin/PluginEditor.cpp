@@ -126,7 +126,7 @@ LiveLooperEditor::LiveLooperEditor (LiveLooperProcessor& p)
     // colour FX: one type for all tracks, one knob per track (in the track strips)
     for (int i = 0; i < (int) colorBtns.size(); ++i)
     {
-        auto b = std::make_unique<LLButton> (juce::String (getColorFxName ((ColorFxType) i)).toUpperCase(), colours::blue);
+        auto b = std::make_unique<LLButton> (i18n::upper (juce::String (getColorFxName ((ColorFxType) i))), colours::blue);
         b->onClick = [this, i] {
             if (auto* p = proc.getState().getParameter (gColorType))
             {
@@ -492,12 +492,13 @@ void LiveLooperEditor::layoutPerformanceRow (int dx)
 
     // beat FX: type / channel | beat fraction | level | on / hold
     auto b = inner (beatFxArea);
-    auto col = b.removeFromLeft (150);
+    // with 8 tracks the extra width widens the combo boxes instead of leaving a gap in the middle
+    auto col = b.removeFromLeft (150 + dx * 9 / 20);
     bfxType.setBounds (col.removeFromTop (28).reduced (0, 1));
     col.removeFromTop (6);
     bfxTarget.setBounds (col.removeFromTop (28).reduced (0, 1));
     b.removeFromLeft (10);
-    col = b.removeFromLeft (124);
+    col = b.removeFromLeft (124 + dx / 4);
     {
         auto row = col.removeFromTop (28);
         beatDown.setBounds (row.removeFromLeft (26).reduced (0, 1));
@@ -686,7 +687,7 @@ void LiveLooperEditor::updateLcd()
         }
         lines.add (l1);
     }
-    lines.add (bar + "     " + tr ("QUANTIZE %1", tr (quant).toUpperCase()));
+    lines.add (bar + "     " + tr ("QUANTIZE %1", i18n::upper (tr (quant))));
 
     juce::Colour accent = colours::lcdText;
     const auto learnId = proc.getMidiLearnParamId();
@@ -782,7 +783,7 @@ bool LiveLooperEditor::keyPressed (const juce::KeyPress& key)
 
     performKeyAction (action);
     if (! KeyMap::isSpecialAction (action) && action != gClearAll)
-        showStatus (tr ("KEY %1 > %2", KeyMap::describeKey (key).toUpperCase(), paramName (action).toUpperCase()));
+        showStatus (tr ("KEY %1 > %2", i18n::upper (KeyMap::describeKey (key)), i18n::upper (paramName (action))));
     return true;
 }
 
@@ -1248,13 +1249,13 @@ void LiveLooperEditor::showSetupMenu()
         if (r >= 500 && r < 500 + groove->choices.size())
         {
             setParam (groove, (float) (r - 500));
-            safe->showStatus (tr ("GROOVE: %1", tr (grooveChoices()[r - 500]).toUpperCase()));
+            safe->showStatus (tr ("GROOVE: %1", i18n::upper (tr (grooveChoices()[r - 500]))));
             return;
         }
         if (r >= 520 && r < 520 + fills->choices.size())
         {
             setParam (fills, (float) (r - 520));
-            safe->showStatus (tr ("FILLS: %1", tr (fillChoices()[r - 520]).toUpperCase()));
+            safe->showStatus (tr ("FILLS: %1", i18n::upper (tr (fillChoices()[r - 520]))));
             return;
         }
         if (r >= 300 && r < 300 + recent.size())
@@ -1351,12 +1352,12 @@ void LiveLooperEditor::showSetupMenu()
             clickSound->beginChangeGesture();
             clickSound->setValueNotifyingHost (clickSound->convertTo0to1 ((float) (r - 40)));
             clickSound->endChangeGesture();
-            safe->showStatus (tr ("METRONOME: %1", tr (clickSoundChoices()[r - 40]).toUpperCase()));
+            safe->showStatus (tr ("METRONOME: %1", i18n::upper (tr (clickSoundChoices()[r - 40]))));
         }
         else if (r >= 50 && r <= 50 + LiveLooperProcessor::kNumCuePairs)
         {
             safe->proc.setCuePair (r - 50);
-            safe->showStatus (tr ("CUE: %1", LiveLooperProcessor::getCuePairName (r - 50).toUpperCase()));
+            safe->showStatus (tr ("CUE: %1", i18n::upper (LiveLooperProcessor::getCuePairName (r - 50))));
         }
         else if (r >= 60 && r <= 62)
             safe->proc.setClickRoute ((ClickRoute) (r - 60));
@@ -1403,7 +1404,7 @@ void LiveLooperEditor::saveSet()
         const bool ok = safe->proc.saveSet (file);
         if (ok)
             appsettings::addRecentSet (file);
-        safe->showStatus (ok ? tr ("SET SAVED: %1", file.getFileNameWithoutExtension().toUpperCase()) : tr ("SET COULD NOT BE SAVED"));
+        safe->showStatus (ok ? tr ("SET SAVED: %1", i18n::upper (file.getFileNameWithoutExtension())) : tr ("SET COULD NOT BE SAVED"));
     });
 }
 
@@ -1425,7 +1426,7 @@ void LiveLooperEditor::loadSetFile (const juce::File& file)
     const bool ok = proc.loadSet (file, error);
     if (ok)
         appsettings::addRecentSet (file);
-    showStatus (ok ? tr ("SET LOADED: %1", file.getFileNameWithoutExtension().toUpperCase()) : tr ("LOAD FAILED: %1", error));
+    showStatus (ok ? tr ("SET LOADED: %1", i18n::upper (file.getFileNameWithoutExtension())) : tr ("LOAD FAILED: %1", error));
 }
 
 //============================================================================== track settings / files

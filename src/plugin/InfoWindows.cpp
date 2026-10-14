@@ -215,7 +215,7 @@ void HelpComponent::showSection (int index)
     if (! juce::isPositiveAndBelow (index, sections.size()))
         return;
     const auto& s = sections.getReference (index);
-    text.setText (s.title.toUpperCase() + "\n\n" + toPlainText (s.text), false);
+    text.setText (i18n::upper (s.title) + "\n\n" + toPlainText (s.text), false);
     text.moveCaretToTop (false);
 }
 
@@ -556,23 +556,27 @@ void AboutComponent::resized()
 {
     auto b = getLocalBounds().reduced (20);
     b.removeFromTop (160);
-    auto row = b.removeFromTop (30);
-    licenceBtn.setBounds (row.removeFromLeft (170));
-    row.removeFromLeft (8);
-    thirdPartyBtn.setBounds (row.removeFromLeft (170));
-    b.removeFromTop (16);
-    row = b.removeFromTop (30);
-    checkBtn.setBounds (row.removeFromLeft (170));
-    row.removeFromLeft (8);
-    actionBtn.setBounds (row.removeFromLeft (170));
-    row.removeFromLeft (8);
-    pageBtn.setBounds (row.removeFromLeft (130));
+    // buttons sized to their (translated) text, visible ones laid out side by side without gaps
+    auto layoutRow = [this] (juce::Rectangle<int> row, std::initializer_list<juce::TextButton*> buttons) {
+        for (auto* btn : buttons)
+        {
+            if (! btn->isVisible())
+                continue;
+            const auto font = getLookAndFeel().getTextButtonFont (*btn, row.getHeight());
+            const int w = juce::jlimit (130, 260, juce::roundToInt (juce::GlyphArrangement::getStringWidth (font, btn->getButtonText())) + 32);
+            btn->setBounds (row.removeFromLeft (juce::jmin (w, row.getWidth())));
+            row.removeFromLeft (8);
+        }
+    };
+    layoutRow (b.removeFromTop (30), { &licenceBtn, &thirdPartyBtn });
+    b.removeFromTop (12);
+    layoutRow (b.removeFromTop (30), { &checkBtn, &actionBtn, &pageBtn });
     b.removeFromTop (6);
     status.setBounds (b.removeFromTop (40));
     autoCheck.setBounds (b.removeFromTop (24));
     autoInstall.setBounds (b.removeFromTop (24));
     honesty.setBounds (b.removeFromTop (48));
-    pluginsBtn.setBounds (b.removeFromTop (30).removeFromLeft (170));
+    layoutRow (b.removeFromTop (30), { &pluginsBtn });
     b.removeFromTop (6);
     b.removeFromBottom (56);   // brand mark
     notes.setBounds (b);
