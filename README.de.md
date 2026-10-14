@@ -11,7 +11,7 @@
 - **Live-Performance zuerst.** Jede Funktion reagiert sofort, landet auf dem Schlag und hält die Musik nie an. Beim Spielen braucht nichts ein Menü.
 - **Spaß am Spielen.** Beat-FX, Beat Repeat und Stutter, Color-FX und ein Groove, der sich wie ein Drummer anfühlt, machen aus einem Loop eine Performance – drücken, halten, loslassen, und du bist wieder auf dem Schlag.
 - **Erforschen und spielen.** Halte fest, was du gerade improvisiert hast, leg mit dem XY-Pad einen Effekt darauf, verstimm es, dreh es um, lass es ausklingen wie ein Band – und behalte, was funktioniert.
-- **Hände an die Hardware.** Schließ einen Ableton Push an und livelooper übernimmt ihn – ohne Mapping. Jeder andere Controller funktioniert per MIDI Learn, alle 400 Funktionen sind zuweisbar.
+- **Hände an die Hardware.** Schließ einen Ableton Push an und livelooper übernimmt ihn – ohne Mapping. Jeder andere Controller funktioniert per MIDI Learn, alle 426 Funktionen sind zuweisbar.
 - **Deine Loops gehören in deinen Song.** Zieh einen Loop direkt aus livelooper auf eine Spur in deiner DAW, exportiere Stems oder behalte alles im Projekt gespeichert.
 
 ## Spielen mit Ableton Push
@@ -45,6 +45,16 @@ Einrichtung und komplette Belegung: **[PUSH.md](docs/de/PUSH.md)**.
 - **Loop-Cutting und Stottern**, **Stumm / Solo solange gehalten**, **Loop × 2 / halbieren**, **in eine andere Spur kopieren**, **Tape-Stopp** und ein **Performance-Filter** – alles musikalisch quantisiert, nichts hält je die Musik an
 - **Ableton Push**, **MIDI Learn** für jeden Controller (Rechtsklick auf ein Bedienelement) und **Computertastatur** in der Standalone-App
 
+<!-- v1.6 features -->
+**Neu in 1.6 (in Entwicklung)**
+- **Demo-Set und geführte Tour**: Beim ersten Start sind ein Groove und drei Loops bereit – ALLE START / STOP drücken und nach Sekunden läuft Musik; eine 60-Sekunden-Tour zeigt Aufnehmen, Overdub, Groove, Beat-FX und Szenen
+- **Loop-Tricks**: halbe und doppelte Geschwindigkeit, Loop-Audio umdrehen – quantisiert, rückgängig machbar, per MIDI zuweisbar, auf Push 1 mit SHIFT
+- **Performance-Recorder**: die gesamte livelooper-Ausgabe als WAV per Knopfdruck, mit Zeitanzeige
+- **Clip-Export 9:16**: die letzten 20 Sekunden (oder eine Aufnahme) als gebrandetes Hochformat-Video für Reels, TikTok und Shorts
+- **Sets teilen**: eine `.livelooper`-Datei mit allem Audio, per Drag & Drop geöffnet – das Demo-Set liegt in [`presets`](presets/)
+- **Controller-Vorlagen** für Launchpad Mini MK3 / X, APC mini mk2 und die Pads von Launchkey MK3 / MK4 (automatisch erkannt, mit LED-Rückmeldung; an der Hardware noch nicht getestet)
+<!-- end v1.6 features -->
+
 **Live-Performance-FX (neu in 1.5)**
 - **Beat-FX** wie an einem DJ-Mixer: 16 taktsynchrone Effekte (Delay, Echo, Ping Pong, Spiral, Hall, Trans, Filter, Flanger, Phaser, Pitch, Roll, Slip Roll, Reverse Roll, Vinyl Brake, Helix, Noise) mit Schlagwert 1/32 … 16 Schläge, Pegel / Tiefe, ON oder HOLD, auf Master, Loops, Eingang oder einer Spur
 - **Beat Repeat und Stutter**: Halten (oder einrasten) wiederholt 1/2 … 1/32 Noten ab der nächsten Rasterlinie; die Musik läuft darunter weiter, Loslassen ist also immer im Takt
@@ -65,7 +75,7 @@ Einrichtung und komplette Belegung: **[PUSH.md](docs/de/PUSH.md)**.
 - **Mit dem Projekt gespeichert**: Loops verlustfrei (FLAC, 24 Bit) im DAW-Projekt; komplette **Looper-Sets** als `.llset`-Datei
 - **Pegel und Wellenformen**: Stereo-Pegel pro Spur, Master-VU in dB im Display (grün / gelb / rot), Wellenform mit Abspielposition, Clip-LED
 - **Komfort**: Hilfe in der App (durchsuchbare Bedienungsanleitung), Info-Fenster mit Update-Prüfung, Start mit den zuletzt verwendeten oder den Standard-Einstellungen, Liste der zuletzt verwendeten Sets
-- **Alle 400 Funktionen** sind Host-Parameter für MIDI-Mapping und Automation deiner DAW
+- **Alle 426 Funktionen** sind Host-Parameter für MIDI-Mapping und Automation deiner DAW
 - **Deutsche und englische** Oberfläche (*SETUP → Language / Sprache*)
 
 ## Download

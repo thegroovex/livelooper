@@ -63,7 +63,30 @@ describe a sound style and do not imply endorsement by any manufacturer. *Deutsc
 Drum-Samples stammen aus Quellen unter CC0 1.0 oder sind gemeinfrei (Liste in
 `resources/drums/SOURCES.md`); die Kit-Namen beschreiben einen Klangstil.
 
+<!-- v1.6 features -->
+## Demo loops (since 1.6)
+
+The three loops of the demo set (`resources/demo/*.flac`, `presets/demo-set.livelooper`) are
+synthesised from scratch by `tools/demo/make_demo_loops.py` (no samples, no third-party audio)
+and released under **CC0 1.0** (public domain dedication). *Deutsch:* Die Demo-Loops sind selbst
+erzeugt und unter CC0 1.0 freigegeben.
+
+## Manrope font (since 1.6)
+
+The 9:16 clip export draws its titles with **Manrope** (`resources/fonts/Manrope-600.ttf`,
+`Manrope-800.ttf`), Copyright 2018 The Manrope Project Authors (https://github.com/sharanda/manrope),
+licensed under the **SIL Open Font License 1.1** (https://openfontlicense.org). The font is embedded
+unmodified; it may be bundled with software under any license. *Deutsch:* Die Schrift Manrope steht
+unter der SIL Open Font License 1.1.
+
+## Video encoding (since 1.6)
+
+The clip export uses the video encoders of the operating system (AVFoundation on macOS, Media
+Foundation on Windows). On Linux it can call an **ffmpeg** program that the user installed; ffmpeg
+is not part of livelooper and is not distributed with it.
+<!-- end v1.6 features -->
+
 ## Trademarks
 
-Ableton, Push, Link and all other product names mentioned are trademarks of their
+Ableton, Push, Link, Launchpad, Launchkey, APC and all other product names mentioned are trademarks of their
 respective owners; livelooper is not affiliated with or endorsed by them.

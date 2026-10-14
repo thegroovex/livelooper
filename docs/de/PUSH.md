@@ -66,6 +66,8 @@ Die Anfänge der Stücke liegen auf 16tel-Noten des Loops, ein Schnitt bleibt al
 | DUPLICATE + Pad + Pad | kopiert den Loop der ersten Spur in die zweite (leere) Spur. DUPLICATE + ein Pad (oder DUPLICATE allein: die ausgewählte Spur) kopiert in die nächste leere Spur. Die Kopie ist gestoppt und startet synchron |
 | DOUBLE | **Loop × 2** der ausgewählten Spur (der Loop wird verdoppelt, z. B. um über die zweite Hälfte eine Variation zu overdubben). **SHIFT** + DOUBLE = Loop halbieren |
 | OCTAVE UP / DOWN | Tonhöhe der ausgewählten Spur +12 / −12 Halbtöne |
+| SHIFT + OCTAVE DOWN / UP | *(neu in 1.6)* Loop-Trick der ausgewählten Spur: **halbe Geschwindigkeit** (doppelt so lang, eine Oktave tiefer) / **doppelte Geschwindigkeit** (zweimal hintereinander, eine Oktave höher) – auf den nächsten Schlag oder Takt, ZURÜCK (Undo) stellt den Loop wieder her |
+| SHIFT + SCALES | *(neu in 1.6)* **Loop-Audio umdrehen** der ausgewählten Spur (quantisiert, Undo stellt ihn wieder her) |
 | MASTER | Pegelanzeige ein / aus (Display-Zeile 3) |
 | SELECT + Pad | Spur auswählen, ohne etwas anderes auszulösen |
 | SHIFT + Reihe 1 / Reihe 2 | Undo / Redo dieser Spur |

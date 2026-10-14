@@ -67,7 +67,7 @@ Automation works too (in Live, e.g., in Arrangement view), for example to start 
 
 ## Parameter list
 
-400 parameters, names as shown in your DAW with the English interface (with the German interface they are localised, e.g. "S1 Pegel" instead of "T1 Level"; the internal IDs and your saved assignments stay the same):
+426 parameters, names as shown in your DAW with the English interface (with the German interface they are localised, e.g. "S1 Pegel" instead of "T1 Level"; the internal IDs and your saved assignments stay the same):
 
 **Per track (T1 … T5)** – 16 each:
 `Rec/Play`, `Stop`, `Clear`, `Undo`, `Redo` (buttons) · `Level`, `Pan` · `Reverse`, `One Shot`, `Loop Sync`, `Track FX` (switches) · `Input`, `Start Mode`, `Stop Mode`, `Dub Mode`, `Measures` (selectors)
@@ -86,6 +86,12 @@ Automation works too (in Live, e.g., in Arrangement view), for example to start 
 - global: `Beat FX On` (switch), `Beat FX Hold` (held), `Beat FX Type` (16 types), `Beat FX Beat` (1/32 … 16), `Beat FX Level/Depth`, `Beat FX Channel` (Master, Loops, Input, Track 1 … 8) · `Color FX Type` (Filter, Dub Echo, Space, Crush, Noise, Sweep) · `Beat Repeat Hold` (held), `Beat Repeat Latch` (switch), `Beat Repeat Timing` (1/2 … 1/32) · `Stutter Hold` (held), `Stutter Latch` (switch), `Stutter Timing` (1/2 … 1/32) · `Metronome On`, `Metronome Accent` (switches), `Metronome Level` · `Link`, `Link Start/Stop Sync` (switches) · `Groove` (Straight, Natural, Laid Back, Pushed, Drunk, Drive), `Fills` (Off, Every 4 Bars, Every 8 Bars)
 - per track (T1 … T8): `Color FX` (−100 … +100, 0 = off)
 - `Capture Bars` now goes up to 16 and 32 bars.
+
+<!-- v1.6 features -->
+**Since 1.6 (loop tricks, performance recorder, clip export)** – 26 more, all appended (existing IDs, MIDI maps and automation are unchanged):
+- per track (T1 … T8): `Half Speed`, `Double Speed`, `Reverse Loop Audio` (buttons; quantized to the next beat / bar, undoable) – IDs `t1_halfspeed`, `t1_dblspeed`, `t1_revloop` …
+- global: `Performance Recorder` (switch: records the master mix as WAV while on, ID `perf_rec`), `Export 9:16 Clip` (button: vertical video of the last 20 seconds, ID `clip_export`)
+<!-- end v1.6 features -->
 
 The internal parameter IDs (for developers and saved assignments) are e.g. `t1_recplay`, `t3_level`, `allstartstop`, `inB_type`, `trD_mix`, `bfx_type`, `brep_hold`, `t2_color`, `link_on`.
 

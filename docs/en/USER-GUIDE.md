@@ -456,3 +456,81 @@ Change it any time under **SETUP → Settings on start**; *Reset all settings to
 
 ![About](../images/livelooper-about.png)
 
+
+<!-- v1.6 features (branch v1.6-wip) -->
+## 33. Demo set and guided tour (new in 1.6)
+
+On the **very first start** livelooper loads a **demo set**: a drum groove (100 BPM) and three short loops – bass, keys and an arpeggio – on tracks 1 – 3. Press **ALL START / STOP** and you hear music within seconds; try the scenes 1 and 2, the beat FX, the loop tricks. The loops are self-made for livelooper and free to use (CC0).
+
+- **SETUP → Load demo set** loads it again any time.
+- **SETUP → Empty set (clear everything)** returns to a blank looper: all loops cleared, every setting back to its default.
+- A DAW project or a set you load is never replaced by the demo – it appears only once, on the first start.
+
+Right after the first start a **guided tour** (about 60 seconds) shows the five things to try first: **Record → Overdub → Groove → Beat FX → Scene**. Each step highlights the control and explains it; **NEXT**, **BACK** or **SKIP TOUR**. Start it again any time from the help button **?** → *Guided tour (60 seconds)* or **SETUP → Guided tour**.
+
+## 34. Loop tricks (new in 1.6)
+
+Three tricks rewrite a track's loop – musically, on the next beat or bar (QUANTIZE), and **UNDO** brings the loop back exactly as it was:
+
+- **Half Speed**: the loop plays at half speed, an octave lower, and becomes twice as long (when the memory is too short, the first half is stretched over the old length).
+- **Double Speed**: twice as fast, an octave higher – played twice, so the length and the bar structure stay.
+- **Reverse Loop Audio**: the recorded audio itself is reversed. (The REV switch only plays the loop backwards; this trick turns the recording around, so you can overdub forwards over the reversed sound.)
+- **Double Loop / Halve Loop** (since 1.4) complete the set: loop × 2 (copy) and half length.
+
+All tricks are host parameters (*T1 Half Speed*, *T1 Double Speed*, *T1 Reverse Loop Audio* …) for MIDI learn and your DAW's MIDI mapping. On **Push 1**: SHIFT + OCTAVE DOWN = half speed, SHIFT + OCTAVE UP = double speed, SHIFT + SCALES = reverse (see [PUSH.md](PUSH.md)). They work on playing or stopped tracks, not while a track records.
+
+## 35. Performance recorder (new in 1.6)
+
+The **REC** button under the livelooper logo records **everything livelooper plays** – the master mix, exactly what you hear on the main output – as a WAV file (stereo, 24 bit, the current sample rate). While it records, the button shows the elapsed time (*REC 02:13*); click again to stop. The file is named after date and time (`livelooper-2026-10-14_21-30-05.wav`).
+
+- Folder: **Music/livelooper/Recordings** – change it under **SETUP → Performance recorder → Choose recordings folder …**, open it with *Show recordings folder*.
+- Works in the standalone app and in the plug-in (in a DAW it records the looper's output on its track; the DAW's own recording is not needed).
+- Host parameter **Performance Recorder** (on / off) for MIDI learn – e.g. a footswitch – and automation. It is never switched on by loading a project.
+- The file is written in the background; nothing on the audio thread waits for the disk.
+
+## 36. Clip export 9:16 (new in 1.6)
+
+**SETUP → Clip export 9:16** turns the last moments of your performance into a vertical video for Reels, TikTok and Shorts:
+
+- *Export the last 20 seconds as 9:16 video …* – livelooper always keeps the last 30 seconds of its output in memory, so you can decide **after** a good moment.
+- *Export the last performance recording as 9:16 video …* – the last REC recording (up to 90 seconds from its start).
+
+The video is 1080 × 1920 pixels, 30 frames per second, H.264 + AAC (.mp4), with an animated waveform, play head, a moving level view, the time, the livelooper title and the BeatTactics brand. It is rendered in the background and saved in the recordings folder, plus a cover image (`…-cover.png`). Host parameter **Export 9:16 Clip** (a trigger) starts the export from a controller.
+
+How the video is encoded: on **macOS** with AVFoundation, on **Windows** with Media Foundation (both part of the operating system). On **Linux** livelooper uses an **ffmpeg** program installed on the system, if there is one. Without a video encoder the export writes a folder with `audio.wav`, the PNG frames, a cover image and `make-video.txt` with the ffmpeg command that turns them into a video.
+
+## 37. Sharing sets (new in 1.6)
+
+**SETUP → Save set to share (.livelooper, one file with all audio) …** writes the whole looper – loops, effects, rhythm, scenes, tempo – into **one file** with the extension `.livelooper`. Send it to a friend, put it in the cloud or on GitHub; it opens on Mac, Windows and Linux.
+
+- **Open**: SETUP → *Load set …* (shows `.livelooper` and `.llset` files) or **drag the file onto the livelooper window** (standalone app and plug-in).
+- Inside it is a normal ZIP archive: `set.xml` (settings), `audio/track1.flac` … (lossless loops), `info.json` (tempo, version) and a short README. Your MIDI mapping, keyboard mapping and audio routing stay with your computer, not with the set.
+- `.llset` files (one XML file, since 1.0) keep working.
+
+**Presets on GitHub**: the folder [`presets`](../../presets/) of the livelooper repository holds the demo set (`demo-set.livelooper`). To share your own: save it as `.livelooper`, check that every sound in it is yours or free to share, and open a pull request that adds it to `presets/` (or attach it to an issue).
+
+## 38. Controller templates (new in 1.6)
+
+Besides [Push 1](PUSH.md) and MIDI learn, livelooper has ready-made templates for popular grid controllers. Connect the controller and livelooper finds it by its MIDI port name; **SETUP → Controller templates** shows the status and lets you choose a template yourself (or switch the templates off). Supported: **Launchpad Mini MK3, Launchpad X, APC mini mk2** (and the first APC mini) and the pads of **Launchkey MK3 / MK4**. The templates follow the manufacturers' public programmer's references – **they are not yet tested on the hardware**; please report what does not work.
+
+8 × 8 grid (Launchpad, APC mini) – one column per track, rows from the top:
+
+| Row | Pad | With SHIFT |
+|---|---|---|
+| 1 | REC / PLAY (clip launch, record, overdub) | |
+| 2 | STOP | CLEAR |
+| 3 | UNDO | REDO |
+| 4 | MUTE | |
+| 5 | HALF SPEED | |
+| 6 | DOUBLE SPEED | |
+| 7 | REVERSE LOOP | |
+| 8 | LOOP × 2 | LOOP / 2 |
+
+- **Scene buttons** (Launchpad right column, APC mini scene buttons): scenes 1 – 8; with SHIFT the scene is stored.
+- **Function buttons** (Launchpad top row, APC mini track buttons from the left): ALL START / STOP, ALL STOP, CAPTURE, TAP, RHYTHM, METRONOME, performance recorder; the eighth Launchpad button (and SHIFT on the APC mini) is SHIFT.
+- **APC mini faders**: levels of tracks 1 – 8 (fader at the top = 100 %), the ninth fader is the master level.
+- **Launchkey pads** (DAW mode): upper row REC / PLAY, lower row STOP for tracks 1 – 8; the scene launch button (>) = ALL START / STOP, the button below = ALL STOP. The keys stay with your DAW.
+- **LEDs**: green = playing, red pulsing = recording, orange = overdub, yellow flashing = waits for the bar, dim yellow = stopped, dark = empty. Scenes: dim = stored, bright = last started.
+
+livelooper switches the controller into its programmer / DAW mode while it uses it and back when it lets go. **Windows**: a MIDI port can only be used by one program at a time – switch the controller off in your DAW's MIDI settings (as for Push).
+<!-- end v1.6 features -->

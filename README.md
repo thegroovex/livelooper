@@ -11,7 +11,7 @@
 - **Live performance comes first.** Every function reacts instantly, lands on the beat and never stops the music. Nothing needs a menu while you play.
 - **Fun to play.** Beat FX, beat repeat and stutter, colour FX and a groove that feels like a drummer turn a loop into a performance – press, hold, let go, and you are back on the beat.
 - **Explore and play.** Capture what you just improvised, throw an effect on it with the XY pad, pitch it, reverse it, let it decay like tape – and keep what works.
-- **Hands on hardware.** Plug in an Ableton Push and livelooper takes it over – no mapping. Any other controller works through MIDI learn, every one of the 400 functions is mappable.
+- **Hands on hardware.** Plug in an Ableton Push and livelooper takes it over – no mapping. Any other controller works through MIDI learn, every one of the 426 functions is mappable.
 - **Your loops belong in your song.** Drag a loop straight from livelooper onto a track in your DAW, export stems, or keep everything saved with your project.
 
 ## Play it with Ableton Push
@@ -45,6 +45,16 @@ Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
 - **Loop cutting and stutter**, **momentary mute / solo**, **loop × 2 / half**, **copy to another track**, **tape stop** and a **performance filter** – everything quantized musically, nothing ever stops the music
 - **Ableton Push**, **MIDI learn** for any controller (right-click any control), and **computer keyboard** control in the standalone app
 
+<!-- v1.6 features -->
+**New in 1.6 (in development)**
+- **Demo set and guided tour**: on the first start a groove and three loops are ready – press ALL START / STOP and you hear music in seconds; a 60-second tour shows record, overdub, groove, beat FX and scenes
+- **Loop tricks**: half speed, double speed and reversing the loop audio – quantized, undoable, MIDI-mappable, on Push 1 with SHIFT
+- **Performance recorder**: the whole livelooper output as WAV with one button, with the elapsed time
+- **Clip export 9:16**: the last 20 seconds (or a recording) as a branded vertical video for Reels, TikTok and Shorts
+- **Share sets**: one `.livelooper` file with all audio, opened by drag and drop – the demo set is in [`presets`](presets/)
+- **Controller templates** for Launchpad Mini MK3 / X, APC mini mk2 and Launchkey MK3 / MK4 pads (auto-detected, with LED feedback; not yet tested on the hardware)
+<!-- end v1.6 features -->
+
 **Live performance FX (new in 1.5)**
 - **Beat FX** in the style of a DJ mixer: 16 beat-synced effects (delay, echo, ping pong, spiral, reverb, trans, filter, flanger, phaser, pitch, roll, slip roll, reverse roll, vinyl brake, helix, noise) with beat fraction 1/32 … 16 beats, level / depth, ON or HOLD, on the master, the loops, the input or one track
 - **Beat repeat and stutter**: hold (or latch) to repeat 1/2 … 1/32 notes from the next grid line; the music runs on underneath, so releasing is always in time
@@ -65,7 +75,7 @@ Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
 - **Saved with your project**: loops stored losslessly (FLAC, 24 bit) in your DAW project; whole **looper sets** as `.llset` files
 - **Meters and waveforms**: stereo meter per track, master VU in dB on the display (green / yellow / red), waveform with play position, clip LED
 - **Comfort**: in-app help (searchable user guide), about window with update check, start with the last used or the default settings, list of the last used sets
-- **All 400 functions** are host parameters for your DAW's MIDI mapping and automation
+- **All 426 functions** are host parameters for your DAW's MIDI mapping and automation
 - **English and German** interface (*SETUP → Language / Sprache*)
 
 ## Download

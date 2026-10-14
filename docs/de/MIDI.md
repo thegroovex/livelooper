@@ -67,7 +67,7 @@ Auch Automation ist möglich (in Live z. B. in der Arrangement-Ansicht), etwa um
 
 ## Parameterliste
 
-400 Parameter. Mit deutscher Oberfläche zeigt deine DAW die deutschen Namen, mit englischer die englischen (in Klammern). Die internen IDs und gespeicherte Zuweisungen bleiben in beiden Sprachen gleich – ein Sprachwechsel zerstört also keine MIDI-Map und keine Automation.
+426 Parameter. Mit deutscher Oberfläche zeigt deine DAW die deutschen Namen, mit englischer die englischen (in Klammern). Die internen IDs und gespeicherte Zuweisungen bleiben in beiden Sprachen gleich – ein Sprachwechsel zerstört also keine MIDI-Map und keine Automation.
 
 **Pro Spur (S1 … S5 / T1 … T5)** – je 16:
 `Rec/Play`, `Stop`, `Löschen` (Clear), `Rückgängig` (Undo), `Wiederherstellen` (Redo) – Taster · `Pegel` (Level), `Panorama` (Pan) · `Rückwärts` (Reverse), `One Shot`, `Loop-Sync` (Loop Sync), `Spur-FX` (Track FX) – Schalter · `Eingang` (Input), `Startmodus` (Start Mode), `Stoppmodus` (Stop Mode), `Dub-Modus` (Dub Mode), `Takte` (Measures) – Auswahl
@@ -86,5 +86,11 @@ Auch Automation ist möglich (in Live z. B. in der Arrangement-Ansicht), etwa um
 - global: `Beat-FX an` (Beat FX On, Schalter), `Beat-FX halten` (Beat FX Hold, gehalten), `Beat-FX-Typ` (Beat FX Type, 16 Typen), `Beat-FX-Schlag` (Beat FX Beat, 1/32 … 16), `Beat-FX Pegel/Tiefe` (Beat FX Level/Depth), `Beat-FX-Kanal` (Beat FX Channel: Master, Loops, Eingang, Spur 1 … 8) · `Color-FX-Typ` (Color FX Type: Filter, Dub Echo, Space, Crush, Noise, Sweep) · `Beat Repeat halten` (Beat Repeat Hold, gehalten), `Beat Repeat Latch` (Schalter), `Beat-Repeat-Timing` (Beat Repeat Timing, 1/2 … 1/32) · `Stutter halten` (Stutter Hold, gehalten), `Stutter Latch` (Schalter), `Stutter-Timing` (Stutter Timing, 1/2 … 1/32) · `Metronom an` (Metronome On), `Metronom-Betonung` (Metronome Accent) – Schalter, `Metronom-Pegel` (Metronome Level) · `Link`, `Link Start/Stopp-Sync` (Link Start/Stop Sync) – Schalter · `Groove` (Gerade, Natürlich, Laid Back, Treibend, Drunk, Drive), `Fills` (Aus, Alle 4 Takte, Alle 8 Takte)
 - pro Spur (S1 … S8): `Color-FX` (Color FX, −100 … +100, 0 = aus)
 - `Capture-Takte` (Capture Bars) reicht jetzt bis 16 und 32 Takte.
+
+<!-- v1.6 features -->
+**Seit 1.6 (Loop-Tricks, Performance-Recorder, Clip-Export)** – 26 weitere, alle angehängt (bestehende IDs, MIDI-Maps und Automation bleiben unverändert):
+- pro Spur (S1 … S8): `Halbe Geschwindigkeit` (Half Speed), `Doppelte Geschwindigkeit` (Double Speed), `Loop-Audio umdrehen` (Reverse Loop Audio) (Tasten; quantisiert auf den nächsten Schlag / Takt, rückgängig machbar) – IDs `t1_halfspeed`, `t1_dblspeed`, `t1_revloop` …
+- global: `Performance-Recorder` (Performance Recorder; Schalter: nimmt den Master-Mix als WAV auf, solange an, ID `perf_rec`), `9:16-Clip exportieren` (Export 9:16 Clip; Taste: Hochformat-Video der letzten 20 Sekunden, ID `clip_export`)
+<!-- end v1.6 features -->
 
 Die internen Parameter-IDs (für Entwickler und gespeicherte Zuweisungen) lauten z. B. `t1_recplay`, `t3_level`, `allstartstop`, `inB_type`, `trD_mix`, `bfx_type`, `brep_hold`, `t2_color`, `link_on`.

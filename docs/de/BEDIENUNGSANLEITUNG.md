@@ -483,3 +483,81 @@ Jederzeit änderbar unter **SETUP → Einstellungen beim Start**; *Alle Einstell
 
 ![Info](../images/livelooper-about-de.png)
 
+
+<!-- v1.6 features (branch v1.6-wip) -->
+## 33. Demo-Set und geführte Tour (neu in 1.6)
+
+Beim **allerersten Start** lädt livelooper ein **Demo-Set**: einen Drum-Groove (100 BPM) und drei kurze Loops – Bass, Keys und ein Arpeggio – auf den Spuren 1 – 3. Drück **ALLE START / STOP** und du hörst nach Sekunden Musik; probier die Szenen 1 und 2, die Beat-FX und die Loop-Tricks. Die Loops sind eigens für livelooper erzeugt und frei verwendbar (CC0).
+
+- **SETUP → Demo-Set laden** lädt es jederzeit wieder.
+- **SETUP → Leeres Set (alles löschen)** führt zurück zum leeren Looper: alle Loops gelöscht, alle Einstellungen auf Standard.
+- Ein DAW-Projekt oder ein geladenes Set wird nie durch das Demo ersetzt – es erscheint nur einmal, beim ersten Start.
+
+Direkt nach dem ersten Start zeigt eine **geführte Tour** (etwa 60 Sekunden) die fünf Dinge, die du zuerst ausprobieren solltest: **Aufnehmen → Overdub → Groove → Beat-FX → Szene**. Jeder Schritt hebt das Bedienelement hervor und erklärt es; **WEITER**, **ZURÜCK** oder **TOUR ÜBERSPRINGEN**. Du startest sie jederzeit wieder über die Hilfe-Taste **?** → *Geführte Tour (60 Sekunden)* oder **SETUP → Geführte Tour**.
+
+## 34. Loop-Tricks (neu in 1.6)
+
+Drei Tricks schreiben den Loop einer Spur um – musikalisch auf den nächsten Schlag oder Takt (QUANTISIERUNG), und **ZURÜCK** (Undo) stellt den Loop exakt wieder her:
+
+- **Halbe Geschwindigkeit**: Der Loop läuft halb so schnell, eine Oktave tiefer, und wird doppelt so lang (reicht der Speicher nicht, wird die erste Hälfte auf die alte Länge gedehnt).
+- **Doppelte Geschwindigkeit**: doppelt so schnell, eine Oktave höher – zweimal hintereinander, Länge und Taktstruktur bleiben.
+- **Loop-Audio umdrehen**: Die Aufnahme selbst wird umgedreht. (Der Schalter RÜCKW. spielt den Loop nur rückwärts ab; dieser Trick dreht die Aufnahme um, du kannst also vorwärts über den umgedrehten Klang overdubben.)
+- **Loop verdoppeln / halbieren** (seit 1.4) ergänzen das: Loop × 2 (Kopie) und halbe Länge.
+
+Alle Tricks sind Host-Parameter (*S1 Halbe Geschwindigkeit*, *S1 Doppelte Geschwindigkeit*, *S1 Loop-Audio umdrehen* …) für MIDI Learn und das MIDI-Mapping deiner DAW. Auf **Push 1**: SHIFT + OCTAVE DOWN = halbe Geschwindigkeit, SHIFT + OCTAVE UP = doppelte Geschwindigkeit, SHIFT + SCALES = umdrehen (siehe [PUSH.md](PUSH.md)). Sie wirken auf laufende oder gestoppte Spuren, nicht während eine Spur aufnimmt.
+
+## 35. Performance-Recorder (neu in 1.6)
+
+Die Taste **REC** unter dem livelooper-Logo nimmt **alles auf, was livelooper spielt** – den Master-Mix, genau das, was am Hauptausgang zu hören ist – als WAV-Datei (Stereo, 24 Bit, aktuelle Samplerate). Während der Aufnahme zeigt die Taste die Zeit (*REC 02:13*); erneut klicken stoppt. Die Datei heißt nach Datum und Uhrzeit (`livelooper-2026-10-14_21-30-05.wav`).
+
+- Ordner: **Musik/livelooper/Recordings** – ändern unter **SETUP → Performance-Recorder → Ordner für Aufnahmen wählen …**, öffnen mit *Aufnahme-Ordner zeigen*.
+- Funktioniert in der Standalone-App und im Plug-in (in einer DAW nimmt er die Ausgabe des Loopers auf seiner Spur auf; die Aufnahme der DAW brauchst du dafür nicht).
+- Host-Parameter **Performance-Recorder** (an / aus) für MIDI Learn – z. B. ein Fußschalter – und Automation. Das Laden eines Projekts schaltet ihn nie ein.
+- Die Datei wird im Hintergrund geschrieben; der Audio-Thread wartet nie auf die Festplatte.
+
+## 36. Clip-Export 9:16 (neu in 1.6)
+
+**SETUP → Clip-Export 9:16** macht aus den letzten Momenten deiner Performance ein Hochformat-Video für Reels, TikTok und Shorts:
+
+- *Die letzten 20 Sekunden als 9:16-Video exportieren …* – livelooper hält immer die letzten 30 Sekunden seiner Ausgabe im Speicher, du entscheidest also **nach** einem guten Moment.
+- *Die letzte Performance-Aufnahme als 9:16-Video exportieren …* – die letzte REC-Aufnahme (bis zu 90 Sekunden ab ihrem Anfang).
+
+Das Video hat 1080 × 1920 Pixel, 30 Bilder pro Sekunde, H.264 + AAC (.mp4), mit animierter Wellenform, Abspielposition, bewegter Pegelanzeige, Zeit, dem livelooper-Titel und der Marke BeatTactics. Es wird im Hintergrund gerendert und im Aufnahme-Ordner gespeichert, dazu ein Titelbild (`…-cover.png`). Der Host-Parameter **9:16-Clip exportieren** (Trigger) startet den Export vom Controller aus.
+
+So wird das Video kodiert: unter **macOS** mit AVFoundation, unter **Windows** mit Media Foundation (beides Teil des Betriebssystems). Unter **Linux** nutzt livelooper ein auf dem System installiertes **ffmpeg**, falls vorhanden. Ohne Video-Encoder schreibt der Export einen Ordner mit `audio.wav`, den PNG-Einzelbildern, einem Titelbild und `make-video.txt` mit dem ffmpeg-Befehl, der daraus ein Video macht.
+
+## 37. Sets teilen (neu in 1.6)
+
+**SETUP → Set zum Teilen speichern (.livelooper, eine Datei mit allem Audio) …** schreibt den ganzen Looper – Loops, Effekte, Rhythmus, Szenen, Tempo – in **eine Datei** mit der Endung `.livelooper`. Schick sie einem Freund, leg sie in die Cloud oder auf GitHub; sie öffnet sich auf Mac, Windows und Linux.
+
+- **Öffnen**: SETUP → *Set laden …* (zeigt `.livelooper`- und `.llset`-Dateien) oder **die Datei auf das livelooper-Fenster ziehen** (Standalone-App und Plug-in).
+- Innen ist es ein normales ZIP-Archiv: `set.xml` (Einstellungen), `audio/track1.flac` … (verlustfreie Loops), `info.json` (Tempo, Version) und ein kurzes README. Dein MIDI-Mapping, Tastatur-Mapping und Audio-Routing bleiben auf deinem Rechner, nicht im Set.
+- `.llset`-Dateien (eine XML-Datei, seit 1.0) funktionieren weiter.
+
+**Presets auf GitHub**: Der Ordner [`presets`](../../presets/) im livelooper-Repository enthält das Demo-Set (`demo-set.livelooper`). Eigene Sets teilen: als `.livelooper` speichern, prüfen, dass jeder Klang darin von dir ist oder frei geteilt werden darf, und einen Pull Request öffnen, der es in `presets/` legt (oder es an ein Issue anhängen).
+
+## 38. Controller-Vorlagen (neu in 1.6)
+
+Neben [Push 1](PUSH.md) und MIDI Learn hat livelooper fertige Vorlagen für verbreitete Grid-Controller. Schließ den Controller an, livelooper erkennt ihn am Namen seines MIDI-Ports; **SETUP → Controller-Vorlagen** zeigt den Status und lässt dich selbst eine Vorlage wählen (oder die Vorlagen ausschalten). Unterstützt: **Launchpad Mini MK3, Launchpad X, APC mini mk2** (und das erste APC mini) und die Pads von **Launchkey MK3 / MK4**. Die Vorlagen folgen den öffentlichen Programmer's References der Hersteller – **an der Hardware sind sie noch nicht getestet**; bitte melde, was nicht funktioniert.
+
+8 × 8-Grid (Launchpad, APC mini) – eine Spalte pro Spur, Reihen von oben:
+
+| Reihe | Pad | Mit SHIFT |
+|---|---|---|
+| 1 | REC / PLAY (Clip starten, aufnehmen, overdubben) | |
+| 2 | STOP | LÖSCHEN |
+| 3 | ZURÜCK (Undo) | VOR (Redo) |
+| 4 | STUMM | |
+| 5 | HALBE GESCHWINDIGKEIT | |
+| 6 | DOPPELTE GESCHWINDIGKEIT | |
+| 7 | LOOP UMDREHEN | |
+| 8 | LOOP × 2 | LOOP / 2 |
+
+- **Szenen-Tasten** (Launchpad rechte Spalte, APC-mini-Szenentasten): Szenen 1 – 8; mit SHIFT wird die Szene gespeichert.
+- **Funktionstasten** (Launchpad obere Reihe, APC-mini-Track-Tasten von links): ALLE START / STOP, ALLE STOP, CAPTURE, TAP, RHYTHMUS, METRONOM, Performance-Recorder; die achte Launchpad-Taste (und SHIFT am APC mini) ist SHIFT.
+- **APC-mini-Fader**: Pegel der Spuren 1 – 8 (Fader oben = 100 %), der neunte Fader ist der Master-Pegel.
+- **Launchkey-Pads** (DAW-Modus): obere Reihe REC / PLAY, untere Reihe STOP für die Spuren 1 – 8; die Szenen-Taste (>) = ALLE START / STOP, die Taste darunter = ALLE STOP. Die Tasten (Keys) bleiben bei deiner DAW.
+- **LEDs**: grün = läuft, rot pulsierend = Aufnahme, orange = Overdub, gelb blinkend = wartet auf den Takt, gelb gedimmt = gestoppt, dunkel = leer. Szenen: gedimmt = gespeichert, hell = zuletzt gestartet.
+
+livelooper schaltet den Controller in seinen Programmer-/DAW-Modus, solange er ihn nutzt, und beim Loslassen zurück. **Windows**: Ein MIDI-Port kann nur von einem Programm gleichzeitig benutzt werden – schalte den Controller in den MIDI-Einstellungen deiner DAW aus (wie bei Push).
+<!-- end v1.6 features -->

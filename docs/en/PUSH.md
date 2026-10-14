@@ -66,6 +66,8 @@ The slice starts are snapped to 16th notes of the loop, so a cut keeps the groov
 | DUPLICATE + pad + pad | copies the loop of the first track into the second (empty) track. DUPLICATE + one pad (or DUPLICATE alone: the selected track) copies to the next empty track. The copy is stopped and starts in sync |
 | DOUBLE | **loop × 2** of the selected track (the loop is duplicated, e.g. to overdub a variation over the second half). **SHIFT** + DOUBLE = half the loop |
 | OCTAVE UP / DOWN | pitch of the selected track +12 / −12 semitones |
+| SHIFT + OCTAVE DOWN / UP | *(new in 1.6)* loop trick of the selected track: **half speed** (twice as long, an octave lower) / **double speed** (played twice, an octave higher) – on the next beat or bar, UNDO restores the loop |
+| SHIFT + SCALES | *(new in 1.6)* **reverse the loop audio** of the selected track (quantized, UNDO restores it) |
 | MASTER | level meters on / off (display line 3) |
 | SELECT + pad | select a track without doing anything else |
 | SHIFT + row 1 / row 2 | undo / redo of that track |

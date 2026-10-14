@@ -200,3 +200,12 @@ There are two ways to play in time with other Link apps (another laptop, an iPad
 
 Start / stop sync is optional (*SETUP → Ableton Link → Sync start / stop with Link*). Joining a session never changes its tempo.
 
+
+<!-- v1.6 features -->
+## 9. Recording, clips and grid controllers in a DAW (since 1.6)
+
+- **Performance recorder**: the REC button under the logo writes the looper's output (what leaves the plug-in on its main output) as a WAV file into *Music/livelooper/Recordings* – independent of your DAW's transport and recording. Mapped to a footswitch via the parameter *Performance Recorder* it starts and stops the recording hands-free. Direct track outputs are not part of the recording, only the main output.
+- **Clip export 9:16**: livelooper keeps the last 30 seconds of its output in memory, also in a DAW – *SETUP → Clip export 9:16* turns the last 20 seconds into a vertical video.
+- **Grid controllers** (Launchpad, APC mini, Launchkey pads – see the [user guide, section 38](USER-GUIDE.md#38-controller-templates-new-in-16)): livelooper opens the controller's MIDI port itself, like it does with Push. In the DAW, leave that port unused (no control surface / track input on it). On **Windows** a port can only be opened by one program – switch it off in the DAW's MIDI settings, otherwise livelooper shows *port in use*. With several livelooper instances only the first one drives the controller.
+- **Sets**: a `.livelooper` file holds a complete looper with all audio – drop it onto the plug-in window to load it into this instance (your DAW project then saves it as usual).
+<!-- end v1.6 features -->
