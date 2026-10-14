@@ -862,7 +862,6 @@ std::array<juce::String, kDisplayLines> PushSurface::buildDisplay() const
             switch (i)
             {
                 case 0: s = on (gBfxOn) || on (gBfxHold) ? "ON" : "off"; break;
-                case 4: s = st.getRawParameterValue (gColorType)->load() >= 0.5f ? "ON" : "off"; break;
                 case 5: s = on (gRepeatHold) || on (gRepeatLatch) ? "ON" : "off"; break;
                 case 6: s = on (gStutterHold) || on (gStutterLatch) ? "ON" : "off"; break;
                 case 7: s = on (gMetroOn) ? "ON" : "off"; break;

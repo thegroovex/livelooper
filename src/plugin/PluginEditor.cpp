@@ -1082,6 +1082,15 @@ void LiveLooperEditor::showSetupMenu()
     for (int i = 0; i < clickSound->choices.size(); ++i)
         click.addItem (40 + i, tr (clickSoundChoices()[i]), true, clickSound->getIndex() == i);
 
+    // v1.5 rhythm groove (micro-timing feel) and fills
+    auto* groove = dynamic_cast<juce::AudioParameterChoice*> (st.getParameter (gRhythmGroove));
+    auto* fills = dynamic_cast<juce::AudioParameterChoice*> (st.getParameter (gRhythmFills));
+    juce::PopupMenu grooveMenu, fillsMenu;
+    for (int i = 0; i < groove->choices.size(); ++i)
+        grooveMenu.addItem (500 + i, tr (grooveChoices()[i]), true, groove->getIndex() == i);
+    for (int i = 0; i < fills->choices.size(); ++i)
+        fillsMenu.addItem (520 + i, tr (fillChoices()[i]), true, fills->getIndex() == i);
+
     juce::PopupMenu cue;
     if (proc.hasCueOutput())
     {
@@ -1204,6 +1213,8 @@ void LiveLooperEditor::showSetupMenu()
     menu.addSubMenu (tr ("Maximum loop length"), memory);
     menu.addItem (4, tr ("Save loops with the project"), true, proc.getSaveLoopsWithProject());
     menu.addSubMenu (tr ("Metronome sound"), click);
+    menu.addSubMenu (tr ("Rhythm groove"), grooveMenu);
+    menu.addSubMenu (tr ("Rhythm fills"), fillsMenu);
     if (proc.hasCueOutput())
         menu.addSubMenu (tr ("Cue output (click / rhythm)"), cue);
     if (proc.isKeyboardControlAvailable())
@@ -1225,7 +1236,7 @@ void LiveLooperEditor::showSetupMenu()
     juce::Component::SafePointer<LiveLooperEditor> safe (this);
     menu.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&setupBtn),
                         [safe, recAction, follow, lengths, clickSound, captureBars, autoRec, autoRecThresh, duckSource, thresholds,
-                         recent, linkOn, linkStartStop] (int r) {
+                         recent, linkOn, linkStartStop, groove, fills] (int r) {
         if (safe == nullptr || r == 0)
             return;
         auto setParam = [] (juce::RangedAudioParameter* p, float plain) {
@@ -1234,6 +1245,18 @@ void LiveLooperEditor::showSetupMenu()
             p->endChangeGesture();
         };
         // ---- v1.5
+        if (r >= 500 && r < 500 + groove->choices.size())
+        {
+            setParam (groove, (float) (r - 500));
+            safe->showStatus (tr ("GROOVE: %1", tr (grooveChoices()[r - 500]).toUpperCase()));
+            return;
+        }
+        if (r >= 520 && r < 520 + fills->choices.size())
+        {
+            setParam (fills, (float) (r - 520));
+            safe->showStatus (tr ("FILLS: %1", tr (fillChoices()[r - 520]).toUpperCase()));
+            return;
+        }
         if (r >= 300 && r < 300 + recent.size())
         {
             safe->loadSetFile (juce::File (recent[r - 300]));

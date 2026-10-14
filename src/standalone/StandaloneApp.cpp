@@ -24,6 +24,12 @@
 #include <juce_audio_utils/juce_audio_utils.h>
 #include <juce_audio_plugin_client/Standalone/juce_StandaloneFilterWindow.h>
 
+// juce_IncludeModuleHeaders.h defines "Component" as "juce::Component" (for the plug-in
+// wrappers), which breaks qualified names like juce::Component::SafePointer below.
+#ifdef Component
+ #undef Component
+#endif
+
 #include "plugin/AppSettings.h"
 #include "plugin/Localisation.h"
 #include "plugin/PluginProcessor.h"
