@@ -9,8 +9,9 @@
 ## The idea
 
 - **Live performance comes first.** Every function reacts instantly, lands on the beat and never stops the music. Nothing needs a menu while you play.
+- **Fun to play.** Beat FX, beat repeat and stutter, colour FX and a groove that feels like a drummer turn a loop into a performance – press, hold, let go, and you are back on the beat.
 - **Explore and play.** Capture what you just improvised, throw an effect on it with the XY pad, pitch it, reverse it, let it decay like tape – and keep what works.
-- **Hands on hardware.** Plug in an Ableton Push and livelooper takes it over – no mapping. Any other controller works through MIDI learn, every one of the 372 functions is mappable.
+- **Hands on hardware.** Plug in an Ableton Push and livelooper takes it over – no mapping. Any other controller works through MIDI learn, every one of the 400 functions is mappable.
 - **Your loops belong in your song.** Drag a loop straight from livelooper onto a track in your DAW, export stems, or keep everything saved with your project.
 
 ## Play it with Ableton Push
@@ -26,6 +27,7 @@ Connect a Push (1 and up), press **User**, and livelooper turns it into a dedica
 - **Performance moves**: hold MUTE / SOLO + pad for drops, DOUBLE = loop × 2 (SHIFT = half), OCTAVE ±12, DUPLICATE + pads copies a loop, REC pad + position pad = 1–32 bars
 - **Touch strip** = tape stop that springs back in sync (SHIFT = filter sweep), **footswitch** = REC/PLAY, double tap STOP, hold CLEAR
 - **FX XY pad**: the 8×8 grid becomes a performance pad – touch, slide, press harder for more, let go and it snaps back
+- **Performance FX (1.5)**: ADD EFFECT = beat FX on / off, ADD TRACK = beat FX while held, LEFT / RIGHT = beat, BROWSE = encoders for type, beat, level, channel, colour FX, repeat / stutter timing; REPEAT / ACCENT = beat repeat / stutter while held (SHIFT = latch), hold them and slide on the touch strip for 1/2 … 1/32; FIXED LENGTH = capture 1–32 bars; SHIFT + METRONOME = Ableton Link
 - **Display** with names, values, track states, tempo and level meters
 
 Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
@@ -35,7 +37,7 @@ Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
 **Perform**
 - **5 or 8 loop tracks**: REC → DUB → PLAY on one pad, STOP (hold = clear), undo/redo, reverse, one shot, level, pan
 - **Scenes**: 8 scene buttons start and stop groups of tracks in time
-- **Capture**: turn the last 1–8 bars you played into a loop afterwards – no record press needed
+- **Capture**: turn the last 1–32 bars you played into a loop afterwards – no record press needed
 - **Auto record**: armed tracks start with the first note above a threshold – hands stay on the instrument
 - **Quantization** to the bar or beat; pressing "too late" is corrected up to 15 % after the bar line; fixed lengths 1–16 bars or free
 - **Start/stop modes**: immediate, fade in/out, stop at loop end; overdub or replace
@@ -43,10 +45,17 @@ Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
 - **Loop cutting and stutter**, **momentary mute / solo**, **loop × 2 / half**, **copy to another track**, **tape stop** and a **performance filter** – everything quantized musically, nothing ever stops the music
 - **Ableton Push**, **MIDI learn** for any controller (right-click any control), and **computer keyboard** control in the standalone app
 
+**Live performance FX (new in 1.5)**
+- **Beat FX** in the style of a DJ mixer: 16 beat-synced effects (delay, echo, ping pong, spiral, reverb, trans, filter, flanger, phaser, pitch, roll, slip roll, reverse roll, vinyl brake, helix, noise) with beat fraction 1/32 … 16 beats, level / depth, ON or HOLD, on the master, the loops, the input or one track
+- **Beat repeat and stutter**: hold (or latch) to repeat 1/2 … 1/32 notes from the next grid line; the music runs on underneath, so releasing is always in time
+- **Colour FX**: one knob per track (COLOR) – filter, dub echo, space, crush, noise, sweep; centre = off
+- **Metronome block**: click on / off, accent, level and sound right on the surface
+- **Ableton Link**: tempo and beat with other apps and devices on the same network (standalone app, or in a DAW with HOST SYNC off)
+
 **Shape the sound**
 - **Input FX and track FX**: four slots each with 12 effects – LPF, HPF, BPF, phaser, flanger, delay (tempo-synced), reverb, slicer, tremolo, auto pan, lo-fi, overdrive
 - **Per track**: feedback (tape-style decay), sidechain ducking, pitch ±12 semitones, follow tempo (time-stretch, Signalsmith Stretch), resampling of the other tracks
-- **Rhythm**: 4 kits (Studio, 808, 909, Lo-Fi), 21 grooves from rock to trap, dembow, UK garage and Afro house, swing and feel; metronome with 4 sounds
+- **Rhythm** with recorded drum samples (CC0 / public domain): 4 kits (Studio, 808, 909 Style, Lo-Fi), 21 patterns from rock to trap, dembow, UK garage and Afro house, 6 groove feels (straight, natural, laid back, pushed, drunk, drive), automatic fills every 4 or 8 bars, swing and feel; metronome with 4 sounds
 
 **Work with your DAW**
 - **In sync with your DAW**: host tempo, time signature and transport, or an internal clock with tap tempo / typed-in tempo
@@ -54,9 +63,21 @@ Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
 - **Stem export** with tempo metadata, WAV export per track, drag & drop audio files onto a track to import
 - **Direct track outputs** (plug-in multi-out – each track on its own output in your DAW – or interface outputs in the standalone app), **cue output** for the metronome
 - **Saved with your project**: loops stored losslessly (FLAC, 24 bit) in your DAW project; whole **looper sets** as `.llset` files
-- **Meters and waveforms**: stereo meter per track, master meter, waveform with play position, clip LED
-- **All 372 functions** are host parameters for your DAW's MIDI mapping and automation
+- **Meters and waveforms**: stereo meter per track, master VU in dB on the display (green / yellow / red), waveform with play position, clip LED
+- **Comfort**: in-app help (searchable user guide), about window with update check, start with the last used or the default settings, list of the last used sets
+- **All 400 functions** are host parameters for your DAW's MIDI mapping and automation
 - **English and German** interface (*SETUP → Language / Sprache*)
+
+## Download
+
+Get the latest version from the **[releases page](https://github.com/thegroovex/livelooper/releases)**:
+
+| System | Recommended | Alternative (unchanged) |
+|---|---|---|
+| macOS (Apple silicon and Intel) | `livelooper-macOS.pkg` – installer for the app, VST3 and AU | `livelooper-macOS.zip` – copy by hand or double-click `install.command` |
+| Windows (64-bit) | `livelooper-Windows-Setup.exe` – installer for the app (Start menu) and VST3 | `livelooper-Windows.zip` – copy by hand |
+
+livelooper is not signed with an Apple Developer ID or a Windows certificate yet, so macOS (Gatekeeper) and Windows (SmartScreen) warn once – [INSTALLATION.md](docs/en/INSTALLATION.md) shows step by step how to open it anyway.
 
 ## Which DAWs?
 
@@ -78,11 +99,11 @@ Everything else is in the **[User Guide](docs/en/USER-GUIDE.md)**, MIDI control 
 
 | Document | Contents |
 |---|---|
-| [INSTALLATION.md](docs/en/INSTALLATION.md) | Download, installation on macOS and Windows, setup in your DAW (with Ableton Live as an example) |
+| [INSTALLATION.md](docs/en/INSTALLATION.md) | Download, installers and manual installation on macOS and Windows, Gatekeeper / SmartScreen, microphone permission, setup in your DAW |
 | [DAW-SETUP.md](docs/en/DAW-SETUP.md) | Using the plug-in in your DAW: looper track, monitoring, looping mic/guitar and software instruments, switching sources live, getting audio out, MIDI routing (Live, Bitwig, Cubase, Logic, Reaper, Studio One) |
-| [USER-GUIDE.md](docs/en/USER-GUIDE.md) | Interface, all functions, effects, rhythm, setup, language |
+| [USER-GUIDE.md](docs/en/USER-GUIDE.md) | Interface, all functions, beat FX, beat repeat / stutter, colour FX, rhythm, Link, setup, language |
 | [MIDI.md](docs/en/MIDI.md) | MIDI learn, your DAW's MIDI mapping, default mapping, parameter list |
-| [PUSH.md](docs/en/PUSH.md) | Ableton Push control (in any DAW and standalone): setup, pad layout, encoders, FX XY pad |
+| [PUSH.md](docs/en/PUSH.md) | Ableton Push control (in any DAW and standalone): setup, pad layout, encoders, FX XY pad, performance FX |
 | [DEVELOPMENT.md](docs/en/DEVELOPMENT.md) | Building from source, architecture, tests, CI, translations |
 
 German documentation: [docs/de](docs/de/).
