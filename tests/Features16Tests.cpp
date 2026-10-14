@@ -643,6 +643,7 @@ public:
             snap ("tour1");
             for (int i = 1; i < 5; ++i)
             {
+                if (i == 3) snap ("tour3");
                 if (i == 4) snap ("tour4");
                 tour->next();
                 expectEquals (tour->getStep(), i);

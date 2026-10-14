@@ -299,7 +299,7 @@ void LiveLooperEditor::startTour()
           "UNDO removes the last layer, REDO brings it back.",
           stripArea },
         { "GROOVE",
-          "RHYTHM starts a drum groove in time with your loops. Choose pattern and kit; SWING and HUMANIZE make it feel played.",
+          "RHYTHM starts a drum groove in time with your loops. Choose pattern and kit; SWING and FEEL make it feel played - BEATS lets you build your own patterns.",
           [dx] { return juce::Rectangle<int> (870 + dx, 350, 298, 190); } },
         { "BEAT FX",
           "Pick a beat FX and press ON - or hold HOLD for a short effect. The FX channel decides where it works: master, loops, input or one track.",

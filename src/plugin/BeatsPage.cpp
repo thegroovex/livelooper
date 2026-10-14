@@ -150,6 +150,9 @@ BeatsPage::~BeatsPage()
 
 void BeatsPage::languageChanged()
 {
+    barsBox.clear (juce::dontSendNotification);
+    for (int b = 1; b <= BeatPattern::kMaxBars; ++b)
+        barsBox.addItem (b == 1 ? tr ("1 bar") : tr ("%1 bars", juce::String (b)), b);
     lastVersion = -1;
     lastKit = -1;
     refreshTexts();
@@ -591,7 +594,7 @@ void BeatsPage::resized()
         auto t = toolBar;
         for (auto* b : { &loadBtn, &saveBtn, &clearBtn, &copyBtn, &pasteBtn, &randomBtn })
         {
-            b->setBounds (t.removeFromLeft (b == &saveBtn ? 140 : 76).reduced (0, 1));
+            b->setBounds (t.removeFromLeft (b == &saveBtn || b == &loadBtn ? 104 : 76).reduced (0, 1));   // SAVE / LOAD: the big ones
             t.removeFromLeft (6);
         }
         t.removeFromLeft (6);
