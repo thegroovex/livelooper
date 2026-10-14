@@ -29,6 +29,7 @@ void LooperEngine::prepare (double newSampleRate, int maxBlockSize, double newMa
             tr.allocate (maxLen);      // keeps existing loops when only the block size changed
         pending[(size_t) t] = {};
         cutPending[(size_t) t] = {};
+        trickPending[(size_t) t] = {};
         stutterWanted[(size_t) t] = false;
         recLengthBars[(size_t) t] = 0;
     }
@@ -386,6 +387,7 @@ void LooperEngine::executeCommand (const QueuedCommand& c) noexcept
             {
                 pending[(size_t) t].type = Pending::None;
                 cutPending[(size_t) t].active = false;
+                trickPending[(size_t) t].active = false;
                 stutterWanted[(size_t) t] = false;
                 recLengthBars[(size_t) t] = 0;
                 tracks[(size_t) t].clear();
@@ -450,6 +452,7 @@ void LooperEngine::executeCommand (const QueuedCommand& c) noexcept
             {
                 pending[(size_t) i].type = Pending::None;
                 cutPending[(size_t) i].active = false;
+                trickPending[(size_t) i].active = false;
                 stutterWanted[(size_t) i] = false;
                 recLengthBars[(size_t) i] = 0;
                 tracks[(size_t) i].clear();
@@ -540,7 +543,37 @@ void LooperEngine::executeCommand (const QueuedCommand& c) noexcept
                     recLengthBars[(size_t) t] = c.arg;           // used when the (pending) recording starts
             }
             break;
+
+        // ---------------------------------------------------------------- v1.6
+        case Command::LoopTrick:
+            if (validTrack && c.arg >= 0 && c.arg < (int) LoopTrack::Trick::NumTricks
+                && ! tracks[(size_t) t].isEmpty() && tracks[(size_t) t].getState() != LoopTrack::State::Recording)
+            {
+                const double grid = gridPpq();
+                const double target = (running && grid > 0.0) ? nextBoundary (grid) : blockPpq;
+                if (! running || grid <= 0.0 || target - blockPpq < 1.0e-6)
+                {
+                    const juce::SpinLock::ScopedTryLockType lock (trackLocks[(size_t) t]);
+                    if (lock.isLocked())
+                        executeTrick (t, c.arg);
+                }
+                else
+                    trickPending[(size_t) t] = { true, target, c.arg };
+            }
+            break;
     }
+}
+
+void LooperEngine::executeTrick (int t, int kind) noexcept
+{
+    auto& tr = tracks[(size_t) t];
+    trickPending[(size_t) t].active = false;
+    cutPending[(size_t) t].active = false;
+    stutterWanted[(size_t) t] = false;
+    if (tr.getState() == LoopTrack::State::Overdubbing)
+        tr.endOverdub();
+    if (tr.applyTrick ((LoopTrack::Trick) kind) && running && tr.hasAnchor())
+        tr.resyncToTimeline (blockPpq);
 }
 
 //==============================================================================
@@ -630,7 +663,21 @@ void LooperEngine::processTrack (int t, const float* srcL, const float* srcR, in
             }
         }
 
-        const int segEnd = std::min (pendEnd, cutEnd);
+        // v1.6: quantized loop trick
+        const auto& tp = trickPending[(size_t) t];
+        int trickEnd = n;
+        if (tp.active)
+        {
+            if (! running)
+                trickEnd = done;
+            else
+            {
+                const double off = (tp.targetPpq - (chunkStartPpq + done * ppqPerSample)) * samplesPerPpq;
+                trickEnd = std::clamp (done + (int) std::ceil (off - 1.0e-6), done, n);
+            }
+        }
+
+        const int segEnd = std::min ({ pendEnd, cutEnd, trickEnd });
         if (segEnd > done)
             tr.process (srcL + done, srcR + done, tOutL.data() + done, tOutR.data() + done,
                         tFxL.data() + done, tFxR.data() + done, segEnd - done);
@@ -639,6 +686,13 @@ void LooperEngine::processTrack (int t, const float* srcL, const float* srcR, in
             break;
 
         bool acted = false;
+        if (trickPending[(size_t) t].active && trickEnd <= segEnd)
+        {
+            blockPpq = chunkStartPpq + segEnd * ppqPerSample;
+            executeTrick (t, trickPending[(size_t) t].kind);
+            blockPpq = chunkStartPpq;
+            acted = true;
+        }
         if (cutPending[(size_t) t].active && cutEnd <= segEnd)
         {
             executeCut (t, cutPending[(size_t) t].slice);
@@ -997,6 +1051,7 @@ void LooperEngine::updateStatus() noexcept
         st.stopping.store (tr.isStopping());
         st.recordingSpan.store (tr.getRecordingSpan() > 0);
         st.cut.store (tr.isCut() || cutPending[(size_t) t].active);
+        st.pendingTrick.store (trickPending[(size_t) t].active ? trickPending[(size_t) t].kind : -1);   // v1.6
         float ghost = -1.0f;
         if (tr.getState() == LoopTrack::State::Stopped && running && tr.hasAnchor() && tr.getLength() > 0)
             ghost = (float) tr.expectedPosition (blockPpq) / (float) tr.getLength();

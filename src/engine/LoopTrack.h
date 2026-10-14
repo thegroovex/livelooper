@@ -26,7 +26,9 @@ class LoopTrack
 {
 public:
     enum class State : int { Empty = 0, Recording, Playing, Overdubbing, Stopped };
-    enum class UndoKind : int { None = 0, Recording, Overdub, Length };
+    enum class UndoKind : int { None = 0, Recording, Overdub, Length, Rewrite };
+    /** v1.6 loop tricks: the loop audio is rewritten (undoable like an overdub). */
+    enum class Trick : int { HalfSpeed = 0, DoubleSpeed, Reverse, HalveLength, DoubleLength, NumTricks };
 
     static constexpr int kChunkShift = 9;
     static constexpr int kChunkSize  = 1 << kChunkShift;
@@ -83,6 +85,12 @@ public:
     bool multiply() noexcept;
     /** Halves the loop length (keeps the first half). Playing or stopped tracks only. Undoable. */
     bool halve() noexcept;
+    /** v1.6 loop tricks (audio thread). HalfSpeed: the loop plays at half speed, an octave lower,
+        and becomes twice as long (only the first half is kept when the memory is too short).
+        DoubleSpeed: twice as fast, an octave higher, played twice so the length stays.
+        Reverse: the recorded audio itself is reversed. HalveLength / DoubleLength = halve() /
+        multiply(). Playing or stopped tracks only; one UNDO restores the loop. */
+    bool applyTrick (Trick t) noexcept;
     /** Copies the loop of another track into this (empty) track; it ends up stopped, anchored like the source. */
     bool copyFrom (const LoopTrack& source) noexcept;
     /** Sets / changes the planned length of the running first recording. Returns true when the
@@ -180,6 +188,7 @@ private:
             a.store (v, std::memory_order_relaxed);
     }
     void recomputeChunkPeak (int layer, size_t chunk) noexcept;
+    void flipTouchedChunks() noexcept;   // v1.6
     bool wantsStretch() const noexcept;
     /** Renders numSamples of stretched / pitched loop audio into stretchOutL/R. */
     void renderStretched (int numSamples) noexcept;

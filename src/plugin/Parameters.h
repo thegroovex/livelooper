@@ -110,6 +110,13 @@ inline const juce::String gLinkOn       { "link_on" };
 inline const juce::String gLinkStartStop{ "link_startstop" };
 inline const juce::String gRhythmGroove { "rhythm_groove" };
 inline const juce::String gRhythmFills  { "rhythm_fills" };
+// ---- v1.6 features (branch v1.6-wip: loop tricks, performance recorder, clip export) -- appended
+inline constexpr const char* kHalfSpeed = "halfspeed";  // trigger: loop at half speed (x2 length), quantized
+inline constexpr const char* kDblSpeed  = "dblspeed";   // trigger: loop at double speed (played twice), quantized
+inline constexpr const char* kRevLoop   = "revloop";    // trigger: reverse the recorded audio, quantized
+inline const juce::String gPerfRec      { "perf_rec" };     // toggle: performance recorder (master mix to WAV)
+inline const juce::String gClipExport   { "clip_export" };  // trigger: 9:16 clip of the last 20 s / the recording
+// ---- end v1.6 features
 inline constexpr int kNumScenes = 8;
 inline constexpr int kCaptureBars[] = { 1, 2, 4, 8, 16, 32 };   // 16 / 32 since 1.5 (appended)
 inline constexpr int kNumCaptureChoices = 6;

@@ -5,6 +5,7 @@
 #include "engine/MidiMap.h"
 #include "KeyMap.h"
 #include "LinkSync.h"
+#include "PerformanceRecorder.h"
 
 #include <juce_audio_formats/juce_audio_formats.h>
 #include <juce_audio_processors/juce_audio_processors.h>
@@ -110,7 +111,32 @@ public:
         MIDI mapping, keyboard mapping and the cue routing stay with the app, not the set. */
     bool saveSet (const juce::File& file);
     bool loadSet (const juce::File& file, juce::String& error);
+    /** The set as XML (LIVELOOPER_SET, loops as FLAC inside) / loads such XML. */
+    std::unique_ptr<juce::XmlElement> createSetXml();
+    bool loadSetXml (std::unique_ptr<juce::XmlElement> xml, juce::String& error);
     static constexpr const char* kSetExtension = ".llset";
+
+    //============================================================================== v1.6 features (branch v1.6-wip)
+    /** Performance recorder: the master mix as WAV into PerformanceRecorder::getFolder().
+        Also switched by the host parameter "perf_rec". */
+    bool startPerformanceRecording();
+    juce::File stopPerformanceRecording();
+    bool isPerformanceRecording() const noexcept { return recorder.isRecording(); }
+    double getPerformanceRecordingSeconds() const noexcept { return recorder.getElapsedSeconds(); }
+    PerformanceRecorder& getRecorder() noexcept { return recorder; }
+    /** Set to true by the "clip_export" parameter; the editor (or the timer) takes it. */
+    bool takeClipExportRequest() noexcept { return clipExportRequested.exchange (false); }
+    /** Saves the set with all audio as one shared file (.livelooper container). */
+    bool saveSetContainer (const juce::File& file);
+    bool loadSetContainer (const juce::File& file, juce::String& error);
+    static constexpr const char* kContainerExtension = ".livelooper";
+    /** Demo set: running groove + pre-recorded loops (embedded, self-made, CC0). */
+    bool loadDemoSet();
+    /** Empty set: every loop cleared, settings back to the defaults. */
+    void loadEmptySet();
+    /** Called from the timer when the user switches perf_rec; also notifies listeners. */
+    std::function<void (const juce::File&)> onRecordingFinished;
+    // ---- end v1.6 features
 
     //============================================================================== AudioProcessor
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
@@ -194,6 +220,7 @@ private:
         int scene = -1;
         int arg = 0;            // extra command argument (copy: -1 = first empty track)
         int octave = 0;         // v1.4: octave up / down trigger (changes the pitch parameter)
+        int special = 0;        // v1.6: 1 = clip export (message thread)
         bool last = false;
         std::atomic<bool> needsReset { false };
     };
@@ -297,6 +324,12 @@ private:
     std::atomic<bool> sceneStoreDone { false };
     std::unique_ptr<push::PushDevice> pushDevice;
     bool pushEnabledSetting = true;
+
+    // v1.6 features
+    PerformanceRecorder recorder;
+    std::atomic<float>* perfRecParam {};
+    std::atomic<bool> clipExportRequested { false };
+    void updatePerformanceRecorder();
 
     juce::Array<juce::RangedAudioParameter*> paramList;
     juce::HashMap<juce::String, int> paramIndexById;

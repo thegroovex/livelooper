@@ -378,12 +378,14 @@ bool LoopTrack::undo()
     if (state == State::Overdubbing)
         state = State::Playing;
 
-    if (undoKind == UndoKind::Length)
+    if (undoKind == UndoKind::Length || undoKind == UndoKind::Rewrite)
     {
+        if (undoKind == UndoKind::Rewrite)
+            flipTouchedChunks();
         std::swap (length, altLength);
         playPos = length > 0 ? playPos % length : 0;
         resetMap();
-        redoKind = UndoKind::Length;
+        redoKind = undoKind;
         undoKind = UndoKind::None;
         return true;
     }
@@ -412,14 +414,18 @@ bool LoopTrack::redo()
     if (redoKind == UndoKind::None)
         return false;
 
-    if (redoKind == UndoKind::Length)
+    if (redoKind == UndoKind::Length || redoKind == UndoKind::Rewrite)
     {
         if (altLength <= 0 || altLength > maxLength)
             return false;
+        if (state == State::Overdubbing)
+            state = State::Playing;
+        if (redoKind == UndoKind::Rewrite)
+            flipTouchedChunks();
         std::swap (length, altLength);
         playPos = playPos % length;
         resetMap();
-        undoKind = UndoKind::Length;
+        undoKind = redoKind;
         redoKind = UndoKind::None;
         return true;
     }
@@ -623,6 +629,84 @@ bool LoopTrack::halve() noexcept
         playPos -= length;
     playPos = std::clamp (playPos, 0, length - 1);
     undoKind = UndoKind::Length;
+    redoKind = UndoKind::None;
+    resetMap();
+    return true;
+}
+
+//============================================================================== v1.6: loop tricks
+void LoopTrack::flipTouchedChunks() noexcept
+{
+    for (size_t c = 0; c < chunkTouched.size(); ++c)
+        if (chunkTouched[c] != 0)
+        {
+            chunkOwner[c] ^= 1;
+            recomputeChunkPeak (chunkOwner[c], c);
+        }
+}
+
+bool LoopTrack::applyTrick (Trick trick) noexcept
+{
+    if (trick == Trick::HalveLength)  return halve();
+    if (trick == Trick::DoubleLength) return multiply();
+    if (length < 2048 || state == State::Empty || state == State::Recording || state == State::Overdubbing)
+        return false;
+
+    const int oldLen = length;
+    int newLen = oldLen;
+    if (trick == Trick::HalfSpeed && (long long) oldLen * 2 <= maxLength)
+        newLen = oldLen * 2;
+
+    const auto lastChunk = (size_t) ((std::max (oldLen, newLen) - 1) >> kChunkShift);
+    if (lastChunk >= numChunks)
+        return false;
+
+    auto read = [this, oldLen] (int ch, double pos) noexcept
+    {
+        const int i0 = (int) pos;
+        const float frac = (float) (pos - (double) i0);
+        const float a = sampleAt (ch, i0 % oldLen);
+        const float b = sampleAt (ch, (i0 + 1) % oldLen);
+        return a + (b - a) * frac;
+    };
+
+    // the new audio goes into the other layer of every chunk; the current layer stays for UNDO
+    for (int i = 0; i < newLen; ++i)
+    {
+        const auto c = (size_t) (i >> kChunkShift);
+        const int dst = chunkOwner[c] ^ 1;
+        for (int ch = 0; ch < 2; ++ch)
+        {
+            float v = 0.0f;
+            switch (trick)
+            {
+                case Trick::HalfSpeed:   v = read (ch, (double) i * 0.5); break;
+                case Trick::DoubleSpeed:
+                {
+                    const int j = (int) (((long long) i * 2) % oldLen);
+                    v = 0.5f * (sampleAt (ch, j) + sampleAt (ch, (j + 1) % oldLen));   // 2:1 with a simple anti-alias average
+                    break;
+                }
+                case Trick::Reverse:     v = sampleAt (ch, oldLen - 1 - i); break;
+                default: break;
+            }
+            layers[dst][ch][(size_t) i] = v;
+        }
+    }
+
+    std::fill (chunkTouched.begin(), chunkTouched.end(), (uint8_t) 0);
+    for (size_t c = 0; c <= lastChunk; ++c)
+        chunkTouched[c] = 1;
+    flipTouchedChunks();
+
+    altLength = oldLen;
+    length = newLen;
+    if (trick == Trick::HalfSpeed && newLen != oldLen)
+        playPos = (int) (((long long) playPos * 2) % newLen);
+    else if (trick == Trick::Reverse)
+        playPos = std::clamp (oldLen - 1 - playPos, 0, newLen - 1);
+    playPos = std::clamp (playPos, 0, length - 1);
+    undoKind = UndoKind::Rewrite;
     redoKind = UndoKind::None;
     resetMap();
     return true;

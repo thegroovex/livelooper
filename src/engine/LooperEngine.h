@@ -33,7 +33,9 @@ public:
         Multiply,         // per track: loop x 2
         Halve,            // per track: loop / 2
         Copy,             // per track: copy the loop to track arg (-1 = first empty track)
-        SetRecLength      // per track: arg = bars for the pending / running first recording
+        SetRecLength,     // per track: arg = bars for the pending / running first recording
+        // v1.6
+        LoopTrick         // per track: arg = LoopTrack::Trick, executed at the next quantize boundary
     };
     static constexpr int kNumSlices = 6;
 
@@ -59,6 +61,8 @@ public:
         std::atomic<bool>  recordingSpan { false };   // the running first recording has a fixed length
         std::atomic<bool>  cut { false };             // loop cutting / stutter active
         mutable std::atomic<float> displayMeter { 0.0f };   // peak for the Push display (taken with exchange)
+        // v1.6
+        std::atomic<int>   pendingTrick { -1 };       // loop trick waiting for the quantize boundary (-1 = none)
     };
 
     /** Extra outputs (all optional): cue pair for the rhythm, direct output pair per track. */
@@ -199,6 +203,11 @@ private:
     int autoFinishSamples (int t) const noexcept;
     void updateStatus() noexcept;
     void executeCut (int t, int slice) noexcept;
+    // v1.6 loop tricks
+    struct PendingTrick { bool active = false; double targetPpq = 0.0; int kind = 0; };
+    std::array<PendingTrick, kNumTracks> trickPending {};
+    /** Executes a loop trick; the track lock must be held. */
+    void executeTrick (int t, int kind) noexcept;
 
     double sampleRate = 44100.0;
     int maxBlock = 512;

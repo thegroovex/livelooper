@@ -95,6 +95,10 @@ LiveLooperProcessor::LiveLooperProcessor (bool withCueOutput, bool withTrackOutp
         addTrigger (trackId (t, kCopy),    C::Copy, t, false, -1);
         addTrigger (trackId (t, kOctUp),   C::RecPlay, t, false, 0, 1);
         addTrigger (trackId (t, kOctDown), C::RecPlay, t, false, 0, -1);
+        // v1.6 loop tricks (quantized, undoable)
+        addTrigger (trackId (t, kHalfSpeed), C::LoopTrick, t, false, (int) LoopTrack::Trick::HalfSpeed);
+        addTrigger (trackId (t, kDblSpeed),  C::LoopTrick, t, false, (int) LoopTrack::Trick::DoubleSpeed);
+        addTrigger (trackId (t, kRevLoop),   C::LoopTrick, t, false, (int) LoopTrack::Trick::Reverse);
 
         auto& tp = trackParams[(size_t) t];
         tp.level     = apvts.getRawParameterValue (trackId (t, kLevel));
@@ -127,6 +131,9 @@ LiveLooperProcessor::LiveLooperProcessor (bool withCueOutput, bool withTrackOutp
     addTrigger (gClearAll,     C::ClearAll, -1);
     addTrigger (gTap,          C::AllStartStop, -1, true);
     addTrigger (gCapture,      C::Capture, -1);
+    addTrigger (gClipExport,   C::Capture, -1);          // v1.6: handled on the message thread
+    triggers.back()->special = 1;
+    perfRecParam = apvts.getRawParameterValue (gPerfRec);
     for (int i = 0; i < kNumScenes; ++i)
     {
         addTrigger (sceneId (i), C::Start, -1);
@@ -256,6 +263,7 @@ void LiveLooperProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     currentSampleRate = sampleRate;
     currentBlockSize = samplesPerBlock;
     engine.prepare (sampleRate, samplesPerBlock, maxLoopSeconds);
+    recorder.prepare (sampleRate);     // v1.6
     prepared = true;
     applyPendingLoops();
 }
@@ -425,6 +433,8 @@ void LiveLooperProcessor::fireTrigger (Trigger& t) noexcept
         handleTap();
     else if (t.scene >= 0)
         handleScene (t.scene);
+    else if (t.special == 1)
+        clipExportRequested.store (true);
     else if (t.octave != 0)
         pendingOctave[(size_t) t.track].fetch_add (t.octave);      // the message thread changes the pitch
     else
@@ -726,6 +736,7 @@ void LiveLooperProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::
     }
 
     engine.process (inL, inR, buffer.getWritePointer (0), buffer.getWritePointer (1), extra, numSamples, time);
+    recorder.push (buffer.getReadPointer (0), buffer.getReadPointer (1), numSamples);    // v1.6: master mix
     sampleCounter += numSamples;
 }
 
@@ -779,6 +790,46 @@ void LiveLooperProcessor::timerCallback()
 
     if (midiMap.popLearnedParam() >= 0)
         sendChangeMessage();
+
+    updatePerformanceRecorder();      // v1.6
+}
+
+//============================================================================== v1.6 performance recorder
+void LiveLooperProcessor::updatePerformanceRecorder()
+{
+    const bool want = perfRecParam != nullptr && perfRecParam->load() >= 0.5f;
+    if (want == recorder.isRecording())
+        return;
+    if (want)
+    {
+        if (recorder.start (PerformanceRecorder::getFolder()) == juce::File())
+            if (auto* p = apvts.getParameter (gPerfRec))
+                p->setValueNotifyingHost (0.0f);          // folder not writable: back off
+    }
+    else
+    {
+        const auto f = recorder.stop();
+        if (f != juce::File() && onRecordingFinished)
+            onRecordingFinished (f);
+    }
+    sendChangeMessage();
+}
+
+bool LiveLooperProcessor::startPerformanceRecording()
+{
+    if (auto* p = apvts.getParameter (gPerfRec))
+        p->setValueNotifyingHost (1.0f);
+    updatePerformanceRecorder();
+    return recorder.isRecording();
+}
+
+juce::File LiveLooperProcessor::stopPerformanceRecording()
+{
+    if (auto* p = apvts.getParameter (gPerfRec))
+        p->setValueNotifyingHost (0.0f);
+    const bool was = recorder.isRecording();
+    updatePerformanceRecorder();
+    return was ? recorder.getLastFile() : juce::File();
 }
 
 void LiveLooperProcessor::setVisibleTracks (int n)
@@ -1304,7 +1355,7 @@ void LiveLooperProcessor::saveLastSettings()
     appsettings::saveLastSettings (*s);
 }
 
-bool LiveLooperProcessor::saveSet (const juce::File& file)
+std::unique_ptr<juce::XmlElement> LiveLooperProcessor::createSetXml()
 {
     const bool keepSaveLoops = saveLoops;
     saveLoops = true;                       // a set always contains its loops
@@ -1314,7 +1365,7 @@ bool LiveLooperProcessor::saveSet (const juce::File& file)
 
     auto xml = getXmlFromBinary (block.getData(), (int) block.getSize());
     if (xml == nullptr)
-        return false;
+        return nullptr;
     xml->setTagName ("LIVELOOPER_SET");
     xml->setAttribute ("saveLoops", keepSaveLoops);
     xml->removeAttribute ("cuePair");
@@ -1323,14 +1374,27 @@ bool LiveLooperProcessor::saveSet (const juce::File& file)
     xml->removeAttribute ("push");
     if (auto* mm = xml->getChildByName ("MIDIMAP")) xml->removeChildElement (mm, true);
     if (auto* km = xml->getChildByName ("KEYMAP"))  xml->removeChildElement (km, true);
+    return xml;
+}
 
+bool LiveLooperProcessor::saveSet (const juce::File& file)
+{
+    auto xml = createSetXml();
+    if (xml == nullptr)
+        return false;
     auto target = file.hasFileExtension (kSetExtension) ? file : file.withFileExtension (kSetExtension);
     return xml->writeTo (target);
 }
 
 bool LiveLooperProcessor::loadSet (const juce::File& file, juce::String& error)
 {
-    auto xml = juce::XmlDocument::parse (file);
+    if (file.hasFileExtension (kContainerExtension))      // v1.6: shared set with all audio in one file
+        return loadSetContainer (file, error);
+    return loadSetXml (juce::XmlDocument::parse (file), error);
+}
+
+bool LiveLooperProcessor::loadSetXml (std::unique_ptr<juce::XmlElement> xml, juce::String& error)
+{
     if (xml == nullptr || ! xml->hasTagName ("LIVELOOPER_SET"))
     {
         error = i18n::tr ("This is not a livelooper set.");

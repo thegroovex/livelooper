@@ -24,7 +24,8 @@ juce::String sceneId (int scene)
 
 bool isTrigger (const juce::String& id)
 {
-    static const juce::StringArray globalTriggers { gAllStartStop, gAllStart, gAllStop, gClearAll, gTap, gCapture };
+    static const juce::StringArray globalTriggers { gAllStartStop, gAllStart, gAllStop, gClearAll, gTap, gCapture,
+                                                    gClipExport /* v1.6 */ };
     if (globalTriggers.contains (id))
         return true;
     if (id.startsWith ("scene") && id.substring (5).containsOnly ("0123456789"))
@@ -33,7 +34,8 @@ bool isTrigger (const juce::String& id)
     {
         const auto name = id.substring (3);
         return name == kRecPlay || name == kStop || name == kClear || name == kUndo || name == kRedo || name == kCapture
-            || name == kCutSync || name == kDouble || name == kHalve || name == kOctUp || name == kOctDown || name == kCopy;
+            || name == kCutSync || name == kDouble || name == kHalve || name == kOctUp || name == kOctDown || name == kCopy
+            || name == kHalfSpeed || name == kDblSpeed || name == kRevLoop;     // v1.6
     }
     return false;
 }
@@ -146,7 +148,9 @@ namespace
         { "slice5", "Slice 5" }, { "slice6", "Slice 6" }, { kCutSync, "Back in Sync" }, { kMute, "Mute" },
         { kSolo, "Solo" }, { kDouble, "Double Loop" }, { kHalve, "Halve Loop" }, { kOctUp, "Octave Up" },
         { kOctDown, "Octave Down" }, { kCopy, "Copy to Empty Track" }, { kRecLen, "Rec Length" },
-        { kColor, "Color FX" }
+        { kColor, "Color FX" },
+        // v1.6 features
+        { kHalfSpeed, "Half Speed" }, { kDblSpeed, "Double Speed" }, { kRevLoop, "Reverse Loop Audio" }
     };
     const std::pair<const char*, const char*> kFxNames[] = {
         { kFxOn, "On" }, { kFxType, "Type" }, { kFxP1, "Param 1" }, { kFxP2, "Param 2" }, { kFxMix, "Mix" }
@@ -168,7 +172,9 @@ namespace
         { "brep_rate", "Beat Repeat Timing" }, { "stut_hold", "Stutter Hold" }, { "stut_latch", "Stutter Latch" },
         { "stut_rate", "Stutter Timing" }, { "metro_on", "Metronome On" }, { "metro_level", "Metronome Level" },
         { "metro_accent", "Metronome Accent" }, { "link_on", "Link" }, { "link_startstop", "Link Start/Stop Sync" },
-        { "rhythm_groove", "Groove" }, { "rhythm_fills", "Fills" }
+        { "rhythm_groove", "Groove" }, { "rhythm_fills", "Fills" },
+        // v1.6 features
+        { "perf_rec", "Performance Recorder" }, { "clip_export", "Export 9:16 Clip" }
     };
 
     template <size_t N>
@@ -403,6 +409,19 @@ APVTS::ParameterLayout createLayout()
         group->addChild (ch (gRhythmFills, translated (fillChoices()), 0));
         layout.add (std::move (group));
     }
+
+    // ---------------------------------------------------------------- v1.6 features (appended; ids never change)
+    // loop tricks per track, performance recorder, clip export
+    {
+        auto group = std::make_unique<juce::AudioProcessorParameterGroup> ("features16", i18n::tr ("Loop Tricks & Recorder"), "|");
+        for (int t = 0; t < kNumTracks; ++t)
+            for (auto* n : { kHalfSpeed, kDblSpeed, kRevLoop })
+                group->addChild (std::make_unique<juce::AudioParameterBool> (PID { trackId (t, n), 7 }, localisedName (trackId (t, n)), false));
+        group->addChild (std::make_unique<juce::AudioParameterBool> (PID { gPerfRec, 7 }, localisedName (gPerfRec), false));
+        group->addChild (std::make_unique<juce::AudioParameterBool> (PID { gClipExport, 7 }, localisedName (gClipExport), false));
+        layout.add (std::move (group));
+    }
+    // ---- end v1.6 features
 
     return layout;
 }

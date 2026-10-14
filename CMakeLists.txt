@@ -60,6 +60,11 @@ endif()
 
 # ---------------------------------------------------------------- embedded resources (help, licences, logo, drum samples)
 file(GLOB LIVELOOPER_DRUM_SAMPLES ${CMAKE_CURRENT_SOURCE_DIR}/resources/drums/*.flac)
+# v1.6 features: demo set loops (self-made, CC0, tools/demo/make_demo_loops.py)
+set(LIVELOOPER_DEMO_LOOPS
+    ${CMAKE_CURRENT_SOURCE_DIR}/resources/demo/demo_bass.flac
+    ${CMAKE_CURRENT_SOURCE_DIR}/resources/demo/demo_keys.flac
+    ${CMAKE_CURRENT_SOURCE_DIR}/resources/demo/demo_arp.flac)
 set(_ll_help ${CMAKE_BINARY_DIR}/help)
 configure_file(docs/en/PUSH.md ${_ll_help}/PUSH-en.md COPYONLY)
 configure_file(docs/de/PUSH.md ${_ll_help}/PUSH-de.md COPYONLY)
@@ -80,7 +85,8 @@ juce_add_binary_data(livelooper_resources
         THIRD-PARTY.md
         docs/brand/beattactics-logo-transparent.png
         resources/livelooper-icon-256.png
-        ${LIVELOOPER_DRUM_SAMPLES})
+        ${LIVELOOPER_DRUM_SAMPLES}
+        ${LIVELOOPER_DEMO_LOOPS})
 set_target_properties(livelooper_resources PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # ---------------------------------------------------------------- shared sources
@@ -116,7 +122,10 @@ set(LIVELOOPER_PLUGIN_SOURCES
     src/plugin/Widgets.cpp
     src/plugin/push/PushProtocol.cpp
     src/plugin/push/PushSurface.cpp
-    src/plugin/push/PushDevice.cpp)
+    src/plugin/push/PushDevice.cpp
+    # v1.6 features
+    src/plugin/PerformanceRecorder.cpp
+    src/plugin/Features16.cpp)
 set(LIVELOOPER_DEFINES LIVELOOPER_VERSION="${PROJECT_VERSION}" JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_VST3_CAN_REPLACE_VST2=0 JUCE_DISPLAY_SPLASH_SCREEN=0
     ${LIVELOOPER_LINK_DEFINES})
 set(LIVELOOPER_MODULES juce::juce_audio_utils juce::juce_audio_formats juce::juce_gui_extra juce::juce_dsp juce::juce_cryptography livelooper_resources ${LIVELOOPER_LINK_TARGET})
@@ -189,6 +198,7 @@ if(LIVELOOPER_BUILD_TESTS)
         tests/BeatFxTests.cpp
         tests/Push15Tests.cpp
         tests/Settings15Tests.cpp
+        tests/Features16Tests.cpp
         ${LIVELOOPER_ENGINE_SOURCES} ${LIVELOOPER_PLUGIN_SOURCES})
     target_include_directories(livelooper_tests PRIVATE src ${LIVELOOPER_THIRD_PARTY_INCLUDES})
     target_compile_definitions(livelooper_tests PRIVATE ${LIVELOOPER_DEFINES} LIVELOOPER_NO_PLUGIN_ENTRY=1 JUCE_MODAL_LOOPS_PERMITTED=1)
