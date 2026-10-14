@@ -89,6 +89,7 @@ public:
                 r.setPattern (3);          // Funk: 16th hats, step 1 has only a hat
                 r.setLevel (1.0f);
                 r.setHumanize (0.0f);
+                r.setGroove (0);
                 r.setSwing (sw);
                 const auto out = render (r, kStep * 4);
                 const int on = onsetAfter (out, kStep);
@@ -101,18 +102,78 @@ public:
             }
         }
 
-        beginTest ("Humanize moves hits only a few milliseconds and never early");
+        beginTest ("Humanize moves hits only a few milliseconds, early or late (v1.5)");
         {
-            RhythmGenerator r;
-            r.prepare (kSr);
-            r.setPattern (3);
-            r.setLevel (1.0f);
-            r.setHumanize (1.0f);
-            r.setSwing (0.5f);
-            const auto out = render (r, kStep * 4);
-            const int on = onsetAfter (out, kStep);
-            expect (on >= kStep, "not early");
-            expectLessThan (on - kStep, (int) (0.009 * kSr), "at most ~8 ms late");
+            for (int seed = 0; seed < 6; ++seed)
+            {
+                RhythmGenerator r;
+                r.prepare (kSr);
+                r.setPattern (3);
+                r.setLevel (1.0f);
+                r.setHumanize (1.0f);
+                r.setGroove (0);
+                r.setSwing (0.5f);
+                for (int i = 0; i < seed; ++i)
+                    render (r, 64);           // shifts the random sequence
+                RhythmGenerator r2;
+                r2.prepare (kSr);
+                r2.setPattern (3);
+                r2.setLevel (1.0f);
+                r2.setHumanize (1.0f);
+                r2.setGroove (0);
+                const auto out = render (r2, kStep * 4);
+                const int on = onsetAfter (out, kStep - (int) (0.008 * kSr));
+                expect (on > 0);
+                expectLessThan (std::abs (on - kStep), (int) (0.0085 * kSr), "within about 7 ms of the grid");
+            }
+        }
+
+        beginTest ("Groove templates: hats laid back, snare late, pushed is early, accents shape the bar");
+        {
+            const int laid = 2, pushed = 3;
+            expectEquals (juce::String (RhythmGenerator::getGrooveName (0)), juce::String ("Straight"));
+            expectGreaterOrEqual (RhythmGenerator::getNumGrooves(), 6);
+            expectGreaterThan (RhythmGenerator::grooveOffsetMs (laid, RhythmGenerator::HatClosed, 2), 5.0);
+            expectGreaterThan (RhythmGenerator::grooveOffsetMs (laid, RhythmGenerator::Snare, 4), 5.0);
+            expectEquals (RhythmGenerator::grooveOffsetMs (0, RhythmGenerator::Snare, 4), 0.0);
+            expectLessThan (RhythmGenerator::grooveOffsetMs (pushed, RhythmGenerator::HatClosed, 2), 0.0);
+            expectGreaterThan (RhythmGenerator::grooveAccent (1, 0), RhythmGenerator::grooveAccent (1, 1));
+
+            // measured: Funk hat on step 1 (16th) comes later with "Laid Back" than with "Straight"
+            int onsets[2] {};
+            for (int g = 0; g < 2; ++g)
+            {
+                RhythmGenerator r;
+                r.prepare (kSr);
+                r.setPattern (3);
+                r.setLevel (1.0f);
+                r.setHumanize (0.0f);
+                r.setGroove (g == 0 ? 0 : laid);
+                const auto out = render (r, kStep * 4);
+                onsets[g] = onsetAfter (out, kStep - 200);
+            }
+            const double ms = (onsets[1] - onsets[0]) / kSr * 1000.0;
+            expectWithinAbsoluteError (ms, RhythmGenerator::grooveOffsetMs (laid, RhythmGenerator::HatClosed, 1), 1.0);
+        }
+
+        beginTest ("Fills every 4 bars add hits in the last beat of bar 4 only");
+        {
+            auto lastBeatEnergy = [this] (int fillsMode, int bar) {
+                RhythmGenerator r;
+                r.prepare (kSr);
+                r.setPattern (11);           // Half Time: last beat is sparse
+                r.setLevel (1.0f);
+                r.setHumanize (0.0f);
+                r.setGroove (0);
+                r.setFills (fillsMode);
+                const auto out = render (r, kStep * 16 * 4 + kStep);
+                float e = 0.0f;
+                for (int i = kStep * (16 * bar + 12); i < kStep * (16 * bar + 16); ++i)
+                    e += out[(size_t) i] * out[(size_t) i];
+                return e;
+            };
+            expectGreaterThan (lastBeatEnergy (1, 3), lastBeatEnergy (0, 3) * 1.5f + 1.0f, "fill in bar 4");
+            expectWithinAbsoluteError (lastBeatEnergy (1, 1), lastBeatEnergy (0, 1), 1.0e-3f, "no fill in bar 2");
         }
 
         beginTest ("Every kit plays every pattern within range, and the kits sound different");

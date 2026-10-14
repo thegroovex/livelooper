@@ -22,13 +22,73 @@ else()
     FetchContent_MakeAvailable(JUCE)
 endif()
 
+# ---------------------------------------------------------------- build info (About window)
+find_package(Git QUIET)
+set(LIVELOOPER_GIT_HASH "unknown")
+if(GIT_FOUND)
+    execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                    OUTPUT_VARIABLE _ll_hash OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET RESULT_VARIABLE _ll_res)
+    if(_ll_res EQUAL 0 AND _ll_hash)
+        set(LIVELOOPER_GIT_HASH "${_ll_hash}")
+    endif()
+endif()
+if(DEFINED ENV{GITHUB_RUN_NUMBER})
+    set(LIVELOOPER_BUILD_NUMBER "$ENV{GITHUB_RUN_NUMBER}")
+else()
+    set(LIVELOOPER_BUILD_NUMBER "local")
+endif()
+string(TIMESTAMP LIVELOOPER_BUILD_DATE "%Y-%m-%d" UTC)
+configure_file(src/BuildInfo.h.in ${CMAKE_BINARY_DIR}/generated/BuildInfo.h @ONLY)
+
+# ---------------------------------------------------------------- Ableton Link (GPLv2+, submodule third_party/link)
+option(LIVELOOPER_WITH_LINK "Build with Ableton Link" ON)
+set(LIVELOOPER_LINK_TARGET "")
+set(LIVELOOPER_LINK_DEFINES "")
+if(LIVELOOPER_WITH_LINK)
+    if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/third_party/link/AbletonLinkConfig.cmake)
+        message(FATAL_ERROR "Ableton Link is missing: run  git submodule update --init --recursive  (or configure with -DLIVELOOPER_WITH_LINK=OFF)")
+    endif()
+    include(${CMAKE_CURRENT_SOURCE_DIR}/third_party/link/AbletonLinkConfig.cmake)
+    set(LIVELOOPER_LINK_TARGET Ableton::Link)
+    set(LIVELOOPER_LINK_DEFINES LIVELOOPER_WITH_LINK=1)
+    if(WIN32)
+        list(APPEND LIVELOOPER_LINK_DEFINES _WIN32_WINNT=0x0601)
+    endif()
+endif()
+
+# ---------------------------------------------------------------- embedded resources (help, licences, logo, drum samples)
+file(GLOB LIVELOOPER_DRUM_SAMPLES ${CMAKE_CURRENT_SOURCE_DIR}/resources/drums/*.flac)
+set(_ll_help ${CMAKE_BINARY_DIR}/help)
+configure_file(docs/en/PUSH.md ${_ll_help}/PUSH-en.md COPYONLY)
+configure_file(docs/de/PUSH.md ${_ll_help}/PUSH-de.md COPYONLY)
+configure_file(docs/en/MIDI.md ${_ll_help}/MIDI-en.md COPYONLY)
+configure_file(docs/de/MIDI.md ${_ll_help}/MIDI-de.md COPYONLY)
+configure_file(docs/en/INSTALLATION.md ${_ll_help}/INSTALLATION-en.md COPYONLY)
+configure_file(docs/de/INSTALLATION.md ${_ll_help}/INSTALLATION-de.md COPYONLY)
+juce_add_binary_data(livelooper_resources
+    HEADER_NAME BinaryData.h
+    NAMESPACE BinaryData
+    SOURCES
+        docs/en/USER-GUIDE.md
+        docs/de/BEDIENUNGSANLEITUNG.md
+        ${_ll_help}/PUSH-en.md ${_ll_help}/PUSH-de.md
+        ${_ll_help}/MIDI-en.md ${_ll_help}/MIDI-de.md
+        ${_ll_help}/INSTALLATION-en.md ${_ll_help}/INSTALLATION-de.md
+        LICENSE
+        THIRD-PARTY.md
+        docs/brand/beattactics-logo-transparent.png
+        ${LIVELOOPER_DRUM_SAMPLES})
+set_target_properties(livelooper_resources PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 # ---------------------------------------------------------------- shared sources
 # The engine is UI-free DSP code (only juce_audio_basics); the plugin sources add
 # processor, parameters and editor. Both lists are compiled into every target that
 # needs them (JUCE modules must not be linked into intermediate static libraries).
 set(LIVELOOPER_THIRD_PARTY_INCLUDES
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/signalsmith-stretch/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/signalsmith-linear/include)
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/signalsmith-linear/include
+    ${CMAKE_BINARY_DIR}/generated)
 
 set(LIVELOOPER_ENGINE_SOURCES
     src/engine/LoopTrack.cpp
@@ -40,6 +100,11 @@ set(LIVELOOPER_ENGINE_SOURCES
     src/engine/BeatFx.cpp)
 set(LIVELOOPER_PLUGIN_SOURCES
     src/plugin/Localisation.cpp
+    src/plugin/AppSettings.cpp
+    src/plugin/Updates.cpp
+    src/plugin/InfoWindows.cpp
+    src/plugin/DrumSampleLoader.cpp
+    src/plugin/LinkSync.cpp
     src/plugin/KeyMap.cpp
     src/plugin/KeyMapEditor.cpp
     src/plugin/Parameters.cpp
@@ -50,8 +115,9 @@ set(LIVELOOPER_PLUGIN_SOURCES
     src/plugin/push/PushProtocol.cpp
     src/plugin/push/PushSurface.cpp
     src/plugin/push/PushDevice.cpp)
-set(LIVELOOPER_DEFINES LIVELOOPER_VERSION="${PROJECT_VERSION}" JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_VST3_CAN_REPLACE_VST2=0 JUCE_DISPLAY_SPLASH_SCREEN=0)
-set(LIVELOOPER_MODULES juce::juce_audio_utils juce::juce_audio_formats juce::juce_gui_extra juce::juce_dsp)
+set(LIVELOOPER_DEFINES LIVELOOPER_VERSION="${PROJECT_VERSION}" JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_VST3_CAN_REPLACE_VST2=0 JUCE_DISPLAY_SPLASH_SCREEN=0
+    ${LIVELOOPER_LINK_DEFINES})
+set(LIVELOOPER_MODULES juce::juce_audio_utils juce::juce_audio_formats juce::juce_gui_extra juce::juce_dsp juce::juce_cryptography livelooper_resources ${LIVELOOPER_LINK_TARGET})
 
 # ---------------------------------------------------------------- plugin
 set(LIVELOOPER_FORMATS VST3 Standalone)

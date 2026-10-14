@@ -2,11 +2,34 @@
 
 #include "Types.h"
 
+#include <algorithm>
 #include <array>
+#include <memory>
 #include <vector>
 
 namespace livelooper
 {
+/** v1.5: the recorded drum samples of the built-in kits (filled by the plug-in from its
+    embedded CC0 / public-domain samples, see resources/drums/SOURCES.md). Without a bank the
+    rhythm falls back to the synthesised voices. */
+struct DrumBank
+{
+    static constexpr int kNumKits = 4, kNumVoices = 8;   // voices: kick, snare, clap, closed hat, open hat, rim, shaker, tom
+    struct Sample
+    {
+        std::vector<float> data;    // mono
+        double sampleRate = 44100.0;
+        float layer = 1.0f;         // velocity layer 0 .. 1
+    };
+    std::array<std::array<std::vector<Sample>, kNumVoices>, kNumKits> kits;
+    int numSamples() const noexcept
+    {
+        int n = 0;
+        for (auto& k : kits) for (auto& v : k) n += (int) v.size();
+        return n;
+    }
+};
+
 /**
     Built-in drum machine. All sounds are synthesised (no samples), patterns are 16 steps
     of 16th notes that follow the timeline, so the rhythm is always locked to the host
@@ -27,6 +50,14 @@ public:
     static const char* getPatternName (int index) noexcept;
     static int getNumKits() noexcept;
     static const char* getKitName (int index) noexcept;
+    /** v1.5 groove templates (per-instrument micro-timing + accent curve) and fills. */
+    static int getNumGrooves() noexcept;
+    static const char* getGrooveName (int index) noexcept;
+    static int getNumFillModes() noexcept { return 3; }   // off, every 4 bars, every 8 bars
+    /** Micro-timing of a voice on a 16th step for a groove, in milliseconds (public for tests). */
+    static double grooveOffsetMs (int groove, int voice, int step) noexcept;
+    /** Accent factor (velocity) of a 16th step for a groove (public for tests). */
+    static float grooveAccent (int groove, int step) noexcept;
     static constexpr int kNumClickSounds = 4;   // 0 = beep, 1 = woodblock, 2 = click, 3 = rimshot
 
     void prepare (double sampleRate);
@@ -42,6 +73,14 @@ public:
     void setSwing (float s) noexcept      { swing = s; }
     /** 0 = machine-exact, 1 = loose (timing up to 8 ms late, velocity variation). */
     void setHumanize (float h) noexcept   { humanize = h; }
+    void setGroove (int g) noexcept       { groove = g; }
+    /** 0 = no fills, 1 = a fill in the last beat of every 4th bar, 2 = every 8th bar. */
+    void setFills (int f) noexcept        { fills = f; }
+    /** Samples for the kits (message thread, before playing). */
+    void setDrumBank (std::shared_ptr<const DrumBank> b) noexcept { bank = std::move (b); }
+    bool isUsingSamples() const noexcept;
+    /** Tests: the sample chosen last for a voice (index in the kit's list), -1 = none. */
+    int getLastSampleIndex (int voice) const noexcept { return lastSampleIndex[(size_t) std::clamp (voice, 0, 7)]; }
 
     /** Adds the rhythm to the output. timelineRunning = false produces silence (voices decay). */
     void process (float* outL, float* outR, int numSamples, double ppqStart, double ppqPerSample,
@@ -63,8 +102,9 @@ public:
     static double swingOffset (int step, float swing) noexcept;
 
 private:
-    void scheduleStep (long long step, int beatsPerMeasure) noexcept;
-    void addEvent (double delaySamples, Voice v, float velocity, uint8_t variant = 0) noexcept;
+    void scheduleStep (long long step, int beatsPerMeasure, double baseDelay, bool allowEarly) noexcept;
+    void addEvent (double delaySamples, Voice v, float velocity, uint8_t variant = 0, int step = 0, bool allowEarly = false) noexcept;
+    bool fireSample (Voice v, float vel) noexcept;
     void fire (Voice v, float velocity, uint8_t variant) noexcept;
     float decayFor (double seconds) const noexcept;
     float noise() noexcept;
@@ -81,7 +121,23 @@ private:
     long long lastStep = -1;
 
     struct Event { double delay; Voice voice; float velocity; uint8_t variant; };
-    std::array<Event, 48> events {};
+    std::array<Event, 96> events {};
+    // v1.5
+    int groove = 1, fills = 0;
+    std::shared_ptr<const DrumBank> bank;
+    struct Player
+    {
+        const DrumBank::Sample* sample = nullptr;
+        double pos = 0.0, inc = 1.0;
+        float gain = 0.0f, fade = 1.0f, fadeStep = 0.0f, room = 0.0f;
+        Voice voice = Kick;
+        bool active = false;
+        uint32_t age = 0;
+    };
+    std::array<Player, 32> players {};
+    std::array<int, 8> roundRobin {}, lastSampleIndex { -1, -1, -1, -1, -1, -1, -1, -1 };
+    uint32_t playerAge = 0;
+    float kickFollow = 0.0f;
     int numEvents = 0;
 
     // kick

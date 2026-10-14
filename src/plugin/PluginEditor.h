@@ -21,7 +21,7 @@ class LiveLooperEditor : public juce::AudioProcessorEditor,
 {
 public:
     static constexpr int kBaseWidth = 1180;
-    static constexpr int kBaseHeight = 720;
+    static constexpr int kBaseHeight = 856;   // v1.5: + performance FX row
     static constexpr int kStripWidth = 170;
     /** Width of the surface: wider when 8 tracks are shown. */
     int surfaceWidth() const noexcept { return kBaseWidth + (proc.getVisibleTracks() - kDefaultVisibleTracks) * kStripWidth; }
@@ -93,6 +93,13 @@ private:
     void updateFxEditorLabels();
     void showMidiMapMenu();
     void showSetupMenu();
+    // v1.5
+    void showHelp();
+    void showAbout();
+    void askStartupSettingsOnce();
+    void checkForUpdates (bool userInitiated);
+    void layoutPerformanceRow (int dx);
+    void updatePerformanceLabels();
     void confirmClearAll();
     void commitTempoEntry();
     void updateKeyboardFocusPolicy();
@@ -107,6 +114,19 @@ private:
 
     Lcd lcd;
     LLButton learnBtn { "MIDI LEARN", colours::learn }, mapBtn { "MIDI MAP", colours::cyan }, setupBtn { "SETUP", colours::cyan };
+    LLButton helpBtn { "?", colours::cyan };
+
+    // v1.5 performance row: beat FX, beat repeat / stutter, colour FX, metronome
+    LLCombo bfxType, bfxBeat, bfxTarget, repeatRate, stutterRate, clickSoundBox;
+    std::unique_ptr<APVTS::ComboBoxAttachment> bfxTypeAtt, bfxBeatAtt, bfxTargetAtt, repeatRateAtt, stutterRateAtt, clickSoundAtt;
+    LLButton bfxOn { "ON", colours::orange }, beatDown { "<", colours::cyan }, beatUp { ">", colours::cyan };
+    std::unique_ptr<MomentaryButton> bfxHold, repeatHold, stutterHold;
+    LLButton repeatLatch { "LATCH", colours::yellow }, stutterLatch { "LATCH", colours::yellow };
+    std::unique_ptr<Knob> bfxDepth, metroLevel;
+    std::array<std::unique_ptr<LLButton>, 6> colorBtns;
+    LLButton metroOn { "METRONOME", colours::yellow }, metroAccent { "ACCENT", colours::yellow };
+    std::unique_ptr<APVTS::ButtonAttachment> bfxOnAtt, repeatLatchAtt, stutterLatchAtt, metroOnAtt, metroAccentAtt;
+    juce::Rectangle<int> beatFxArea, repeatArea, colorArea, metroArea;
 
     std::array<std::unique_ptr<FxSlot>, kNumFxSlots> inputSlots, trackSlots;
     LLCombo fxType;

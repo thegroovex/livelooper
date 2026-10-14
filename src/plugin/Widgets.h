@@ -50,6 +50,23 @@ public:
     std::function<juce::String()> tooltipFn;
 };
 
+/** v1.5: a button that holds a (momentary) parameter on while it is pressed - beat FX hold,
+    beat repeat / stutter hold. The button lights while the parameter is on (also via MIDI). */
+class MomentaryButton : public LLButton, private juce::Timer
+{
+public:
+    MomentaryButton (APVTS& state, const juce::String& paramId, const juce::String& text, juce::Colour led);
+    ~MomentaryButton() override;
+    void mouseDown (const juce::MouseEvent& e) override;
+    void mouseUp (const juce::MouseEvent& e) override;
+
+private:
+    void timerCallback() override;
+    void set (bool on);
+    juce::RangedAudioParameter* param = nullptr;
+    bool down = false;
+};
+
 /** Combo box whose items are given in English and shown in the current UI language
     (switches live when the language changes). Item ids are 1..n. */
 class LLCombo : public juce::ComboBox, private i18n::Listener
@@ -221,11 +238,12 @@ private:
     LLButton undo { "UNDO", colours::yellow }, redo { "REDO", colours::yellow }, settings { "SETUP", colours::cyan };
     LLSlider level { juce::Slider::LinearVertical, colours::green };
     LLSlider pan { juce::Slider::RotaryHorizontalVerticalDrag, colours::cyan };
+    LLSlider color { juce::Slider::RotaryHorizontalVerticalDrag, colours::blue };
     RecPlayButton recPlay;
     StopButton stop;
 
     std::unique_ptr<APVTS::ButtonAttachment> reverseAtt, oneShotAtt, fxAtt;
-    std::unique_ptr<APVTS::SliderAttachment> levelAtt, panAtt;
+    std::unique_ptr<APVTS::SliderAttachment> levelAtt, panAtt, colorAtt;
 
     std::array<float, kWaveBins> wave {};
     bool waveValid = false;

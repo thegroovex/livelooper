@@ -73,6 +73,49 @@ void LLButton::mouseDown (const juce::MouseEvent& e)
         juce::TextButton::mouseDown (e);
 }
 
+MomentaryButton::MomentaryButton (APVTS& state, const juce::String& paramId, const juce::String& text, juce::Colour led)
+    : LLButton (text, led), param (state.getParameter (paramId))
+{
+    setParamId (*this, paramId);
+    startTimerHz (20);
+}
+
+MomentaryButton::~MomentaryButton() { stopTimer(); }
+
+void MomentaryButton::set (bool on)
+{
+    if (param == nullptr)
+        return;
+    param->beginChangeGesture();
+    param->setValueNotifyingHost (on ? 1.0f : 0.0f);
+    param->endChangeGesture();
+}
+
+void MomentaryButton::mouseDown (const juce::MouseEvent& e)
+{
+    if (handleMidiRightClick (*this, e))
+        return;
+    down = true;
+    set (true);
+    setToggleState (true, juce::dontSendNotification);
+}
+
+void MomentaryButton::mouseUp (const juce::MouseEvent& e)
+{
+    juce::ignoreUnused (e);
+    if (! down)
+        return;
+    down = false;
+    set (false);
+}
+
+void MomentaryButton::timerCallback()
+{
+    const bool on = param != nullptr && param->getValue() >= 0.5f;
+    if (getToggleState() != on)
+        setToggleState (on, juce::dontSendNotification);
+}
+
 LLCombo::LLCombo()  { i18n::addListener (this); }
 LLCombo::~LLCombo() { i18n::removeListener (this); }
 
@@ -535,6 +578,12 @@ TrackStrip::TrackStrip (LiveLooperProcessor& p, int t)
     setParamId (pan, trackId (track, kPan));
     addAndMakeVisible (level);
     addAndMakeVisible (pan);
+    // v1.5 colour FX knob (centre = off, left / right = more of the effect chosen in COLOR FX)
+    colorAtt = std::make_unique<APVTS::SliderAttachment> (st, trackId (track, kColor), color);
+    color.setDoubleClickReturnValue (true, 0.0);
+    setParamId (color, trackId (track, kColor));
+    color.setTooltip ("Color FX of this track: centre = off, turn left / right for more (effect chosen in COLOR FX); double-click = off");
+    addAndMakeVisible (color);
 
     setParamId (undo, trackId (track, kUndo));
     setParamId (redo, trackId (track, kRedo));
@@ -572,8 +621,14 @@ void TrackStrip::resized()
     level.setBounds (mid.removeFromLeft (38));
     meterArea = mid.removeFromLeft (12).withTrimmedTop (6).withTrimmedBottom (16);   // stereo meter + IN / OUT caption
     mid.removeFromLeft (4);
-    pan.setBounds (mid.removeFromTop (54).withSizeKeepingCentre (54, 54));
-    mid.removeFromTop (14);                           // "PAN" caption
+    {
+        // v1.5: PAN and the track's COLOR FX knob side by side
+        auto knobs = mid.removeFromTop (48);
+        pan.setBounds (knobs.removeFromLeft (knobs.getWidth() / 2).withSizeKeepingCentre (46, 46));
+        color.setBounds (knobs.withSizeKeepingCentre (46, 46));
+    }
+    mid.removeFromTop (14);                           // "PAN" / "COLOR" captions
+    mid.removeFromTop (6);
     undo.setBounds (mid.removeFromTop (24).reduced (0, 1));
     mid.removeFromTop (3);
     redo.setBounds (mid.removeFromTop (24).reduced (0, 1));
@@ -689,6 +744,7 @@ void TrackStrip::paint (juce::Graphics& g)
     g.setColour (colours::textDim);
     g.setFont (LooperLookAndFeel::font (11.0f, true));
     g.drawText (tr ("PAN"), pan.getBounds().translated (0, pan.getHeight() - 2).withHeight (14), juce::Justification::centred);
+    g.drawText (tr ("COLOR"), color.getBounds().translated (0, color.getHeight() - 2).withHeight (14).expanded (6, 0), juce::Justification::centred);
 
     // stereo meter next to the fader: input while recording / overdubbing, output otherwise
     {

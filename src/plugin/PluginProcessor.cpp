@@ -2,6 +2,8 @@
 #include "PluginEditor.h"
 #include "Localisation.h"
 #include "push/PushDevice.h"
+#include "AppSettings.h"
+#include "DrumSampleLoader.h"
 
 namespace livelooper
 {
@@ -185,6 +187,9 @@ LiveLooperProcessor::LiveLooperProcessor (bool withCueOutput, bool withTrackOutp
     metroAccent  = apvts.getRawParameterValue (gMetroAccent);
     linkOn       = apvts.getRawParameterValue (gLinkOn);
     linkStartStop = apvts.getRawParameterValue (gLinkStartStop);
+    rhythmGroove = apvts.getRawParameterValue (gRhythmGroove);
+    rhythmFills  = apvts.getRawParameterValue (gRhythmFills);
+    engine.setDrumBank (getEmbeddedDrumBank());      // v1.5: recorded CC0 / public-domain kits
 
     keyboardAvailable = wrapperType == wrapperType_Standalone;
     if (wrapperType != wrapperType_Undefined)      // a real host or the standalone app (not the unit tests)
@@ -195,6 +200,9 @@ LiveLooperProcessor::LiveLooperProcessor (bool withCueOutput, bool withTrackOutp
 LiveLooperProcessor::~LiveLooperProcessor()
 {
     stopTimer();
+    if (wrapperType != wrapperType_Undefined)
+        saveLastSettings();
+    linkPtr.store (nullptr);
     pushDevice.reset();
 }
 
@@ -333,7 +341,7 @@ void LiveLooperProcessor::pushSettingsToEngine() noexcept
     GlobalSettings g;
     g.quantize      = (Quantize) juce::roundToInt (quantize->load());
     g.recAction     = (RecAction) juce::roundToInt (recAction->load());
-    g.syncToHost    = sync->load() >= 0.5f;
+    g.syncToHost    = sync->load() >= 0.5f || linkDriving.load();   // v1.5: Link drives the timeline like a host
     g.internalTempo = tempo->load();
     g.fadeMs        = fade->load();
     g.masterLevel   = master->load();
@@ -363,6 +371,7 @@ void LiveLooperProcessor::pushSettingsToEngine() noexcept
         for (int t = 0; t < kNumTracks; ++t)
             engine.setColorFx (ct, t, colorKnob[(size_t) t]->load());
         engine.setMetronome (metroOn->load() >= 0.5f, metroLevel->load(), metroAccent->load() >= 0.5f);
+        engine.setRhythmGroove (juce::roundToInt (rhythmGroove->load()), juce::roundToInt (rhythmFills->load()));
     }
     engine.setRhythmFeel (juce::roundToInt (rhythmKit->load()), rhythmSwing->load() * 0.01f, rhythmHuman->load() * 0.01f);
     engine.setPerformance (tapeStopParam->load(), perfFilterParam->load());
@@ -608,6 +617,35 @@ void LiveLooperProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::
             }
         }
 
+    // ---- v1.5 Ableton Link: drives the timeline in the standalone app, and in a DAW when HOST SYNC is off
+    {
+        bool driving = false;
+        if (auto* l = linkPtr.load())
+        {
+            const bool hostSync = sync->load() >= 0.5f && wrapperType != wrapperType_Standalone;
+            const bool use = linkOn->load() >= 0.5f && ! hostSync;
+            const float tp = tempo->load();
+            const double request = (lastTempoParam > 0.0f && std::abs (tp - lastTempoParam) > 0.005f) ? (double) tp : 0.0;
+            lastTempoParam = tp;
+            const bool running = engine.isTimelineRunning();
+            const auto blk = l->beginBlock (getSampleRate() > 0.0 ? getSampleRate() : 44100.0, numSamples,
+                                            outputLatency.load() + numSamples / juce::jmax (1.0, getSampleRate()), 4.0,
+                                            use ? request : 0.0, use && running && ! lastEngineRunning,
+                                            use && ! running && lastEngineRunning, engine.getTimelinePpq());
+            lastEngineRunning = running;
+            if (use && blk.active)
+            {
+                driving = true;
+                time.bpm = blk.bpm;
+                time.ppq = blk.beat;
+                time.numerator = 4;
+                time.denominator = 4;
+                time.hostPlaying = linkStartStop->load() >= 0.5f ? blk.playing : true;
+            }
+        }
+        linkDriving.store (driving);
+    }
+
     // ---- MIDI (learn + mapping)
     for (const auto meta : midi)
         handleMidiMessage (meta.getMessage());
@@ -694,6 +732,18 @@ void LiveLooperProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::
 //==============================================================================
 void LiveLooperProcessor::timerCallback()
 {
+    // v1.5: Link on / off, start settings (about 1 s after creation: a project would have loaded its
+    // state by then), and the last used settings saved every 10 s when they changed
+    updateLink();
+    if (wrapperType != wrapperType_Undefined)
+    {
+        ++settingsTimer;
+        if (! startupHandled && settingsTimer > 30)
+            applyStartupSettingsIfFresh();
+        if (settingsTimer % 300 == 0)
+            saveLastSettings();
+    }
+
     // momentary trigger parameters go back to "off" after they fired
     for (auto& t : triggers)
         if (t->needsReset.exchange (false) && t->param->getValue() >= 0.5f)
@@ -1036,6 +1086,7 @@ void LiveLooperProcessor::setStateInformation (const void* data, int sizeInBytes
     auto root = getXmlFromBinary (data, sizeInBytes);
     if (root == nullptr || ! root->hasTagName ("LIVELOOPER_STATE"))
         return;
+    stateLoaded = true;
 
     saveLoops = root->getBoolAttribute ("saveLoops", true);
     if (root->hasAttribute ("cuePair"))
@@ -1115,6 +1166,142 @@ juce::String LiveLooperProcessor::getCuePairName (int pair)
     if (pair <= 0)
         return i18n::tr ("Off");
     return i18n::tr ("Outputs %1 / %2", juce::String (pair * 2 + 1), juce::String (pair * 2 + 2));
+}
+
+//============================================================================== v1.5 Link + global settings
+juce::String LiveLooperProcessor::getLinkStatus() const
+{
+    if (! LinkSync::isAvailable())
+        return i18n::tr ("Link is not available in this build");
+    auto* l = linkPtr.load();
+    if (l == nullptr || ! l->isEnabled())
+        return i18n::tr ("Link off");
+    const int peers = l->getNumPeers();
+    return i18n::tr (peers == 1 ? "Link: 1 peer, %2 BPM" : "Link: %1 peers, %2 BPM", juce::String (peers),
+                     juce::String (l->getSessionTempo(), 1));
+}
+
+int LiveLooperProcessor::getLinkPeers() const noexcept
+{
+    auto* l = linkPtr.load();
+    return l != nullptr ? l->getNumPeers() : 0;
+}
+
+void LiveLooperProcessor::updateLink()
+{
+    const bool want = linkOn->load() >= 0.5f;
+    if (want && link == nullptr && LinkSync::isAvailable())
+    {
+        link = std::make_unique<LinkSync>();       // created on first use, kept until the processor goes
+        linkPtr.store (link.get());
+    }
+    if (link != nullptr)
+    {
+        link->setStartStopSync (linkStartStop->load() >= 0.5f);
+        link->setEnabled (want);
+        // show the session tempo on the tempo control while Link drives
+        if (linkDriving.load() && link->getNumPeers() > 0)
+        {
+            const double bpm = link->getSessionTempo();
+            if (std::abs (bpm - tempo->load()) > 0.05)
+            {
+                lastTempoParam = (float) juce::jlimit (40.0, 300.0, bpm);
+                setInternalTempo (bpm);
+            }
+        }
+    }
+}
+
+std::unique_ptr<juce::XmlElement> LiveLooperProcessor::createSettingsSnapshot()
+{
+    auto root = std::make_unique<juce::XmlElement> ("LIVELOOPER_SETTINGS");
+    root->setAttribute ("version", LIVELOOPER_VERSION);
+    root->setAttribute ("maxLoopSeconds", maxLoopSeconds);
+    root->setAttribute ("saveLoops", saveLoops);
+    root->setAttribute ("cuePair", cuePair.load());
+    root->setAttribute ("clickRoute", clickRoute.load());
+    root->setAttribute ("visibleTracks", visibleTracks.load());
+    root->setAttribute ("push", pushEnabledSetting);
+    juce::StringArray outs;
+    for (auto& p : trackOutPair) outs.add (juce::String (p.load()));
+    root->setAttribute ("trackOutputs", outs.joinIntoString (","));
+    auto* params = root->createNewChildElement ("PARAMS");
+    for (auto* p : paramList)
+    {
+        const auto id = p->getParameterID();
+        if (isTrigger (id) || isMomentary (id) || id == gTapeStop)
+            continue;
+        auto* e = params->createNewChildElement ("P");
+        e->setAttribute ("id", id);
+        e->setAttribute ("v", p->convertFrom0to1 (p->getValue()));
+    }
+    root->addChildElement (midiMap.toXml ([this] (int i) { return getParamIdForIndex (i); }).release());
+    root->addChildElement (keyMap.toXml().release());
+    return root;
+}
+
+void LiveLooperProcessor::applySettingsSnapshot (const juce::XmlElement& s)
+{
+    if (! s.hasTagName ("LIVELOOPER_SETTINGS"))
+        return;
+    saveLoops = s.getBoolAttribute ("saveLoops", saveLoops);
+    setCuePair (s.getIntAttribute ("cuePair", cuePair.load()));
+    setClickRoute ((ClickRoute) juce::jlimit (0, 2, s.getIntAttribute ("clickRoute", clickRoute.load())));
+    setMaxLoopSeconds (s.getDoubleAttribute ("maxLoopSeconds", maxLoopSeconds));
+    setVisibleTracks (s.getIntAttribute ("visibleTracks", visibleTracks.load()));
+    setPushEnabled (s.getBoolAttribute ("push", pushEnabledSetting));
+    const auto outs = juce::StringArray::fromTokens (s.getStringAttribute ("trackOutputs"), ",", "");
+    for (int t = 0; t < kNumTracks && t < outs.size(); ++t)
+        setTrackOutputPair (t, outs[t].getIntValue());
+    if (auto* params = s.getChildByName ("PARAMS"))
+        for (auto* e : params->getChildWithTagNameIterator ("P"))
+            if (auto* p = apvts.getParameter (e->getStringAttribute ("id")))
+            {
+                p->beginChangeGesture();
+                p->setValueNotifyingHost (p->convertTo0to1 ((float) e->getDoubleAttribute ("v")));
+                p->endChangeGesture();
+            }
+    if (auto* mm = s.getChildByName ("MIDIMAP"))
+        midiMap.fromXml (*mm, [this] (const juce::String& id) { return getParamIndex (id); });
+    if (auto* km = s.getChildByName ("KEYMAP"))
+        keyMap.fromXml (*km);
+    sendChangeMessage();
+}
+
+void LiveLooperProcessor::applyDefaultSettings()
+{
+    for (auto* p : paramList)
+        if (! isTrigger (p->getParameterID()) && ! isMomentary (p->getParameterID()))
+        {
+            p->beginChangeGesture();
+            p->setValueNotifyingHost (p->getDefaultValue());
+            p->endChangeGesture();
+        }
+    setCuePair (0);
+    setClickRoute (ClickRoute::Main);
+    for (int t = 0; t < kNumTracks; ++t)
+        setTrackOutputPair (t, 0);
+    setPushEnabled (true);
+    sendChangeMessage();
+}
+
+void LiveLooperProcessor::applyStartupSettingsIfFresh()
+{
+    startupHandled = true;
+    if (stateLoaded || appsettings::getStartupMode() != appsettings::StartupMode::LastSettings)
+        return;
+    if (auto s = appsettings::loadLastSettings())
+        applySettingsSnapshot (*s);
+}
+
+void LiveLooperProcessor::saveLastSettings()
+{
+    auto s = createSettingsSnapshot();
+    const auto text = s->toString();
+    if (text == lastSnapshot)
+        return;
+    lastSnapshot = text;
+    appsettings::saveLastSettings (*s);
 }
 
 bool LiveLooperProcessor::saveSet (const juce::File& file)

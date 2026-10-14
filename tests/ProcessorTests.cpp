@@ -75,7 +75,7 @@ public:
             expectEquals (unique.size(), ids.size());
             // 5 tracks x 16 + 17 global + 2 x 4 slots x 5
             expectEquals (ids.size(), 8 * (22 + 15) + (17 + 6 + 3 + params::kNumScenes + 2) + 40
-                                      + 7 + kNumTracks + 6 + 3 + 2);   // v1.5: beat FX + colour type, colour per track, repeat / stutter, metronome, Link   // 8 tracks x (22 + 15 since 1.4), global (+3 rhythm feel since 1.3, +2 tape stop / filter since 1.4), FX
+                                      + 7 + kNumTracks + 6 + 3 + 2 + 2);   // v1.5: beat FX + colour type, colour per track, repeat / stutter, metronome, Link   // 8 tracks x (22 + 15 since 1.4), global (+3 rhythm feel since 1.3, +2 tape stop / filter since 1.4), FX
             expectEquals (proc.getMidiMap().getNumParams(), ids.size(), "every parameter can be MIDI mapped");
             expect (ids.contains ("t3_recplay") && ids.contains ("allstartstop") && ids.contains ("trD_mix"));
         }

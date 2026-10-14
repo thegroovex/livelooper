@@ -115,6 +115,10 @@ public:
         metronome.setLevel (level);
         metronome.setClickAccent (accent);
     }
+    /** v1.5 rhythm: drum samples (message thread, before playing), groove template, fills. */
+    void setDrumBank (std::shared_ptr<const DrumBank> b) noexcept { rhythm.setDrumBank (std::move (b)); }
+    void setRhythmGroove (int groove, int fills) noexcept { rhythm.setGroove (groove); rhythm.setFills (fills); }
+    const RhythmGenerator& getRhythm() const noexcept { return rhythm; }
     const BeatFx& getBeatFx() const noexcept { return beatFx; }
     const BeatRepeat& getBeatRepeat() const noexcept { return beatRepeat; }
     int getFxTarget() const noexcept { return fxTarget; }

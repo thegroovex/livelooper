@@ -1,4 +1,7 @@
 #include "PluginEditor.h"
+#include "AppSettings.h"
+#include "InfoWindows.h"
+#include "Updates.h"
 
 namespace livelooper
 {
@@ -7,15 +10,20 @@ using i18n::tr;
 
 namespace layout
 {
-    const juce::Rectangle<int> header       { 0, 0, 1180, 78 };
-    const juce::Rectangle<int> lcd          { 300, 12, 548, 56 };
-    const juce::Rectangle<int> inputFx      { 12, 86, 380, 122 };
-    const juce::Rectangle<int> fxEditor     { 400, 86, 380, 122 };
-    const juce::Rectangle<int> trackFx      { 788, 86, 380, 122 };
-    const juce::Rectangle<int> tracks       { 12, 216, 850, 446 };
-    const juce::Rectangle<int> rhythm       { 870, 216, 298, 190 };
-    const juce::Rectangle<int> masterPanel  { 870, 412, 298, 250 };
-    const juce::Rectangle<int> footer       { 0, 668, 1180, 52 };
+    const juce::Rectangle<int> header       { 0, 0, 1180, 92 };
+    const juce::Rectangle<int> lcd          { 300, 9, 548, 76 };
+    const juce::Rectangle<int> inputFx      { 12, 100, 380, 122 };
+    const juce::Rectangle<int> fxEditor     { 400, 100, 380, 122 };
+    const juce::Rectangle<int> trackFx      { 788, 100, 380, 122 };
+    // v1.5 performance row
+    const juce::Rectangle<int> beatFx       { 12, 230, 470, 112 };
+    const juce::Rectangle<int> repeat       { 490, 230, 270, 112 };
+    const juce::Rectangle<int> colorFx      { 768, 230, 210, 112 };
+    const juce::Rectangle<int> metronome    { 986, 230, 182, 112 };
+    const juce::Rectangle<int> tracks       { 12, 350, 850, 446 };
+    const juce::Rectangle<int> rhythm       { 870, 350, 298, 190 };
+    const juce::Rectangle<int> masterPanel  { 870, 546, 298, 250 };
+    const juce::Rectangle<int> footer       { 0, 804, 1180, 52 };
 }
 
 LiveLooperEditor::LiveLooperEditor (LiveLooperProcessor& p)
@@ -52,9 +60,107 @@ LiveLooperEditor::LiveLooperEditor (LiveLooperProcessor& p)
     mapBtn.onClick = [this] { showMidiMapMenu(); };
     mapBtn.setTooltip ("Show / remove MIDI assignments, load the default map");
     setupBtn.onClick = [this] { showSetupMenu(); };
-    setupBtn.setTooltip ("Settings, language");
-    for (auto* b : { &learnBtn, &mapBtn, &setupBtn })
+    setupBtn.setTooltip ("Settings, sets, Link, updates, about, language");
+    helpBtn.onClick = [this] { showHelp(); };
+    helpBtn.setTooltip ("Help: every function explained (searchable)");
+    for (auto* b : { &learnBtn, &mapBtn, &setupBtn, &helpBtn })
         surface.addAndMakeVisible (b);
+
+    // ---- v1.5 performance row: beat FX
+    bfxType.setEnglishItems (beatFxChoices());
+    bfxTypeAtt = std::make_unique<APVTS::ComboBoxAttachment> (st, gBfxType, bfxType);
+    setParamId (bfxType, gBfxType);
+    bfxType.setTooltip ("Beat FX type (synced to the tempo)");
+    bfxType.onChange = [this] { updatePerformanceLabels(); };
+    bfxBeat.setEnglishItems (beatFractionChoices());
+    bfxBeatAtt = std::make_unique<APVTS::ComboBoxAttachment> (st, gBfxBeat, bfxBeat);
+    setParamId (bfxBeat, gBfxBeat);
+    bfxBeat.setTooltip ("Beat fraction of the beat FX in beats: 1/32 beat ... 16 beats (4 bars)");
+    bfxTarget.setEnglishItems (fxTargetChoices());
+    bfxTargetAtt = std::make_unique<APVTS::ComboBoxAttachment> (st, gBfxTarget, bfxTarget);
+    setParamId (bfxTarget, gBfxTarget);
+    bfxTarget.setTooltip ("FX channel: where beat FX, beat repeat and stutter work - master, all loops, the input (recorded with the effect) or one track");
+    auto stepBeat = [this] (int delta) {
+        if (auto* p = dynamic_cast<juce::AudioParameterChoice*> (proc.getState().getParameter (gBfxBeat)))
+        {
+            const int i = juce::jlimit (0, p->choices.size() - 1, p->getIndex() + delta);
+            p->beginChangeGesture();
+            p->setValueNotifyingHost (p->convertTo0to1 ((float) i));
+            p->endChangeGesture();
+        }
+    };
+    beatDown.onClick = [stepBeat] { stepBeat (-1); };
+    beatUp.onClick = [stepBeat] { stepBeat (1); };
+    beatDown.setTooltip ("Shorter beat fraction");
+    beatUp.setTooltip ("Longer beat fraction");
+    bfxOn.setClickingTogglesState (true);
+    bfxOnAtt = std::make_unique<APVTS::ButtonAttachment> (st, gBfxOn, bfxOn);
+    setParamId (bfxOn, gBfxOn);
+    bfxOn.setTooltip ("Beat FX on / off");
+    bfxHold = std::make_unique<MomentaryButton> (st, gBfxHold, "HOLD", colours::orange);
+    bfxHold->setTooltip ("Beat FX while held (momentary) - map it to a pad");
+    bfxDepth = std::make_unique<Knob> (st, gBfxDepth, "Level", colours::orange);
+
+    // beat repeat / stutter
+    repeatRate.setEnglishItems (repeatRateChoices());
+    repeatRateAtt = std::make_unique<APVTS::ComboBoxAttachment> (st, gRepeatRate, repeatRate);
+    setParamId (repeatRate, gRepeatRate);
+    repeatRate.setTooltip ("Beat repeat timing (note value)");
+    stutterRate.setEnglishItems (repeatRateChoices());
+    stutterRateAtt = std::make_unique<APVTS::ComboBoxAttachment> (st, gStutterRate, stutterRate);
+    setParamId (stutterRate, gStutterRate);
+    stutterRate.setTooltip ("Stutter timing (note value)");
+    repeatHold = std::make_unique<MomentaryButton> (st, gRepeatHold, "REPEAT", colours::red);
+    repeatHold->setTooltip ("Beat repeat while held: repeats the next 1/2 ... 1/32 note from the next grid line, back in sync on release");
+    stutterHold = std::make_unique<MomentaryButton> (st, gStutterHold, "STUTTER", colours::red);
+    stutterHold->setTooltip ("Stutter while held: chopped repeats of the timing, back in sync on release");
+    for (auto* b : { &repeatLatch, &stutterLatch })
+        b->setClickingTogglesState (true);
+    repeatLatchAtt = std::make_unique<APVTS::ButtonAttachment> (st, gRepeatLatch, repeatLatch);
+    stutterLatchAtt = std::make_unique<APVTS::ButtonAttachment> (st, gStutterLatch, stutterLatch);
+    setParamId (repeatLatch, gRepeatLatch);
+    setParamId (stutterLatch, gStutterLatch);
+    repeatLatch.setTooltip ("Beat repeat latched on (until pressed again)");
+    stutterLatch.setTooltip ("Stutter latched on (until pressed again)");
+
+    // colour FX: one type for all tracks, one knob per track (in the track strips)
+    for (int i = 0; i < (int) colorBtns.size(); ++i)
+    {
+        auto b = std::make_unique<LLButton> (juce::String (getColorFxName ((ColorFxType) i)).toUpperCase(), colours::blue);
+        b->onClick = [this, i] {
+            if (auto* p = proc.getState().getParameter (gColorType))
+            {
+                p->beginChangeGesture();
+                p->setValueNotifyingHost (p->convertTo0to1 ((float) i));
+                p->endChangeGesture();
+            }
+        };
+        setParamId (*b, gColorType);
+        b->setTooltip ("Color FX type for every track's COLOR knob");
+        surface.addAndMakeVisible (*b);
+        colorBtns[(size_t) i] = std::move (b);
+    }
+
+    // metronome (its own block since 1.5)
+    for (auto* b : { &metroOn, &metroAccent })
+        b->setClickingTogglesState (true);
+    metroOnAtt = std::make_unique<APVTS::ButtonAttachment> (st, gMetroOn, metroOn);
+    metroAccentAtt = std::make_unique<APVTS::ButtonAttachment> (st, gMetroAccent, metroAccent);
+    setParamId (metroOn, gMetroOn);
+    setParamId (metroAccent, gMetroAccent);
+    metroOn.setTooltip ("Metronome on / off (independent of the rhythm)");
+    metroAccent.setTooltip ("Accent on the first beat of every bar");
+    clickSoundBox.setEnglishItems (clickSoundChoices());
+    clickSoundAtt = std::make_unique<APVTS::ComboBoxAttachment> (st, gClickSound, clickSoundBox);
+    setParamId (clickSoundBox, gClickSound);
+    clickSoundBox.setTooltip ("Metronome sound");
+    metroLevel = std::make_unique<Knob> (st, gMetroLevel, "Level", colours::yellow);
+
+    for (juce::Component* comp : std::initializer_list<juce::Component*> {
+             &bfxType, &bfxBeat, &bfxTarget, &beatDown, &beatUp, &bfxOn, bfxHold.get(), bfxDepth.get(),
+             &repeatRate, &stutterRate, repeatHold.get(), stutterHold.get(), &repeatLatch, &stutterLatch,
+             &metroOn, &metroAccent, &clickSoundBox, metroLevel.get() })
+        surface.addAndMakeVisible (comp);
 
     // ---- FX slots + editor
     for (int s = 0; s < kNumFxSlots; ++s)
@@ -161,7 +267,18 @@ LiveLooperEditor::LiveLooperEditor (LiveLooperProcessor& p)
 
     setResizable (true, true);
     applyVisibleTracks();
+    updatePerformanceLabels();
     startTimerHz (30);
+
+    // v1.5: ask once how livelooper should start; check for updates when wanted
+    juce::Component::SafePointer<LiveLooperEditor> safe (this);
+    juce::Timer::callAfterDelay (600, [safe] {
+        if (safe == nullptr)
+            return;
+        safe->askStartupSettingsOnce();
+        if (safe->proc.wrapperType != juce::AudioProcessor::wrapperType_Undefined && appsettings::getCheckUpdatesOnStart())
+            safe->checkForUpdates (false);
+    });
 }
 
 LiveLooperEditor::~LiveLooperEditor()
@@ -212,9 +329,11 @@ void LiveLooperEditor::layoutSurface()
     lcd.setBounds (layout::lcd.translated (dx / 2, 0));
     tempoEntry.setBounds (lcd.getBounds().getX() + lcd.getTempoArea().getX() - 4, lcd.getY() + 9,
                           lcd.getTempoArea().getWidth() - 14, lcd.getHeight() - 18);
-    learnBtn.setBounds (868 + dx, 22, 104, 36);
-    mapBtn.setBounds (978 + dx, 22, 92, 36);
-    setupBtn.setBounds (1076 + dx, 22, 92, 36);
+    learnBtn.setBounds (868 + dx, 28, 100, 36);
+    mapBtn.setBounds (974 + dx, 28, 86, 36);
+    setupBtn.setBounds (1066 + dx, 28, 64, 36);
+    helpBtn.setBounds (1136 + dx, 28, 32, 36);
+    layoutPerformanceRow (dx);
 
     auto slotRow = [] (juce::Rectangle<int> panel) { return panel.reduced (8).withTrimmedTop (22); };
     auto in = slotRow (layout::inputFx), tr = slotRow (layout::trackFx.translated (dx, 0));
@@ -331,6 +450,10 @@ void LiveLooperEditor::paintSurface (juce::Graphics& g)
                          + "  " + tr ("EDIT");
     section (layout::fxEditor.translated (dx / 2, 0), fxTitle, selectedInput ? colours::cyan : colours::orange);
     section (layout::trackFx.translated (dx, 0), tr ("TRACK FX"), colours::orange);
+    section (beatFxArea, tr ("BEAT FX"), colours::orange);
+    section (repeatArea, tr ("BEAT REPEAT / STUTTER"), colours::red);
+    section (colorArea, tr ("COLOR FX"), colours::blue);
+    section (metroArea, tr ("METRONOME"), colours::yellow);
     section (layout::rhythm.translated (dx, 0), tr ("RHYTHM"), colours::orange);
     section (layout::masterPanel.translated (dx, 0), tr ("MASTER"), colours::green);
 
@@ -354,6 +477,80 @@ void LiveLooperEditor::paintSurface (juce::Graphics& g)
                       footer.withTrimmedLeft (sceneStore.getRight() - footer.getX() + 18).withTrimmedRight (130),
                       juce::Justification::centredLeft, 1, 0.6f);
     g.drawText ("livelooper v" LIVELOOPER_VERSION, footer, juce::Justification::centredRight);
+}
+
+//============================================================================== v1.5 performance row
+void LiveLooperEditor::layoutPerformanceRow (int dx)
+{
+    // the extra width of 8 tracks goes to the beat FX block
+    beatFxArea = layout::beatFx.withWidth (layout::beatFx.getWidth() + dx);
+    repeatArea = layout::repeat.translated (dx, 0);
+    colorArea = layout::colorFx.translated (dx, 0);
+    metroArea = layout::metronome.translated (dx, 0);
+
+    auto inner = [] (juce::Rectangle<int> r) { return r.reduced (10, 8).withTrimmedTop (22); };
+
+    // beat FX: type / channel | beat fraction | level | on / hold
+    auto b = inner (beatFxArea);
+    auto col = b.removeFromLeft (150);
+    bfxType.setBounds (col.removeFromTop (28).reduced (0, 1));
+    col.removeFromTop (6);
+    bfxTarget.setBounds (col.removeFromTop (28).reduced (0, 1));
+    b.removeFromLeft (10);
+    col = b.removeFromLeft (124);
+    {
+        auto row = col.removeFromTop (28);
+        beatDown.setBounds (row.removeFromLeft (26).reduced (0, 1));
+        beatUp.setBounds (row.removeFromRight (26).reduced (0, 1));
+        bfxBeat.setBounds (row.reduced (3, 1));
+    }
+    b.removeFromLeft (6);
+    auto onCol = b.removeFromRight (92);
+    bfxOn.setBounds (onCol.removeFromTop (34).reduced (0, 1));
+    onCol.removeFromTop (6);
+    bfxHold->setBounds (onCol.removeFromTop (28).reduced (0, 1));
+    bfxDepth->setBounds (b.withSizeKeepingCentre (juce::jmin (90, b.getWidth()), b.getHeight()));
+
+    // beat repeat / stutter: two rows
+    auto r = inner (repeatArea);
+    for (int i = 0; i < 2; ++i)
+    {
+        auto row = r.removeFromTop (30);
+        auto& hold = i == 0 ? *repeatHold : *stutterHold;
+        auto& rate = i == 0 ? repeatRate : stutterRate;
+        auto& latch = i == 0 ? repeatLatch : stutterLatch;
+        hold.setBounds (row.removeFromLeft (92).reduced (0, 1));
+        row.removeFromLeft (6);
+        latch.setBounds (row.removeFromRight (66).reduced (0, 1));
+        row.removeFromRight (6);
+        rate.setBounds (row.reduced (0, 2));
+        r.removeFromTop (8);
+    }
+
+    // colour FX: 3 x 2 type buttons
+    auto cfx = inner (colorArea);
+    const int bw = cfx.getWidth() / 3;
+    for (int i = 0; i < (int) colorBtns.size(); ++i)
+    {
+        auto row = cfx.withHeight (30).translated (0, (i / 3) * 38);
+        colorBtns[(size_t) i]->setBounds (row.withX (cfx.getX() + (i % 3) * bw).withWidth (bw).reduced (2, 1));
+    }
+
+    // metronome: on / accent / sound | level
+    auto m = inner (metroArea);
+    auto left = m.removeFromLeft (98);
+    metroOn.setBounds (left.removeFromTop (26).reduced (0, 1));
+    left.removeFromTop (3);
+    metroAccent.setBounds (left.removeFromTop (24).reduced (0, 1));
+    left.removeFromTop (3);
+    clickSoundBox.setBounds (left.removeFromTop (24));
+    metroLevel->setBounds (m.reduced (2, 0));
+}
+
+void LiveLooperEditor::updatePerformanceLabels()
+{
+    const auto t = (BeatFxType) juce::jlimit (0, (int) BeatFxType::NumTypes - 1, bfxType.getSelectedItemIndex());
+    bfxDepth->setCaption (getBeatFxDepthName (t));
 }
 
 //==============================================================================
@@ -404,6 +601,12 @@ void LiveLooperEditor::timerCallback()
     {
         inputSlots[(size_t) s]->repaint();
         trackSlots[(size_t) s]->repaint();
+    }
+
+    {
+        const int ct = juce::roundToInt (proc.getState().getRawParameterValue (gColorType)->load());
+        for (int i = 0; i < (int) colorBtns.size(); ++i)
+            colorBtns[(size_t) i]->setToggleState (i == ct, juce::dontSendNotification);
     }
 
     const int activity = proc.getMidiActivityCounter();
@@ -514,6 +717,7 @@ juce::String LiveLooperEditor::paramName (const juce::String& id) const
 void LiveLooperEditor::languageChanged()
 {
     updateFxEditorLabels();
+    updatePerformanceLabels();
     repaint();
     surface.repaint();
 }
@@ -874,7 +1078,7 @@ void LiveLooperEditor::showSetupMenu()
         cue.addItem (61, tr ("Cue output only"), true, route == ClickRoute::Cue);
         cue.addItem (62, tr ("Main and cue output"), true, route == ClickRoute::MainAndCue);
         cue.addSeparator();
-        cue.addItem (69, tr ("Enable the outputs in Options > Audio/MIDI Settings"), false);
+        cue.addItem (69, tr ("Enable the outputs in Audio/MIDI Settings (button above the looper)"), false);
     }
 
     // ---- v1.3: tracks, capture, auto record, ducking, direct outputs
@@ -927,10 +1131,47 @@ void LiveLooperEditor::showSetupMenu()
         pushMenu.addItem (148, tr ("Press USER on Push to switch between your DAW and livelooper"), false);
     }
 
+    // ---- v1.5: recent sets, Link, start settings, updates
+    juce::PopupMenu recentMenu;
+    const auto recent = appsettings::getRecentSets();
+    for (int i = 0; i < recent.size(); ++i)
+        recentMenu.addItem (300 + i, juce::File (recent[i]).getFileNameWithoutExtension() + "   (" + juce::File (recent[i]).getParentDirectory().getFileName() + ")");
+    if (recent.isEmpty())
+        recentMenu.addItem (298, tr ("No sets used yet"), false);
+    recentMenu.addSeparator();
+    recentMenu.addItem (299, tr ("Clear list"), ! recent.isEmpty());
+
+    auto* linkOn = dynamic_cast<juce::AudioParameterBool*> (st.getParameter (gLinkOn));
+    auto* linkStartStop = dynamic_cast<juce::AudioParameterBool*> (st.getParameter (gLinkStartStop));
+    juce::PopupMenu linkMenu;
+    linkMenu.addItem (400, tr ("Ableton Link (tempo and beat with other apps)"), proc.isLinkAvailable(), linkOn->get());
+    linkMenu.addItem (401, tr ("Sync start / stop with Link"), proc.isLinkAvailable(), linkStartStop->get());
+    linkMenu.addSeparator();
+    linkMenu.addItem (409, proc.getLinkStatus(), false);
+    if (proc.wrapperType != juce::AudioProcessor::wrapperType_Standalone)
+        linkMenu.addItem (408, tr ("In a DAW, HOST SYNC has priority - switch it off to follow Link"), false);
+
+    juce::PopupMenu startMenu;
+    const auto mode = appsettings::getStartupMode();
+    startMenu.addItem (410, tr ("Start with the last used settings"), true, mode == appsettings::StartupMode::LastSettings);
+    startMenu.addItem (411, tr ("Start with the default settings"), true, mode == appsettings::StartupMode::Defaults);
+    startMenu.addSeparator();
+    startMenu.addItem (412, tr ("Reset all settings to the defaults now (keeps the loops)"));
+
+    juce::PopupMenu updateMenu;
+    updateMenu.addItem (420, tr ("Check for updates now ..."));
+    updateMenu.addItem (421, tr ("Check automatically on start"), true, appsettings::getCheckUpdatesOnStart());
+    updateMenu.addItem (422, tr ("Install updates automatically"), true, appsettings::getAutoInstallUpdates());
+    updateMenu.addSeparator();
+    updateMenu.addItem (429, tr (proc.wrapperType == juce::AudioProcessor::wrapperType_Standalone
+                                     ? "App: replaced when you quit livelooper"
+                                     : "Plug-in: downloaded and prepared, you install it with your DAW closed"), false);
+
     juce::PopupMenu menu;
     menu.addSectionHeader (tr ("livelooper setup"));
     menu.addItem (8, tr ("Save set ..."));
     menu.addItem (9, tr ("Load set ..."));
+    menu.addSubMenu (tr ("Last used sets"), recentMenu);
     menu.addItem (10, tr ("Export stems (one WAV per track) ..."));
     menu.addSeparator();
     menu.addSubMenu (tr ("Tracks"), tracksMenu);
@@ -957,11 +1198,18 @@ void LiveLooperEditor::showSetupMenu()
     }
     menu.addItem (7, tr ("Type in tempo (BPM) ..."));
     menu.addSeparator();
+    menu.addSubMenu (tr ("Ableton Link"), linkMenu);
+    menu.addSubMenu (tr ("Settings on start"), startMenu);
+    menu.addSubMenu (tr ("Updates"), updateMenu);
     menu.addSubMenu ("Language / Sprache", language);
+    menu.addSeparator();
+    menu.addItem (430, tr ("Help ..."));
+    menu.addItem (431, tr ("About livelooper ..."));
 
     juce::Component::SafePointer<LiveLooperEditor> safe (this);
     menu.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&setupBtn),
-                        [safe, recAction, follow, lengths, clickSound, captureBars, autoRec, autoRecThresh, duckSource, thresholds] (int r) {
+                        [safe, recAction, follow, lengths, clickSound, captureBars, autoRec, autoRecThresh, duckSource, thresholds,
+                         recent, linkOn, linkStartStop] (int r) {
         if (safe == nullptr || r == 0)
             return;
         auto setParam = [] (juce::RangedAudioParameter* p, float plain) {
@@ -969,6 +1217,33 @@ void LiveLooperEditor::showSetupMenu()
             p->setValueNotifyingHost (p->convertTo0to1 (plain));
             p->endChangeGesture();
         };
+        // ---- v1.5
+        if (r >= 300 && r < 300 + recent.size())
+        {
+            safe->loadSetFile (juce::File (recent[r - 300]));
+            return;
+        }
+        switch (r)
+        {
+            case 299: appsettings::clearRecentSets(); return;
+            case 400:
+                setParam (linkOn, linkOn->get() ? 0.0f : 1.0f);
+                safe->showStatus (tr (linkOn->get() ? "LINK ON" : "LINK OFF"));
+                return;
+            case 401: setParam (linkStartStop, linkStartStop->get() ? 0.0f : 1.0f); return;
+            case 410: appsettings::setStartupMode (appsettings::StartupMode::LastSettings); return;
+            case 411: appsettings::setStartupMode (appsettings::StartupMode::Defaults); return;
+            case 412:
+                safe->proc.applyDefaultSettings();
+                safe->showStatus (tr ("SETTINGS RESET TO DEFAULTS"));
+                return;
+            case 420: safe->checkForUpdates (true); return;
+            case 421: appsettings::setCheckUpdatesOnStart (! appsettings::getCheckUpdatesOnStart()); return;
+            case 422: appsettings::setAutoInstallUpdates (! appsettings::getAutoInstallUpdates()); return;
+            case 430: safe->showHelp(); return;
+            case 431: safe->showAbout(); return;
+            default: break;
+        }
         if (r == 10)
         {
             safe->exportStems();
@@ -1087,6 +1362,8 @@ void LiveLooperEditor::saveSet()
             return;
         const auto file = fc.getResult().withFileExtension ("llset");
         const bool ok = safe->proc.saveSet (file);
+        if (ok)
+            appsettings::addRecentSet (file);
         safe->showStatus (ok ? tr ("SET SAVED: %1", file.getFileNameWithoutExtension().toUpperCase()) : tr ("SET COULD NOT BE SAVED"));
     });
 }
@@ -1107,6 +1384,8 @@ void LiveLooperEditor::loadSetFile (const juce::File& file)
 {
     juce::String error;
     const bool ok = proc.loadSet (file, error);
+    if (ok)
+        appsettings::addRecentSet (file);
     showStatus (ok ? tr ("SET LOADED: %1", file.getFileNameWithoutExtension().toUpperCase()) : tr ("LOAD FAILED: %1", error));
 }
 
@@ -1179,5 +1458,52 @@ void LiveLooperEditor::filesDropped (const juce::StringArray& files, int x, int 
             showStatus (ok ? tr ("IMPORTED TO TRACK %1", juce::String (s->getTrackIndex() + 1)) : tr ("IMPORT FAILED: %1", tr (error)));
             return;
         }
+}
+//============================================================================== v1.5 help, about, start settings, updates
+void LiveLooperEditor::showHelp()
+{
+    HelpWindow::show (*this);
+}
+
+void LiveLooperEditor::showAbout()
+{
+    AboutWindow::show (*this, proc);
+}
+
+void LiveLooperEditor::askStartupSettingsOnce()
+{
+    if (appsettings::getStartupMode() != appsettings::StartupMode::Ask
+        || proc.wrapperType == juce::AudioProcessor::wrapperType_Undefined)     // tests / screenshot tool
+        return;
+    auto opts = juce::MessageBoxOptions().withIconType (juce::MessageBoxIconType::QuestionIcon)
+                    .withTitle (tr ("Welcome to livelooper"))
+                    .withMessage (tr ("How should livelooper start from now on?\n\n"
+                                      "Last settings: every start (and every new plug-in without a saved project) uses the settings you "
+                                      "used last - effects, rhythm, metronome, MIDI and keyboard mapping, tracks, Push.\n"
+                                      "Default settings: always start fresh.\n\nYou can change this any time in SETUP > Settings on start."))
+                    .withButton (tr ("Use last settings")).withButton (tr ("Use default settings")).withAssociatedComponent (this);
+    juce::Component::SafePointer<LiveLooperEditor> safe (this);
+    juce::AlertWindow::showAsync (opts, [safe] (int r) {
+        const bool last = r != 0;      // 1 = first button; closing the window keeps the last settings
+        appsettings::setStartupMode (last ? appsettings::StartupMode::LastSettings : appsettings::StartupMode::Defaults);
+        if (safe != nullptr && last)
+            safe->proc.applyStartupSettingsIfFresh();
+    });
+}
+
+void LiveLooperEditor::checkForUpdates (bool userInitiated)
+{
+    const bool standalone = proc.wrapperType == juce::AudioProcessor::wrapperType_Standalone;
+    if (userInitiated)
+    {
+        AboutWindow::show (*this, proc, true);
+        return;
+    }
+    // automatic check (once per session): quiet unless there is something new
+    juce::Component::SafePointer<LiveLooperEditor> safe (this);
+    UpdateManager::getInstance()->checkOnStart (standalone, [safe] (const juce::String& message) {
+        if (safe != nullptr)
+            safe->showStatus (message);
+    });
 }
 } // namespace livelooper

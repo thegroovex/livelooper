@@ -61,6 +61,15 @@ juce::StringArray duckSourceChoices() { return { "Rhythm Kick", "Track 1" }; }
 juce::StringArray captureBarsChoices() { return { "1", "2", "4", "8", "16", "32" }; }
 juce::StringArray beatFractionChoices() { return { "1/32", "1/16", "1/8", "1/4", "1/2", "3/4", "1", "2", "4", "8", "16" }; }
 juce::StringArray repeatRateChoices() { return { "1/2", "1/4", "1/8", "1/16", "1/32" }; }
+juce::StringArray fillChoices() { return { "Off", "Every 4 Bars", "Every 8 Bars" }; }
+
+juce::StringArray grooveChoices()
+{
+    juce::StringArray s;
+    for (int i = 0; i < RhythmGenerator::getNumGrooves(); ++i)
+        s.add (RhythmGenerator::getGrooveName (i));
+    return s;
+}
 
 juce::StringArray beatFxChoices()
 {
@@ -158,7 +167,8 @@ namespace
         { "color_type", "Color FX Type" }, { "brep_hold", "Beat Repeat Hold" }, { "brep_latch", "Beat Repeat Latch" },
         { "brep_rate", "Beat Repeat Timing" }, { "stut_hold", "Stutter Hold" }, { "stut_latch", "Stutter Latch" },
         { "stut_rate", "Stutter Timing" }, { "metro_on", "Metronome On" }, { "metro_level", "Metronome Level" },
-        { "metro_accent", "Metronome Accent" }, { "link_on", "Link" }, { "link_startstop", "Link Start/Stop Sync" }
+        { "metro_accent", "Metronome Accent" }, { "link_on", "Link" }, { "link_startstop", "Link Start/Stop Sync" },
+        { "rhythm_groove", "Groove" }, { "rhythm_fills", "Fills" }
     };
 
     template <size_t N>
@@ -389,6 +399,8 @@ APVTS::ParameterLayout createLayout()
         group->addChild (b (gMetroAccent, true));
         group->addChild (b (gLinkOn, false));
         group->addChild (b (gLinkStartStop, false));
+        group->addChild (ch (gRhythmGroove, translated (grooveChoices()), 1));
+        group->addChild (ch (gRhythmFills, translated (fillChoices()), 0));
         layout.add (std::move (group));
     }
 

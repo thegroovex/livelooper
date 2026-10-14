@@ -108,6 +108,8 @@ inline const juce::String gMetroLevel   { "metro_level" };
 inline const juce::String gMetroAccent  { "metro_accent" };
 inline const juce::String gLinkOn       { "link_on" };
 inline const juce::String gLinkStartStop{ "link_startstop" };
+inline const juce::String gRhythmGroove { "rhythm_groove" };
+inline const juce::String gRhythmFills  { "rhythm_fills" };
 inline constexpr int kNumScenes = 8;
 inline constexpr int kCaptureBars[] = { 1, 2, 4, 8, 16, 32 };   // 16 / 32 since 1.5 (appended)
 inline constexpr int kNumCaptureChoices = 6;
@@ -141,6 +143,8 @@ juce::StringArray beatFractionChoices();
 juce::StringArray fxTargetChoices();
 juce::StringArray colorFxChoices();
 juce::StringArray repeatRateChoices();
+juce::StringArray grooveChoices();
+juce::StringArray fillChoices();
 
 /** The choice lists above are English; this translates a list into the current UI language. */
 juce::StringArray translated (const juce::StringArray& englishChoices);

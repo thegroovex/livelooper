@@ -4,6 +4,7 @@
 #include "engine/LooperEngine.h"
 #include "engine/MidiMap.h"
 #include "KeyMap.h"
+#include "LinkSync.h"
 
 #include <juce_audio_formats/juce_audio_formats.h>
 #include <juce_audio_processors/juce_audio_processors.h>
@@ -81,6 +82,28 @@ public:
     juce::String getPushStatus() const;
     /** Tests / screenshot tool: create the Push connection although no host loaded us. */
     void createPushDevice();
+
+    //============================================================================== v1.5 Ableton Link
+    bool isLinkAvailable() const noexcept { return LinkSync::isAvailable(); }
+    /** "Link off" / "Link: 2 peers, 124.0 BPM" (localised). */
+    juce::String getLinkStatus() const;
+    int  getLinkPeers() const noexcept;
+    /** True while Link drives the timeline (Link on and HOST SYNC off / standalone). */
+    bool isLinkDriving() const noexcept { return linkDriving.load(); }
+    /** Standalone: latency of the audio device output, for the Link phase (seconds). */
+    void setOutputLatencySeconds (double s) noexcept { outputLatency.store (s); }
+
+    //============================================================================== v1.5 global settings
+    /** The looper's configuration without loops (parameters, MIDI / keyboard map, tracks, routing, Push). */
+    std::unique_ptr<juce::XmlElement> createSettingsSnapshot();
+    void applySettingsSnapshot (const juce::XmlElement& snapshot);
+    /** Every setting back to its default (the loops stay). */
+    void applyDefaultSettings();
+    /** Applies the last used settings if this instance has not loaded a project / set yet. */
+    void applyStartupSettingsIfFresh();
+    /** Writes the snapshot to the user settings file (when it changed). */
+    void saveLastSettings();
+    bool hasLoadedState() const noexcept { return stateLoaded; }
 
     //============================================================================== looper sets
     /** Saves the complete looper (loops, settings, FX, rhythm) to a set file (.llset).
@@ -251,6 +274,17 @@ private:
     std::atomic<float>* stutterHold {}; std::atomic<float>* stutterLatch {}; std::atomic<float>* stutterRate {};
     std::atomic<float>* metroOn {}; std::atomic<float>* metroLevel {}; std::atomic<float>* metroAccent {};
     std::atomic<float>* linkOn {}; std::atomic<float>* linkStartStop {};
+    std::atomic<float>* rhythmGroove {}; std::atomic<float>* rhythmFills {};
+    std::unique_ptr<LinkSync> link;
+    std::atomic<LinkSync*> linkPtr { nullptr };
+    std::atomic<bool> linkDriving { false };
+    std::atomic<double> outputLatency { 0.0 };
+    float lastTempoParam = -1.0f;
+    bool lastEngineRunning = false;
+    bool stateLoaded = false, startupHandled = false;
+    int settingsTimer = 0;
+    juce::String lastSnapshot;
+    void updateLink();
     std::array<SliceState, kNumTracks> sliceState {};
     std::array<std::atomic<bool>, kNumTracks> recLenFired {};
     std::array<std::atomic<int>, kNumTracks> pendingOctave {};

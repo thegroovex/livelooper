@@ -73,6 +73,43 @@ namespace
     };
     constexpr int kNumKits = (int) (sizeof (kKits) / sizeof (kKits[0]));
 
+    // ---- v1.5 grooves: micro-timing in ms per voice (kick, snare, clap, closed hat, open hat, rim, shaker, tom)
+    //      plus extra for hats on the off-beat 8ths / 16ths, and an accent curve over the 16 steps
+    struct Groove
+    {
+        const char* name;
+        float voiceMs[8];
+        float hatOffbeatMs;     // added on steps 2, 6, 10, 14
+        float hat16thMs;        // added on odd steps
+        float accent[16];
+        float kickDrunkMs[16];  // per-step kick offsets ("drunk" feel), 0 for most
+    };
+    constexpr Groove kGrooves[] = {
+        { "Straight",  { 0, 0, 0, 0, 0, 0, 0, 0 }, 0.0f, 0.0f,
+          { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }, {} },
+        { "Natural",   { 0, 4, 3, 3, 3, 4, 5, 2 }, 2.0f, 3.0f,
+          { 1.0f, .80f, .90f, .78f, .97f, .80f, .90f, .78f, 1.0f, .80f, .90f, .78f, .97f, .80f, .90f, .80f }, {} },
+        { "Laid Back", { 2, 12, 10, 9, 8, 10, 10, 6 }, 3.0f, 4.0f,
+          { 1.0f, .76f, .88f, .74f, .95f, .76f, .88f, .74f, 1.0f, .76f, .88f, .74f, .95f, .76f, .88f, .78f }, {} },
+        { "Pushed",    { 0, -3, -2, -6, -5, -3, -6, 0 }, -2.0f, -2.0f,
+          { 1.0f, .82f, .92f, .80f, 1.0f, .82f, .92f, .80f, 1.0f, .82f, .92f, .80f, 1.0f, .82f, .92f, .84f }, {} },
+        { "Drunk",     { 0, 15, 12, 6, 6, 12, 8, 6 }, 8.0f, 11.0f,
+          { 1.0f, .70f, .86f, .72f, .94f, .70f, .84f, .74f, 1.0f, .72f, .86f, .70f, .92f, .72f, .86f, .76f },
+          { 0, 18, -7, 12, 0, 16, -6, 10, 0, 18, -7, 12, 0, 14, -5, 9 } },
+        { "Drive",     { 0, 1, 2, -2, -4, 0, -3, 0 }, -4.0f, 0.0f,
+          { 1.0f, .74f, 1.0f, .74f, 1.0f, .74f, 1.0f, .74f, 1.0f, .74f, 1.0f, .74f, 1.0f, .74f, 1.0f, .78f }, {} },
+    };
+    constexpr int kNumGrooves = (int) (sizeof (kGrooves) / sizeof (kGrooves[0]));
+
+    // level trims per kit and voice for the samples (kick, snare, clap, closed hat, open hat, rim, shaker, tom)
+    constexpr float kSampleTrim[4][8] = {
+        { 1.00f, 0.80f, 0.55f, 0.42f, 0.38f, 0.55f, 0.40f, 0.65f },   // Studio (acoustic)
+        { 1.00f, 0.70f, 0.60f, 0.42f, 0.38f, 0.50f, 0.40f, 0.70f },   // 808
+        { 1.00f, 0.72f, 0.62f, 0.45f, 0.40f, 0.50f, 0.40f, 0.65f },   // 909 style
+        { 0.95f, 0.75f, 0.60f, 0.45f, 0.40f, 0.55f, 0.40f, 0.65f },   // Lo-Fi / vintage
+    };
+    constexpr float kSampleRoom[4] = { 0.10f, 0.05f, 0.06f, 0.12f };
+
     inline char at (const char* s, int step) noexcept
     {
         for (int i = 0; i <= step; ++i)
@@ -121,10 +158,45 @@ const char* RhythmGenerator::getPatternName (int index) noexcept
 }
 
 int RhythmGenerator::getNumKits() noexcept { return kNumKits; }
+int RhythmGenerator::getNumGrooves() noexcept { return kNumGrooves; }
+
+const char* RhythmGenerator::getGrooveName (int index) noexcept
+{
+    return kGrooves[std::clamp (index, 0, kNumGrooves - 1)].name;
+}
+
+double RhythmGenerator::grooveOffsetMs (int g, int voice, int step) noexcept
+{
+    const auto& gr = kGrooves[std::clamp (g, 0, kNumGrooves - 1)];
+    if (voice < 0 || voice > 7)
+        return 0.0;
+    const int s = ((step % 16) + 16) % 16;
+    double ms = gr.voiceMs[voice];
+    if (voice == HatClosed || voice == HatOpen || voice == Shaker)
+    {
+        if (s % 4 == 2) ms += gr.hatOffbeatMs;
+        if (s % 2 == 1) ms += gr.hat16thMs;
+    }
+    if (voice == Kick)
+        ms += gr.kickDrunkMs[s];
+    return ms;
+}
+
+float RhythmGenerator::grooveAccent (int g, int step) noexcept
+{
+    return kGrooves[std::clamp (g, 0, kNumGrooves - 1)].accent[((step % 16) + 16) % 16];
+}
+
+bool RhythmGenerator::isUsingSamples() const noexcept
+{
+    return bank != nullptr && ! bank->kits[(size_t) std::clamp (kit, 0, DrumBank::kNumKits - 1)][0].empty();
+}
 
 const char* RhythmGenerator::getKitName (int index) noexcept
 {
-    return kKits[std::clamp (index, 0, kNumKits - 1)].name;
+    // v1.5: the kits are recorded samples; the names describe the sound (index kept for saved projects)
+    static const char* const names[] = { "Studio", "808", "909 Style", "Lo-Fi" };
+    return names[std::clamp (index, 0, kNumKits - 1)];
 }
 
 double RhythmGenerator::swingOffset (int step, float swingAmount) noexcept
@@ -183,6 +255,8 @@ void RhythmGenerator::reset() noexcept
                      &rimFilter, &shBand, &busLowPass, &clickFilter })
         f->reset();
     for (int c = 0; c < 4; ++c) { std::fill (combBuf[c].begin(), combBuf[c].end(), 0.0f); combPos[c] = 0; combStore[c] = 0.0f; }
+    for (auto& p : players) p.active = false;
+    kickFollow = 0.0f;
     for (int a = 0; a < 2; ++a) { std::fill (apBuf[a].begin(), apBuf[a].end(), 0.0f); apPos[a] = 0; }
     lastStep = -1;
 }
@@ -206,20 +280,27 @@ float RhythmGenerator::random01() noexcept
     return (float) (randSeed & 0xffffff) / 16777216.0f;
 }
 
-void RhythmGenerator::addEvent (double delaySamples, Voice v, float velocity, uint8_t variant) noexcept
+void RhythmGenerator::addEvent (double delaySamples, Voice v, float velocity, uint8_t variant, int step, bool allowEarly) noexcept
 {
     if (numEvents >= (int) events.size())
         return;
-    // humanize: a little late (never early - the step has already started) and a little softer / louder
-    const float h = std::clamp (humanize, 0.0f, 1.0f);
-    const double lateMax = (v == Kick ? 0.003 : 0.008) * h * sampleRate;
-    delaySamples += random01() * lateMax;
     if (v != Click)
-        velocity = std::clamp (velocity * (1.0f + (random01() - 0.6f) * 0.3f * h), 0.05f, 1.0f);
+    {
+        // groove: per-instrument micro-timing and the accent curve of the template
+        delaySamples += grooveOffsetMs (groove, (int) v, step) * 0.001 * sampleRate;
+        velocity *= grooveAccent (groove, step);
+        // humanize: random timing early / late (the kick stays tighter) and velocity
+        const float h = std::clamp (humanize, 0.0f, 1.0f);
+        const double spread = (v == Kick ? 0.0025 : 0.007) * h * sampleRate;
+        delaySamples += (random01() * 2.0f - 1.0f) * spread;
+        velocity = std::clamp (velocity * (1.0f + (random01() - 0.5f) * 0.32f * h), 0.05f, 1.0f);
+    }
+    if (! allowEarly || delaySamples < 0.0)
+        delaySamples = std::max (0.0, delaySamples);
     events[(size_t) numEvents++] = { delaySamples, v, velocity, variant };
 }
 
-void RhythmGenerator::scheduleStep (long long step, int beatsPerMeasure) noexcept
+void RhythmGenerator::scheduleStep (long long step, int beatsPerMeasure, double baseDelay, bool allowEarly) noexcept
 {
     const int p = std::clamp (pattern, 0, kNumPatterns - 1);
 
@@ -229,25 +310,45 @@ void RhythmGenerator::scheduleStep (long long step, int beatsPerMeasure) noexcep
             return;
         const long long stepsPerMeasure = std::max (1, beatsPerMeasure) * 4;
         const bool accent = clickAccent && ((step % stepsPerMeasure) + stepsPerMeasure) % stepsPerMeasure == 0;
-        events[(size_t) std::min (numEvents, (int) events.size() - 1)] = { 0.0, Click, accent ? 1.0f : 0.7f, (uint8_t) (accent ? 1 : 0) };
+        events[(size_t) std::min (numEvents, (int) events.size() - 1)] = { baseDelay, Click, accent ? 1.0f : 0.7f, (uint8_t) (accent ? 1 : 0) };
         numEvents = std::min (numEvents + 1, (int) events.size());
         return;
     }
 
     const auto& pat = kPatterns[p];
     const int s = (int) positiveModulo ((double) step, 16.0);
-    const double base = swingOffset (s, swing) * samplesPerStep;
+    const double base = baseDelay + swingOffset (s, swing) * samplesPerStep;
+    auto add = [&] (double d, Voice v, float vel) { addEvent (d, v, vel, 0, s, allowEarly); };
+
+    // v1.5 fills: the last beat of every 4th / 8th bar
+    if (fills > 0)
+    {
+        const long long stepsPerMeasure = (long long) std::max (1, beatsPerMeasure) * 4;
+        const long long inBar = ((step % stepsPerMeasure) + stepsPerMeasure) % stepsPerMeasure;
+        const long long bar = (step - inBar) / stepsPerMeasure;
+        const int every = fills == 1 ? 4 : 8;
+        if (inBar >= stepsPerMeasure - 4 && ((bar % every) + every) % every == every - 1)
+        {
+            const int f = (int) (inBar - (stepsPerMeasure - 4));   // 0 .. 3
+            const float rise = 0.62f + 0.12f * (float) f;
+            if (f == 0)
+                add (base, Kick, 0.9f);
+            add (base, f < 2 ? Tom : Snare, rise);
+            add (base + samplesPerStep * 0.5, f < 2 ? Tom : Snare, rise * 0.8f);   // 32nds
+            return;
+        }
+    }
 
     if (const char k = at (pat.kick, s); k != '.')
-        addEvent (base, Kick, velocityOf (k));
+        add (base, Kick, velocityOf (k));
 
     if (const char sn = at (pat.snare, s); sn != '.')
     {
         const char l = lower (sn);
         if (l == 'x' || l == 'g' || l == 'b')
-            addEvent (base, Snare, velocityOf (sn));
+            add (base, Snare, velocityOf (sn));
         if (l == 'c' || l == 'b')
-            addEvent (base, Clap, velocityOf (sn));
+            add (base, Clap, velocityOf (sn));
     }
 
     if (const char h = at (pat.hat, s); h != '.')
@@ -255,33 +356,107 @@ void RhythmGenerator::scheduleStep (long long step, int beatsPerMeasure) noexcep
         const char l = lower (h);
         const float v = velocityOf (h);
         if (l == 'o')
-            addEvent (base, HatOpen, v);
+            add (base, HatOpen, v);
         else if (l == 'r')
         {
-            addEvent (base, HatClosed, v);
-            addEvent (base + samplesPerStep * 0.5, HatClosed, v * 0.7f);
+            add (base, HatClosed, v);
+            add (base + samplesPerStep * 0.5, HatClosed, v * 0.7f);
         }
         else if (l == 't')
         {
             for (int i = 0; i < 3; ++i)
-                addEvent (base + samplesPerStep * i / 3.0, HatClosed, v * (1.0f - 0.18f * (float) i));
+                add (base + samplesPerStep * i / 3.0, HatClosed, v * (1.0f - 0.18f * (float) i));
         }
         else
-            addEvent (base, HatClosed, v);
+            add (base, HatClosed, v);
     }
 
     if (const char pc = at (pat.perc, s); pc != '.')
     {
         const char l = lower (pc);
         const float v = velocityOf (pc);
-        if (l == 'r')      addEvent (base, Rim, v);
-        else if (l == 's') addEvent (base, Shaker, v);
-        else if (l == 't') addEvent (base, Tom, v);
+        if (l == 'r')      add (base, Rim, v);
+        else if (l == 's') add (base, Shaker, v);
+        else if (l == 't') add (base, Tom, v);
     }
+}
+
+bool RhythmGenerator::fireSample (Voice v, float vel) noexcept
+{
+    if (v == Click || ! isUsingSamples())
+        return false;
+    const int kt = std::clamp (kit, 0, DrumBank::kNumKits - 1);
+    const auto& list = bank->kits[(size_t) kt][(size_t) v];
+    if (list.empty())
+        return false;
+
+    // velocity layer: the layer nearest to the velocity; round robin inside the layer
+    float best = 10.0f;
+    for (const auto& s : list)
+        best = std::min (best, std::abs (s.layer - vel));
+    int candidates[16];
+    int numCandidates = 0;
+    for (int i = 0; i < (int) list.size() && numCandidates < 16; ++i)
+        if (std::abs (std::abs (list[(size_t) i].layer - vel) - best) < 1.0e-4f)
+            candidates[numCandidates++] = i;
+    if (numCandidates == 0)
+        return false;
+    auto& rr = roundRobin[(size_t) v];
+    rr = (rr + 1 + (numCandidates > 2 && random01() < 0.3f ? 1 : 0)) % numCandidates;
+    const int index = candidates[rr];
+    const auto& sample = list[(size_t) index];
+    lastSampleIndex[(size_t) v] = index;
+
+    // choke: a closed hat stops a ringing open hat, a new open hat the previous one
+    if (v == HatClosed || v == HatOpen)
+        for (auto& p : players)
+            if (p.active && p.voice == HatOpen)
+                p.fadeStep = 1.0f / (float) (0.004 * sampleRate);
+
+    // the oldest player of the same voice is released when it already rings twice
+    int same = 0;
+    Player* oldest = nullptr;
+    for (auto& p : players)
+        if (p.active && p.voice == v && p.fadeStep == 0.0f)
+        {
+            ++same;
+            if (oldest == nullptr || p.age < oldest->age)
+                oldest = &p;
+        }
+    if (same >= 2 && oldest != nullptr)
+        oldest->fadeStep = 1.0f / (float) (0.008 * sampleRate);
+
+    Player* slot = nullptr;
+    for (auto& p : players)
+        if (! p.active) { slot = &p; break; }
+    if (slot == nullptr)
+    {
+        slot = &players[0];
+        for (auto& p : players)
+            if (p.age < slot->age)
+                slot = &p;
+    }
+
+    const float h = std::clamp (humanize, 0.0f, 1.0f);
+    const double cents = (random01() * 2.0f - 1.0f) * 7.0f * h;            // a hair of pitch variation
+    const float layerGain = std::clamp (vel / std::max (0.1f, sample.layer), 0.45f, 1.35f);
+    slot->sample = &sample;
+    slot->pos = 0.0;
+    slot->inc = sample.sampleRate / sampleRate * std::pow (2.0, cents / 1200.0);
+    slot->gain = kSampleTrim[kt][(int) v] * layerGain * (1.0f + (random01() - 0.5f) * 0.1f * h);
+    slot->fade = 1.0f;
+    slot->fadeStep = 0.0f;
+    slot->voice = v;
+    slot->room = (v == Snare || v == Clap || v == Rim) ? 1.0f : (v == HatClosed || v == HatOpen || v == Tom ? 0.3f : 0.0f);
+    slot->active = true;
+    slot->age = ++playerAge;
+    return true;
 }
 
 void RhythmGenerator::fire (Voice v, float vel, uint8_t variant) noexcept
 {
+    if (fireSample (v, vel))
+        return;
     const auto& k = kKits[std::clamp (kit, 0, kNumKits - 1)];
     switch (v)
     {
@@ -407,7 +582,7 @@ void RhythmGenerator::process (float* outL, float* outR, int numSamples, double 
     const auto& k = kKits[std::clamp (kit, 0, kNumKits - 1)];
     const bool lowPass = k.busLowPass > 0.0f;
     if (lowPass)
-        busLowPass.set (sampleRate, k.busLowPass, 0.6);
+        busLowPass.set (sampleRate, isUsingSamples() ? 7800.0f : k.busLowPass, 0.6);
     const float kickNorm = 1.0f / softClip (k.kickDrive);
     const float sr = (float) sampleRate;
 
@@ -419,8 +594,15 @@ void RhythmGenerator::process (float* outL, float* outR, int numSamples, double 
             const auto step = (long long) std::floor (ppq * 4.0 + 1.0e-9);
             if (step != lastStep)
             {
-                if (lastStep >= 0 || std::abs (ppq * 4.0 - (double) step) < ppqPerSample * 4.0 + 1.0e-9)
-                    scheduleStep (step, beatsPerMeasure);
+                // v1.5: steps are scheduled one 16th ahead, so groove / humanize can also play early
+                if (lastStep < 0 || step != lastStep + 1)
+                {
+                    numEvents = 0;
+                    if (std::abs (ppq * 4.0 - (double) step) < ppqPerSample * 4.0 + 1.0e-9)
+                        scheduleStep (step, beatsPerMeasure, 0.0, false);
+                }
+                const double toNext = ((double) (step + 1) * 0.25 - ppq) / ppqPerSample;
+                scheduleStep (step + 1, beatsPerMeasure, toNext, true);
                 lastStep = step;
             }
         }
@@ -550,8 +732,38 @@ void RhythmGenerator::process (float* outL, float* outR, int numSamples, double 
             tomEnv *= tomDecay;
         }
 
+        // v1.5: recorded samples
+        float kickNow = 0.0f;
+        for (auto& p : players)
+        {
+            if (! p.active)
+                continue;
+            const auto& d = p.sample->data;
+            const int i0 = (int) p.pos;
+            if (i0 + 1 >= (int) d.size() || p.fade <= 0.0f)
+            {
+                p.active = false;
+                continue;
+            }
+            const float frac = (float) (p.pos - i0);
+            const float x = (d[(size_t) i0] + (d[(size_t) i0 + 1] - d[(size_t) i0]) * frac) * p.gain * p.fade;
+            drums += x;
+            roomSend += x * p.room;
+            if (p.voice == Kick)
+                kickNow = std::max (kickNow, std::abs (x));
+            p.pos += p.inc;
+            if (p.fadeStep > 0.0f)
+                p.fade -= p.fadeStep;
+        }
+        if (kickOut != nullptr && isUsingSamples())
+        {
+            kickFollow = std::max (kickNow * 1.4f, kickFollow * 0.9993f);
+            kickOut[i] = std::min (1.0f, kickFollow);
+        }
+
         // small room on snare / clap / rim / a bit of hat
-        if (k.room > 0.0f && ! combBuf[0].empty())
+        const float roomAmount = isUsingSamples() ? kSampleRoom[std::clamp (kit, 0, 3)] : k.room;
+        if (roomAmount > 0.0f && ! combBuf[0].empty())
         {
             float wet = 0.0f;
             for (int c = 0; c < 4; ++c)
@@ -573,7 +785,7 @@ void RhythmGenerator::process (float* outL, float* outR, int numSamples, double 
                 if (++apPos[a] >= (int) buf.size()) apPos[a] = 0;
                 wet = y;
             }
-            drums += wet * k.room * 2.0f;
+            drums += wet * roomAmount * 2.0f;
         }
 
         if (lowPass)
@@ -583,7 +795,7 @@ void RhythmGenerator::process (float* outL, float* outR, int numSamples, double 
             drums = lp;
         }
 
-        float out = softClip (drums * k.busDrive * 0.5f) * 1.25f;
+        float out = isUsingSamples() ? softClip (drums * 0.9f) * 1.05f : softClip (drums * k.busDrive * 0.5f) * 1.25f;
 
         // metronome (never swung)
         if (clickEnv > 1.0e-4f)
