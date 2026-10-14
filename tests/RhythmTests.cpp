@@ -139,7 +139,7 @@ public:
             expectLessThan (RhythmGenerator::grooveOffsetMs (pushed, RhythmGenerator::HatClosed, 2), 0.0);
             expectGreaterThan (RhythmGenerator::grooveAccent (1, 0), RhythmGenerator::grooveAccent (1, 1));
 
-            // measured: Funk hat on step 1 (16th) comes later with "Laid Back" than with "Straight"
+            // measured: Funk hat on step 2 (8th off-beat) comes later with "Laid Back" than with "Straight"
             int onsets[2] {};
             for (int g = 0; g < 2; ++g)
             {
@@ -150,10 +150,10 @@ public:
                 r.setHumanize (0.0f);
                 r.setGroove (g == 0 ? 0 : laid);
                 const auto out = render (r, kStep * 4);
-                onsets[g] = onsetAfter (out, kStep - 200);
+                onsets[g] = onsetAfter (out, 2 * kStep - 200);     // step 2: only a hat
             }
             const double ms = (onsets[1] - onsets[0]) / kSr * 1000.0;
-            expectWithinAbsoluteError (ms, RhythmGenerator::grooveOffsetMs (laid, RhythmGenerator::HatClosed, 1), 1.0);
+            expectWithinAbsoluteError (ms, RhythmGenerator::grooveOffsetMs (laid, RhythmGenerator::HatClosed, 2), 1.0);
         }
 
         beginTest ("Fills every 4 bars add hits in the last beat of bar 4 only");

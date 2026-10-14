@@ -146,7 +146,13 @@ juce_add_plugin(livelooper
     COPY_PLUGIN_AFTER_BUILD ${LIVELOOPER_COPY_PLUGIN}
     DESCRIPTION "Five-track live looper with effects, rhythm and full MIDI mapping")
 
-target_sources(livelooper PRIVATE ${LIVELOOPER_ENGINE_SOURCES} ${LIVELOOPER_PLUGIN_SOURCES})
+target_sources(livelooper PRIVATE ${LIVELOOPER_ENGINE_SOURCES} ${LIVELOOPER_PLUGIN_SOURCES} src/standalone/StandaloneApp.cpp)
+# v1.5: own standalone app (clear "Audio/MIDI Settings" button, start settings, one-time mic permission)
+target_compile_definitions(livelooper PUBLIC JUCE_USE_CUSTOM_PLUGIN_STANDALONE_APP=1)
+if(APPLE)
+    target_sources(livelooper PRIVATE src/standalone/MacMicPermission.mm)
+    target_link_libraries(livelooper PRIVATE "-framework AVFoundation")
+endif()
 target_include_directories(livelooper PRIVATE src ${LIVELOOPER_THIRD_PARTY_INCLUDES})
 target_compile_definitions(livelooper PUBLIC ${LIVELOOPER_DEFINES})
 

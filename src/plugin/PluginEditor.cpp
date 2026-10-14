@@ -1467,7 +1467,7 @@ void LiveLooperEditor::showHelp()
 
 void LiveLooperEditor::showAbout()
 {
-    AboutWindow::show (*this, proc);
+    AboutWindow::show (*this, proc, false);
 }
 
 void LiveLooperEditor::askStartupSettingsOnce()
