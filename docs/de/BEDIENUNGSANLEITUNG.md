@@ -153,6 +153,8 @@ Die Kit-Namen beschreiben einen Klangstil; „909 Style“ und „808“ sind ni
 
 **Fills** (*SETUP → Rhythmus-Fills*): *Aus*, *Alle 4 Takte* oder *Alle 8 Takte* – der Drummer spielt im letzten Schlag vor der nächsten Phrase einen kurzen Fill (Snare- / Tom-Lauf).
 
+**Seit 1.6:** 8 weitere Stil-Kits mit passenden Grooves und Fills, lebendigere Kicks (VARIATION), der Step-Sequencer **BEATS** für eigene Patterns, **FILL** auf Knopfdruck, auf Wunsch die Drums durch Beat FX / Repeat und Sound-Packs – siehe [Drums, BEATS und Sound-Packs](#drums-beats-und-sound-packs-16).
+
 ---
 
 ## 5. MASTER
@@ -482,4 +484,72 @@ Jederzeit änderbar unter **SETUP → Einstellungen beim Start**; *Alle Einstell
 *Beim Start automatisch prüfen* und *Updates automatisch installieren* sind aus, bis du sie einschaltest (auch unter **SETUP → Updates**).
 
 ![Info](../images/livelooper-about-de.png)
+
+---
+
+## Drums, BEATS und Sound-Packs (1.6)
+
+### Kits
+
+| Kit | Klang | Fill-Stil |
+|---|---|---|
+| **Studio** | modernes akustisches Set, jetzt mit mehr Kick- und Snare-Takes | Toms |
+| **808** | tiefe Boom-Kick, knackige Hi-Hats | Toms |
+| **909 Style** | druckvoll, House / Techno | Toms |
+| **Lo-Fi** | warm, staubig, weiche Höhen | Toms |
+| **House** | runde Kick, heller Clap, swingende offene Hi-Hats | Clap-Wirbel |
+| **Techno** | treibende, gesättigte Kick, metallische Hi-Hats, Rim | Kick-Wirbel |
+| **Boom Bap** | fett, 12-Bit-Crunch, kurzer Raum | Snare-Wirbel |
+| **Trap** | lange Sub-Kick, knackige Snare, kurze Hi-Hats für Rolls | Hi-Hat-Rolls |
+| **Breaks** | druckvolles, crunchiges Set für Jungle / Drum & Bass / Big Beat | Breaks (Snare-Chops) |
+| **Rock** | akustisches Set mit großer Kick, offenen Hi-Hats, Cross Stick | Toms |
+| **Disco** | warme Kick, offene Hi-Hats, tamburinartiger Shaker | Snare + offene Hi-Hat |
+| **Afro Latin** | Kick plus Handpercussion: Bongo, Claves, Shaker, Tamburin, Kuhglocke, Cabasa, Conga | Conga-Läufe |
+
+Die Stil-Kits sind selbst synthetisiert oder aufgenommene CC0-Instrumente (VCSL), siehe `resources/drums/SOURCES.md`. Die Instrument-Namen (z. B. *Conga* statt *Tom* bei Afro Latin) stehen auf der BEATS-Seite und auf Push. Die Kit-Auswahl enthält außerdem **Pack-Kit 1 … 8** für Sound-Packs.
+
+Neue Grooves (Pattern-Auswahl): Deep House, Tech House, Peak Techno, Hypnotic Techno, Boom Bap, Boom Bap Swing, Trap Rolls, Trap Half Time, Jungle, Two Step, Big Beat, Rock Drive, Rock Half Time, Disco Hustle, Funk Groove, Son Clave, Afro Groove, Samba. Jeder bringt seinen eigenen Fill mit; die älteren Grooves nutzen den Fill des Kits.
+
+### Lebendigere Drums: VARIATION
+
+**VARIATION** (BEATS-Seite, Parameter *Drum-Variation*, Standard 50 %) beendet das „Maschinengewehr“: Bei jedem Schlag wählt livelooper einen anderen Take (nie zweimal hintereinander dasselbe Sample), manchmal den benachbarten Velocity-Layer, mischt zwei Takes, variiert Tonhöhe (härtere Schläge etwas höher) und Ausklang leicht und formt die Kick-Akzente (stärkste Eins im ersten Takt einer 4-Takt-Phrase, leisere Auftakte). 0 % = jeder Schlag im selben Layer wie vor 1.6. Am meisten profitieren Kick, Snare und Hi-Hats.
+
+### BEATS – der Step-Sequencer
+
+Klick auf **BEATS** im Rhythmus-Feld. Die Seite liegt über dem Looper, bis du **LOOPER** klickst.
+
+- **Zeilen** = die acht Instrumente des aktuellen Kits (Kick, Snare, Clap, Hi-Hat zu, Hi-Hat offen, Rim, Shaker, Tom).
+- **Schritte**: 16 (16tel) oder 32 (32stel) pro Takt, **1 – 4 Takte**; die Tasten **1 – 4** zeigen einen Takt.
+- **Maus**: Klick = Schritt an / aus (die Zeile entlang ziehen zum Malen), **SHIFT** + Klick = Akzent, **ALT** + Klick = Ghost Note, **Rechtsklick** = nächste Dynamik (Ghost → normal → Akzent), **Mausrad** über einem Schritt = feine Dynamik. Höhe und Helligkeit des Balkens zeigen die Dynamik, eine weiße Linie markiert Akzente.
+- **Pro Zeile**: **M** stumm, **S** solo, **PEGEL** (0 – 150 %), **TONHÖHE** ±12 Halbtöne. Sie wirken auf jedes Pattern (auch die eingebauten Grooves) und sind Host-Parameter (*Beat Zeile 1 … 8 stumm / solo / Pegel / Tonhöhe*), also automatisierbar und per MIDI steuerbar.
+- **Platz**: 16 User-Patterns pro Set, in der Pattern-Auswahl als **User 1 … 16** (mit Namen). Den Namen tippst du neben dem Platz ein.
+- **PLAY** spielt den Platz. Auch Bearbeiten lässt ihn spielen. Öffnest du BEATS, während ein eingebauter Groove läuft, startet ein leerer Platz als Kopie dieses Grooves.
+- **LADEN**: ein eingebauter Groove, ein gespeichertes User-Pattern, ein Pattern aus einem Sound-Pack oder ein anderer Platz dieses Sets.
+- **IN BIBLIOTHEK**: speichert das Pattern als User-Pattern (`Musik/livelooper/Patterns/<Name>.llpattern`) – in jedem Set und Projekt verfügbar.
+- **LÖSCHEN**, **KOPIEREN** / **EINFÜGEN** (auch zwischen Plätzen), **VARIIEREN**: eine leichte Variation (ein paar Ghost Notes, kleine Dynamikänderungen, evtl. ein Kick-Auftakt) – der Groove bleibt.
+- **PATTERN-WECHSEL** (*Sofort*, *Nächster Schlag*, *Nächster Takt* – Standard): wann ein neues Pattern (eingebaut oder User, aus der Auswahl, BEATS, Push oder Automation) einsetzt. Quantisiertes Umschalten hält den Groove im Takt.
+- Unter dem Raster: RHYTHMUS an / aus, GROOVE (Mikro-Timing), FILLS (automatisch), SWING, FEEL, VARIATION, PEGEL und die beiden DRUMS-Schalter.
+
+Die User-Patterns werden im Projekt und in Looper-Sets gespeichert. Die Pattern-Auswahl ist ein Host-Parameter, Pattern-Wechsel lassen sich also automatisieren und per MIDI steuern.
+
+### FILL auf Knopfdruck
+
+**FILL** halten (Rhythmus-Feld, BEATS-Seite, Push-Taste **IN** oder Host-Parameter *Fill (halten)* – MIDI Note an / aus): Der Drummer spielt einen Fill im Stil des Grooves / Kits, solange du hältst. Lässt du los, setzt der Groove **auf der nächsten Eins** (Taktanfang) wieder ein, mit akzentuierter Kick und offener Hi-Hat. Kurz antippen spielt einen Fill bis zum Taktende.
+
+### Drums durch Beat FX und Beat Repeat / Stutter
+
+Bis 1.5 blieben die Drums immer trocken. Jetzt gibt es einen Schalter **DRUMS** im Feld BEAT-FX und einen im Feld BEAT REPEAT / STUTTER (auch auf der BEATS-Seite und auf Push **OUT** / **SHIFT + OUT**; Host-Parameter *Drums durch Beat FX*, *Drums durch Repeat/Stutter*):
+
+- **aus** (Standard) – wie bisher: Die Drums bleiben trocken, der Effekt wirkt nur auf den gewählten Kanal.
+- **an** – die Drums laufen zusätzlich durch diesen Effekt, egal welcher Kanal gewählt ist (mit demselben Typ, Beat, Tiefe, Timing, Latch …). Jede Gruppe hat ihren eigenen Schalter, so können z. B. die Drums stuttern, während die Beat FX nur die Loops treffen.
+
+Das Metronom bleibt immer trocken.
+
+### Sound-Packs
+
+Ein Sound-Pack (Ordner oder `.zip` mit einer `livelooper-pack.json`, WAV- / AIFF- / FLAC-Samples und optionalen Patterns) bringt Kits und Patterns mit. **BEATS → PACK IMPORT** installiert eines, **PACKS** listet die installierten Packs, liest den Ordner neu ein und öffnet die Pack- / User-Pattern-Ordner. Jedes Pack-Kit belegt einen der Plätze **Pack-Kit 1 … 8** in der Kit-Auswahl. Wie man Packs baut: [SOUND-PACKS.md](SOUND-PACKS.md).
+
+### Push
+
+**SCALES** öffnet auf Push den STEP-Modus (Step-Sequencer auf den Pads), **IN** = FILL solange gehalten, **OUT** = Drums durch die Beat FX (SHIFT: durch Repeat / Stutter) – siehe [PUSH.md](PUSH.md#step-modus-und-fill-16).
 

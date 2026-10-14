@@ -153,6 +153,8 @@ The kit names describe a sound style; "909 Style" and "808" are not the original
 
 **Fills** (*SETUP → Rhythm fills*): *Off*, *Every 4 Bars* or *Every 8 Bars* – the drummer plays a short fill (snare / tom run) in the last beat before the next phrase.
 
+**Since 1.6:** 8 more style kits with matching grooves and fills, more lively kicks (VARIATION), the **BEATS** step sequencer for your own patterns, **FILL** on demand, the drums through beat FX / repeat if you like, and sound packs – see [Drums, BEATS and sound packs](#drums-beats-and-sound-packs-16).
+
 ---
 
 ## 5. MASTER
@@ -455,4 +457,72 @@ Change it any time under **SETUP → Settings on start**; *Reset all settings to
 *Check automatically on start* and *Install updates automatically* are off until you switch them on (also under **SETUP → Updates**).
 
 ![About](../images/livelooper-about.png)
+
+---
+
+## Drums, BEATS and sound packs (1.6)
+
+### Kits
+
+| Kit | Sound | Fill style |
+|---|---|---|
+| **Studio** | modern acoustic kit, now with more kick and snare takes | toms |
+| **808** | deep boom kick, crisp hats | toms |
+| **909 Style** | punchy house / techno | toms |
+| **Lo-Fi** | warm, dusty, soft top end | toms |
+| **House** | round kick, bright clap, shuffly open hats | clap roll |
+| **Techno** | driving, saturated kick, metallic hats, rim | kick roll |
+| **Boom Bap** | fat, 12-bit crunch, short room | snare roll |
+| **Trap** | long sub kick, snappy snare, tight hats for rolls | hi-hat rolls |
+| **Breaks** | punchy, crunchy kit for jungle / drum & bass / big beat | breaks (snare chops) |
+| **Rock** | acoustic kit with a big kick, loose hats, cross stick | toms |
+| **Disco** | warm kick, open hats, tambourine-like shaker | snare + open hat |
+| **Afro Latin** | kick plus hand percussion: bongo, claves, shaker, tambourine, cowbell, cabasa, conga | conga runs |
+
+The style kits are self-synthesised or recorded CC0 instruments (VCSL); see `resources/drums/SOURCES.md`. The voice names (e.g. *Conga* instead of *Tom* in Afro Latin) show on the BEATS page and on Push. The kit selector also lists **Pack Kit 1 … 8** for sound packs.
+
+New grooves (pattern selector): Deep House, Tech House, Peak Techno, Hypnotic Techno, Boom Bap, Boom Bap Swing, Trap Rolls, Trap Half Time, Jungle, Two Step, Big Beat, Rock Drive, Rock Half Time, Disco Hustle, Funk Groove, Son Clave, Afro Groove, Samba. Each of them brings its own fill; the older grooves use the fill of the kit.
+
+### More lively drums: VARIATION
+
+**VARIATION** (BEATS page, parameter *Drum Variation*, default 50 %) stops the "machine gun": on every hit livelooper chooses another take (never the same sample twice in a row), sometimes the neighbouring velocity layer, blends two takes, varies pitch (harder hits a little higher) and decay slightly and shapes the kick accents (strongest downbeat on the first bar of a 4-bar phrase, softer pickups). 0 % = every hit the same layer, as before 1.6. Kick, snare and hats profit most.
+
+### BEATS – the step sequencer
+
+Click **BEATS** in the rhythm panel. The page covers the looper until you click **LOOPER**.
+
+- **Rows** = the eight voices of the current kit (kick, snare, clap, closed hat, open hat, rim, shaker, tom).
+- **Steps**: 16 (16th notes) or 32 (32nd notes) per bar, **1 – 4 bars**; buttons **1 – 4** show a bar.
+- **Mouse**: click = step on / off (drag along the row to paint), **SHIFT** + click = accent, **ALT** + click = ghost note, **right-click** = next velocity (ghost → normal → accent), **mouse wheel** over a step = fine velocity. Bar height and brightness show the velocity, a white line marks accents.
+- **Per row**: **M** mute, **S** solo, **LVL** level (0 – 150 %), **PITCH** ±12 semitones. These work on every pattern (also the built-in grooves) and are host parameters (*Beat Row 1 … 8 Mute / Solo / Level / Pitch*), so you can automate and MIDI-map them.
+- **Slot**: 16 user patterns per set, listed as **User 1 … 16** in the pattern selector (with their names). Type a name next to the slot.
+- **PLAY** plays the slot. Editing a slot also makes it play. When you open BEATS while a built-in groove plays, an empty slot starts as a copy of that groove.
+- **LOAD**: a built-in groove, a saved user pattern, a pattern from a sound pack or another slot of this set.
+- **SAVE TO LIBRARY**: saves the pattern as a user pattern (`Music/livelooper/Patterns/<name>.llpattern`) – available in every set and project.
+- **CLEAR**, **COPY** / **PASTE** (also between slots), **VARY**: a light variation (a few ghost notes, small velocity changes, maybe one kick pickup) – the groove stays.
+- **PATTERN SWITCH** (*Immediately*, *Next Beat*, *Next Bar* – default): when a new pattern (built-in or user, from the selector, BEATS, Push or automation) starts playing. Quantised switching keeps the groove in time.
+- Below the grid: RHYTHM on / off, GROOVE (micro-timing), FILLS (automatic), SWING, FEEL, VARIATION, LEVEL and the two DRUMS switches.
+
+The user patterns are saved with the project and in looper sets. The pattern selector is a host parameter, so pattern changes can be automated and MIDI-mapped.
+
+### FILL on demand
+
+Hold **FILL** (rhythm panel, BEATS page, Push **IN** button, or the host parameter *Fill (hold)* – MIDI note on / off): the drummer plays a fill in the style of the groove / kit as long as you hold it. Let go and the groove comes back **on the next downbeat** (bar line), with an accented kick and open hat. A short tap plays a fill up to the end of the bar.
+
+### Drums through beat FX and beat repeat / stutter
+
+Up to 1.5 the drums always stayed dry. Now there is a **DRUMS** switch in the BEAT FX panel and one in the BEAT REPEAT / STUTTER panel (also on the BEATS page and on Push **OUT** / **SHIFT + OUT**; host parameters *Drums through Beat FX*, *Drums through Repeat/Stutter*):
+
+- **off** (default) – as before: the drums are dry, the effect works on the chosen channel only.
+- **on** – the drums go through that effect as well, whatever channel is chosen (with the same type, beat, depth, timing, latch …). Each group has its own switch, so e.g. the drums can stutter while the beat FX only hits the loops.
+
+The metronome always stays dry.
+
+### Sound packs
+
+A sound pack (folder or `.zip` with a `livelooper-pack.json`, WAV / AIFF / FLAC samples and optional patterns) adds kits and patterns. **BEATS → IMPORT PACK** installs one, **PACKS** lists the installed packs, rescans the folder and opens the packs / user patterns folders. Each pack kit takes one of the slots **Pack Kit 1 … 8** in the kit selector. How to make packs: [SOUND-PACKS.md](SOUND-PACKS.md).
+
+### Push
+
+**SCALES** opens the STEP mode on Push (step sequencer on the pads), **IN** = FILL while held, **OUT** = drums through the beat FX (SHIFT: through repeat / stutter) – see [PUSH.md](PUSH.md#step-mode-and-fill-16).
 
