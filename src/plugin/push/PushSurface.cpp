@@ -157,6 +157,11 @@ void PushSurface::handleMidi (const juce::MidiMessage& m)
 
 void PushSurface::handlePad (int row, int column, int velocity)
 {
+    if (mode == Mode::Step)
+    {
+        handleStepPad (row, column, velocity);
+        return;
+    }
     if (mode == Mode::FxPad)
     {
         if (velocity > 0)
@@ -462,6 +467,11 @@ void PushSurface::handleButton (int number, bool pressed)
         case cc::addTrack:
         case cc::repeat:
         case cc::accent:      handlePerformanceButton (number, pressed); return;
+        case cc::inBtn:                                  // v1.6: FILL while held
+            setParam (gRhythmFill, pressed ? 1.0f : 0.0f);
+            if (pressed)
+                showNotice (i18n::tr ("FILL"));
+            return;
         case cc::duplicate:
             if (pressed)
             {
@@ -486,6 +496,9 @@ void PushSurface::handleButton (int number, bool pressed)
         default: break;
     }
     if (! pressed)
+        return;
+
+    if (mode == Mode::Step && handleStepButton (number))      // v1.6
         return;
 
     if (const int scene = sceneForCC (number); scene >= 0)
@@ -520,6 +533,21 @@ void PushSurface::handleButton (int number, bool pressed)
     {
         case cc::session:    if (fxTouches > 0) fxPadReleaseAll(); mode = Mode::Loop; break;
         case cc::note:       mode = Mode::FxPad; break;
+        case cc::scales:                                 // v1.6: STEP mode
+            if (fxTouches > 0) fxPadReleaseAll();
+            mode = mode == Mode::Step ? Mode::Loop : Mode::Step;
+            if (mode == Mode::Step)
+                showNotice (i18n::tr ("STEP mode: pads = steps, rows = voices"));
+            break;
+        case cc::outBtn:                                 // v1.6: drums through the performance FX
+        {
+            const auto& id = shift ? gDrumsRepeat : gDrumsBfx;
+            toggleParam (id);
+            const bool on = getParam (id) >= 0.5f;
+            showNotice (i18n::tr (shift ? (on ? "Drums through repeat on" : "Drums through repeat off")
+                                        : (on ? "Drums through beat FX on" : "Drums through beat FX off")));
+            break;
+        }
         case cc::volume:     encoderMode = EncoderMode::Volume; break;
         case cc::panSend:    encoderMode = EncoderMode::Pan; break;
         case cc::track:      encoderMode = EncoderMode::Pitch; break;
@@ -628,6 +656,8 @@ void PushSurface::handlePerformanceButton (int number, bool pressed)
 
 int PushSurface::masterColumn() const
 {
+    if (mode == Mode::Step)
+        return -1;
     if (encoderMode == EncoderMode::Fx || encoderMode == EncoderMode::BeatFx || proc.getVisibleTracks() > 6)
         return -1;
     return 6;           // encoder 7 = master level, encoder 8 = tempo
@@ -663,6 +693,15 @@ void PushSurface::handleEncoder (int number, int delta)
     }
 
     const int i = number - kEncoderFirst;
+    if (mode == Mode::Step && i >= 0 && i < kNumBeatRows)
+    {
+        // v1.6 STEP mode: row level, SHIFT: row pitch
+        if (shift)
+            nudge (beatRowId (kBeatPitch, i), delta, 0.0f);
+        else
+            nudge (beatRowId (kBeatVol, i), delta, 0.005f);
+        return;
+    }
     // master section on the two rightmost encoders while they are free (up to 6 tracks, not in FX mode)
     if (const int m = masterColumn(); m >= 0 && i >= m)
     {
@@ -795,6 +834,8 @@ int PushSurface::fxPadColour (int row, int column) const
 
 std::array<juce::String, kDisplayLines> PushSurface::buildDisplay() const
 {
+    if (mode == Mode::Step)
+        return buildStepDisplay();
     auto& st = proc.getState();
     auto text = [&st] (const juce::String& id) {
         auto* p = st.getParameter (id);
@@ -987,12 +1028,19 @@ void PushSurface::render (std::vector<juce::MidiMessage>& out, bool full)
     auto& st = proc.getState();
 
     // ---- pads
+    if (mode == Mode::Step)
+    {
+        stepCache = stepView();
+        stepCachePlaying = stepPlayingCell (stepCache);
+    }
     for (int row = 0; row < kGridSize; ++row)
         for (int col = 0; col < kGridSize; ++col)
         {
             int c = pad::off;
             if (mode == Mode::FxPad)
                 c = fxPadColour (row, col);
+            else if (mode == Mode::Step)
+                c = stepPadColour (row, col, blinkOn);
             else if (col < visible)
                 c = trackPadColour (col, row, blinkOn);
             auto& last = padState[(size_t) (row * kGridSize + col)];
@@ -1023,13 +1071,18 @@ void PushSurface::render (std::vector<juce::MidiMessage>& out, bool full)
             const bool on = isOn (fxId (i < 4, i % 4, kFxOn));
             top = i == fxTarget ? value (yellow, full) : value (i < 4 ? green : orange, on ? full : dim);
         }
+        else if (mode == Mode::Step)
+        {
+            top = value (yellow, isOn (beatRowId (kBeatMute, i)) ? full : dim);
+            bottom = isOn (beatRowId (kBeatSolo, i)) ? pad::cyan : pad::cyanDim;
+        }
         else if (i < visible)
         {
             top = value (orange, isOn (trackId (i, kTrackFx)) ? full : dim);
             bottom = isOn (trackId (i, kReverse)) ? pad::cyan : pad::cyanDim;
         }
         setCC (kTopRowFirst + i, top);
-        setCC (kBottomRowFirst + i, mode == Mode::FxPad ? pad::off : bottom);
+        setCC (kBottomRowFirst + i, mode == Mode::FxPad ? pad::off : bottom);   // STEP mode: row solo
 
         const int sceneColour = ! proc.sceneIsStored (i) ? 0
                               : value (green, proc.getLastScene() == i ? full : dim);
@@ -1074,6 +1127,12 @@ void PushSurface::render (std::vector<juce::MidiMessage>& out, bool full)
     setCC (cc::fixedLength, button::dim);
     setCC (cc::left, button::dim);
     setCC (cc::right, button::dim);
+    // v1.6
+    setCC (cc::scales, mode == Mode::Step ? button::on : button::dim);
+    setCC (cc::inBtn, isOn (gRhythmFill) || proc.getEngine().getRhythm().isFillPlaying() ? button::on : button::dim);
+    setCC (cc::outBtn, isOn (gDrumsBfx) || isOn (gDrumsRepeat) ? button::on : button::dim);
+    setCC (cc::up, mode == Mode::Step ? button::dim : button::off);
+    setCC (cc::down, mode == Mode::Step ? button::dim : button::off);
 
     // ---- display
     const auto lines = buildDisplay();
@@ -1089,5 +1148,141 @@ void PushSurface::render (std::vector<juce::MidiMessage>& out, bool full)
             displayState[(size_t) l] = lines[(size_t) l];
             lastLineSent[(size_t) l] = ms;
         }
+}
+//============================================================================== v1.6 STEP mode (branch v1.6-rhythm)
+BeatPattern PushSurface::stepView() const
+{
+    const int current = proc.getCurrentPattern();
+    if (RhythmGenerator::isUserPattern (current))
+        return proc.getUserPatterns().load (RhythmGenerator::userSlotOf (current));
+    return RhythmGenerator::presetToPattern (current);
+}
+
+int PushSurface::stepPlayingCell (const BeatPattern& p) const
+{
+    const auto& rhythm = proc.getEngine().getRhythm();
+    if (rhythm.getActivePattern() != proc.getCurrentPattern())
+        return -1;
+    const auto step = rhythm.getCurrentStep();
+    if (step < 0 || ! proc.getEngine().isTimelineRunning())
+        return -1;
+    const long long len16 = 16LL * p.bars;
+    return (int) (((step % len16) + len16) % len16) * (p.stepsPerBar / 16);
+}
+
+void PushSurface::handleStepPad (int row, int column, int velocity)
+{
+    if (velocity == 0)
+        return;
+    if (muteHeld || soloHeld)
+    {
+        toggleParam (beatRowId (muteHeld ? kBeatMute : kBeatSolo, row));
+        const bool on = getParam (beatRowId (muteHeld ? kBeatMute : kBeatSolo, row)) >= 0.5f;
+        showNotice (muteHeld ? i18n::tr (on ? "Row %1 muted" : "Row %1 on", juce::String (row + 1))
+                             : (on ? i18n::tr ("Row %1 solo", juce::String (row + 1)) : i18n::tr ("Solo off")));
+        return;
+    }
+    const int slot = proc.prepareEditSlot();      // a built-in groove becomes a user pattern first
+    auto& bank = proc.getUserPatterns();
+    const int steps = bank.getStepsPerBar (slot) * bank.getBars (slot);
+    if (deleteHeld)
+    {
+        for (int s = 0; s < steps; ++s)
+            bank.setCell (slot, row, s, 0);
+        showNotice (i18n::tr ("Row %1 cleared", juce::String (row + 1)));
+        return;
+    }
+    const int step = stepPage + column;
+    if (step >= steps)
+        return;
+    const int v = bank.getCell (slot, row, step);
+    if (shift)
+        bank.setCell (slot, row, step, v == 127 ? 0 : 127);
+    else
+        bank.setCell (slot, row, step, v > 0 ? 0 : juce::jlimit (40, 127, velocity));
+}
+
+bool PushSurface::handleStepButton (int number)
+{
+    const auto p = stepView();
+    const int steps = p.numSteps();
+    if (number == cc::left || number == cc::right)
+    {
+        stepPage = juce::jlimit (0, juce::jmax (0, steps - 8), stepPage + (number == cc::right ? 8 : -8));
+        showNotice (i18n::tr ("Steps %1 - %2", juce::String (stepPage + 1), juce::String (juce::jmin (steps, stepPage + 8))));
+        return true;
+    }
+    if (number == cc::up || number == cc::down)
+    {
+        stepChoice (gRhythmPattern, number == cc::up ? 1 : -1, false);
+        stepPage = 0;
+        showNotice (i18n::tr ("Pattern: %1", proc.getPatternDisplayName (proc.getCurrentPattern())));
+        return true;
+    }
+    if (number >= kTopRowFirst && number < kTopRowFirst + 8)
+    {
+        const int r = number - kTopRowFirst;
+        toggleParam (beatRowId (kBeatMute, r));
+        showNotice (i18n::tr (getParam (beatRowId (kBeatMute, r)) >= 0.5f ? "Row %1 muted" : "Row %1 on", juce::String (r + 1)));
+        return true;
+    }
+    if (number >= kBottomRowFirst && number < kBottomRowFirst + 8)
+    {
+        const int r = number - kBottomRowFirst;
+        toggleParam (beatRowId (kBeatSolo, r));
+        showNotice (getParam (beatRowId (kBeatSolo, r)) >= 0.5f ? i18n::tr ("Row %1 solo", juce::String (r + 1)) : i18n::tr ("Solo off"));
+        return true;
+    }
+    return false;
+}
+
+int PushSurface::stepPadColour (int row, int column, bool blinkOn) const
+{
+    juce::ignoreUnused (blinkOn);
+    const auto& p = stepCache;
+    const int step = stepPage + column;
+    if (step >= p.numSteps())
+        return pad::off;
+    const bool muted = getParam (beatRowId (kBeatMute, row)) >= 0.5f;
+    const int v = p.get (row, step);
+    const int perBeat = p.stepsPerBar / 4;
+    if (step == stepCachePlaying)
+        return v > 0 ? pad::white : pad::green;
+    if (v == 0)
+        return (step / perBeat) % 2 == 0 ? pad::grey : pad::off;
+    if (muted)
+        return pad::yellowDim;
+    return v >= 120 ? pad::red : v >= 70 ? pad::orange : pad::yellow;
+}
+
+std::array<juce::String, kDisplayLines> PushSurface::buildStepDisplay() const
+{
+    auto& st = proc.getState();
+    juce::StringArray names, values;
+    for (int r = 0; r < kNumBeatRows; ++r)
+    {
+        names.add (proc.getVoiceDisplayName (r).substring (0, 8));
+        auto* prm = st.getParameter (beatRowId (shift ? kBeatPitch : kBeatVol, r));
+        juce::String v = prm != nullptr ? prm->getCurrentValueAsText() + (shift ? "st" : "%") : juce::String();
+        if (getParam (beatRowId (kBeatMute, r)) >= 0.5f)
+            v = "MUTE";
+        else if (getParam (beatRowId (kBeatSolo, r)) >= 0.5f)
+            v = "SOLO " + v;
+        values.add (v);
+    }
+    const auto p = stepView();
+    juce::String line3 = "STEP  " + proc.getPatternDisplayName (proc.getCurrentPattern()).substring (0, 24)
+                         + "  " + juce::String (stepPage + 1) + "-" + juce::String (juce::jmin (p.numSteps(), stepPage + 8))
+                         + "/" + juce::String (p.numSteps());
+    juce::String status = "Kit " + proc.getKitDisplayName (proc.getCurrentKit()).substring (0, 20);
+    if (proc.getEngine().getRhythm().isFillPlaying())
+        status << "  FILL";
+    if (st.getRawParameterValue (gDrumsBfx)->load() >= 0.5f)
+        status << "  DRUMS>FX";
+    if (st.getRawParameterValue (gDrumsRepeat)->load() >= 0.5f)
+        status << "  DRUMS>REP";
+    if (const auto n = getNotice(); n.isNotEmpty())
+        status = n;
+    return { columns (names), columns (values), line3, status };
 }
 } // namespace livelooper::push

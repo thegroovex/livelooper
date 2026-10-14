@@ -33,6 +33,7 @@ namespace cc
     inline constexpr int note = 50, session = 51, addEffect = 52, addTrack = 53;
     inline constexpr int octaveDown = 54, octaveUp = 55, repeat = 56, accent = 57, scales = 58, user = 59;
     inline constexpr int mute = 60, solo = 61;
+    inline constexpr int inBtn = 62, outBtn = 63;          // v1.6: IN = FILL (hold), OUT = drums through the FX
     inline constexpr int play = 85, record = 86, newBtn = 87, duplicate = 88, automation = 89, fixedLength = 90;
     inline constexpr int device = 110, browse = 111, track = 112, clip = 113, volume = 114, panSend = 115;
     inline constexpr int quantize = 116, doubleBtn = 117, deleteBtn = 118, undo = 119;
