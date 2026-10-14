@@ -556,16 +556,16 @@ livelooper switches the controller into its programmer / DAW mode while it uses 
 | **808** | deep boom kick, crisp hats | toms |
 | **909 Style** | punchy house / techno | toms |
 | **Lo-Fi** | warm, dusty, soft top end | toms |
-| **House** | round kick, bright clap, shuffly open hats | clap roll |
-| **Techno** | driving, saturated kick, metallic hats, rim | kick roll |
-| **Boom Bap** | fat, 12-bit crunch, short room | snare roll |
-| **Trap** | long sub kick, snappy snare, tight hats for rolls | hi-hat rolls |
-| **Breaks** | punchy, crunchy kit for jungle / drum & bass / big beat | breaks (snare chops) |
-| **Rock** | acoustic kit with a big kick, loose hats, cross stick | toms |
-| **Disco** | warm kick, open hats, tambourine-like shaker | snare + open hat |
-| **Afro Latin** | kick plus hand percussion: bongo, claves, shaker, tambourine, cowbell, cabasa, conga | conga runs |
+| **House** | round electronic kick, real hand claps, crisp hats | clap roll |
+| **Techno** | driving, bright kick, metallic hats, electronic rim | kick roll |
+| **Boom Bap** | acoustic kit through a lo-fi microphone, 12-bit sampler crunch, finger snaps | snare roll |
+| **Trap** | long sub kick, snappy snare, crisp hats for rolls, layered clap | hi-hat rolls |
+| **Breaks** | acoustic kit with room microphones for jungle / drum & bass / big beat | breaks (snare chops) |
+| **Rock** | big acoustic kit: open 24" kick, rimshot snare, cross stick, floor tom | toms |
+| **Disco** | dry, damped 70s kit: muted snare, tight hats, tambourine | snare + open hat |
+| **Afro Latin** | real hand percussion: cajon kick, bongo, claves, shaker, tambourine, cowbell, cabasa, conga | conga runs |
 
-The style kits are self-synthesised or recorded CC0 instruments (VCSL); see `resources/drums/SOURCES.md`. The voice names (e.g. *Conga* instead of *Tom* in Afro Latin) show on the BEATS page and on Push. The kit selector also lists **Pack Kit 1 … 8** for sound packs.
+All style kits are real recordings released under CC0 (acoustic multi-sample kits from the sfzinstruments project, freesound.org samples, a sampled drum machine); nothing is synthesised. Every file and its source are listed in `resources/drums/SOURCES.md`. The voice names (e.g. *Conga* instead of *Tom* in Afro Latin) show on the BEATS page and on Push. The kit selector also lists **Pack Kit 1 … 8** for sound packs.
 
 New grooves (pattern selector): Deep House, Tech House, Peak Techno, Hypnotic Techno, Boom Bap, Boom Bap Swing, Trap Rolls, Trap Half Time, Jungle, Two Step, Big Beat, Rock Drive, Rock Half Time, Disco Hustle, Funk Groove, Son Clave, Afro Groove, Samba. Each of them brings its own fill; the older grooves use the fill of the kit.
 

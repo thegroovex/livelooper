@@ -56,7 +56,7 @@ Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
 
 *Drums and BEATS*
 
-- **12 drum kits**: Studio, 808, 909 Style, Lo-Fi plus House, Techno, Boom Bap, Trap, Breaks, Rock, Disco and Afro Latin – each with matching grooves (39 in total) and its own fill style
+- **12 drum kits**: Studio, 808, 909 Style, Lo-Fi plus House, Techno, Boom Bap, Trap, Breaks, Rock, Disco and Afro Latin – real CC0 recordings (acoustic kits, hand percussion, sampled machines), each with matching grooves (39 in total) and its own fill style
 - **Lively drums**: more takes, velocity layers, round robin across layers, subtle pitch / decay variation and accent kicks (VARIATION) – no machine gun
 - **BEATS step sequencer**: 8 voices × 16 or 32 steps, 1 – 4 bars, velocity / accent per step, mute / solo / level / pitch per row, copy / paste / light variation, 16 user patterns per set plus a pattern library; pattern changes switch on the next beat or bar
 - **FILL on demand**: hold FILL for a fill, let go and the groove lands on the next downbeat

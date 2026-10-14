@@ -56,7 +56,7 @@ Einrichtung und komplette Belegung: **[PUSH.md](docs/de/PUSH.md)**.
 
 *Drums und BEATS*
 
-- **12 Drum-Kits**: Studio, 808, 909 Style, Lo-Fi plus House, Techno, Boom Bap, Trap, Breaks, Rock, Disco und Afro Latin – jedes mit passenden Grooves (insgesamt 39) und eigenem Fill-Stil
+- **12 Drum-Kits**: Studio, 808, 909 Style, Lo-Fi plus House, Techno, Boom Bap, Trap, Breaks, Rock, Disco und Afro Latin – echte CC0-Aufnahmen (akustische Sets, Handpercussion, gesampelte Drumcomputer), jedes mit passenden Grooves (insgesamt 39) und eigenem Fill-Stil
 - **Lebendige Drums**: mehr Takes, Velocity-Layer, Round Robin über Layer hinweg, feine Tonhöhen- / Ausklang-Variation und Akzent-Kicks (VARIATION) – kein Maschinengewehr
 - **BEATS-Step-Sequencer**: 8 Instrumente × 16 oder 32 Schritte, 1 – 4 Takte, Dynamik / Akzent pro Schritt, stumm / solo / Pegel / Tonhöhe pro Zeile, Kopieren / Einfügen / leichte Variation, 16 User-Patterns pro Set plus Pattern-Bibliothek; Pattern-Wechsel auf den nächsten Schlag oder Takt
 - **FILL auf Knopfdruck**: FILL halten für einen Fill, loslassen und der Groove landet auf der nächsten Eins

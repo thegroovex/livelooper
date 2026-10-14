@@ -12,7 +12,7 @@
 namespace livelooper
 {
 /** v1.5: the recorded drum samples of the kits (filled by the plug-in from its embedded CC0 /
-    public-domain / self-synthesised samples, see resources/drums/SOURCES.md, and since v1.6 from
+    public-domain recordings, see resources/drums/SOURCES.md, and since v1.6 from
     sound packs). Without samples for a kit the rhythm falls back to the synthesised voices. */
 struct DrumBank
 {

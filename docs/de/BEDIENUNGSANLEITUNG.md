@@ -583,16 +583,16 @@ livelooper schaltet den Controller in seinen Programmer-/DAW-Modus, solange er i
 | **808** | tiefe Boom-Kick, knackige Hi-Hats | Toms |
 | **909 Style** | druckvoll, House / Techno | Toms |
 | **Lo-Fi** | warm, staubig, weiche Höhen | Toms |
-| **House** | runde Kick, heller Clap, swingende offene Hi-Hats | Clap-Wirbel |
-| **Techno** | treibende, gesättigte Kick, metallische Hi-Hats, Rim | Kick-Wirbel |
-| **Boom Bap** | fett, 12-Bit-Crunch, kurzer Raum | Snare-Wirbel |
-| **Trap** | lange Sub-Kick, knackige Snare, kurze Hi-Hats für Rolls | Hi-Hat-Rolls |
-| **Breaks** | druckvolles, crunchiges Set für Jungle / Drum & Bass / Big Beat | Breaks (Snare-Chops) |
-| **Rock** | akustisches Set mit großer Kick, offenen Hi-Hats, Cross Stick | Toms |
-| **Disco** | warme Kick, offene Hi-Hats, tamburinartiger Shaker | Snare + offene Hi-Hat |
-| **Afro Latin** | Kick plus Handpercussion: Bongo, Claves, Shaker, Tamburin, Kuhglocke, Cabasa, Conga | Conga-Läufe |
+| **House** | runde elektronische Kick, echte Handclaps, knackige Hi-Hats | Clap-Wirbel |
+| **Techno** | treibende, helle Kick, metallische Hi-Hats, elektronischer Rim | Kick-Wirbel |
+| **Boom Bap** | akustisches Set über ein Lo-Fi-Mikrofon, 12-Bit-Sampler-Crunch, Fingerschnipsen | Snare-Wirbel |
+| **Trap** | lange Sub-Kick, knackige Snare, kurze Hi-Hats für Rolls, geschichteter Clap | Hi-Hat-Rolls |
+| **Breaks** | akustisches Set mit Raummikrofonen für Jungle / Drum & Bass / Big Beat | Breaks (Snare-Chops) |
+| **Rock** | großes akustisches Set: offene 24"-Kick, Rimshot-Snare, Cross Stick, Standtom | Toms |
+| **Disco** | trockenes, gedämpftes 70er-Set: abgedämpfte Snare, enge Hi-Hats, Tamburin | Snare + offene Hi-Hat |
+| **Afro Latin** | echte Handpercussion: Cajón-Kick, Bongo, Claves, Shaker, Tamburin, Kuhglocke, Cabasa, Conga | Conga-Läufe |
 
-Die Stil-Kits sind selbst synthetisiert oder aufgenommene CC0-Instrumente (VCSL), siehe `resources/drums/SOURCES.md`. Die Instrument-Namen (z. B. *Conga* statt *Tom* bei Afro Latin) stehen auf der BEATS-Seite und auf Push. Die Kit-Auswahl enthält außerdem **Pack-Kit 1 … 8** für Sound-Packs.
+Alle Stil-Kits sind echte Aufnahmen unter CC0 (akustische Multisample-Kits des sfzinstruments-Projekts, Samples von freesound.org, ein gesampelter Drumcomputer); nichts ist synthetisiert. Jede Datei und ihre Quelle stehen in `resources/drums/SOURCES.md`. Die Instrument-Namen (z. B. *Conga* statt *Tom* bei Afro Latin) stehen auf der BEATS-Seite und auf Push. Die Kit-Auswahl enthält außerdem **Pack-Kit 1 … 8** für Sound-Packs.
 
 Neue Grooves (Pattern-Auswahl): Deep House, Tech House, Peak Techno, Hypnotic Techno, Boom Bap, Boom Bap Swing, Trap Rolls, Trap Half Time, Jungle, Two Step, Big Beat, Rock Drive, Rock Half Time, Disco Hustle, Funk Groove, Son Clave, Afro Groove, Samba. Jeder bringt seinen eigenen Fill mit; die älteren Grooves nutzen den Fill des Kits.
 
