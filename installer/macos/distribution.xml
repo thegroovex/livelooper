@@ -7,7 +7,6 @@
     <welcome file="welcome.html" mime-type="text/html"/>
     <readme file="readme.html" mime-type="text/html"/>
     <license file="license.txt" mime-type="text/plain"/>
-    <background file="background.png" mime-type="image/png" alignment="bottomleft" scaling="proportional"/>
     <choices-outline>
         <line choice="app"/>
         <line choice="vst3"/>

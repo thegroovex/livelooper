@@ -20,6 +20,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          submodules: recursive
 
       - name: Install dependencies
         run: |
@@ -62,6 +64,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          submodules: recursive
 
       - name: Configure
         shell: bash
@@ -93,25 +97,108 @@ jobs:
           ${{ matrix.pluginvalBin }} --strictness-level 5 --skip-gui-tests --validate-in-process \
             --validate build/livelooper_artefacts/Release/VST3/livelooper.vst3
 
-      - name: Package
+      - name: Version
+        id: version
+        shell: bash
+        run: echo "version=$(grep -m1 -oE 'project\(livelooper VERSION [0-9.]+' CMakeLists.txt | awk '{print $3}')" >> "$GITHUB_OUTPUT"
+
+      - name: Sign (macOS, ad-hoc with a stable identifier)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          # Ad-hoc signature (no Apple Developer ID yet) with a fixed identifier, so macOS keeps
+          # the microphone permission across updates (tccutil reset Microphone com.groovex.livelooper).
+          # Hardened runtime stays off; the entitlement documents the audio input.
+          A=build/livelooper_artefacts/Release
+          for b in "$A/Standalone/livelooper.app" "$A/VST3/livelooper.vst3" "$A/AU/livelooper.component"; do
+            codesign --force --deep --sign - --identifier com.groovex.livelooper \
+              --entitlements resources/macos/livelooper.entitlements "$b"
+            codesign --verify --deep --strict --verbose=2 "$b"
+            codesign -dv "$b" 2>&1 | grep -E 'Identifier|Signature'
+          done
+
+      - name: Package (ZIP)
         shell: bash
         run: |
           mkdir -p dist/livelooper
           cp -R build/livelooper_artefacts/Release/VST3/livelooper.vst3 dist/livelooper/
+          cp docs/en/INSTALLATION.md dist/livelooper/INSTALLATION.md
+          cp docs/de/INSTALLATION.md dist/livelooper/INSTALLATION-DE.md
           if [ "${{ runner.os }}" = "macOS" ]; then
             cp -R build/livelooper_artefacts/Release/AU/livelooper.component dist/livelooper/
             cp -R build/livelooper_artefacts/Release/Standalone/livelooper.app dist/livelooper/
+            cp installer/macos/install.command dist/livelooper/
+            chmod +x dist/livelooper/install.command
+            # ditto keeps the executable bits and the signatures intact
+            ditto -c -k --sequesterRsrc --keepParent dist/livelooper livelooper-${{ matrix.name }}.zip
           else
             cp build/livelooper_artefacts/Release/Standalone/livelooper.exe dist/livelooper/
+            cd dist && 7z a -tzip ../livelooper-${{ matrix.name }}.zip livelooper > /dev/null
           fi
-          cp docs/en/INSTALLATION.md dist/livelooper/INSTALLATION.md
-          cp docs/de/INSTALLATION.md dist/livelooper/INSTALLATION-DE.md
-          cd dist && 7z a -tzip ../livelooper-${{ matrix.name }}.zip livelooper > /dev/null || zip -qr ../livelooper-${{ matrix.name }}.zip livelooper
+          ls -l ../livelooper-${{ matrix.name }}.zip livelooper-${{ matrix.name }}.zip 2>/dev/null || true
+
+      - name: Installer (macOS .pkg)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -e
+          V="${{ steps.version.outputs.version }}"
+          A=build/livelooper_artefacts/Release
+          W=build/pkg
+          rm -rf "$W"; mkdir -p "$W/root/app" "$W/root/vst3" "$W/root/au" "$W/pkgs" "$W/res"
+          ditto "$A/Standalone/livelooper.app" "$W/root/app/livelooper.app"
+          ditto "$A/VST3/livelooper.vst3" "$W/root/vst3/livelooper.vst3"
+          ditto "$A/AU/livelooper.component" "$W/root/au/livelooper.component"
+          chmod +x installer/macos/scripts/postinstall
+          # install exactly where the choice says (no "relocation" to an older copy elsewhere)
+          for c in app vst3 au; do
+            pkgbuild --analyze --root "$W/root/$c" "$W/$c.plist"
+            plutil -replace BundleIsRelocatable -bool NO "$W/$c.plist" || true
+          done
+          pkgbuild --root "$W/root/app" --component-plist "$W/app.plist" --identifier com.groovex.livelooper.app \
+            --version "$V" --install-location /Applications --scripts installer/macos/scripts "$W/pkgs/livelooper-app.pkg"
+          pkgbuild --root "$W/root/vst3" --component-plist "$W/vst3.plist" --identifier com.groovex.livelooper.vst3 \
+            --version "$V" --install-location /Library/Audio/Plug-Ins/VST3 "$W/pkgs/livelooper-vst3.pkg"
+          pkgbuild --root "$W/root/au" --component-plist "$W/au.plist" --identifier com.groovex.livelooper.au \
+            --version "$V" --install-location /Library/Audio/Plug-Ins/Components --scripts installer/macos/scripts "$W/pkgs/livelooper-au.pkg"
+          cp -R installer/macos/resources/. "$W/res/"
+          cp LICENSE "$W/res/license.txt"
+          for l in en.lproj de.lproj; do cp LICENSE "$W/res/$l/license.txt"; done
+          productbuild --distribution installer/macos/distribution.xml --resources "$W/res" \
+            --package-path "$W/pkgs" --version "$V" livelooper-macOS.pkg
+          pkgutil --check-signature livelooper-macOS.pkg || true    # unsigned until a Developer ID exists
+          pkgutil --payload-files livelooper-macOS.pkg | head -n 20 || true
+          ls -l livelooper-macOS.pkg
+
+      - name: Installer (Windows setup)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          set -e
+          ISCC="/c/Program Files (x86)/Inno Setup 6/ISCC.exe"
+          if ! command -v iscc >/dev/null 2>&1 && [ ! -f "$ISCC" ]; then
+            choco install innosetup -y --no-progress
+          fi
+          command -v iscc >/dev/null 2>&1 && ISCC=iscc
+          "$ISCC" //DMyAppVersion="${{ steps.version.outputs.version }}" //O"$(pwd -W)" installer/windows/livelooper.iss
+          ls -l livelooper-Windows-Setup.exe
 
       - uses: actions/upload-artifact@v7
         with:
           name: livelooper-${{ matrix.name }}
           path: livelooper-${{ matrix.name }}.zip
+
+      - uses: actions/upload-artifact@v7
+        if: runner.os == 'macOS'
+        with:
+          name: livelooper-macOS-pkg
+          path: livelooper-macOS.pkg
+
+      - uses: actions/upload-artifact@v7
+        if: runner.os == 'Windows'
+        with:
+          name: livelooper-Windows-Setup
+          path: livelooper-Windows-Setup.exe
 
   release:
     name: GitHub release
@@ -124,5 +211,9 @@ jobs:
           path: artifacts
       - uses: softprops/action-gh-release@v3
         with:
-          files: artifacts/**/*.zip
+          # ZIPs stay the primary / manual way; the installers are the comfortable alternative
+          files: |
+            artifacts/**/*.zip
+            artifacts/**/livelooper-macOS.pkg
+            artifacts/**/livelooper-Windows-Setup.exe
           generate_release_notes: true

@@ -1,7 +1,7 @@
 #!/bin/bash
 # livelooper - simple install script (alternative to the .pkg installer and to copying by hand).
-# Double-click it in Finder (if macOS blocks it: right-click > Open, or System Settings >
-# Privacy & Security > Open Anyway), or run it in Terminal:  bash install.command
+# Double-click it in Finder (if macOS blocks it: System Settings > Privacy & Security >
+# Security > Open Anyway, then confirm), or run it in Terminal:  bash install.command
 # Installs for the current user, no administrator password needed:
 #   livelooper.app        -> ~/Applications
 #   livelooper.vst3       -> ~/Library/Audio/Plug-Ins/VST3
