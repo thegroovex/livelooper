@@ -276,14 +276,16 @@ void LiveLooperEditor::addFeatures16Menu (juce::PopupMenu& menu)
     juce::PopupMenu ctl;
     auto* gc = proc.getGridControllers();
     const auto chosen = gc != nullptr ? gc->getSelection() : controllers::Selection::Automatic;
+    ctl.addItem (638, tr (juce::String::fromUTF8 ("Experimental \xe2\x80\x93 untested on hardware, feedback welcome")), false);
+    ctl.addSeparator();
     ctl.addItem (630, tr ("Automatic (by MIDI port name)"), gc != nullptr, chosen == controllers::Selection::Automatic);
     ctl.addItem (631, tr ("Off"), gc != nullptr, chosen == controllers::Selection::Off);
     for (int i = 0; i < controllers::kNumTemplates; ++i)
-        ctl.addItem (640 + i, controllers::templateName ((controllers::TemplateId) i), gc != nullptr,
+        ctl.addItem (640 + i, controllers::templateName ((controllers::TemplateId) i) + " (" + tr ("experimental") + ")", gc != nullptr,
                      chosen == (controllers::Selection) ((int) controllers::Selection::First + i));
     ctl.addSeparator();
     ctl.addItem (639, gc != nullptr ? gc->getStatusText() : tr ("Off"), false);
-    menu.addSubMenu (tr ("Controller templates (grid controllers)"), ctl);
+    menu.addSubMenu (tr ("Controller templates (grid controllers, experimental)"), ctl);
     menu.addItem (603, tr ("Guided tour (60 seconds)"));
     menu.addSeparator();
 }

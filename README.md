@@ -52,7 +52,7 @@ Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
 - **Performance recorder**: the whole livelooper output as WAV with one button, with the elapsed time
 - **Clip export 9:16**: the last 20 seconds (or a recording) as a branded vertical video for Reels, TikTok and Shorts
 - **Share sets**: one `.livelooper` file with all audio, opened by drag and drop – the demo set is in [`presets`](presets/)
-- **Controller templates** for Launchpad Mini MK3 / X, APC mini mk2 and Launchkey MK3 / MK4 pads (auto-detected, with LED feedback; not yet tested on the hardware)
+- **Controller templates** for Launchpad Mini MK3 / X, APC mini mk2 and Launchkey MK3 / MK4 pads (auto-detected, with LED feedback) – *experimental – untested on hardware, feedback welcome*
 <!-- end v1.6 features -->
 
 **Live performance FX (new in 1.5)**

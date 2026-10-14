@@ -538,9 +538,12 @@ So wird das Video kodiert: unter **macOS** mit AVFoundation, unter **Windows** m
 
 **Presets auf GitHub**: Der Ordner [`presets`](../../presets/) im livelooper-Repository enthält das Demo-Set (`demo-set.livelooper`). Eigene Sets teilen: als `.livelooper` speichern, prüfen, dass jeder Klang darin von dir ist oder frei geteilt werden darf, und einen Pull Request öffnen, der es in `presets/` legt (oder es an ein Issue anhängen).
 
-## 38. Controller-Vorlagen (neu in 1.6)
+## 38. Controller-Vorlagen (neu in 1.6, experimentell)
 
-Neben [Push 1](PUSH.md) und MIDI Learn hat livelooper fertige Vorlagen für verbreitete Grid-Controller. Schließ den Controller an, livelooper erkennt ihn am Namen seines MIDI-Ports; **SETUP → Controller-Vorlagen** zeigt den Status und lässt dich selbst eine Vorlage wählen (oder die Vorlagen ausschalten). Unterstützt: **Launchpad Mini MK3, Launchpad X, APC mini mk2** (und das erste APC mini) und die Pads von **Launchkey MK3 / MK4**. Die Vorlagen folgen den öffentlichen Programmer's References der Hersteller – **an der Hardware sind sie noch nicht getestet**; bitte melde, was nicht funktioniert.
+> **Experimentell – nicht auf Hardware getestet, Feedback willkommen.**
+
+
+Neben [Push 1](PUSH.md) und MIDI Learn hat livelooper fertige Vorlagen für verbreitete Grid-Controller. Schließ den Controller an, livelooper erkennt ihn am Namen seines MIDI-Ports; **SETUP → Controller-Vorlagen** zeigt den Status und lässt dich selbst eine Vorlage wählen (oder die Vorlagen ausschalten). Unterstützt: **Launchpad Mini MK3, Launchpad X, APC mini mk2** (und das erste APC mini) und die Pads von **Launchkey MK3 / MK4**. Die Vorlagen folgen den öffentlichen Programmer's References der Hersteller (Notennummern, Modus-Umschaltung und LED-Farben daran geprüft) – **an der Hardware sind sie noch nicht getestet**; bitte melde, was nicht funktioniert.
 
 8 × 8-Grid (Launchpad, APC mini) – eine Spalte pro Spur, Reihen von oben:
 
@@ -561,7 +564,7 @@ Neben [Push 1](PUSH.md) und MIDI Learn hat livelooper fertige Vorlagen für verb
 - **Launchkey-Pads** (DAW-Modus): obere Reihe REC / PLAY, untere Reihe STOP für die Spuren 1 – 8; die Szenen-Taste (>) = ALLE START / STOP, die Taste darunter = ALLE STOP. Die Tasten (Keys) bleiben bei deiner DAW.
 - **LEDs**: grün = läuft, rot pulsierend = Aufnahme, orange = Overdub, gelb blinkend = wartet auf den Takt, gelb gedimmt = gestoppt, dunkel = leer. Szenen: gedimmt = gespeichert, hell = zuletzt gestartet.
 
-livelooper schaltet den Controller in seinen Programmer-/DAW-Modus, solange er ihn nutzt, und beim Loslassen zurück. **Windows**: Ein MIDI-Port kann nur von einem Programm gleichzeitig benutzt werden – schalte den Controller in den MIDI-Einstellungen deiner DAW aus (wie bei Push).
+livelooper schaltet den Controller in seinen Programmer-/DAW-Modus, solange er ihn nutzt, und beim Loslassen zurück. Ports: Launchpad = sein *MIDI*-Port (unter Windows der zweite, `MIDIIN2 (…)`), Launchkey = sein *DAW*-Port (unter Windows der zweite), APC mini mk2 = sein erster Port. **Windows**: Ein MIDI-Port kann nur von einem Programm gleichzeitig benutzt werden – schalte den Controller in den MIDI-Einstellungen deiner DAW aus (wie bei Push).
 <!-- end v1.6 features -->
 ---
 

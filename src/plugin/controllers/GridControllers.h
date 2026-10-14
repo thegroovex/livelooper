@@ -35,6 +35,8 @@ enum class Selection : int { Automatic = -2, Off = -1, First = 0 };
 juce::String templateName (TemplateId t);
 /** The template whose MIDI port this is (the port livelooper talks to), or -1. */
 int detectTemplate (const juce::String& portName);
+/** Same, with the naming rules of Windows (second USB interface = "MIDIIN2 (...)") or macOS / Linux. */
+int detectTemplate (const juce::String& portName, bool windowsNames);
 
 /** What a pad / button does. */
 struct Action

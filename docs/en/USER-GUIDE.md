@@ -511,9 +511,12 @@ How the video is encoded: on **macOS** with AVFoundation, on **Windows** with Me
 
 **Presets on GitHub**: the folder [`presets`](../../presets/) of the livelooper repository holds the demo set (`demo-set.livelooper`). To share your own: save it as `.livelooper`, check that every sound in it is yours or free to share, and open a pull request that adds it to `presets/` (or attach it to an issue).
 
-## 38. Controller templates (new in 1.6)
+## 38. Controller templates (new in 1.6, experimental)
 
-Besides [Push 1](PUSH.md) and MIDI learn, livelooper has ready-made templates for popular grid controllers. Connect the controller and livelooper finds it by its MIDI port name; **SETUP → Controller templates** shows the status and lets you choose a template yourself (or switch the templates off). Supported: **Launchpad Mini MK3, Launchpad X, APC mini mk2** (and the first APC mini) and the pads of **Launchkey MK3 / MK4**. The templates follow the manufacturers' public programmer's references – **they are not yet tested on the hardware**; please report what does not work.
+> **Experimental – untested on hardware, feedback welcome.**
+
+
+Besides [Push 1](PUSH.md) and MIDI learn, livelooper has ready-made templates for popular grid controllers. Connect the controller and livelooper finds it by its MIDI port name; **SETUP → Controller templates** shows the status and lets you choose a template yourself (or switch the templates off). Supported: **Launchpad Mini MK3, Launchpad X, APC mini mk2** (and the first APC mini) and the pads of **Launchkey MK3 / MK4**. The templates follow the manufacturers' public programmer's references (note numbers, mode switch and LED colours checked against them) – **they are not yet tested on the hardware**; please report what does not work.
 
 8 × 8 grid (Launchpad, APC mini) – one column per track, rows from the top:
 
@@ -534,7 +537,7 @@ Besides [Push 1](PUSH.md) and MIDI learn, livelooper has ready-made templates fo
 - **Launchkey pads** (DAW mode): upper row REC / PLAY, lower row STOP for tracks 1 – 8; the scene launch button (>) = ALL START / STOP, the button below = ALL STOP. The keys stay with your DAW.
 - **LEDs**: green = playing, red pulsing = recording, orange = overdub, yellow flashing = waits for the bar, dim yellow = stopped, dark = empty. Scenes: dim = stored, bright = last started.
 
-livelooper switches the controller into its programmer / DAW mode while it uses it and back when it lets go. **Windows**: a MIDI port can only be used by one program at a time – switch the controller off in your DAW's MIDI settings (as for Push).
+livelooper switches the controller into its programmer / DAW mode while it uses it and back when it lets go. Ports: Launchpad = its *MIDI* port (on Windows the second one, `MIDIIN2 (…)`), Launchkey = its *DAW* port (on Windows the second one), APC mini mk2 = its first port. **Windows**: a MIDI port can only be used by one program at a time – switch the controller off in your DAW's MIDI settings (as for Push).
 <!-- end v1.6 features -->
 ---
 

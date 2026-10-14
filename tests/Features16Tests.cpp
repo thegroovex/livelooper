@@ -654,21 +654,29 @@ public:
         {
             using controllers::detectTemplate;
             using controllers::TemplateId;
-            expectEquals (detectTemplate ("Launchpad Mini MK3 LPMiniMK3 MIDI"), (int) TemplateId::LaunchpadMiniMk3);
-            expectEquals (detectTemplate ("LPMiniMK3 MIDI"), (int) TemplateId::LaunchpadMiniMk3);
-            expectEquals (detectTemplate ("Launchpad Mini MK3 LPMiniMK3 DAW"), -1, "the DAW port is not used");
-            expectEquals (detectTemplate ("MIDIIN2 (LPMiniMK3 MIDI)"), -1);
-            expectEquals (detectTemplate ("Launchpad X LPX MIDI"), (int) TemplateId::LaunchpadX);
-            expectEquals (detectTemplate ("APC mini mk2"), (int) TemplateId::ApcMiniMk2);
-            expectEquals (detectTemplate ("APC mini mk2 Control"), (int) TemplateId::ApcMiniMk2);
-            expectEquals (detectTemplate ("APC mini mk2 Notes"), -1);
-            expectEquals (detectTemplate ("APC MINI"), (int) TemplateId::ApcMini);
-            expectEquals (detectTemplate ("Launchkey MK3 49 LKMK3 DAW Out"), (int) TemplateId::LaunchkeyMk3);
-            expectEquals (detectTemplate ("MIDIIN2 (LKMK3 MIDI)"), (int) TemplateId::LaunchkeyMk3);
-            expectEquals (detectTemplate ("Launchkey MK3 49 LKMK3 MIDI Out"), -1, "the keys port is left to the DAW");
-            expectEquals (detectTemplate ("Launchkey MK4 37 DAW In"), (int) TemplateId::LaunchkeyMk4);
-            expectEquals (detectTemplate ("Ableton Push User Port"), -1);
-            expectEquals (detectTemplate ("IAC Driver Bus 1"), -1);
+            // macOS / Linux names (false), Windows names (true) - interfaces as in the programmer's references
+            expectEquals (detectTemplate ("Launchpad Mini MK3 LPMiniMK3 MIDI", false), (int) TemplateId::LaunchpadMiniMk3);
+            expectEquals (detectTemplate ("LPMiniMK3 MIDI", false), (int) TemplateId::LaunchpadMiniMk3);
+            expectEquals (detectTemplate ("Launchpad Mini MK3 LPMiniMK3 DAW", false), -1, "the DAW port is not used");
+            expectEquals (detectTemplate ("MIDIIN2 (LPMiniMK3 MIDI)", true), (int) TemplateId::LaunchpadMiniMk3, "Windows: 2nd interface = MIDI");
+            expectEquals (detectTemplate ("MIDIOUT2 (LPMiniMK3 MIDI)", true), (int) TemplateId::LaunchpadMiniMk3);
+            expectEquals (detectTemplate ("LPMiniMK3 MIDI", true), -1, "Windows: 1st interface = DAW");
+            expectEquals (detectTemplate ("Launchpad X LPX MIDI", false), (int) TemplateId::LaunchpadX);
+            expectEquals (detectTemplate ("MIDIIN2 (LPX MIDI)", true), (int) TemplateId::LaunchpadX);
+            expectEquals (detectTemplate ("LPX MIDI", true), -1);
+            expectEquals (detectTemplate ("APC mini mk2", true), (int) TemplateId::ApcMiniMk2);
+            expectEquals (detectTemplate ("MIDIIN2 (APC mini mk2)", true), -1, "APC mini mk2: port 0 only");
+            expectEquals (detectTemplate ("APC mini mk2 Control", false), (int) TemplateId::ApcMiniMk2);
+            expectEquals (detectTemplate ("APC mini mk2 Notes", false), -1);
+            expectEquals (detectTemplate ("APC MINI", true), (int) TemplateId::ApcMini);
+            expectEquals (detectTemplate ("Launchkey MK3 49 LKMK3 DAW Out", false), (int) TemplateId::LaunchkeyMk3);
+            expectEquals (detectTemplate ("MIDIIN2 (LKMK3 MIDI)", true), (int) TemplateId::LaunchkeyMk3);
+            expectEquals (detectTemplate ("LKMK3 MIDI", true), -1, "Windows: 1st interface = keys");
+            expectEquals (detectTemplate ("Launchkey MK3 49 LKMK3 MIDI Out", false), -1, "the keys port is left to the DAW");
+            expectEquals (detectTemplate ("Launchkey MK4 37 DAW In", false), (int) TemplateId::LaunchkeyMk4);
+            expectEquals (detectTemplate ("MIDIIN2 (Launchkey MK4 37 MIDI)", true), (int) TemplateId::LaunchkeyMk4);
+            expectEquals (detectTemplate ("Ableton Push User Port", false), -1);
+            expectEquals (detectTemplate ("IAC Driver Bus 1", false), -1);
         }
 
         beginTest ("Controller templates: pads and buttons do the looper functions");
@@ -720,6 +728,30 @@ public:
             a = lk.translate (juce::MidiMessage::controllerEvent (1, 0x68, 127), false);
             expect (a.kind == Action::Kind::AllStartStop);
             expect (lk.enterMessages().front().isNoteOn() && lk.enterMessages().front().getChannel() == 16);
+            {
+                const auto e3 = lk.enterMessages();
+                expect (e3.size() == 2 && e3[1].isController() && e3[1].getChannel() == 16 && e3[1].getControllerNumber() == 3
+                        && e3[1].getControllerValue() == 2, "MK3: BF 03 02 = Session layout");
+                const auto e4 = Template (TemplateId::LaunchkeyMk4).enterMessages();
+                expect (e4.size() == 2 && e4[0].getRawData()[0] == 0x9f && e4[0].getNoteNumber() == 0x0c && e4[0].getVelocity() == 127);
+                expect (e4[1].isController() && e4[1].getChannel() == 7 && e4[1].getControllerNumber() == 0x1d
+                        && e4[1].getControllerValue() == 2, "MK4: B6 1D 02 = DAW pad layout");
+                a = lk.translate (juce::MidiMessage::controllerEvent (16, 0x68, 127), false);
+                expect (a.kind == Action::Kind::None, "CC 104 on channel 16 = Scene Up, not ALL START / STOP");
+                const auto lx = Template (TemplateId::LaunchpadX).enterMessages();
+                expect (lx.size() == 1 && lx[0].getSysExData()[4] == 0x0c && lx[0].getSysExData()[5] == 0x0e && lx[0].getSysExData()[6] == 1,
+                        "Launchpad X: F0 00 20 29 02 0C 0E 01 F7");
+                // APC mini mk2 pad LED: channel = behaviour (index 6 = solid 100 %), velocity = palette
+                std::vector<juce::MidiMessage> leds;
+                SurfaceState st;
+                st.tracks[0].state = (int) LoopTrack::State::Playing;
+                apc.render (st, leds);
+                expect (leds[0].getNoteNumber() == 56 && leds[0].getChannel() == 7 && leds[0].getVelocity() == 21, "APC mk2: 96 38 15 = green");
+                const Template apc1 (TemplateId::ApcMini);
+                leds.clear();
+                apc1.render (st, leds);
+                expect (leds[0].getNoteNumber() == 56 && leds[0].getChannel() == 1 && leds[0].getVelocity() == 1, "APC mini: 90 38 01 = green");
+            }
 
             // actions reach the looper
             Proc16 h;

@@ -34,10 +34,12 @@ namespace
         switch (c)
         {
             case Led::Off: return 0;        case Led::White: return 3;
-            case Led::Red: return 5;        case Led::RedDim: return 7;
-            case Led::Orange: return 9;     case Led::OrangeDim: return 11;
-            case Led::Yellow: return 13;    case Led::YellowDim: return 15;
-            case Led::Green: return 21;     case Led::GreenDim: return 23;
+            // Novation / APC mk2 palette (identical tables in both programmer's references):
+            // 5 = #FF0000, 6 = #590000 (35 %); 7 / 11 / 15 / 23 are ~10 % and nearly invisible, so "dim" = the 35 % entries
+            case Led::Red: return 5;        case Led::RedDim: return 6;
+            case Led::Orange: return 9;     case Led::OrangeDim: return 10;
+            case Led::Yellow: return 13;    case Led::YellowDim: return 14;
+            case Led::Green: return 21;     case Led::GreenDim: return 22;
             case Led::Cyan: return 37;      case Led::Blue: return 45;
             case Led::Magenta: return 53;
         }
@@ -72,11 +74,26 @@ juce::String templateName (TemplateId t)
 
 int detectTemplate (const juce::String& portName)
 {
+   #if JUCE_WINDOWS
+    return detectTemplate (portName, true);
+   #else
+    return detectTemplate (portName, false);
+   #endif
+}
+
+int detectTemplate (const juce::String& portName, bool windowsNames)
+{
+    // Port naming from the programmer's references: Launchpad Mini MK3 / X = "DAW" + "MIDI" interface, on Windows
+    // the FIRST interface is the DAW one ("LPMiniMK3 MIDI") and the second is "MIDIIN2 (LPMiniMK3 MIDI)".
+    // livelooper uses the MIDI interface (programmer mode). Launchkey MK3 / MK4: first = MIDI (keys), second = DAW;
+    // livelooper uses the DAW interface. APC mini mk2: port 0 ("Control" on macOS, first on Windows) carries pads + LEDs.
     const auto n = portName.toLowerCase();
-    const bool dawPort = n.contains ("daw") || n.startsWith ("midiin2") || n.startsWith ("midiout2");
-    if ((n.contains ("lpminimk3") || n.contains ("launchpad mini mk3")) && ! dawPort) return (int) TemplateId::LaunchpadMiniMk3;
-    if ((n.contains ("lpx") || n.contains ("launchpad x")) && ! dawPort)               return (int) TemplateId::LaunchpadX;
-    if (n.contains ("apc mini mk2"))                                                    return n.contains ("notes") ? -1 : (int) TemplateId::ApcMiniMk2;
+    const bool secondWin = n.startsWith ("midiin2") || n.startsWith ("midiout2");
+    const bool dawPort = n.contains ("daw") || (windowsNames && secondWin);
+    const bool lpMidiPort = windowsNames ? secondWin : ! n.contains ("daw");
+    if ((n.contains ("lpminimk3") || n.contains ("launchpad mini mk3")) && lpMidiPort) return (int) TemplateId::LaunchpadMiniMk3;
+    if ((n.contains ("lpx") || n.contains ("launchpad x")) && lpMidiPort)               return (int) TemplateId::LaunchpadX;
+    if (n.contains ("apc mini mk2"))                                                    return (n.contains ("notes") || secondWin) ? -1 : (int) TemplateId::ApcMiniMk2;
     if (n.contains ("apc mini"))                                                        return (int) TemplateId::ApcMini;
     if ((n.contains ("lkmk3") || n.contains ("launchkey mk3")) && dawPort)              return (int) TemplateId::LaunchkeyMk3;
     if ((n.contains ("lkmk4") || n.contains ("launchkey mk4")) && dawPort)              return (int) TemplateId::LaunchkeyMk4;
@@ -101,9 +118,12 @@ std::vector<juce::MidiMessage> Template::enterMessages() const
         const juce::uint8 sx[] = { 0x00, 0x20, 0x29, 0x02, dev, 0x0e, 0x01 };     // programmer mode
         return { juce::MidiMessage::createSysExMessage (sx, (int) sizeof (sx)) };
     }
-    if (isLaunchkey (id))
-        return { juce::MidiMessage::noteOn (16, 0x0c, (juce::uint8) 127),         // DAW mode on
-                 juce::MidiMessage::controllerEvent (16, 0x03, 2) };              // pads: session layout
+    if (id == TemplateId::LaunchkeyMk3)
+        return { juce::MidiMessage::noteOn (16, 0x0c, (juce::uint8) 127),         // DAW mode on (9F 0C 7F)
+                 juce::MidiMessage::controllerEvent (16, 0x03, 2) };              // pad mode: Session layout (BF 03 02)
+    if (id == TemplateId::LaunchkeyMk4)
+        return { juce::MidiMessage::noteOn (16, 0x0c, (juce::uint8) 127),         // DAW mode on (9F 0C 7F)
+                 juce::MidiMessage::controllerEvent (7, 0x1d, 2) };               // MK4: pad mode on channel 7, CC 29: DAW layout (B6 1D 02)
     return {};
 }
 
@@ -160,7 +180,8 @@ Action Template::translate (const juce::MidiMessage& m, bool shift) const
             return a;
         }
     }
-    if (isLaunchkey (id) && cc && (num == kLkScene || num == kLkStop))
+    // channel 1 only: on channel 16 the same CCs are Scene Up / Down (Launchkey Mini compatibility, MK3 reference)
+    if (isLaunchkey (id) && cc && m.getChannel() == 1 && (num == kLkScene || num == kLkStop))
     {
         if (pressed) a.kind = num == kLkScene ? Action::Kind::AllStartStop : Action::Kind::AllStop;
         return a;
@@ -331,7 +352,7 @@ juce::String GridControllerDevice::getStatusText() const
     if (selection == Selection::Off)
         return i18n::tr ("Off");
     if (isConnected() && tmpl != nullptr)
-        return i18n::tr ("Connected: %1", deviceName + " (" + templateName (tmpl->getId()) + ")");
+        return i18n::tr ("Connected: %1", deviceName + " (" + templateName (tmpl->getId()) + ", " + i18n::tr ("experimental") + ")");
     if (openFailed)
         return i18n::tr ("Controller found, but its MIDI port is in use (Windows: switch it off in your DAW's MIDI settings)");
     return i18n::tr ("No supported controller found");
