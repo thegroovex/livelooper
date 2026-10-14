@@ -40,13 +40,21 @@ namespace push
     touch strip = tape stop (SHIFT: filter), footswitch 2 = REC / PLAY, double tap STOP,
     hold CLEAR, footswitch 1 = next track, AUTOMATION = auto record, STOP = stop all,
     QUANTIZE = next quantize value.
+
+    Live performance FX (1.5): BROWSE = encoders for beat FX type / beat / level / channel,
+    colour FX, repeat rate, stutter rate, metronome level. ADD EFFECT = beat FX on / off,
+    ADD TRACK = beat FX while held, LEFT / RIGHT = beat fraction, REPEAT = beat repeat while
+    held (SHIFT: latch), ACCENT = stutter while held (SHIFT: latch), REPEAT or ACCENT held +
+    touch strip = repeat / stutter rate 1/2 (bottom) .. 1/32 (top), FIXED LENGTH = capture
+    length 1 .. 32 bars (SHIFT: shorter), SHIFT + METRONOME = Ableton Link on / off,
+    SHIFT + TAP TEMPO = metronome click on / off.
 */
 class PushSurface
 {
 public:
     enum class Mode { Loop, FxPad };
-    enum class EncoderMode { Volume, Pan, Pitch, Feedback, Fx };
-    enum class StripMode { TapeStop, Filter };
+    enum class EncoderMode { Volume, Pan, Pitch, Feedback, Fx, BeatFx };
+    enum class StripMode { TapeStop, Filter, RepeatRate, StutterRate };
 
     /** Timing of the gestures (milliseconds). */
     static constexpr juce::uint32 kHoldMs = 250;           // MUTE + pad: longer = momentary mute
@@ -90,6 +98,8 @@ private:
     void handleStrip (bool touched, int value);
     void handlePressure (int value);
     void handleFootswitch (int number, bool pressed);
+    void stepChoice (const juce::String& paramId, int delta, bool wrap);
+    void handlePerformanceButton (int number, bool pressed);
     void nudge (const juce::String& paramId, int steps, float stepSize);
     void setParam (const juce::String& paramId, float normalised);
     float getParam (const juce::String& paramId) const;
@@ -116,6 +126,7 @@ private:
     int fxTarget = 0;               // 0 .. 3 input FX A - D, 4 .. 7 track FX A - D
     bool shift = false, deleteHeld = false, muteHeld = false;
     bool selectHeld = false, soloHeld = false, duplicateHeld = false;
+    bool repeatHeld = false, accentHeld = false;     // v1.5: REPEAT / ACCENT buttons held
 
     struct FxSnapshot { bool active = false; float on = 0, p1 = 0, p2 = 0, mix = 0; };
     FxSnapshot fxSnapshot;

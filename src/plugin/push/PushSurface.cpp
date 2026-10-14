@@ -77,6 +77,17 @@ void PushSurface::toggleParam (const juce::String& paramId)
         setParam (paramId, p->getValue() >= 0.5f ? 0.0f : 1.0f);
 }
 
+void PushSurface::stepChoice (const juce::String& paramId, int delta, bool wrap)
+{
+    auto* p = proc.getState().getParameter (paramId);
+    if (p == nullptr)
+        return;
+    const int steps = std::max (2, p->getNumSteps());
+    int idx = juce::roundToInt (p->getValue() * (float) (steps - 1)) + delta;
+    idx = wrap ? ((idx % steps) + steps) % steps : juce::jlimit (0, steps - 1, idx);
+    setParam (paramId, (float) idx / (float) (steps - 1));
+}
+
 void PushSurface::nudge (const juce::String& paramId, int steps, float stepSize)
 {
     auto* p = proc.getState().getParameter (paramId);
@@ -290,19 +301,44 @@ void PushSurface::handleStrip (bool touched, int value)
         // spring back: the tape runs again (in sync), the filter opens
         if (stripMode == StripMode::TapeStop)
             setParam (gTapeStop, 0.0f);
-        else
+        else if (stripMode == StripMode::Filter)
             setParam (gPerfFilter, 0.5f);
+        else if (stripMode == StripMode::RepeatRate && ! repeatHeld)
+            setParam (gRepeatHold, 0.0f);
+        else if (stripMode == StripMode::StutterRate && ! accentHeld)
+            setParam (gStutterHold, 0.0f);
         return;
     }
     if (! stripTouched)
     {
         stripTouched = true;
-        stripMode = shift ? StripMode::Filter : StripMode::TapeStop;
-        showNotice (stripMode == StripMode::Filter ? i18n::tr ("Touch strip: filter") : i18n::tr ("Touch strip: tape stop"));
+        stripMode = repeatHeld ? StripMode::RepeatRate
+                  : accentHeld ? StripMode::StutterRate
+                  : shift      ? StripMode::Filter : StripMode::TapeStop;
+        switch (stripMode)
+        {
+            case StripMode::Filter:      showNotice (i18n::tr ("Touch strip: filter")); break;
+            case StripMode::TapeStop:    showNotice (i18n::tr ("Touch strip: tape stop")); break;
+            case StripMode::RepeatRate:  setParam (gRepeatHold, 1.0f); break;
+            case StripMode::StutterRate: setParam (gStutterHold, 1.0f); break;
+        }
     }
     if (value < 0)
         return;          // touch without a position yet
     const float pos = juce::jlimit (0.0f, 1.0f, (float) value / 16383.0f);
+    if (stripMode == StripMode::RepeatRate || stripMode == StripMode::StutterRate)
+    {
+        // five zones: bottom = 1/2 .. top = 1/32
+        const auto& id = stripMode == StripMode::RepeatRate ? gRepeatRate : gStutterRate;
+        const int idx = juce::jlimit (0, 4, (int) (pos * 5.0f));
+        if (juce::roundToInt (getParam (id) * 4.0f) != idx)
+        {
+            setParam (id, (float) idx / 4.0f);
+            showNotice (i18n::tr (stripMode == StripMode::RepeatRate ? "Beat repeat %1" : "Stutter %1",
+                                  repeatRateChoices()[idx]));
+        }
+        return;
+    }
     if (stripMode == StripMode::TapeStop)
         setParam (gTapeStop, 1.0f - pos);      // top = running, bottom = the tape stands still
     else
@@ -423,6 +459,9 @@ void PushSurface::handleButton (int number, bool pressed)
         case cc::solo:      soloHeld = pressed; return;
         case cc::footswitch1:
         case cc::footswitch2: handleFootswitch (number, pressed); return;
+        case cc::addTrack:
+        case cc::repeat:
+        case cc::accent:      handlePerformanceButton (number, pressed); return;
         case cc::duplicate:
             if (pressed)
             {
@@ -489,8 +528,42 @@ void PushSurface::handleButton (int number, bool pressed)
         case cc::play:       proc.pressTrigger (gAllStartStop); break;
         case cc::stop:       proc.pressTrigger (gAllStop); break;
         case cc::record:     proc.pressTrigger (gCapture); break;
-        case cc::metronome:  toggleParam (gRhythmOn); break;
-        case cc::tapTempo:   proc.pressTrigger (gTap); break;
+        case cc::metronome:
+            if (shift)
+            {
+                toggleParam (gLinkOn);
+                showNotice (i18n::tr (getParam (gLinkOn) >= 0.5f ? "LINK ON" : "LINK OFF"));
+            }
+            else
+                toggleParam (gRhythmOn);
+            break;
+        case cc::tapTempo:
+            if (shift)
+            {
+                toggleParam (gMetroOn);
+                showNotice (i18n::tr (getParam (gMetroOn) >= 0.5f ? "Metronome on" : "Metronome off"));
+            }
+            else
+                proc.pressTrigger (gTap);
+            break;
+        case cc::browse:     encoderMode = EncoderMode::BeatFx; break;
+        case cc::addEffect:
+            toggleParam (gBfxOn);
+            showNotice (i18n::tr (getParam (gBfxOn) >= 0.5f ? "Beat FX on" : "Beat FX off"));
+            break;
+        case cc::left:
+        case cc::right:
+            stepChoice (gBfxBeat, number == cc::right ? 1 : -1, false);
+            showNotice (i18n::tr ("Beat FX beat %1", proc.getState().getParameter (gBfxBeat)->getCurrentValueAsText()));
+            break;
+        case cc::fixedLength:
+        {
+            stepChoice (gCaptureBars, shift ? -1 : 1, true);
+            const int bars = kCaptureBars[juce::jlimit (0, kNumCaptureChoices - 1,
+                                                        juce::roundToInt (getParam (gCaptureBars) * (float) (kNumCaptureChoices - 1)))];
+            showNotice (bars == 1 ? i18n::tr ("Capture: 1 bar") : i18n::tr ("Capture: %1 bars", juce::String (bars)));
+            break;
+        }
         case cc::undo:       proc.pressTrigger (trackId (selectedTrack, shift ? kRedo : kUndo)); break;
         case cc::automation: toggleParam (gAutoRec); break;
         case cc::master:
@@ -524,9 +597,38 @@ void PushSurface::handleButton (int number, bool pressed)
     }
 }
 
+void PushSurface::handlePerformanceButton (int number, bool pressed)
+{
+    if (number == cc::addTrack)
+    {
+        setParam (gBfxHold, pressed ? 1.0f : 0.0f);      // beat FX while held
+        return;
+    }
+    const bool rep = number == cc::repeat;
+    (rep ? repeatHeld : accentHeld) = pressed;
+    const auto& hold = rep ? gRepeatHold : gStutterHold;
+    const auto& latch = rep ? gRepeatLatch : gStutterLatch;
+    if (pressed && shift)
+    {
+        toggleParam (latch);
+        const bool on = getParam (latch) >= 0.5f;
+        showNotice (rep ? i18n::tr (on ? "Beat repeat latch on" : "Beat repeat latch off")
+                        : i18n::tr (on ? "Stutter latch on" : "Stutter latch off"));
+        return;
+    }
+    if (pressed)
+    {
+        setParam (hold, 1.0f);
+        const auto rate = proc.getState().getParameter (rep ? gRepeatRate : gStutterRate)->getCurrentValueAsText();
+        showNotice (i18n::tr (rep ? "Beat repeat %1" : "Stutter %1", rate));
+    }
+    else if (! (stripTouched && stripMode == (rep ? StripMode::RepeatRate : StripMode::StutterRate)))
+        setParam (hold, 0.0f);
+}
+
 int PushSurface::masterColumn() const
 {
-    if (encoderMode == EncoderMode::Fx || proc.getVisibleTracks() > 6)
+    if (encoderMode == EncoderMode::Fx || encoderMode == EncoderMode::BeatFx || proc.getVisibleTracks() > 6)
         return -1;
     return 6;           // encoder 7 = master level, encoder 8 = tempo
 }
@@ -576,6 +678,15 @@ void PushSurface::handleEncoder (int number, int delta)
         nudge (fxId (i < 4, i % 4, shift ? kFxMix : kFxP1), delta, 0.01f);
         return;
     }
+    if (encoderMode == EncoderMode::BeatFx)
+    {
+        // beat FX type, beat, level, channel, colour FX, repeat rate, stutter rate, metronome level
+        static const juce::String* const ids[] = { &gBfxType, &gBfxBeat, &gBfxDepth, &gBfxTarget,
+                                                   &gColorType, &gRepeatRate, &gStutterRate, &gMetroLevel };
+        if (i >= 0 && i < 8)
+            nudge (*ids[i], delta, 0.01f * fine);
+        return;
+    }
     if (i >= proc.getVisibleTracks())
         return;
     selectedTrack = i;
@@ -585,7 +696,8 @@ void PushSurface::handleEncoder (int number, int delta)
         case EncoderMode::Pan:      nudge (trackId (i, kPan), delta, 0.01f * fine); break;
         case EncoderMode::Pitch:    nudge (trackId (i, kPitch), delta, 0.0f); break;
         case EncoderMode::Feedback: nudge (trackId (i, kFeedback), delta, 0.01f * fine); break;
-        case EncoderMode::Fx:       break;
+        case EncoderMode::Fx:
+        case EncoderMode::BeatFx:   break;
     }
 }
 
@@ -704,6 +816,14 @@ std::array<juce::String, kDisplayLines> PushSurface::buildDisplay() const
             names.add ((in ? "In" : "Tr") + juce::String::charToString ((juce::juce_wchar) ('A' + i % 4)) + " " + type.substring (0, 4));
             values.add (percent (value (fxId (in, i % 4, shift ? kFxMix : kFxP1))));
         }
+        else if (encoderMode == EncoderMode::BeatFx)
+        {
+            static const char* const labels[] = { "BeatFX", "Beat", "Level", "Channel", "ColorFX", "Repeat", "Stutter", "Click" };
+            static const juce::String* const ids[] = { &gBfxType, &gBfxBeat, &gBfxDepth, &gBfxTarget,
+                                                       &gColorType, &gRepeatRate, &gStutterRate, &gMetroLevel };
+            names.add (labels[i]);
+            values.add (i == 2 || i == 7 ? percent (value (*ids[i])) : text (*ids[i]).substring (0, 8));
+        }
         else if (const int m = masterColumn(); m >= 0 && i >= m)
         {
             if (i == m)
@@ -725,7 +845,8 @@ std::array<juce::String, kDisplayLines> PushSurface::buildDisplay() const
                 case EncoderMode::Pan:      names.add ("Pan " + juce::String (i + 1)); values.add (text (trackId (i, kPan))); break;
                 case EncoderMode::Pitch:    names.add ("Pit " + juce::String (i + 1)); values.add (text (trackId (i, kPitch)) + "st"); break;
                 case EncoderMode::Feedback: names.add ("Fbk " + juce::String (i + 1)); values.add (percent (value (trackId (i, kFeedback)))); break;
-                case EncoderMode::Fx:       break;
+                case EncoderMode::Fx:
+                case EncoderMode::BeatFx:   break;
             }
         }
         else
@@ -734,6 +855,22 @@ std::array<juce::String, kDisplayLines> PushSurface::buildDisplay() const
             values.add ({});
         }
 
+        if (encoderMode == EncoderMode::BeatFx)
+        {
+            auto on = [&st] (const juce::String& id) { return st.getRawParameterValue (id)->load() >= 0.5f; };
+            juce::String s;
+            switch (i)
+            {
+                case 0: s = on (gBfxOn) || on (gBfxHold) ? "ON" : "off"; break;
+                case 4: s = st.getRawParameterValue (gColorType)->load() >= 0.5f ? "ON" : "off"; break;
+                case 5: s = on (gRepeatHold) || on (gRepeatLatch) ? "ON" : "off"; break;
+                case 6: s = on (gStutterHold) || on (gStutterLatch) ? "ON" : "off"; break;
+                case 7: s = on (gMetroOn) ? "ON" : "off"; break;
+                default: break;
+            }
+            states.add (s);
+            continue;
+        }
         if (const int m = masterColumn(); m >= 0 && i >= m)
         {
             const bool hostTempo = i > m && st.getRawParameterValue (gSync)->load() >= 0.5f && proc.getEngine().isHostDriven();
@@ -799,6 +936,8 @@ std::array<juce::String, kDisplayLines> PushSurface::buildDisplay() const
         status << "  Scene " << (sc + 1);
     if (st.getRawParameterValue (gAutoRec)->load() >= 0.5f)
         status << "  AUTO REC";
+    if (st.getRawParameterValue (gLinkOn)->load() >= 0.5f)
+        status << (proc.isLinkDriving() ? "  Link " + juce::String (proc.getLinkPeers()) : juce::String ("  Link"));
     if (st.getRawParameterValue (gSceneStore)->load() >= 0.5f)
         status << "  STORE";
     if (mode == Mode::FxPad)
@@ -928,6 +1067,14 @@ void PushSurface::render (std::vector<juce::MidiMessage>& out, bool full)
     setCC (cc::doubleBtn, button::dim);
     setCC (cc::octaveUp, button::dim);
     setCC (cc::octaveDown, button::dim);
+    setCC (cc::browse, encoderMode == EncoderMode::BeatFx ? button::on : button::dim);
+    setCC (cc::addEffect, isOn (gBfxOn) ? button::on : button::dim);
+    setCC (cc::addTrack, isOn (gBfxHold) ? button::on : button::dim);
+    setCC (cc::repeat, isOn (gRepeatHold) || isOn (gRepeatLatch) ? button::on : button::dim);
+    setCC (cc::accent, isOn (gStutterHold) || isOn (gStutterLatch) ? button::on : button::dim);
+    setCC (cc::fixedLength, button::dim);
+    setCC (cc::left, button::dim);
+    setCC (cc::right, button::dim);
 
     // ---- display
     const auto lines = buildDisplay();
