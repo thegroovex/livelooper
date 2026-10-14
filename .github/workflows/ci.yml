@@ -180,7 +180,9 @@ jobs:
             choco install innosetup -y --no-progress
           fi
           command -v iscc >/dev/null 2>&1 && ISCC=iscc
-          "$ISCC" //DMyAppVersion="${{ steps.version.outputs.version }}" //O"$(pwd -W)" installer/windows/livelooper.iss
+          # no MSYS path conversion: ISCC takes Windows-style /D and /O switches literally
+          OUT="$(pwd -W)"
+          MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' "$ISCC" "/DMyAppVersion=${{ steps.version.outputs.version }}" "/O$OUT" installer/windows/livelooper.iss
           ls -l livelooper-Windows-Setup.exe
 
       - uses: actions/upload-artifact@v7
