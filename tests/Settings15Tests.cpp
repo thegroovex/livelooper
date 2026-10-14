@@ -66,9 +66,19 @@ public:
             expect (! proc.isLinkDriving(), "Link off by default");
             expectEquals (proc.getLinkPeers(), 0);
 
+            // the processor's timer turns Link on; enabling Link is asynchronous on some systems
+            // (CI runners), so give it up to 3 s instead of a fixed wait
+            auto waitFor = [&] (bool wanted) {
+                for (int i = 0; i < 60 && proc.isLinkDriving() != wanted; ++i)
+                {
+                    juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+                    run (2);
+                }
+            };
             set (gLinkOn, 1.0f);
-            juce::MessageManager::getInstance()->runDispatchLoopUntil (150);   // the processor's timer turns Link on
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (150);
             run (4);
+            waitFor (proc.isLinkAvailable());
             expect (proc.isLinkDriving() == proc.isLinkAvailable(), "Link drives the timeline");
             expect (proc.getLinkStatus().isNotEmpty());
 
@@ -81,6 +91,7 @@ public:
             set (gLinkOn, 0.0f);
             juce::MessageManager::getInstance()->runDispatchLoopUntil (150);
             run (4);
+            waitFor (false);
             expect (! proc.isLinkDriving(), "Link off again");
         }
 
