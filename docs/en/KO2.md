@@ -161,6 +161,8 @@ Link.
 
 ## 7. Controller GUI
 
+![Controller view: K.O. II](../images/livelooper-controller-ko2.png)
+
 *SETUP → Controllers → GUI: Standard / Controller* (offered only while a K.O. II or a Push 1 is connected).
 **Controller** replaces the standard surface with a drawing of the K.O. II: the display mirrors bar, tempo,
 role, the last action and the clock state; the 12 pads show the function and the live state of the page

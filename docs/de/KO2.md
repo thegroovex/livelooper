@@ -162,6 +162,8 @@ livelooper, und livelooper folgt Link.
 
 ## 7. Controller-Oberfläche
 
+![Controller-Ansicht: K.O. II](../images/livelooper-controller-ko2-de.png)
+
 *SETUP → Controller → Oberfläche: Standard / Controller* (nur angeboten, solange ein K.O. II oder ein Push 1
 verbunden ist). **Controller** ersetzt die Standard-Oberfläche durch eine Zeichnung des K.O. II: das Display
 spiegelt Takt, Tempo, Rolle, die letzte Aktion und den Clock-Zustand; die 12 Pads zeigen Funktion und

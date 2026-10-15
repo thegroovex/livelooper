@@ -554,6 +554,8 @@ livelooper switches the controller into its programmer / DAW mode while it uses 
 
 ## 39. Punch FX and Send FX (new in 1.6)
 
+![Punch FX](../images/livelooper-punch-fx.png)
+
 The FX panel has a sixth tab, **PUNCH FX**: twelve quick effects you **hold** while you play – like the
 punch-in effects of a pocket sampler. Several at once combine (LOW-PASS + HIGH-PASS = band-pass). Each one
 fades in and out in 5 ms, so nothing clicks.
@@ -589,11 +591,15 @@ Target / Latch*, *Send FX Type / X / Y / Amount*.
 
 ## 40. Controller view and controllers (new in 1.6)
 
+![Controller view: Push 1](../images/livelooper-controller-push.png)
+
 With a supported controller connected (Ableton Push 1, EP-133 K.O. II – experimental), *SETUP → Controllers →
 GUI* offers **Controller**: instead of the standard surface livelooper shows a drawing of the controller with
 the live looper state on its pads, buttons and display. Click a drawn pad or button to press it.
 *◀ Standard* goes back; unplugging the controller falls back to the standard surface automatically. Push 1:
 see [PUSH.md](PUSH.md); K.O. II: see [KO2.md](KO2.md).
+
+![SETUP > Controllers](../images/livelooper-setup-controllers.png)
 
 ## Drums, BEATS and sound packs (1.6)
 
