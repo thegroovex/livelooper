@@ -113,6 +113,8 @@ STÄRKE-Regler bewegt sich mit) und das Display der Controller-Oberfläche. Soll
 K.O.-II-Firmware Poly-Aftertouch (`An`) oder Kanal-Druck (`Dn`) senden, nutzt livelooper ihn statt der Rampe
 (nie unter der Anschlagstärke).
 
+![PUNCH-FX-Feld, während ein Punch-Pad des K.O. II gehalten wird: HALTEN 91 %](../images/livelooper-punch-hold-de.png)
+
 | `.` | `0` | ENTER | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | Tonhöhen-Zufall | Slice-Tausch | Granular | Beat-Repeat | Bandstopp | Filter-Wobble | Tiefpass | Hochpass | Send-Wurf | Tremolo | Oktave runter | Dezimierer |
@@ -171,6 +173,9 @@ livelooper, und livelooper folgt Link.
 - **livelooper über den K.O. II hören** braucht Einstellung **511** am K.O. II plus *K.O.-II-Audioausgang:
   K.O. II* – mit demselben Rückkopplungsrisiko (Test T9). Bei Rückkopplung oder Klick in den Loops zurück auf
   **510** und *Computer*.
+
+![SETUP > Controller: K.O.-II-Audioausgang, Halten = stärker](../images/livelooper-setup-controllers-full-de.png)
+
 - **Latenz:** USB-Audio kommt verspätet an. Endet im Modus *K.O. II aufnehmen* eine erste Aufnahme, schiebt
   livelooper den Loop um den **Latenz-Ausgleich** nach vorn (*SETUP → Controller → K.O. II →
   Latenz-Ausgleich*: automatisch = gemeldete Latenz des Geräts + ein Block, oder 0 – 200 ms). Eine

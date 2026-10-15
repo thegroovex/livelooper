@@ -110,6 +110,8 @@ sets a new start amount. Ramp time: *SETUP → Controllers → K.O. II → Hold 
 AMOUNT knob moves) and on the display of the Controller GUI. Should a future K.O. II firmware send poly
 aftertouch (`An`) or channel pressure (`Dn`), livelooper uses it instead of the ramp (never below the hit amount).
 
+![PUNCH FX panel while a K.O. II punch pad is held: HOLD 91 %](../images/livelooper-punch-hold.png)
+
 | `.` | `0` | ENTER | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | Pitch Scatter | Slice Swap | Grains | Beat Repeat | Tape Stop | Filter Wobble | Low-Pass | High-Pass | Send Throw | Tremolo | Octave Drop | Decimator |
@@ -166,6 +168,9 @@ Link.
 - **Hearing livelooper through the K.O. II** needs setting **511** on the K.O. II plus *K.O. II audio output:
   K.O. II* – the same feedback risk (test T9). If you hear feedback or the click in your loops, go back to
   **510** and *Computer*.
+
+![SETUP > Controllers: K.O. II audio output, hold to intensify](../images/livelooper-setup-controllers-full.png)
+
 - **Latency:** USB audio arrives late. When a first recording ends in *Record K.O. II*, livelooper moves the
   loop earlier by the **latency offset** (*SETUP → Controllers → K.O. II → Latency offset*: automatic = the
   latency the device reports + one block, or 0 – 200 ms). An automatic measuring button is not there yet.
