@@ -11,7 +11,7 @@
 - **Live-Performance zuerst.** Jede Funktion reagiert sofort, landet auf dem Schlag und hält die Musik nie an. Beim Spielen braucht nichts ein Menü.
 - **Spaß am Spielen.** Beat-FX, Beat Repeat und Stutter, Color-FX und ein Groove, der sich wie ein Drummer anfühlt, machen aus einem Loop eine Performance – drücken, halten, loslassen, und du bist wieder auf dem Schlag.
 - **Erforschen und spielen.** Halte fest, was du gerade improvisiert hast, leg mit dem XY-Pad einen Effekt darauf, verstimm es, dreh es um, lass es ausklingen wie ein Band – und behalte, was funktioniert.
-- **Hände an die Hardware.** Schließ einen Ableton Push an und livelooper übernimmt ihn – ohne Mapping. Jeder andere Controller funktioniert per MIDI Learn, alle 488 Funktionen sind zuweisbar.
+- **Hände an die Hardware.** Schließ einen Ableton Push an und livelooper übernimmt ihn – ohne Mapping. Jeder andere Controller funktioniert per MIDI Learn, alle 489 Funktionen sind zuweisbar.
 - **Deine Loops gehören in deinen Song.** Zieh einen Loop direkt aus livelooper auf eine Spur in deiner DAW, exportiere Stems oder behalte alles im Projekt gespeichert.
 
 ## Spielen mit Ableton Push
@@ -90,7 +90,7 @@ Einrichtung und komplette Belegung: **[PUSH.md](docs/de/PUSH.md)**.
 - **Mit dem Projekt gespeichert**: Loops verlustfrei (FLAC, 24 Bit) im DAW-Projekt; komplette **Looper-Sets** als `.llset`-Datei
 - **Pegel und Wellenformen**: Stereo-Pegel pro Spur, Master-VU in dB im Display (grün / gelb / rot), Wellenform mit Abspielposition, Clip-LED
 - **Komfort**: Hilfe in der App (durchsuchbare Bedienungsanleitung), Info-Fenster mit Update-Prüfung, Start mit den zuletzt verwendeten oder den Standard-Einstellungen, Liste der zuletzt verwendeten Sets
-- **Alle 488 Funktionen** sind Host-Parameter für MIDI-Mapping und Automation deiner DAW
+- **Alle 489 Funktionen** sind Host-Parameter für MIDI-Mapping und Automation deiner DAW
 - **Deutsche und englische** Oberfläche (*SETUP → Language / Sprache*)
 
 ## Download

@@ -11,7 +11,7 @@
 - **Live performance comes first.** Every function reacts instantly, lands on the beat and never stops the music. Nothing needs a menu while you play.
 - **Fun to play.** Beat FX, beat repeat and stutter, colour FX and a groove that feels like a drummer turn a loop into a performance – press, hold, let go, and you are back on the beat.
 - **Explore and play.** Capture what you just improvised, throw an effect on it with the XY pad, pitch it, reverse it, let it decay like tape – and keep what works.
-- **Hands on hardware.** Plug in an Ableton Push and livelooper takes it over – no mapping. Any other controller works through MIDI learn, every one of the 488 functions is mappable.
+- **Hands on hardware.** Plug in an Ableton Push and livelooper takes it over – no mapping. Any other controller works through MIDI learn, every one of the 489 functions is mappable.
 - **Your loops belong in your song.** Drag a loop straight from livelooper onto a track in your DAW, export stems, or keep everything saved with your project.
 
 ## Play it with Ableton Push
@@ -90,7 +90,7 @@ Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
 - **Saved with your project**: loops stored losslessly (FLAC, 24 bit) in your DAW project; whole **looper sets** as `.llset` files
 - **Meters and waveforms**: stereo meter per track, master VU in dB on the display (green / yellow / red), waveform with play position, clip LED
 - **Comfort**: in-app help (searchable user guide), about window with update check, start with the last used or the default settings, list of the last used sets
-- **All 488 functions** are host parameters for your DAW's MIDI mapping and automation
+- **All 489 functions** are host parameters for your DAW's MIDI mapping and automation
 - **English and German** interface (*SETUP → Language / Sprache*)
 
 ## Download
