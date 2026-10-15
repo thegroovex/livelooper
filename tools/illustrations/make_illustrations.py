@@ -179,7 +179,13 @@ def push1(mode='loop'):
                         elif st == 'rec' and r - 2 <= pos[c]: col, lit = '#c02a36', True
                         elif st == 'stop' and r - 2 == 0: col = '#3d6a74'
                         else: col = PADC['off2']
+                if mode == 'loop' and c == 7 and r == 7:      # v1.6: free top-right pad = beat flash
+                    col, lit = PADC['orange'], True
+                elif mode == 'loop' and c == 7 and r == 6:    # v1.6: the pad below = set recording
+                    col, lit = PADC['red'], True
                 o.append(pad(x, y, ps, col, lit))
+        a['pad_beat'] = (gx + 7 * (ps + gap) + ps / 2, gy + ps / 2)
+        a['pad_recset'] = (gx + 7 * (ps + gap) + ps / 2, gy + (ps + gap) + ps / 2)
     else:
         for r in range(8):
             patt = STEP_ROWS[r]
@@ -240,6 +246,7 @@ PUSH_BADGES = [
     (9, 'L_RECORD', -40, 0), (10, 'L_UNDO', -40, 0), (11, 'L_METRONOME', -40, 0), (12, 'R_SCALES', -22, 40),
     (13, 'R_SHIFT', 22, 0), (14, 'R_REPEAT', -24, -28), (15, 'R_SOLO', 22, 0), (16, 'R_OUT', 22, 0),
     (17, 'encoders', 0, -40), (18, 'display', 300, 0), (19, 'R_OCTAVE ▲', 22, 0), (20, 'R_SESSION', 22, 0),
+    (21, 'pad_beat', 0, -44), (22, 'pad_recset', 46, 0),
 ]
 PUSH_BADGES_STEP = [
     (1, 'pads_bottom', -30, 0), (2, 'pads_play', 0, -40), (3, 'row1', 300, -6), (4, 'row2', 300, 6),
@@ -408,6 +415,80 @@ def about_art():
     o.append(f"<path d='{wave_path(40, 90, 920, 120, 2.9, 160)}' fill='url(#brand)' opacity='0.85'/>")
     return ''.join(o), w, h
 
+# ------------------------------------------------------------------ K.O. II (generic drawing, v1.6)
+KO_BODY, KO_EDGE, KO_ORANGE, KO_INK = '#d9d6cf', '#b7b2a8', '#ff6a13', '#2b2b2b'
+KO_PAD_LABELS = [['7', '8', '9'], ['4', '5', '6'], ['1', '2', '3'], ['.', '0', 'ENTER']]
+KO_FUNC_A = [['T7', 'T8', 'ALL'], ['T4', 'T5', 'T6'], ['T1', 'T2', 'T3'], ['STOP', 'UNDO', 'CAPT']]
+
+def ko2(page='A'):
+    """generic drawing of a 12-pad sampler / controller with labels - returns (svg body, w, h, anchors)"""
+    W, H = 620, 900
+    o, a = [], {}
+    o.append(f"<rect x='0' y='14' width='{W}' height='{H}' rx='34' fill='#000' opacity='0.55' filter='url(#blur20)'/>")
+    o.append(f"<rect x='0' y='0' width='{W}' height='{H}' rx='34' fill='{KO_BODY}' stroke='{KO_EDGE}' stroke-width='3'/>")
+    # speaker dots
+    for r in range(5):
+        for c in range(9):
+            o.append(f"<circle cx='{52 + c * 16}' cy='{58 + r * 16}' r='3.2' fill='{KO_INK}' opacity='0.55'/>")
+    # display
+    o.append(f"<rect x='230' y='40' width='340' height='110' rx='12' fill='#121416'/>")
+    o.append(text(250, 84, '3.2   120.0 BPM', 22, 800, '#ff8a3a'))
+    o.append(text(250, 120, 'T2 REC    CLK > KO', 17, 600, '#ff8a3a', opacity=0.85))
+    a['display'] = (400, 95)
+    # knobs X / Y
+    for i, n in enumerate(('X', 'Y')):
+        cx = 300 + i * 120
+        o.append(f"<circle cx='{cx}' cy='212' r='34' fill='#a9a49a' stroke='{KO_EDGE}' stroke-width='3'/>")
+        o.append(f"<line x1='{cx}' y1='212' x2='{cx + 18}' y2='190' stroke='{KO_INK}' stroke-width='4' stroke-linecap='round'/>")
+        o.append(text(cx, 268, n, 15, 800, KO_INK, 'middle', 0.6))
+    a['knob'] = (300, 212)
+    # small function buttons
+    for i, n in enumerate(('SOUND', 'MAIN', 'TEMPO', 'KEYS', 'FX', 'ERASE')):
+        x = 54 + i * 88
+        o.append(f"<rect x='{x}' y='298' width='70' height='34' rx='8' fill='#c7c2b8' stroke='{KO_EDGE}' stroke-width='2'/>")
+        o.append(text(x + 35, 320, n, 11, 800, KO_INK, 'middle', 0.65))
+    a['fx'] = (54 + 4 * 88 + 35, 315)
+    # group buttons A - D and the fader on the left
+    for i, g in enumerate('ABCD'):
+        y = 380 + i * 96
+        on = g == page
+        o.append(f"<rect x='48' y='{y}' width='70' height='70' rx='14' fill='{KO_ORANGE if on else '#c7c2b8'}' stroke='{KO_EDGE}' stroke-width='2'/>")
+        o.append(text(83, y + 44, g, 26, 800, '#fff' if on else KO_INK, 'middle'))
+        a['group_' + g] = (118, y + 35)
+    o.append(f"<rect x='148' y='384' width='26' height='370' rx='13' fill='#b9b4aa'/>")
+    o.append(f"<rect x='136' y='520' width='50' height='26' rx='6' fill='#8f8a80'/>")
+    a['fader'] = (161, 600)
+    # 3 x 4 pads
+    px, py, ps, gap = 214, 380, 116, 14
+    cols = {'T1': '#38dc5a', 'T2': '#ff3040', 'T3': '#ff9228', 'T4': '#38dc5a', 'T5': '#1d5a2a'}
+    for r in range(4):
+        for c in range(3):
+            x = px + c * (ps + gap); y = py + r * (ps + gap)
+            fn = KO_FUNC_A[r][c]
+            col = cols.get(fn, '#3b4250' if fn in ('ALL', 'STOP', 'UNDO', 'CAPT') else '#3a3a3a')
+            o.append(f"<rect x='{x}' y='{y + 5}' width='{ps}' height='{ps}' rx='14' fill='#8d887e'/>")
+            o.append(f"<rect x='{x}' y='{y}' width='{ps}' height='{ps}' rx='14' fill='{col}'/>")
+            o.append(text(x + 12, y + 24, KO_PAD_LABELS[r][c], 15, 800, '#fff', 'start', 0.7))
+            o.append(text(x + ps / 2, y + ps / 2 + 16, fn, 17, 800, '#fff', 'middle'))
+            a['pad_' + KO_PAD_LABELS[r][c]] = (x + ps / 2, y + ps / 2)
+    return ''.join(o), W, H, a
+
+KO_BADGES = [(1, 'pad_2', 0, -70), (2, 'pad_9', 70, -50), (3, 'pad_0', 0, 80), (4, 'group_A', -110, 0),
+             (5, 'group_C', -110, 0), (6, 'pad_ENTER', 70, 70), (7, 'knob', -110, 0), (8, 'display', 0, -70)]
+
+def ko2_numbered():
+    body, W, H, a = ko2('A')
+    M = 120
+    o = [body]
+    for num, key, dx, dy in KO_BADGES:
+        x, y = a[key]
+        bx, by = x + dx, y + dy
+        o.append(f"<line x1='{x}' y1='{y}' x2='{bx}' y2='{by}' stroke='#fff' stroke-width='2.5' stroke-opacity='0.9'/>")
+        o.append(f"<circle cx='{x}' cy='{y}' r='5' fill='#fff'/>")
+        o.append(f"<circle cx='{bx}' cy='{by}' r='20' fill='url(#brandD)' stroke='#fff' stroke-width='2.5'/>")
+        o.append(text(bx, by + 7, str(num), 19, 800, '#fff', 'middle'))
+    return f"<g transform='translate({M},{M // 2})'>{''.join(o)}</g>", W + 2 * M, H + M
+
 # ------------------------------------------------------------------ main
 def main():
     body, W, H, a = push1('loop')
@@ -419,6 +500,9 @@ def main():
         content = background(nw, nh) + nb
         render('livelooper-push1-layout' if mode == 'loop' else 'livelooper-push1-step', content, nw, nh, DOC_DIR, 1.2)
         render('help-push1' if mode == 'loop' else 'help-push1-step', content, nw, nh, APP_DIR, 0.9)
+    kb, kw, kh = ko2_numbered()
+    render('livelooper-ko2-layout', background(kw, kh) + kb, kw, kh, DOC_DIR, 1.0)
+    render('help-ko2', background(kw, kh) + kb, kw, kh, APP_DIR, 0.75)
     render('help-loops', feat_loops(), FW, FH, APP_DIR, 0.75)
     render('help-fx', feat_fx(), FW, FH, APP_DIR, 0.75)
     render('help-beats', feat_beats(), FW, FH, APP_DIR, 0.75)

@@ -1,4 +1,5 @@
 #include "PluginEditor.h"
+#include "ControllerView.h"
 #include "SoundPacks.h"
 #include "AppSettings.h"
 #include "InfoWindows.h"
@@ -72,8 +73,8 @@ LiveLooperEditor::LiveLooperEditor (LiveLooperProcessor& p)
 
     // ---- v1.6 FX panel: one group at a time
     {
-        const char* names[] = { "INPUT FX", "TRACK FX", "BEAT FX", "REPEAT / STUTTER", "COLOR FX" };
-        const juce::Colour leds[] = { colours::cyan, colours::orange, colours::orange, colours::red, colours::blue };
+        const char* names[] = { "INPUT FX", "TRACK FX", "BEAT FX", "REPEAT / STUTTER", "COLOR FX", "PUNCH FX" };
+        const juce::Colour leds[] = { colours::cyan, colours::orange, colours::orange, colours::red, colours::blue, colours::learn };
         for (int i = 0; i < numFxTabs; ++i)
         {
             fxTabs[(size_t) i] = std::make_unique<FxTabButton> (names[i], leds[i]);
@@ -94,6 +95,7 @@ LiveLooperEditor::LiveLooperEditor (LiveLooperProcessor& p)
         fxTabs[tabRepeat]->activeFn = [param] { return param (gRepeatLatch) > 0.5f || param (gStutterLatch) > 0.5f
                                                        || param (gRepeatHold) > 0.5f || param (gStutterHold) > 0.5f; };
         fxTabs[tabColor]->activeFn  = [param] { return juce::roundToInt (param (gColorType)) != 0; };
+        fxTabs[tabPunch]->activeFn  = [this, param] { return proc.getEngine().getPunchFx().isActive() || (juce::roundToInt (param (gSfxType)) != 0 && param (gSfxLevel) > 0.01f); };
     }
     TrackStrip::showMeters = appsettings::getValue ("trackMeters") == "1";
 
@@ -289,6 +291,7 @@ LiveLooperEditor::LiveLooperEditor (LiveLooperProcessor& p)
         surface.addAndMakeVisible (c);
 
     initFeatures16();      // v1.6
+    initKo2();             // v1.6 K.O. II / punch FX / Controller GUI
     // v1.6 rhythm: BEATS page, FILL, drums through the performance FX
     beatsBtn.onClick = [this] { showBeatsPage (! isBeatsPageVisible()); };
     beatsBtn.setTooltip ("BEATS: step sequencer for the drums - build your own patterns");
@@ -397,6 +400,7 @@ void LiveLooperEditor::layoutSurface()
     helpBtn.setBounds (1136 + dx, 14, 32, 32);
     layoutPerformanceRow (dx);
     layoutFeatures16 (dx);      // v1.6
+    layoutKo2 (dx);             // v1.6 K.O. II chip, toast, controller view
     layoutRhythm16 (dx);
 
     auto tracks = layout::tracks.withWidth (layout::tracks.getWidth() + dx);
@@ -524,6 +528,16 @@ void LiveLooperEditor::renderSurfaceCache()
         g.setColour (juce::Colours::white.withAlpha (0.07f));
         g.fillRect ((float) ed.getX() - 14.0f, (float) fxContentArea.getY() + 6.0f, 1.0f, (float) fxContentArea.getHeight() - 12.0f);
     }
+    else if (fxTab == tabPunch)
+    {
+        // v1.6: captions of the punch FX / send FX blocks and a divider
+        g.setColour (colours::textDim);
+        g.setFont (LooperLookAndFeel::font (11.0f, true));
+        g.drawText (tr ("PUNCH FX"), punchCaption, juce::Justification::centredLeft);
+        g.drawText (tr ("SEND FX"), sendCaption, juce::Justification::centredLeft);
+        g.setColour (juce::Colours::white.withAlpha (0.07f));
+        g.fillRect ((float) sendCaption.getX() - 8.0f, (float) fxContentArea.getY() + 6.0f, 1.0f, (float) fxContentArea.getHeight() - 12.0f);
+    }
     else if (fxTab == tabColor)
     {
         g.setColour (colours::textDim);
@@ -555,7 +569,10 @@ void LiveLooperEditor::renderSurfaceCache()
 
 void LiveLooperEditor::paintSurface (juce::Graphics& g)
 {
-    const auto key = juce::String (surfaceWidth()) + "/" + juce::String (proc.getVisibleTracks()) + "/" + (i18n::isGerman() ? "de" : "en")
+    juce::String colourKey;          // v1.6: track colours tint the strip panels
+    for (int t = 0; t < proc.getVisibleTracks(); ++t)
+        colourKey << proc.getTrackColour (t) << ",";
+    const auto key = colourKey + juce::String (surfaceWidth()) + "/" + juce::String (proc.getVisibleTracks()) + "/" + (i18n::isGerman() ? "de" : "en")
                      + "/" + juce::String (fxTab) + "/" + juce::String ((int) selectedInput) + juce::String (selectedSlot)
                      + "/" + fxType.getBounds().toString() + strips[0]->getBounds().toString();
     if (key != surfaceCacheKey || surfaceCache.isNull())
@@ -622,7 +639,7 @@ void LiveLooperEditor::layoutFxPanel (int dx)
     fxPanelArea = layout::fxPanel.withWidth (layout::fxPanel.getWidth() + dx);
     // tab bar right of the title
     auto bar = fxPanelArea.reduced (14, 0).withTrimmedTop (10).withHeight (28).withTrimmedLeft (54);
-    const int widths[] = { 112, 112, 104, 168, 112 };
+    const int widths[] = { 112, 112, 104, 168, 112, 112 };
     for (int i = 0; i < numFxTabs; ++i)
     {
         fxTabs[(size_t) i]->setBounds (bar.removeFromLeft (widths[i]));
@@ -645,6 +662,7 @@ void LiveLooperEditor::layoutFxPanel (int dx)
     show ({ repeatHold.get(), stutterHold.get(), &repeatRate, &stutterRate, &repeatLatch, &stutterLatch, &drumsRepBtn }, fxTab == tabRepeat);
     for (auto& b : colorBtns)
         b->setVisible (fxTab == tabColor);
+    layoutPunchTab (c);          // v1.6 punch FX + send FX (shows / hides its controls)
 
     // INPUT / TRACK FX: four slot pads, then the editor of the selected slot
     {
@@ -791,6 +809,7 @@ void LiveLooperEditor::updateFxEditorLabels()
 void LiveLooperEditor::timerCallback()
 {
     timerFeatures16();     // v1.6
+    updateKo2Ui();         // v1.6 K.O. II chip / toast / controller view / track colours
     refreshPatternNames();      // v1.6
     blinkCounter = (blinkCounter + 1) % 16;
     const bool blink = blinkCounter < 8;
@@ -1483,6 +1502,7 @@ juce::PopupMenu LiveLooperEditor::buildSetupMenu (juce::Array<int>& toggles)
         menu.addItem (5, tr ("Computer keyboard control"), true, proc.getKeyMap().isEnabled());
         menu.addItem (6, tr ("Keyboard mapping ..."));
     }
+    addControllerMenu (menu, toggles);  // v1.6: K.O. II, Controller GUI
     addFeatures16Menu (menu, 2);      // v1.6: controller templates
     // ---- Sync
     menu.addSectionHeader (tr ("Sync"));
@@ -1506,6 +1526,8 @@ void LiveLooperEditor::handleSetupResult (int r)
     if (r == 0)
         return;
     if (handleFeatures16Menu (r))      // v1.6
+        return;
+    if (handleControllerMenu (r))      // v1.6 K.O. II / Controller GUI
         return;
     auto& st = proc.getState();
     auto* recAction = dynamic_cast<juce::AudioParameterChoice*> (st.getParameter (gRecAction));

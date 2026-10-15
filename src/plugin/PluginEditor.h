@@ -5,7 +5,8 @@
 #include "BeatsPage.h"
 
 namespace livelooper { class GuidedTour;
-class WelcomeScreen; }
+class WelcomeScreen;
+class ControllerView; }
 
 namespace livelooper
 {
@@ -52,8 +53,8 @@ public:
     void selectFxSlot (bool inputFx, int slot);
     void showStatus (const juce::String& text);
     /** v1.6: the FX panel shows one group at a time (progressive disclosure):
-        0 input FX, 1 track FX, 2 beat FX, 3 beat repeat / stutter, 4 colour FX. */
-    enum FxTab { tabInput = 0, tabTrack, tabBeat, tabRepeat, tabColor, numFxTabs };
+        0 input FX, 1 track FX, 2 beat FX, 3 beat repeat / stutter, 4 colour FX, 5 punch FX + send FX. */
+    enum FxTab { tabInput = 0, tabTrack, tabBeat, tabRepeat, tabColor, tabPunch, numFxTabs };
     void setFxTab (int tab);
     int getFxTab() const noexcept { return fxTab; }
 
@@ -105,6 +106,24 @@ public:
     bool handleFeatures16Menu (int result);
     RecordButton& getPerfRecButton() noexcept { return perfRecBtn; }
     // ---- end v1.6 features
+    // ---- v1.6 K.O. II, punch FX, Controller GUI (EditorKo2.cpp)
+    /** SETUP > Controllers > GUI: Standard / Controller (saved); the controller view shows only while a
+        K.O. II or Push 1 is connected. */
+    void setControllerGui (bool on);
+    bool isControllerGuiShown() const noexcept;
+    ControllerView* getControllerView() noexcept { return controllerView.get(); }
+    /** The header chip (visible only while a K.O. II is connected). */
+    juce::Component& getKo2Chip() noexcept { return *ko2Chip; }
+    /** One-time question when a K.O. II is plugged in (force: tests / screenshots). */
+    void showKo2Toast (bool force = false);
+    bool isKo2ToastVisible() const noexcept;
+    juce::Component* getKo2Toast() noexcept { return ko2Toast.get(); }
+    /** SETUP > Controllers: K.O. II and GUI groups / their actions (ids 700 - 799). */
+    void addControllerMenu (juce::PopupMenu& menu, juce::Array<int>& toggles);
+    bool handleControllerMenu (int result);
+    /** Punch FX tab: the punch FX the XY field plays (last pad clicked). */
+    int getSelectedPunch() const noexcept { return selectedPunch; }
+    void updateKo2Ui();          // timer (public for tests)
     // ---- v1.6 rhythm (branch v1.6-rhythm): BEATS page
     void showBeatsPage (bool show);
     bool isBeatsPageVisible() const noexcept { return beatsPage != nullptr && beatsPage->isVisible(); }
@@ -126,6 +145,27 @@ private:
     std::unique_ptr<juce::Thread> clipThread;
     std::atomic<float> clipProgress { -1.0f };
     // ---- end v1.6 features
+    // ---- v1.6 K.O. II / punch FX / Controller GUI
+    void initKo2();
+    void layoutKo2 (int dx);
+    void layoutPunchTab (juce::Rectangle<int> content);
+    void showKo2ChipMenu();
+    void applyKo2Choice (int choice, bool remember);     // 0 controller, 1 record, 2 ignore
+    std::array<std::unique_ptr<MomentaryButton>, 12> punchBtns;
+    std::unique_ptr<juce::MouseListener> punchSelectListener;
+    std::unique_ptr<Knob> pfxAmountKnob, sfxXKnob, sfxYKnob, sfxLevelKnob;
+    LLCombo pfxTargetBox, sfxTypeBox;
+    std::unique_ptr<APVTS::ComboBoxAttachment> pfxTargetAtt, sfxTypeAtt;
+    std::unique_ptr<LLButton> pfxLatchBtn;
+    std::unique_ptr<APVTS::ButtonAttachment> pfxLatchAtt;
+    std::unique_ptr<juce::Component> punchXY;
+    int selectedPunch = 0;
+    std::unique_ptr<juce::Button> ko2Chip;
+    std::unique_ptr<juce::Component> ko2Toast;
+    std::unique_ptr<ControllerView> controllerView;
+    bool ko2WasConnected = false;
+    std::array<int, 8> shownTrackColours { -2, -2, -2, -2, -2, -2, -2, -2 };
+    juce::Rectangle<int> punchCaption, sendCaption;
 
     class Surface : public juce::Component
     {

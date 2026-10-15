@@ -139,6 +139,8 @@ set(LIVELOOPER_PLUGIN_SOURCES
     src/plugin/ClipExport.cpp
     src/plugin/VideoWriterWin.cpp
     src/plugin/EditorFeatures16.cpp
+    src/plugin/EditorKo2.cpp
+    src/plugin/ControllerView.cpp
     src/plugin/WelcomeScreen.cpp
     src/plugin/controllers/GridControllers.cpp
     src/plugin/controllers/Ko2.cpp)
