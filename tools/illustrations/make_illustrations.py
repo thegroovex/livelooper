@@ -419,8 +419,10 @@ def about_art():
 KO_BODY, KO_EDGE, KO_ORANGE, KO_INK = '#d9d6cf', '#b7b2a8', '#ff6a13', '#2b2b2b'
 KO_PAD_LABELS = [['7', '8', '9'], ['4', '5', '6'], ['1', '2', '3'], ['.', '0', 'ENTER']]
 KO_FUNC_A = [['T7', 'T8', 'ALL'], ['T4', 'T5', 'T6'], ['T1', 'T2', 'T3'], ['STOP', 'UNDO', 'CAPT']]
+KO_DE = {'T%d' % i: 'S%d' % i for i in range(1, 9)}
+KO_DE.update({'ALL': 'ALLE', 'UNDO': 'ZURÜCK'})
 
-def ko2(page='A'):
+def ko2(page='A', lang='en'):
     """generic drawing of a 12-pad sampler / controller with labels - returns (svg body, w, h, anchors)"""
     W, H = 620, 900
     o, a = [], {}
@@ -433,7 +435,7 @@ def ko2(page='A'):
     # display
     o.append(f"<rect x='230' y='40' width='340' height='110' rx='12' fill='#121416'/>")
     o.append(text(250, 84, '3.2   120.0 BPM', 22, 800, '#ff8a3a'))
-    o.append(text(250, 120, 'T2 REC    CLK > KO', 17, 600, '#ff8a3a', opacity=0.85))
+    o.append(text(250, 120, ('S2' if lang == 'de' else 'T2') + ' REC    CLK > KO', 17, 600, '#ff8a3a', opacity=0.85))
     a['display'] = (400, 95)
     # knobs X / Y
     for i, n in enumerate(('X', 'Y')):
@@ -466,6 +468,8 @@ def ko2(page='A'):
             x = px + c * (ps + gap); y = py + r * (ps + gap)
             fn = KO_FUNC_A[r][c]
             col = cols.get(fn, '#3b4250' if fn in ('ALL', 'STOP', 'UNDO', 'CAPT') else '#3a3a3a')
+            if lang == 'de':
+                fn = KO_DE.get(fn, fn)
             o.append(f"<rect x='{x}' y='{y + 5}' width='{ps}' height='{ps}' rx='14' fill='#8d887e'/>")
             o.append(f"<rect x='{x}' y='{y}' width='{ps}' height='{ps}' rx='14' fill='{col}'/>")
             o.append(text(x + 12, y + 24, KO_PAD_LABELS[r][c], 15, 800, '#fff', 'start', 0.7))
@@ -476,8 +480,8 @@ def ko2(page='A'):
 KO_BADGES = [(1, 'pad_2', 0, -70), (2, 'pad_9', 70, -50), (3, 'pad_0', 0, 80), (4, 'group_A', -110, 0),
              (5, 'group_C', -110, 0), (6, 'pad_ENTER', 70, 70), (7, 'knob', -110, 0), (8, 'display', 0, -70)]
 
-def ko2_numbered():
-    body, W, H, a = ko2('A')
+def ko2_numbered(lang='en'):
+    body, W, H, a = ko2('A', lang)
     M = 120
     o = [body]
     for num, key, dx, dy in KO_BADGES:
@@ -503,6 +507,9 @@ def main():
     kb, kw, kh = ko2_numbered()
     render('livelooper-ko2-layout', background(kw, kh) + kb, kw, kh, DOC_DIR, 1.0)
     render('help-ko2', background(kw, kh) + kb, kw, kh, APP_DIR, 0.75)
+    kb, kw, kh = ko2_numbered('de')        # v1.6: German pad labels (S = Spur)
+    render('livelooper-ko2-layout-de', background(kw, kh) + kb, kw, kh, DOC_DIR, 1.0)
+    render('help-ko2-de', background(kw, kh) + kb, kw, kh, APP_DIR, 0.75)
     render('help-loops', feat_loops(), FW, FH, APP_DIR, 0.75)
     render('help-fx', feat_fx(), FW, FH, APP_DIR, 0.75)
     render('help-beats', feat_beats(), FW, FH, APP_DIR, 0.75)

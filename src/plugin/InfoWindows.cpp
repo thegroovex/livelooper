@@ -163,7 +163,7 @@ HelpComponent::HelpComponent()
     struct Doc { const char* file; const char* name; };
     const Doc docs[] = {
         { de ? "BEDIENUNGSANLEITUNG.md" : "USER-GUIDE.md", de ? "Bedienungsanleitung" : "User guide" },
-        { de ? "PUSH-de.md" : "PUSH-en.md", "Ableton Push" },
+        { de ? "PUSH-de.md" : "PUSH-en.md", "Push 1" },
         { de ? "MIDI-de.md" : "MIDI-en.md", "MIDI" },
         { de ? "INSTALLATION-de.md" : "INSTALLATION-en.md", de ? "Installation & Probleme" : "Installation & troubleshooting" },
     };

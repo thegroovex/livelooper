@@ -1416,7 +1416,7 @@ juce::PopupMenu LiveLooperEditor::buildSetupMenu (juce::Array<int>& toggles)
     juce::PopupMenu pushMenu;
     if (proc.isPushAvailable())
     {
-        pushMenu.addItem (140, tr ("Control from Ableton Push (User port)"), true, proc.isPushEnabled());
+        pushMenu.addItem (140, tr ("Control from Push 1 (User port)"), true, proc.isPushEnabled());
         pushMenu.addItem (149, proc.getPushStatus(), false);
         pushMenu.addSeparator();
         pushMenu.addItem (148, tr ("Press USER on Push to switch between your DAW and livelooper"), false);
@@ -1496,7 +1496,7 @@ juce::PopupMenu LiveLooperEditor::buildSetupMenu (juce::Array<int>& toggles)
     // ---- Controllers
     menu.addSectionHeader (tr ("Controllers"));
     if (proc.isPushAvailable())
-        menu.addSubMenu (tr ("Ableton Push"), pushMenu);
+        menu.addSubMenu (tr ("Push 1"), pushMenu);
     if (proc.isKeyboardControlAvailable())
     {
         menu.addItem (5, tr ("Computer keyboard control"), true, proc.getKeyMap().isEnabled());

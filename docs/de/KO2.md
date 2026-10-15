@@ -9,7 +9,7 @@ livelooper findet einen **EP-133 K.O. II** am USB von selbst (im Plug-in in jede
 Standalone-App) und macht seine Pads zu Looper-Tasten. Auf Wunsch nimmt die Standalone-App den USB-Ton des
 K.O. II in die Loops auf – livelooper ist dabei der Clock-Master.
 
-![Die Seiten des K.O. II auf einen Blick](../images/livelooper-ko2-layout.png)
+![Die Seiten des K.O. II auf einen Blick](../images/livelooper-ko2-layout-de.png)
 
 1 Gruppe A, Pads 1 – 8: REC / PLAY / DUB Spur 1 – 8 · 2 Pad 9: alle Start / Stop – ENTER: Capture ·
 3 `.`: Stop (halten: löschen) – `0`: Rückgängig (halten: Wiederholen) · 4 Gruppentasten A – D: die Seiten ·

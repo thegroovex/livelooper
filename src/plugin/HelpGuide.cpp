@@ -137,7 +137,11 @@ juce::Array<HelpComponent::Section> HelpComponent::guidePages()
 void GuidePage::setPage (const HelpComponent::Section& s)
 {
     section = s;
-    image = getEmbeddedImage (s.image);
+    image = {};
+    if (i18n::isGerman())          // a German variant of the picture (name-de.png), if there is one
+        image = getEmbeddedImage (s.image.upToLastOccurrenceOf (".", false, false) + "-de.png");
+    if (! image.isValid())
+        image = getEmbeddedImage (s.image);
     setSize (getWidth(), getHeightForWidth (juce::jmax (300, getWidth())));
     repaint();
 }
