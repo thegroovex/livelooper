@@ -600,16 +600,22 @@ void LiveLooperEditor::paintSurface (juce::Graphics& g)
     if (shownLivePunch >= 0.0f)
     {
         const auto r = livePunchBadgeArea().toFloat();
-        if (r.getWidth() > 60.0f)
+        const auto font = LooperLookAndFeel::font (11.0f, true);
+        const auto text = tr ("HOLD") + " " + juce::String (juce::roundToInt (shownLivePunch * 100.0f)) + " %";
+        const float tw = (float) juce::GlyphArrangement::getStringWidthInt (font, text) + 8.0f;
+        if (r.getWidth() >= tw)
         {
-            const auto bar = r.withTrimmedLeft (juce::jmin (r.getWidth() * 0.5f, 74.0f)).withSizeKeepingCentre (r.getWidth() - juce::jmin (r.getWidth() * 0.5f, 74.0f), 6.0f);
             g.setColour (colours::learn);
-            g.setFont (LooperLookAndFeel::font (11.0f, true));
-            g.drawText (tr ("HOLD") + " " + juce::String (juce::roundToInt (shownLivePunch * 100.0f)) + " %", r.withWidth (72.0f), juce::Justification::centredLeft);
-            g.setColour (juce::Colours::white.withAlpha (0.10f));
-            g.fillRoundedRectangle (bar, 3.0f);
-            g.setColour (colours::learn);
-            g.fillRoundedRectangle (bar.withWidth (bar.getWidth() * juce::jlimit (0.0f, 1.0f, shownLivePunch)), 3.0f);
+            g.setFont (font);
+            g.drawText (text, r.withWidth (tw), juce::Justification::centredLeft);
+            if (r.getWidth() - tw >= 16.0f)
+            {
+                const auto bar = r.withTrimmedLeft (tw).withSizeKeepingCentre (r.getWidth() - tw, 6.0f);
+                g.setColour (juce::Colours::white.withAlpha (0.10f));
+                g.fillRoundedRectangle (bar, 3.0f);
+                g.setColour (colours::learn);
+                g.fillRoundedRectangle (bar.withWidth (bar.getWidth() * juce::jlimit (0.0f, 1.0f, shownLivePunch)), 3.0f);
+            }
         }
     }
 

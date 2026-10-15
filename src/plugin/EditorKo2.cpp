@@ -326,7 +326,7 @@ void LiveLooperEditor::setControllerGui (bool on)
 juce::Rectangle<int> LiveLooperEditor::livePunchBadgeArea() const
 {
     // PUNCH FX title row, between the title and the target box
-    return { punchArea.getX() + 104, punchArea.getY() + 9, juce::jmax (0, punchArea.getWidth() - 104 - 196), 20 };
+    return { punchArea.getX() + 98, punchArea.getY() + 9, juce::jmax (0, punchArea.getWidth() - 98 - 192), 20 };
 }
 
 void LiveLooperEditor::updateKo2Ui()
