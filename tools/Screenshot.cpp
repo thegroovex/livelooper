@@ -263,7 +263,7 @@ int main (int argc, char* argv[])
                     save (*sp, outDir.getChildFile ("livelooper-setup-controllers" + sfx + ".png"));
                     // the whole page (K.O. II audio output, hold to intensify, notes)
                     const auto size = sp->getBounds();
-                    sp->setSize (size.getWidth(), 1500);
+                    sp->setSize (size.getWidth(), 1100);
                     juce::MessageManager::getInstance()->runDispatchLoopUntil (80);
                     save (*sp, outDir.getChildFile ("livelooper-setup-controllers-full" + sfx + ".png"));
                     sp->setBounds (size);
@@ -280,6 +280,39 @@ int main (int argc, char* argv[])
                 juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
             }
             save (*editor, outDir.getChildFile ("livelooper-controller-ko2" + sfx + ".png"));
+            // hold to intensify: a punch pad (group C) held for about a beat - live amount on the display
+            // and in the PUNCH FX title row of the standard surface
+            if (auto* dev = proc.getKo2Device())
+            {
+                const int note = ko2::noteFor (2, ko2::padNumberOffset (2));
+                dev->injectMessage (juce::MidiMessage::noteOn (1, note, (juce::uint8) 50));
+                if (auto* cv = ed->getControllerView())
+                    cv->setKo2Page (2);
+                for (int f = 0; f < 10; ++f)
+                {
+                    runBlocks (proc, 2, 0.3f);
+                    juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+                }
+                ed->updateKo2Ui();
+                juce::MessageManager::getInstance()->runDispatchLoopUntil (60);
+                save (*editor, outDir.getChildFile ("livelooper-ko2-hold" + sfx + ".png"));
+                appsettings::setValue ("gui.layout", "standard");
+                ed->updateKo2Ui();
+                for (int f = 0; f < 3; ++f)
+                {
+                    runBlocks (proc, 2, 0.3f);
+                    juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+                }
+                ed->updateKo2Ui();
+                juce::MessageManager::getInstance()->runDispatchLoopUntil (60);
+                save (*editor, outDir.getChildFile ("livelooper-punch-hold" + sfx + ".png"));
+                dev->injectMessage (juce::MidiMessage::noteOff (1, note));
+                appsettings::setValue ("gui.layout", "controller");
+                if (auto* cv = ed->getControllerView())
+                    cv->setKo2Page (0);
+                ed->updateKo2Ui();
+                juce::MessageManager::getInstance()->runDispatchLoopUntil (60);
+            }
             appsettings::setValue ("gui.controller", "push");
             ed->updateKo2Ui();
             for (int f = 0; f < 4; ++f)
