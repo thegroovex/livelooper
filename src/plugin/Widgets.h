@@ -132,6 +132,8 @@ private:
     int track;
     bool blink = false;
     bool pressed = false;
+    juce::Image cache;            // shadow, bezel and pad body for the current look
+    juce::String cacheKey;
     void mouseUp (const juce::MouseEvent&) override { pressed = false; repaint(); }
 };
 
@@ -195,6 +197,7 @@ public:
 
 private:
     std::array<MeterBallistics, 2> master;
+    juce::Image bezel, glass;     // cached at 2x: bezel / recessed LCD and the reflection on top
     juce::String bigText;
     juce::StringArray lines;
     juce::Colour accentColour = colours::lcdText;
@@ -246,6 +249,8 @@ public:
     bool hasWaveform() const noexcept { return waveValid; }
     const MeterBallistics& getMeter (int ch) const noexcept { return meter[(size_t) (ch & 1)]; }
     bool isMeteringInput() const noexcept { return meterInput; }
+    /** v1.6: level meters per track (SETUP > Looper > Track meters), off by default. */
+    static bool showMeters;
 
 private:
     LiveLooperProcessor& proc;
