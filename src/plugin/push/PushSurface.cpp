@@ -1196,7 +1196,7 @@ std::array<juce::String, kDisplayLines> PushSurface::buildDisplay() const
                 case EncoderMode::Colour:
                 {
                     const int c = proc.getTrackColour (i);
-                    names.add (i18n::tr ("Col %1", juce::String (i + 1)));
+                    names.add ("Col " + juce::String (i + 1));
                     values.add (c < 0 ? juce::String ("auto") : juce::String (getTrackColourInfo (c).name));
                     break;
                 }

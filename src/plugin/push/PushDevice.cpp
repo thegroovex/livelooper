@@ -50,7 +50,7 @@ juce::String PushDevice::getStatusText() const
     if (! enabled)
         return i18n::tr ("Off");
     if (isConnected())
-        return i18n::tr ("Connected: %1", deviceName);
+        return deviceName.isEmpty() ? i18n::tr ("Connected") : i18n::tr ("Connected: %1", deviceName);
     if (usedElsewhere)
         return i18n::tr ("Push is controlled by another livelooper instance");
     if (openFailed)

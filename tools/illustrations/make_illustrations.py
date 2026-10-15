@@ -140,7 +140,7 @@ def push1(mode='loop'):
         lines = ['Kick  Snare Clap  CHat  OHat  Rim   Shakr Tom', ' 100   90    80    85    70    60    55    75',
                  'STEP  House Jam            1/2', 'KIT House   FILL   DRUMS>BFX  120.0']
     else:
-        lines = ['Level  Level  Level  Level  Level          Master Tempo', ' 75     80     100    90     100           100    120.0',
+        lines = ['Lvl 1  Lvl 2  Lvl 3  Lvl 4  Lvl 5          Master Tempo', '75%    80%    100%   90%    100%          100%   120.0',
                  '>P     D      P      R      S              M ||||||', '120.0 BPM  Scene 1  Link 2']
     for i, l in enumerate(lines):
         o.append(f"<text x='236' y='{117 + i * 16}' {mono} xml:space='preserve' opacity='{1 if i < 3 else 0.8}'>{l}</text>")

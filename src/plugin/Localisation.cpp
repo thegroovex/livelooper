@@ -180,6 +180,7 @@ namespace
         { "Press USER on Push to switch between your DAW and livelooper", "USER auf Push wechselt zwischen deiner DAW und livelooper" },
         { "Push 1", "Push 1" },
         { "Connected: %1", "Verbunden: %1" },
+        { "Connected", "Verbunden" },
         { "Push found, but its User port is in use (Windows: switch it off in your DAW's MIDI settings)", "Push gefunden, aber sein User-Port ist belegt (Windows: in den MIDI-Einstellungen deiner DAW ausschalten)" },
         { "No Push found", "Kein Push gefunden" },
         { "Push is controlled by another livelooper instance", "Push wird von einer anderen livelooper-Instanz gesteuert" },
@@ -306,9 +307,8 @@ namespace
 
         // ---------------------------------------------------------------- parameter names
         { "T%1 %2", "S%1 %2" },
-        { "Lvl %1", "Pegel %1" },
+        { "Lvl %1", "Peg %1" },
         { "Pit %1", "Ton %1" },
-        { "Col %1", "Farbe %1" },
         { "Track %1", "Spur %1" },
         { "Global", "Global" },
         { "Input FX", "Eingangs-FX" },
