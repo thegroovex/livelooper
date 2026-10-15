@@ -25,7 +25,7 @@ wenn Pad-Velocity an ist) sowie **Clock / Start / Stop**. Mehr kann livelooper n
 | Geht | Geht nicht (der K.O. II sendet nichts) |
 |---|---|
 | 48 Pads = 4 Seiten mit je 12 Funktionen (die Gruppentasten wechseln die Seite) | Regler X / Y, Fader (alle Belegungen) |
-| Anschlagstärke → Stärke der Punch-FX | Pad-Druck / Aftertouch (wird nicht gesendet) |
+| Anschlagstärke → Stärke der Punch-FX, **Pad halten = Stärke steigt bis 100 %** (§4) | Pad-Druck / Aftertouch (wird nicht gesendet – weder Poly- noch Kanal-Druck) |
 | livelooper sendet Clock, Start auf dem Takt und Stop | FX-Taste, Punch-in-FX, MAIN / SOUND / KEYS / TEMPO / ERASE … |
 | seinen USB-Stereoausgang aufnehmen (Standalone; in der DAW als Audio-Eingang) | LEDs und Display (kein Host kann sie ansteuern) |
 
@@ -40,8 +40,10 @@ erscheint eine kleine Frage:
 **„K.O. II erkannt – wie soll livelooper ihn nutzen?“** – **[Nur Controller]** **[K.O. II aufnehmen]** **[Ignorieren]** · *Einstellungen …*
 
 - **Nur Controller**: die Pads steuern livelooper, an der Audio-Einstellung ändert sich nichts.
-- **K.O. II aufnehmen**: die Standalone-App schaltet Audio-Ein- und -Ausgang auf das USB-Stereopaar des
-  K.O. II (das vorige Gerät wird gemerkt und kommt beim Abziehen oder Zurückschalten wieder). Standardmäßig
+- **K.O. II aufnehmen**: die Standalone-App schaltet den Audio-**Eingang** auf das USB-Stereopaar des
+  K.O. II; der **Ausgang bleibt am Computer** (Lautsprecher, Kopfhörer oder Interface), damit Metronom und
+  Loops nicht noch einmal mit aufgenommen werden (§6). Die vorigen Geräte werden gemerkt und kommen beim
+  Abziehen oder Zurückschalten wieder. Standardmäßig
   steuert nur **Gruppe D** livelooper – die Gruppen A – C bleiben Instrumente des K.O. II.
 - **Ignorieren**: livelooper lässt den K.O. II in Ruhe.
 
@@ -99,6 +101,18 @@ solange es gedrückt ist – Anschlagstärke = Stärke (auch leise Schläge wirk
 Velocity / 127). Mehrere Pads zugleich kombinieren sich (Tiefpass + Hochpass = Bandpass). Die Effekte
 beschreibt die Bedienungsanleitung (*Punch-FX*).
 
+**Halten = stärker.** Der K.O. II sendet **keinen Pad-Druck** – seine MIDI-Implementierung kennt weder
+Poly-Aftertouch noch Kanal-Druck, nur Note-on + Anschlagstärke –, festeres Drücken eines gehaltenen Pads
+ändert also von sich aus nichts. Darum lässt livelooper die Stärke ansteigen, solange du ein Punch-Pad hältst:
+sie **beginnt bei der Anschlagstärke und steigt bis 100 %** innerhalb der **Rampenzeit** und geht beim
+Loslassen auf die Anschlagstärke zurück. Ein neuer Schlag auf ein gehaltenes Pad setzt eine neue Startstärke.
+Rampenzeit: *SETUP → Controller → K.O. II → Punch-Pads: halten = stärker* – **Aus / 1 Schlag / 2 Schläge
+(Standard) / 1 Takt** (folgt dem Tempo), auch als Host-Parameter **Punch-FX Halte-Rampe** (`pfx_hold_ramp`,
+per MIDI zuweisbar). Die aktuelle Stärke zeigen das PUNCH-FX-Feld (*HALTEN 83 %* mit Balken, der
+STÄRKE-Regler bewegt sich mit) und das Display der Controller-Oberfläche. Sollte eine künftige
+K.O.-II-Firmware Poly-Aftertouch (`An`) oder Kanal-Druck (`Dn`) senden, nutzt livelooper ihn statt der Rampe
+(nie unter der Anschlagstärke).
+
 | `.` | `0` | ENTER | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | Tonhöhen-Zufall | Slice-Tausch | Granular | Beat-Repeat | Bandstopp | Filter-Wobble | Tiefpass | Hochpass | Send-Wurf | Tremolo | Oktave runter | Dezimierer |
@@ -139,13 +153,24 @@ livelooper, und livelooper folgt Link.
 
 ## 6. K.O. II aufnehmen
 
-- **Standalone:** Ein- und Ausgang wechseln zum K.O. II (48 kHz, wenn angeboten, Puffer 256), alle Spuren
-  nehmen sein Stereopaar auf, livelooper's **Eingangs-Mithören geht auf 0** – du hörst den K.O. II direkt an
-  seiner eigenen Buchse. Nie während eine Spur von ihm aufnimmt: der Wechsel wartet. Abziehen stellt das
-  vorige Gerät (oder den Systemstandard) wieder her und zeigt *K.O. II: zurück zu …*.
-- **livelooper über den K.O. II hören** braucht Einstellung **511** am K.O. II. Vorsicht: Schickt der K.O. II
-  diesen mitgehörten Eingang auch wieder über USB hinaus (Test T9), nimmt livelooper sich selbst auf. Bei
-  Rückkopplung zurück auf **510** und den Ausgang über dein Interface.
+- **Standalone:** der **Eingang** wechselt zum K.O. II (48 kHz, wenn angeboten, Puffer 256), alle Spuren
+  nehmen sein Stereopaar auf (Eingang *Stereo*, kein Resampling), livelooper's **Eingangs-Mithören geht auf
+  0** – du hörst den K.O. II direkt über seinen eigenen Lautsprecher / seine Buchse. Der **Ausgang bleibt am
+  Computer** – der vorher benutzte Ausgang (Laptop-Lautsprecher, Kopfhörer, Interface), sonst der
+  Systemstandard –, **Metronom und Loops kommen also aus dem Computer**. Ein- und Ausgang dürfen zwei Geräte
+  sein (macOS CoreAudio kombiniert sie, WASAPI, DirectSound und ALSA öffnen sie nebeneinander). Nie während
+  eine Spur von ihm aufnimmt: der Wechsel wartet. Abziehen stellt den vorigen Eingang **und** Ausgang (oder
+  den Systemstandard) wieder her und zeigt *K.O. II: zurück zu …*.
+- **Warum nicht der K.O. II als Ausgang?** Der USB-Stereoausgang des K.O. II enthält, was er über USB
+  bekommt: Geht livelooper's Ausgabe (Metronom, Loops) in den K.O. II, kommt sie sofort über seinen
+  USB-Eingang zurück und wird **noch einmal aufgenommen** – jeder neue Loop enthielte den Klick und alle
+  früheren Loops. *SETUP → Controller → K.O. II → K.O.-II-Audioausgang*: **Computer (Standard)** /
+  **K.O. II** – *K.O. II* nur wählen, wenn du genau das willst (Metronom aus, nichts läuft); die
+  Einstellungsseite warnt davor. Das Metronom selbst wird nie in eine Aufnahme geschrieben – es gelangt nur
+  über so einen Rückweg hinein.
+- **livelooper über den K.O. II hören** braucht Einstellung **511** am K.O. II plus *K.O.-II-Audioausgang:
+  K.O. II* – mit demselben Rückkopplungsrisiko (Test T9). Bei Rückkopplung oder Klick in den Loops zurück auf
+  **510** und *Computer*.
 - **Latenz:** USB-Audio kommt verspätet an. Endet im Modus *K.O. II aufnehmen* eine erste Aufnahme, schiebt
   livelooper den Loop um den **Latenz-Ausgleich** nach vorn (*SETUP → Controller → K.O. II →
   Latenz-Ausgleich*: automatisch = gemeldete Latenz des Geräts + ein Block, oder 0 – 200 ms). Eine
@@ -155,10 +180,16 @@ livelooper, und livelooper folgt Link.
   Capture-Länge, Standard 4) vom K.O. II in die **erste leere Spur** auf, beginnend auf dem nächsten Takt (mit
   Quantisierung = Takt, dem Standard). Steht der K.O. II, startet ihn livelooper's Clock auf dem Takt. Keine
   freie Spur → *Keine freie Spur*.
-- **Plug-in:** die DAW verwaltet das Audio. Wähle in den Audio-Einstellungen der DAW „EP-133 …“ als
-  Audio-Eingang (Live: Einstellungen → Audio → Audio-Eingangsgerät) und setze in livelooper den Spur-Eingang.
-  Windows: es gibt keinen ASIO-Treiber – WASAPI / MME der DAW oder einen generischen ASIO-Treiber nutzen.
-  macOS: per Aggregatgerät (Audio-MIDI-Setup) mit dem Interface kombinieren.
+- **Plug-in:** die DAW verwaltet das Audio. So einrichten, dass nichts doppelt aufgenommen wird:
+  1. **Eingang:** in der DAW „EP-133 …“ als Audio-Eingangsgerät wählen (Live: Einstellungen → Audio →
+     Audio-Eingangsgerät) und seine Eingänge 1/2 als **Eingang der Spur** nutzen, auf der livelooper liegt;
+     Spur-Eingang in livelooper = *Stereo*.
+  2. **Ausgang:** die Ausgabe der DAW bleibt auf Computer / Interface – **nicht** auf dem K.O. II (macOS: ein
+     Aggregatgerät aus K.O. II + Interface im Audio-MIDI-Setup, mit dem Interface als Ausgang).
+  3. **Eingangs-Monitoring aus** auf dieser Spur (Live: Monitor *Aus*), sonst spielt die DAW den K.O. II ein
+     zweites Mal durch livelooper; das Metronom der DAW und von livelooper bleibt aus der Aufnahme draußen.
+  Windows: für den K.O. II gibt es keinen ASIO-Treiber – WASAPI / MME der DAW oder einen generischen
+  ASIO-Treiber nutzen. Dieselben Schritte stehen in der Hilfe der App (**?** → *K.O. II*).
 
 ## 7. Controller-Oberfläche
 
@@ -190,7 +221,9 @@ Noten 36 – 67 – genau die Gruppen A – C des K.O. II; der K.O. II braucht s
 | Pads spielen Sounds in den Loop | Steuer-Pads auf Sound 000 setzen (§3) oder nur Gruppe D nutzen |
 | „K.O. II im KEYS-Modus“ | am K.O. II KEYS drücken, um den Keys-Modus zu verlassen |
 | Der K.O. II folgt dem Tempo nicht | 101 (Clock-Eingang) einstellen; *Clock an K.O. II senden* prüfen |
-| Rückkopplung im Aufnahme-Modus | K.O.-II-Einstellung 510 statt 511 |
+| Rückkopplung im Aufnahme-Modus | K.O.-II-Einstellung 510 statt 511; *K.O.-II-Audioausgang: Computer* |
+| Metronom / frühere Loops sind in der neuen Aufnahme | *SETUP → Controller → K.O. II → K.O.-II-Audioausgang: Computer*; Plug-in: DAW-Ausgang nicht auf dem K.O. II, Eingangs-Monitoring aus |
+| Punch-FX-Stärke ändert sich nur bei einem neuen Schlag | der K.O. II sendet keinen Pad-Druck – Pad halten: *Punch-Pads: halten = stärker* (nicht *Aus*) |
 
 ## 10. Hardware-Testliste (bitte durchgehen und melden, OS 2.5.1)
 
@@ -218,6 +251,8 @@ MUSS = nötig für die Bezeichnung „getestet“.
 | T18 | Plug-in in Live (macOS + Windows): MIDI-Port öffnet; Windows-Exklusiv-Hinweis | | ✔ |
 | T19 | Push 1 + K.O. II gleichzeitig; Controller-Oberfläche umschalten | | |
 | T20 | Nur Controller: normaler Eingang unverändert, Pads steuern nur | | ✔ |
+| T21 | K.O. II aufnehmen (Standalone): Ausgang bleibt am Laptop, ein neuer Loop enthält nur den K.O. II (kein Klick, keine früheren Loops) | | ✔ |
+| T22 | Gruppe C gehalten: Stärke steigt vom Anschlag bis 100 % (2 Schläge), beim Loslassen zurück; sendet eine Firmware `An` / `Dn`? | | ✔ |
 
 ---
 
