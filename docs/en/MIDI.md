@@ -103,6 +103,8 @@ Automation works too (in Live, e.g., in Arrangement view), for example to start 
 
 **Since 1.6 (punch FX, send FX, controller)** – 23 more, appended (parameters 466 – 488): `Send FX Type`, `Send FX X`, `Send FX Y`, `Send FX Amount` (IDs `sfx_type`, `sfx_x`, `sfx_y`, `sfx_level`), `Punch FX 1 … 12 (Hold)` (`pfx_hold1` … `pfx_hold12`, momentary: note on / off), `Punch FX Amount`, `Punch FX X`, `Punch FX Y`, `Punch FX Target`, `Punch FX Latch` (`pfx_amount`, `pfx_x`, `pfx_y`, `pfx_target`, `pfx_latch`), `Controller Audio` (`ctl_audio_mode`: controller only / record controller audio) and `Resample Controller Pattern` (`ko2_resample`, button). The names are generic; see KO2.md for the K.O. II. Note: the default MIDI map (channel 1, notes 36 – 67) overlaps the K.O. II's note range – the K.O. II does not need it (livelooper opens its port directly).
 
+**Since 1.6 (punch FX hold ramp)** – 1 more, appended (parameter 489): `Punch FX Hold Ramp` (`pfx_hold_ramp`: off / 1 beat / 2 beats (default) / 1 bar) – for pads that send no pressure (K.O. II): holding a punch pad raises the amount from the hit to 100 % over that time. MIDI-mappable like every parameter.
+
 The internal parameter IDs (for developers and saved assignments) are e.g. `t1_recplay`, `t3_level`, `allstartstop`, `inB_type`, `trD_mix`, `bfx_type`, `brep_hold`, `t2_color`, `link_on`.
 
 Tip: the host identifies parameters by their internal ID, not by their name, so switching the language does not break existing MIDI maps or automation.
