@@ -363,6 +363,7 @@ public:
         beginTest ("Demo set: groove + three loops ready to play, empty set clears everything");
         {
             Proc16 h;
+            h.set ("monitor", 0.5f);                 // input monitor up (100 %) before the demo
             expect (h.proc.loadDemoSet());
             for (int t = 0; t < 3; ++t)
             {
@@ -678,6 +679,7 @@ public:
                 juce::FileOutputStream out (file);
                 juce::PNGImageFormat().writeImageToStream (ed->createComponentSnapshot (ed->getLocalBounds()), out);
             }
+            h.set ("monitor", 0.5f);
             ed->chooseDemoSet (false);
             h.pump();
             expect (! ed->isWelcomeVisible());

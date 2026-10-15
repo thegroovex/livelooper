@@ -33,6 +33,8 @@ public:
     void resized() override;
     void mouseDown (const juce::MouseEvent&) override {}      // the surface below stays untouched
 
+    juce::Button& getSkipButton() noexcept { return skipBtn; }
+    juce::Button& getNextButton() noexcept { return nextBtn; }
     /** The card with text and buttons (for the layout and tests). */
     juce::Rectangle<int> getCardBounds() const;
 
