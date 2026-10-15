@@ -58,6 +58,8 @@ void GuidedTour::close()
 
 void GuidedTour::update()
 {
+    if (juce::isPositiveAndBelow (step, (int) steps.size()) && steps[(size_t) step].enter)
+        steps[(size_t) step].enter();
     nextBtn.setButtonText (step + 1 >= (int) steps.size() ? "DONE" : "NEXT");
     backBtn.setEnabled (step > 0);
     skipBtn.setVisible (step + 1 < (int) steps.size());
@@ -163,7 +165,7 @@ void LiveLooperEditor::initFeatures16()
 void LiveLooperEditor::layoutFeatures16 (int dx)
 {
     // round record button: right-aligned under MIDI LEARN / MIDI MAP / SETUP / ? (they end at x 1168 + dx, y 64)
-    perfRecBtn.setBounds (1168 + dx - 112, 67, 112, 28);
+    perfRecBtn.setBounds (1168 + dx - 112, 50, 112, 28);
     if (tour != nullptr)
         tour->setBounds (surface.getLocalBounds());
     if (welcome != nullptr)
@@ -310,7 +312,6 @@ void LiveLooperEditor::startTour()
             r = r.getUnion (b->getBounds());
         return r;
     };
-    const int dx = surfaceWidth() - kBaseWidth;
     std::vector<GuidedTour::Step> steps {
         { "RECORD",
           "Press REC/PLAY on a track and play something. Press it again: the loop closes and plays right away. "
@@ -322,10 +323,10 @@ void LiveLooperEditor::startTour()
           stripArea },
         { "GROOVE",
           "RHYTHM starts a drum groove in time with your loops. Choose pattern and kit; SWING and FEEL make it feel played - BEATS lets you build your own patterns.",
-          [dx] { return juce::Rectangle<int> (870 + dx, 350, 298, 190); } },
+          [this] { return rhythmArea; } },
         { "BEAT FX",
           "Pick a beat FX and press ON - or hold HOLD for a short effect. The FX channel decides where it works: master, loops, input or one track.",
-          [] { return juce::Rectangle<int> (12, 230, 470, 112); } },
+          [this] { return fxPanelArea; }, [this] { setFxTab (tabBeat); } },
         { "SCENE",
           "Scenes remember which tracks play. Press STORE, then a scene button. Later that button starts exactly those tracks, in time. "
           "Have fun - the tour is always in the help menu (?).",

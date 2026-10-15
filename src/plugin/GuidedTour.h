@@ -18,6 +18,7 @@ public:
         juce::String title;     // English, translated when drawn
         juce::String text;      // English, translated when drawn
         std::function<juce::Rectangle<int>()> area;   // highlighted area in the tour's coordinates
+        std::function<void()> enter {};                // optional: prepares the surface for this step (e.g. opens an FX tab)
     };
 
     GuidedTour (std::vector<Step> steps, std::function<void()> onClose);

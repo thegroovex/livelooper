@@ -51,6 +51,11 @@ public:
     bool isLearnMode() const noexcept { return learnMode; }
     void selectFxSlot (bool inputFx, int slot);
     void showStatus (const juce::String& text);
+    /** v1.6: the FX panel shows one group at a time (progressive disclosure):
+        0 input FX, 1 track FX, 2 beat FX, 3 beat repeat / stutter, 4 colour FX. */
+    enum FxTab { tabInput = 0, tabTrack, tabBeat, tabRepeat, tabColor, numFxTabs };
+    void setFxTab (int tab);
+    int getFxTab() const noexcept { return fxTab; }
 
     // computer keyboard (standalone app)
     bool keyPressed (const juce::KeyPress& key) override;
@@ -120,6 +125,23 @@ private:
         std::function<void (juce::Graphics&)> painter;
         void paint (juce::Graphics& g) override { if (painter) painter (g); }
     };
+
+    /** Segment of the FX panel's tab bar; a small LED shows that something in the group is on. */
+    class FxTabButton : public LLButton
+    {
+    public:
+        FxTabButton (const juce::String& text, juce::Colour led) : LLButton (text, led) {}
+        std::function<bool()> activeFn;
+        void paintButton (juce::Graphics& g, bool over, bool down) override;
+    };
+    std::array<std::unique_ptr<FxTabButton>, numFxTabs> fxTabs;
+    int fxTab = tabInput;
+    juce::Rectangle<int> fxPanelArea, fxContentArea, rhythmArea, masterArea;
+    void layoutFxPanel (int dx);
+    // cached static surface (background, glass panels, titles) - rebuilt only when the layout changes
+    juce::Image surfaceCache;
+    juce::String surfaceCacheKey;
+    void renderSurfaceCache();
 
     class LearnOverlay : public juce::Component
     {
