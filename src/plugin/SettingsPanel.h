@@ -9,7 +9,7 @@ namespace livelooper
     rows on the right (switches, pop-up buttons, actions), short labels, quiet notes.
 
     It is generated from the SETUP menu structure (section header = page, sub-menu = group,
-    ticked radio items = pop-up, toggle ids = switch, disabled items = notes), so every
+    ticked radio items (or ids given negated in toggleIds) = pop-up, toggle ids = switch, disabled items = notes), so every
     setting stays reachable and is handled by exactly the same code as before.
 */
 class SettingsPanel : public juce::Component

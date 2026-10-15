@@ -610,18 +610,18 @@ void BeatsPage::resized()
         place (t, slotBox, 200);
         place (t, nameEdit, 160);
         const auto pb = place (t, playBtn, 80);
-        group (tr ("PATTERN"), juce::Rectangle<int> (x0, t.getY(), pb.getRight() - x0, ctlH));
+        group ("PATTERN", juce::Rectangle<int> (x0, t.getY(), pb.getRight() - x0, ctlH));
         sep (t);
         // right side: grid length and pattern switch
         const auto sw = place (t, switchBox, 136, true);
-        group (tr ("SWITCH"), sw);
+        group ("SWITCH", sw);
         sep (t, true);
         const auto bb = place (t, barsBox, 96, true);
         const auto sb = place (t, stepsBox, 66, true);
-        group (tr ("GRID"), sb.getUnion (bb));
+        group ("GRID", sb.getUnion (bb));
         sep (t, true);
         const auto kb = place (t, kitBox, juce::jmin (230, t.getWidth()));
-        group (tr ("KIT"), kb);
+        group ("KIT", kb);
     }
     r.removeFromTop (12);
     toolBar = r.removeFromTop (capH + ctlH);
@@ -632,14 +632,14 @@ void BeatsPage::resized()
         place (t, saveBtn, 92);
         place (t, packsBtn, 84);
         const auto ib = place (t, importBtn, 124);
-        group (tr ("FILE"), juce::Rectangle<int> (x0, t.getY(), ib.getRight() - x0, ctlH));
+        group ("FILE", juce::Rectangle<int> (x0, t.getY(), ib.getRight() - x0, ctlH));
         sep (t);
         x0 = t.getX();
         place (t, clearBtn, 84);
         place (t, copyBtn, 84);
         place (t, pasteBtn, 84);
         const auto vb = place (t, randomBtn, 96);
-        group (tr ("EDIT"), juce::Rectangle<int> (x0, t.getY(), vb.getRight() - x0, ctlH));
+        group ("EDIT", juce::Rectangle<int> (x0, t.getY(), vb.getRight() - x0, ctlH));
         sep (t);
         const auto fb = place (t, *fillBtn, 96, true);
         juce::ignoreUnused (fb);
@@ -650,7 +650,7 @@ void BeatsPage::resized()
             const auto bb = place (t, *barBtns[(size_t) b2], 38, true);
             bars = bars.isEmpty() ? bb : bars.getUnion (bb);
         }
-        group (tr ("BAR"), bars);
+        group ("BAR", bars);
     }
     for (auto* c : std::initializer_list<juce::Component*> { &loadBtn, &saveBtn, &packsBtn, &importBtn, &clearBtn, &copyBtn, &pasteBtn, &randomBtn })
         LooperLookAndFeel::setEmphasis (*c, 0);
@@ -703,7 +703,7 @@ void BeatsPage::paint (juce::Graphics& g)
     g.setFont (LooperLookAndFeel::font (10.5f, true));
     g.setColour (colours::textDim);
     for (const auto& c : groupCaptions)
-        g.drawText (i18n::upper (c.first), c.second, juce::Justification::centredLeft, true);
+        g.drawText (i18n::upper (tr (c.first)), c.second, juce::Justification::centredLeft, true);
     g.setColour (juce::Colours::white.withAlpha (0.08f));
     for (int x : groupSeparators)
     {

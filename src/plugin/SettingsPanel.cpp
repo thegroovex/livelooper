@@ -69,7 +69,7 @@ namespace
             bool anyTick = false, anyToggle = false;
             for (const auto& i : chooseable)
             {
-                anyTick = anyTick || i.ticked;
+                anyTick = anyTick || i.ticked || toggles.contains (-i.id);     // -id: declared radio item
                 anyToggle = anyToggle || toggles.contains (i.id);
             }
             std::vector<Item> radio;

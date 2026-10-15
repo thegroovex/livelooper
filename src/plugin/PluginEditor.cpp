@@ -1497,6 +1497,7 @@ juce::PopupMenu LiveLooperEditor::buildSetupMenu (juce::Array<int>& toggles)
     menu.addItem (431, tr ("About livelooper ..."));
 
     toggles.addArray ({ 3, 4, 5, 120, 140, 400, 401, 421, 422, 450 });
+    toggles.addArray ({ -410, -411, -100, -101, -1, -2 });     // radio groups (shown as pop-ups even when nothing is ticked)
     return menu;
 }
 

@@ -32,7 +32,7 @@ WelcomeScreen::WelcomeScreen (bool first) : firstStart (first)
 
 juce::Rectangle<int> WelcomeScreen::getCardBounds() const
 {
-    const int w = juce::jmin (680, getWidth() - 24), h = juce::jmin (540, getHeight() - 24);
+    const int w = juce::jmin (680, getWidth() - 24), h = juce::jmin (firstStart ? 520 : 494, getHeight() - 24);
     return getLocalBounds().withSizeKeepingCentre (w, h);
 }
 
