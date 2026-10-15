@@ -303,7 +303,7 @@ public:
             expectEquals (countSysex (out), 4, "four display lines on a full refresh");
             expect (r.surface.getDisplayLine (0).contains ("Lvl 1"));
             expect (r.surface.getDisplayLine (1).contains ("100%"));
-            expect (r.surface.getDisplayLine (2).contains ("empty"));
+            expect (r.surface.getDisplayLine (2).contains ("EMPTY"));
             expect (r.surface.getDisplayLine (3).contains ("120.0 BPM"));
             expectEquals (countSysex (r.render()), 0, "nothing changes, nothing is sent");
             r.turn (kEncoderFirst, 127);

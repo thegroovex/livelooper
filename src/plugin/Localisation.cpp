@@ -306,6 +306,9 @@ namespace
 
         // ---------------------------------------------------------------- parameter names
         { "T%1 %2", "S%1 %2" },
+        { "Lvl %1", "Pegel %1" },
+        { "Pit %1", "Ton %1" },
+        { "Col %1", "Farbe %1" },
         { "Track %1", "Spur %1" },
         { "Global", "Global" },
         { "Input FX", "Eingangs-FX" },

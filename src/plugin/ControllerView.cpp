@@ -473,7 +473,7 @@ void ControllerView::paint (juce::Graphics& g)
     g.setFont (LooperLookAndFeel::font (14.0f, true));
     g.drawText (tr (juce::String::fromUTF8 ("\xe2\x97\x80 Standard")), backButton, juce::Justification::centred);
     g.setFont (LooperLookAndFeel::font (18.0f, true));
-    const auto title = tr ("Controller view") + "  -  " + (device == Device::Ko2 ? juce::String ("EP-133 K.O. II") : juce::String ("Ableton Push 1"));
+    const auto title = tr ("Controller view") + "  -  " + (device == Device::Ko2 ? juce::String ("EP-133 K.O. II") : juce::String ("Push 1"));
     g.drawText (title, backButton.withX (backButton.getRight() + 20.0f).withWidth (600.0f), juce::Justification::centredLeft);
     if (! switchButton.isEmpty())
     {
@@ -502,12 +502,12 @@ void ControllerView::paint (juce::Graphics& g)
         g.fillRoundedRectangle (r, 8.0f);
         g.setColour (colours::track (t).withAlpha (0.9f));
         g.fillRoundedRectangle (r.removeFromLeft (6.0f), 3.0f);
-        const char* names[] = { "empty", "REC", "PLAY", "DUB", "stop" };
+        const char* names[] = { "EMPTY", "REC", "PLAY", "DUB", "STOP" };
         const int si = state == LoopTrack::State::Empty ? 0 : state == LoopTrack::State::Recording ? 1 : state == LoopTrack::State::Playing ? 2
                      : state == LoopTrack::State::Overdubbing ? 3 : 4;
         g.setColour (colours::text);
         g.setFont (LooperLookAndFeel::font (13.0f, true));
-        g.drawText (tr ("T%1 %2", juce::String (t + 1), names[si]), r.reduced (8.0f, 0.0f), juce::Justification::centredLeft);
+        g.drawText (tr ("TRACK %1", juce::String (t + 1)) + "  " + tr (names[si]), r.reduced (8.0f, 0.0f), juce::Justification::centredLeft);
         if (state != LoopTrack::State::Empty)
         {
             g.setColour (colours::track (t).withAlpha (0.5f));

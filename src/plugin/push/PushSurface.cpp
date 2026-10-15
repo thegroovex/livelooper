@@ -1189,14 +1189,14 @@ std::array<juce::String, kDisplayLines> PushSurface::buildDisplay() const
         {
             switch (encoderMode)
             {
-                case EncoderMode::Volume:   names.add ("Lvl " + juce::String (i + 1)); values.add (percent (value (trackId (i, kLevel)))); break;
+                case EncoderMode::Volume:   names.add (i18n::tr ("Lvl %1", juce::String (i + 1))); values.add (percent (value (trackId (i, kLevel)))); break;
                 case EncoderMode::Pan:      names.add ("Pan " + juce::String (i + 1)); values.add (text (trackId (i, kPan))); break;
-                case EncoderMode::Pitch:    names.add ("Pit " + juce::String (i + 1)); values.add (text (trackId (i, kPitch)) + "st"); break;
+                case EncoderMode::Pitch:    names.add (i18n::tr ("Pit %1", juce::String (i + 1))); values.add (text (trackId (i, kPitch)) + "st"); break;
                 case EncoderMode::Feedback: names.add ("Fbk " + juce::String (i + 1)); values.add (percent (value (trackId (i, kFeedback)))); break;
                 case EncoderMode::Colour:
                 {
                     const int c = proc.getTrackColour (i);
-                    names.add ("Col " + juce::String (i + 1));
+                    names.add (i18n::tr ("Col %1", juce::String (i + 1)));
                     values.add (c < 0 ? juce::String ("auto") : juce::String (getTrackColourInfo (c).name));
                     break;
                 }
@@ -1242,15 +1242,15 @@ std::array<juce::String, kDisplayLines> PushSurface::buildDisplay() const
         juce::String s;
         switch (state)
         {
-            case LoopTrack::State::Empty:       s = "empty"; break;
+            case LoopTrack::State::Empty:       s = i18n::tr ("EMPTY"); break;
             case LoopTrack::State::Recording:   s = "REC"; break;
             case LoopTrack::State::Overdubbing: s = "DUB"; break;
-            case LoopTrack::State::Playing:     s = ts.stopping.load() ? "stop.." : "PLAY"; break;
-            case LoopTrack::State::Stopped:     s = "stop"; break;
+            case LoopTrack::State::Playing:     s = ts.stopping.load() ? "STOP.." : "PLAY"; break;
+            case LoopTrack::State::Stopped:     s = i18n::tr ("STOP"); break;
         }
-        if (pending == LooperEngine::Pending::AutoRecord) s = "auto..";
-        else if (pending == LooperEngine::Pending::Record) s = "rec..";
-        else if (pending == LooperEngine::Pending::Play)   s = "play..";
+        if (pending == LooperEngine::Pending::AutoRecord) s = "AUTO..";
+        else if (pending == LooperEngine::Pending::Record) s = "REC..";
+        else if (pending == LooperEngine::Pending::Play)   s = "PLAY..";
         states.add ((i == selectedTrack ? ">" : "") + s);
     }
 
