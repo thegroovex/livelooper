@@ -6,6 +6,9 @@ Writes src/plugin/Localisation_UI16b.inc (UTF-8 as escapes, safe for every compi
 import os
 
 T = [
+    ("The demo set starts with the input muted (no feedback) - turn up INPUT in MASTER to hear your microphone.",
+     "Das Demo-Set startet mit stummem Eingang (keine Rückkopplung) – dreh EINGANG im MASTER auf, um dein Mikrofon zu hören."),
+
     # ---- BEATS header groups
     ("PATTERN", "PATTERN"), ("SWITCH", "WECHSEL"), ("GRID", "RASTER"), ("KIT", "KIT"), ("FILE", "DATEI"), ("EDIT", "BEARBEITEN"), ("BAR", "TAKT"),
 

@@ -332,6 +332,7 @@ void RecPlayButton::paint (juce::Graphics& g)
         cg.setColour (juce::Colours::white.withAlpha (0.10f));
         cg.drawEllipse (c.x - padR, c.y - padR, padR * 2.0f, padR * 2.0f, 1.0f);
     }
+    g.setOpacity (1.0f);
     g.drawImage (cache, area, juce::RectanglePlacement::stretchToFit);
 
     // glow of a lit pad
@@ -633,6 +634,7 @@ void Lcd::paint (juce::Graphics& g)
         cg.setColour (juce::Colours::white.withAlpha (0.10f));
         cg.fillRect (inner.getX() + 10.0f, inner.getY() + 1.0f, inner.getWidth() - 20.0f, 1.0f);
     }
+    g.setOpacity (1.0f);
     g.drawImage (bezel, b, juce::RectanglePlacement::stretchToFit);
     inner = inner.reduced (3.0f, 0.0f);
 
@@ -708,6 +710,7 @@ void Lcd::paint (juce::Graphics& g)
     }
     g.setColour (midi ? colours::yellow : colours::lcdText.withAlpha (0.15f));
     g.fillEllipse (dot);
+    g.setOpacity (1.0f);
     g.drawImage (glass, b, juce::RectanglePlacement::stretchToFit);
 }
 

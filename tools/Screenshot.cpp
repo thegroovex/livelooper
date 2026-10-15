@@ -9,6 +9,8 @@
 #include "plugin/InfoWindows.h"
 #include "plugin/Parameters.h"
 #include "plugin/PerformanceRecorder.h"
+#include "plugin/SettingsPanel.h"
+#include "plugin/WelcomeScreen.h"
 
 using namespace livelooper;
 using namespace livelooper::params;
@@ -114,6 +116,29 @@ int main (int argc, char* argv[])
         juce::MessageManager::getInstance()->runDispatchLoopUntil (200);
         save (*editor, outDir.getChildFile ("livelooper" + sfx + ".png"));
 
+        // v1.6: the welcome screen (demo set / empty set)
+        {
+            ed->showWelcome (false);
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (150);
+            save (*editor, outDir.getChildFile ("livelooper-welcome" + sfx + ".png"));
+            if (auto* w = ed->getWelcome())
+                w->setVisible (false);
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
+        }
+        // v1.6: the SETUP window (System Settings style), two pages
+        {
+            for (const auto& [page, name] : { std::pair<const char*, const char*> { "Looper", "setup" }, std::pair<const char*, const char*> { "App", "setup-app" } })
+            {
+                auto panel = ed->createSettingsPanel();
+                if (auto* sp = dynamic_cast<SettingsPanel*> (panel.get()))
+                {
+                    sp->showPage (i18n::tr (page));
+                    juce::MessageManager::getInstance()->runDispatchLoopUntil (80);
+                    save (*sp, outDir.getChildFile (juce::String ("livelooper-") + name + sfx + ".png"));
+                }
+            }
+        }
+
         // v1.6 rhythm: the BEATS page with the Boom Bap kit and a user pattern
         {
             set (gRhythmKit, 6.0f);
@@ -155,6 +180,7 @@ int main (int argc, char* argv[])
 
         // v1.5 live performance: beat FX, colour FX, beat repeat latch, metronome and Link on
         set (gBfxOn, 1.0f);
+        ed->setFxTab (LiveLooperEditor::tabBeat);       // v1.6: the FX panel shows the beat FX
         set (gColorType, 1.0f);
         set (gRepeatLatch, 1.0f);
         set (gMetroOn, 1.0f);
@@ -187,6 +213,7 @@ int main (int argc, char* argv[])
             juce::MessageManager::getInstance()->runDispatchLoopUntil (60);
         }
         set (gBfxOn, 0.0f);
+        ed->setFxTab (LiveLooperEditor::tabInput);
         set (gColorType, 0.0f);
         set (gRepeatLatch, 0.0f);
         set (gMetroOn, 0.0f);
@@ -199,9 +226,18 @@ int main (int argc, char* argv[])
         {
             HelpComponent help;
             help.setLookAndFeel (&editor->getLookAndFeel());
-            help.setQuery ("Link");
+            // v1.6: the illustrated guide - Push 1 layout and the Loops page
+            const auto& secs = help.getSections();
+            auto find = [&secs] (const juce::String& title) { for (int i = 0; i < secs.size(); ++i) if (secs[i].title == title) return i; return 0; };
+            help.showSectionForTests (find (i18n::tr ("Push 1")));
             juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
             save (help, outDir.getChildFile ("livelooper-help" + sfx + ".png"));
+            help.showSectionForTests (find (i18n::tr ("Loops")));
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
+            save (help, outDir.getChildFile ("livelooper-help-loops" + sfx + ".png"));
+            help.setQuery ("Link");
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
+            save (help, outDir.getChildFile ("livelooper-help-search" + sfx + ".png"));
             help.setLookAndFeel (nullptr);
         }
         {

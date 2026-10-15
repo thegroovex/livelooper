@@ -602,7 +602,19 @@ void AboutComponent::showText (const juce::String& title, const juce::String& bo
 
 void AboutComponent::paint (juce::Graphics& g)
 {
-    g.fillAll (colours::panel);
+    g.fillAll (juce::Colour (0xff131318));
+    {
+        // v1.6: banner in the style of the marketing material behind the logo
+        static const juce::Image art = getEmbeddedImage ("about-art.png");
+        const auto banner = getLocalBounds().withHeight (190).toFloat();
+        g.setOpacity (0.9f);
+        if (art.isValid())
+            g.drawImage (art, banner, juce::RectanglePlacement::fillDestination);
+        juce::ColourGradient fade (juce::Colour (0x40131318), 0.0f, 0.0f, juce::Colour (0xff131318), 0.0f, banner.getBottom(), false);
+        g.setGradientFill (fade);
+        g.fillRect (banner);
+        g.setOpacity (1.0f);
+    }
     auto b = getLocalBounds().reduced (20);
     auto top = b.removeFromTop (150);
     if (icon.isValid())
@@ -615,9 +627,13 @@ void AboutComponent::paint (juce::Graphics& g)
                            juce::RectanglePlacement::xLeft | juce::RectanglePlacement::yMid);
     }
     auto t = top.withTrimmedLeft (170);
-    g.setColour (colours::text);
-    g.setFont (LooperLookAndFeel::font (38.0f, true));
-    g.drawText ("livelooper", t.removeFromTop (46), juce::Justification::centredLeft);
+    {
+        const auto f = LooperLookAndFeel::font (38.0f, true);
+        const auto word = t.removeFromTop (46).toFloat();
+        g.setGradientFill (LooperLookAndFeel::brandGradient (word.withWidth (juce::GlyphArrangement::getStringWidth (f, "livelooper"))));
+        g.setFont (f);
+        g.drawText ("livelooper", word, juce::Justification::centredLeft);
+    }
     g.setColour (colours::cyan);
     g.setFont (LooperLookAndFeel::font (15.0f, true));
     g.drawText (tr ("designed by groovex"), t.removeFromTop (22), juce::Justification::centredLeft);

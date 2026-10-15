@@ -44,7 +44,7 @@ public:
     static juce::Array<Section> guidePages();
     /** Index of the section on screen (-1: none). */
     int getShownSection() const noexcept { return shown; }
-    void showSectionForTests (int index) { showSection (index); }
+    void showSectionForTests (int index) { const int row = visible.indexOf (index); if (row >= 0) list.selectRow (row); else showSection (index); }
     /** Parses Markdown into sections at '##' / '###' headings (public for tests). */
     static juce::Array<Section> parse (const juce::String& markdown, const juce::String& documentName);
     /** Plain text of a Markdown section (links, emphasis and table bars simplified). */

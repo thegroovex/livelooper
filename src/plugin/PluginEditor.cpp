@@ -432,19 +432,19 @@ void LiveLooperEditor::layoutSurface()
     quantize.setBounds (row.removeFromLeft (row.getWidth() / 2).withTrimmedRight (4));
     sync.setBounds (row.withTrimmedLeft (4));
     ms.removeFromTop (8);
-    row = ms.removeFromTop (84);
+    ms.removeFromTop (6);
+    row = ms.removeFromTop (96);
     const int kn = row.getWidth() / 3;
     master->setBounds (row.removeFromLeft (kn).reduced (4));
     monitor->setBounds (row.removeFromLeft (kn).reduced (4));
     fade->setBounds (row.reduced (4));
-    ms.removeFromTop (12);
     {
         auto bottom = ms.removeFromBottom (30);
         capture.setBounds (bottom.removeFromLeft (bottom.getWidth() / 2).withTrimmedRight (4));
         clearAll.setBounds (bottom.withTrimmedLeft (4));
     }
     ms.removeFromBottom (12);
-    allStartStop.setBounds (ms);
+    allStartStop.setBounds (ms.removeFromBottom (juce::jmin (68, ms.getHeight() - 12)));
     LooperLookAndFeel::setEmphasis (allStartStop, 2);
     for (auto* b2 : { &capture, &clearAll, &tap, &sync })
         LooperLookAndFeel::setEmphasis (*b2, 0);
@@ -563,6 +563,7 @@ void LiveLooperEditor::paintSurface (juce::Graphics& g)
         surfaceCacheKey = key;
         renderSurfaceCache();
     }
+    g.setOpacity (1.0f);
     g.drawImage (surfaceCache, juce::Rectangle<float> (0.0f, 0.0f, (float) surfaceWidth(), (float) kBaseHeight));
 
     // scene LEDs: stored = dim, last recalled = bright

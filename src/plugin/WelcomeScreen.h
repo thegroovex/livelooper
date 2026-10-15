@@ -37,6 +37,8 @@ public:
 private:
     bool firstStart;
     std::unique_ptr<juce::Drawable> icon;
+    juce::Image heroImage;                   // resources/help/welcome-hero.png (marketing style)
+    juce::Rectangle<int> heroBounds() const;
     LLButton demoBtn { "LOAD DEMO SET", colours::green }, emptyBtn { "START WITH EMPTY SET", colours::cyan },
              closeBtn { "CLOSE", colours::textDim };
 };

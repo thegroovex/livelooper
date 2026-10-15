@@ -163,6 +163,7 @@ void GuidePage::paint (juce::Graphics& g)
         clip.addRoundedRectangle (r, 18.0f);
         g.saveState();
         g.reduceClipRegion (clip);
+        g.setOpacity (1.0f);
         g.drawImage (image, r, juce::RectanglePlacement::stretchToFit);
         g.restoreState();
         g.setColour (juce::Colours::white.withAlpha (0.12f));
