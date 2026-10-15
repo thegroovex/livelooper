@@ -143,6 +143,12 @@ private:
     std::unique_ptr<Knob> swingKnob, feelKnob, variationKnob, levelKnob;
 
     juce::Rectangle<int> topBar, toolBar, rowHeader, bottomBar, captionArea;
+    /** v1.6: group captions and separators of the two header rows (computed in resized). */
+    std::vector<std::pair<juce::String, juce::Rectangle<int>>> groupCaptions;
+    std::vector<int> groupSeparators;
+public:
+    const std::vector<std::pair<juce::String, juce::Rectangle<int>>>& getHeaderGroups() const noexcept { return groupCaptions; }
+private:
     std::unique_ptr<juce::FileChooser> chooser;
     std::unique_ptr<juce::AlertWindow> saveDialog;
     bool replaceOnLoad = false;

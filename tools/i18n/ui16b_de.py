@@ -6,6 +6,9 @@ Writes src/plugin/Localisation_UI16b.inc (UTF-8 as escapes, safe for every compi
 import os
 
 T = [
+    # ---- BEATS header groups
+    ("PATTERN", "PATTERN"), ("SWITCH", "WECHSEL"), ("GRID", "RASTER"), ("KIT", "KIT"), ("FILE", "DATEI"), ("EDIT", "BEARBEITEN"), ("BAR", "TAKT"),
+
     # ---- SETUP window, FX tabs
     ("Sets", "Sets"),
     ("Looper", "Looper"),

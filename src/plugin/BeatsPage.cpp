@@ -578,46 +578,82 @@ void BeatsPage::timerCallback()
 
 void BeatsPage::resized()
 {
-    auto r = getLocalBounds().reduced (10, 6);
-    topBar = r.removeFromTop (36);
+    // v1.6: two clean header rows on one grid - every control 30 px high, 8 px apart inside a
+    // group, 20 px between groups, a small caption above each group
+    constexpr int ctlH = 30, capH = 15, gap = 8, groupGap = 22;
+    groupCaptions.clear();
+    groupSeparators.clear();
+    auto r = getLocalBounds().reduced (16, 10);
+
+    auto place = [&] (juce::Rectangle<int>& row, juce::Component& c, int w, bool fromRight = false) {
+        auto b = fromRight ? row.removeFromRight (w) : row.removeFromLeft (w);
+        c.setBounds (b);
+        if (fromRight) row.removeFromRight (gap); else row.removeFromLeft (gap);
+        return b;
+    };
+    auto group = [&] (const juce::String& caption, juce::Rectangle<int> span) {
+        if (caption.isNotEmpty())
+            groupCaptions.push_back ({ caption, juce::Rectangle<int> (span.getX() + 2, span.getY() - capH - 1, juce::jmax (60, span.getWidth()), capH) });
+    };
+    auto sep = [&] (juce::Rectangle<int>& row, bool fromRight = false) {
+        const int x = fromRight ? row.getRight() - groupGap / 2 + gap / 2 : row.getX() - gap + groupGap / 2;
+        groupSeparators.push_back (x);
+        if (fromRight) row.removeFromRight (groupGap - gap); else row.removeFromLeft (groupGap - gap);
+    };
+
+    topBar = r.removeFromTop (capH + ctlH);
     {
-        auto t = topBar;
-        backBtn.setBounds (t.removeFromLeft (96).reduced (0, 3));
-        t.removeFromLeft (10);
-        slotBox.setBounds (t.removeFromLeft (220).reduced (0, 5));
-        t.removeFromLeft (6);
-        nameEdit.setBounds (t.removeFromLeft (170).reduced (0, 5));
-        t.removeFromLeft (6);
-        playBtn.setBounds (t.removeFromLeft (72).reduced (0, 3));
-        switchBox.setBounds (t.removeFromRight (130).reduced (0, 5));
-        t.removeFromRight (8);
-        barsBox.setBounds (t.removeFromRight (88).reduced (0, 5));
-        t.removeFromRight (6);
-        stepsBox.setBounds (t.removeFromRight (64).reduced (0, 5));
-        t.removeFromRight (8);
-        kitBox.setBounds (t.removeFromRight (juce::jmin (210, t.getWidth() - 40)).reduced (0, 5));
+        auto t = topBar.withTrimmedTop (capH);
+        place (t, backBtn, 100);
+        sep (t);
+        const int x0 = t.getX();
+        place (t, slotBox, 200);
+        place (t, nameEdit, 160);
+        const auto pb = place (t, playBtn, 80);
+        group (tr ("PATTERN"), juce::Rectangle<int> (x0, t.getY(), pb.getRight() - x0, ctlH));
+        sep (t);
+        // right side: grid length and pattern switch
+        const auto sw = place (t, switchBox, 136, true);
+        group (tr ("SWITCH"), sw);
+        sep (t, true);
+        const auto bb = place (t, barsBox, 96, true);
+        const auto sb = place (t, stepsBox, 66, true);
+        group (tr ("GRID"), sb.getUnion (bb));
+        sep (t, true);
+        const auto kb = place (t, kitBox, juce::jmin (230, t.getWidth()));
+        group (tr ("KIT"), kb);
     }
-    r.removeFromTop (6);
-    toolBar = r.removeFromTop (32);
+    r.removeFromTop (12);
+    toolBar = r.removeFromTop (capH + ctlH);
     {
-        auto t = toolBar;
-        for (auto* b : { &loadBtn, &saveBtn, &clearBtn, &copyBtn, &pasteBtn, &randomBtn })
+        auto t = toolBar.withTrimmedTop (capH);
+        int x0 = t.getX();
+        place (t, loadBtn, 92);
+        place (t, saveBtn, 92);
+        place (t, packsBtn, 84);
+        const auto ib = place (t, importBtn, 124);
+        group (tr ("FILE"), juce::Rectangle<int> (x0, t.getY(), ib.getRight() - x0, ctlH));
+        sep (t);
+        x0 = t.getX();
+        place (t, clearBtn, 84);
+        place (t, copyBtn, 84);
+        place (t, pasteBtn, 84);
+        const auto vb = place (t, randomBtn, 96);
+        group (tr ("EDIT"), juce::Rectangle<int> (x0, t.getY(), vb.getRight() - x0, ctlH));
+        sep (t);
+        const auto fb = place (t, *fillBtn, 96, true);
+        juce::ignoreUnused (fb);
+        t.removeFromRight (groupGap - gap);
+        juce::Rectangle<int> bars;
+        for (int b2 = BeatPattern::kMaxBars - 1; b2 >= 0; --b2)
         {
-            b->setBounds (t.removeFromLeft (b == &saveBtn || b == &loadBtn ? 104 : 76).reduced (0, 1));   // SAVE / LOAD: the big ones
-            t.removeFromLeft (6);
+            const auto bb = place (t, *barBtns[(size_t) b2], 38, true);
+            bars = bars.isEmpty() ? bb : bars.getUnion (bb);
         }
-        t.removeFromLeft (6);
-        importBtn.setBounds (t.removeFromLeft (112).reduced (0, 1));
-        t.removeFromLeft (6);
-        packsBtn.setBounds (t.removeFromLeft (70).reduced (0, 1));
-        fillBtn->setBounds (t.removeFromRight (96).reduced (0, 1));
-        t.removeFromRight (14);
-        for (int b = BeatPattern::kMaxBars - 1; b >= 0; --b)
-        {
-            barBtns[(size_t) b]->setBounds (t.removeFromRight (34).reduced (0, 1));
-            t.removeFromRight (4);
-        }
+        group (tr ("BAR"), bars);
     }
+    for (auto* c : std::initializer_list<juce::Component*> { &loadBtn, &saveBtn, &packsBtn, &importBtn, &clearBtn, &copyBtn, &pasteBtn, &randomBtn })
+        LooperLookAndFeel::setEmphasis (*c, 0);
     r.removeFromTop (8);
     bottomBar = r.removeFromBottom (84);
     {
@@ -659,12 +695,22 @@ void BeatsPage::resized()
 
 void BeatsPage::paint (juce::Graphics& g)
 {
-    g.setColour (colours::panel);
-    g.fillRoundedRectangle (getLocalBounds().toFloat(), 8.0f);
-    g.setColour (colours::section);
-    g.fillRoundedRectangle (getLocalBounds().toFloat(), 8.0f);
-    g.setColour (colours::sectionEdge);
-    g.drawRoundedRectangle (getLocalBounds().toFloat().reduced (0.5f), 8.0f, 1.0f);
+    g.setColour (juce::Colour (0xff15161b));
+    g.fillRoundedRectangle (getLocalBounds().toFloat(), 16.0f);
+    LooperLookAndFeel::drawGlassPanel (g, getLocalBounds().toFloat().reduced (1.0f), 16.0f, 1);
+
+    // header: group captions and hairline separators
+    g.setFont (LooperLookAndFeel::font (10.5f, true));
+    g.setColour (colours::textDim);
+    for (const auto& c : groupCaptions)
+        g.drawText (i18n::upper (c.first), c.second, juce::Justification::centredLeft, true);
+    g.setColour (juce::Colours::white.withAlpha (0.08f));
+    for (int x : groupSeparators)
+    {
+        g.fillRect ((float) x, (float) topBar.getY() + 16.0f, 1.0f, (float) topBar.getHeight() - 16.0f);
+        g.fillRect ((float) x, (float) toolBar.getY() + 16.0f, 1.0f, (float) toolBar.getHeight() - 16.0f);
+    }
+    g.fillRect ((float) toolBar.getX(), (float) toolBar.getBottom() + 6.0f, (float) toolBar.getWidth(), 1.0f);
 
     // row names: RowNameButton
     // bottom bar captions
@@ -672,8 +718,8 @@ void BeatsPage::paint (juce::Graphics& g)
     g.setFont (LooperLookAndFeel::font (11.0f, true));
     g.drawText (tr ("GROOVE"), captionArea.withHeight (34), juce::Justification::centredRight);
     g.drawText (tr ("FILLS"), captionArea.withTrimmedTop (40).withHeight (30), juce::Justification::centredRight);
-    g.setColour (colours::sectionEdge);
-    g.drawHorizontalLine (bottomBar.getY() - 3, (float) bottomBar.getX(), (float) bottomBar.getRight());
+    g.setColour (juce::Colours::white.withAlpha (0.08f));
+    g.fillRect ((float) bottomBar.getX(), (float) bottomBar.getY() - 4.0f, (float) bottomBar.getWidth(), 1.0f);
 }
 
 //============================================================================== grid
