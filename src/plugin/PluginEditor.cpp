@@ -82,7 +82,7 @@ LiveLooperEditor::LiveLooperEditor (LiveLooperProcessor& p)
         surface.addAndMakeVisible (b);
     }
 
-    // ---- v1.6 FX panel: one group at a time
+    // ---- v1.6 FX groups (tab buttons kept hidden; all groups are visible in the FX rows)
     {
         const char* names[] = { "INPUT FX", "TRACK FX", "BEAT FX", "REPEAT / STUTTER", "COLOR FX", "PUNCH FX" };
         const juce::Colour leds[] = { colours::cyan, colours::orange, colours::orange, colours::red, colours::blue, colours::learn };
@@ -1898,7 +1898,7 @@ void LiveLooperEditor::checkForUpdates (bool userInitiated)
 void LiveLooperEditor::layoutRhythm16 (int dx)
 {
     // header buttons: BEATS + FILL in the rhythm panel, DRUMS in the beat FX and beat repeat panels
-    // (DRUMS buttons: in the BEAT FX and REPEAT tabs of the FX panel, see layoutFxPanel)
+    // (DRUMS buttons: in the title rows of the BEAT FX and REPEAT / STUTTER panels, see layoutFxPanel)
     const auto rh = layout::rhythm.translated (dx, 0);
     beatsBtn.setBounds (rh.getRight() - 12 - 60, rh.getY() + 8, 60, 22);
     fillBtn->setBounds (rh.getRight() - 12 - 60 - 6 - 50, rh.getY() + 8, 50, 22);

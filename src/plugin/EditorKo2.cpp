@@ -1,5 +1,5 @@
 // v1.6 editor parts for the K.O. II (header chip, one-time question, SETUP > Controllers), the
-// PUNCH FX tab of the FX panel (12 punch FX, XY field, send FX) and the Controller GUI.
+// PUNCH FX + SEND FX panels of the FX rows (12 punch FX, XY field, send FX) and the Controller GUI.
 
 #include "PluginEditor.h"
 #include "ControllerView.h"
@@ -18,7 +18,7 @@ namespace
     constexpr const char* kPunchShort[kNumPunchFx] = { "SCATTER", "SWAP", "GRAINS", "REPEAT", "TAPE STOP", "WOBBLE",
                                                        "LOW-PASS", "HIGH-PASS", "SEND", "TREMOLO", "OCT DROP", "DECIMATE" };
 
-    /** XY field of the PUNCH FX tab: hold the mouse = the selected punch FX on, position = X / Y. */
+    /** XY field of the PUNCH FX panel: hold the mouse = the selected punch FX on, position = X / Y. */
     class PunchXYPad : public juce::Component, private juce::Timer
     {
     public:
@@ -201,7 +201,7 @@ namespace
 void LiveLooperEditor::initKo2()
 {
     auto& st = proc.getState();
-    // ---- PUNCH FX tab
+    // ---- PUNCH FX panel
     punchSelectListener = std::make_unique<PunchSelect> ([this] (juce::Component* c) {
         for (int i = 0; i < kNumPunchFx; ++i)
             if (punchBtns[(size_t) i].get() == c)

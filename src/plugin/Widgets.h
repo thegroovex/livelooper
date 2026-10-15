@@ -249,7 +249,7 @@ public:
     bool hasWaveform() const noexcept { return waveValid; }
     const MeterBallistics& getMeter (int ch) const noexcept { return meter[(size_t) (ch & 1)]; }
     bool isMeteringInput() const noexcept { return meterInput; }
-    /** v1.6: level meters per track (SETUP > Looper > Track meters), off by default. */
+    /** v1.6: level meters per track (SETUP > Looper > Track meters), on by default. */
     static bool showMeters;
 
 private:

@@ -6,15 +6,15 @@ livelooper is built as an **instrument for exploring and playing live**: every c
 
 ![Interface](../images/livelooper.png)
 
-The interface puts the loops first (since 1.6): the track strips are the largest and brightest part, each with its own colour and a big pad that invites you to play. The effects come second, everything else stays quiet around them:
+The interface keeps the classic arrangement: all effects at the top in two rows (everything visible at once, no tabs), the loop tracks below them – the largest part, each with its own colour, a big lit pad and its level meter – and the rhythm and master section in a narrow column on the right:
 
 | Area | Contents |
 |---|---|
 | Header | display (tempo, bar/beat, quantization, Link, master VU in dB, messages), **MIDI LEARN**, **MIDI MAP**, **SETUP**, **?** (help), the round **REC** button (performance recorder) |
-| TRACK 1–5 (or 1–8) | the loop tracks (SETUP → Looper → Tracks): display with waveform, the big REC/PLAY pad, STOP, REV / 1SHOT / FX and a small mixer row |
-| FX (below the tracks) | one group at a time – **INPUT FX**, **TRACK FX**, **BEAT FX**, **REPEAT / STUTTER**, **COLOR FX**. A small light on a tab shows that something in that group is on (sections 3, 25–27) |
+| FX row 1 | **INPUT FX** A–D, **INPUT FX … EDIT** (type, two parameters, mix of the selected slot), **TRACK FX** A–D, **PUNCH FX** (sections 3, 39) |
+| FX row 2 | **BEAT FX**, **REPEAT / STUTTER**, **COLOR FX**, **SEND FX**, **METRONOME** (sections 25–28, 39) |
+| TRACK 1–5 (or 1–8) | the loop tracks (SETUP → Looper → Tracks), top to bottom: display with state and waveform, REV / 1SHOT / FX, level fader with IN/OUT meter, PAN / COLOR, UNDO / REDO / SETUP, the big REC/PLAY pad, STOP |
 | RHYTHM | drum machine, tempo, tap, FILL, BEATS |
-| METRONOME | click on / off, accent, sound, level (section 28) |
 | MASTER | quantization, host sync, levels, fade time, ALL START/STOP, CAPTURE, CLEAR ALL |
 | Footer | 8 scene buttons, STORE |
 
@@ -103,7 +103,7 @@ There are two effect banks with four slots each:
 - **INPUT FX** process the input signal – what you hear is also what gets recorded.
 - **TRACK FX** process all tracks that have **FX** switched on (a shared effect bus), without changing the recording.
 
-Both banks are tabs of the **FX** panel below the tracks (**INPUT FX** / **TRACK FX**). The **A/B/C/D** pad switches the slot on and off and selects it for editing at the same time; clicking the effect name below it only selects it. Right next to the pads (**… EDIT**) you set the type, two parameters and the mix. The slots of a bank are connected in series (A → B → C → D).
+Both banks sit in the first FX row at the top (**INPUT FX** left, **TRACK FX** right). The **A/B/C/D** pad switches the slot on and off and selects it for editing at the same time; clicking the effect name below it only selects it. Right next to the pads (**… EDIT**) you set the type, two parameters and the mix. The slots of a bank are connected in series (A → B → C → D).
 
 | Effect | P1 | P2 | Mix |
 |---|---|---|---|
@@ -259,7 +259,7 @@ Click the big tempo number on the display (or press **B**, or right-click the TE
 
 ## 12. Meters, waveform and clip LED
 
-- **Track meter** (stereo, next to the level fader; off by default since 1.6 – switch it on with **SETUP → Looper → Track meters**): while a track records or overdubs it shows the **input** level (orange, caption **IN**), otherwise the track's **output** level (green, **OUT**). Yellow from -12 dB, red from -1 dB; the thin line holds the peak for about a second.
+- **Track meter** (stereo, next to the level fader; on by default – hide it with **SETUP → Looper → Track meters**): while a track records or overdubs it shows the **input** level (orange, caption **IN**), otherwise the track's **output** level (green, **OUT**). Yellow from -12 dB, red from -1 dB; the thin line holds the peak for about a second.
 - **Master VU** (since 1.5): the top row of the display (**MASTER**) shows the level of the main output in dBFS, left and right, on a scale from -60 to +6 dB, with the peak as a number on the right. Green up to -12 dB, yellow up to -3 dB, orange up to 0 dB, red above – keep the loud parts in the yellow.
 - **Waveform**: the track display shows an overview of the loop instead of a plain progress bar. The part already played is bright, a white line marks the play position. While recording, the waveform grows from left to right; overdubs and undo show up right away. Reversed tracks show the waveform mirrored.
 - **Clip LED** (top right of every track): off = empty, green = the track holds a loop, red = first recording, blinking red = waiting for the next bar to start recording.
@@ -364,7 +364,7 @@ New functions for playing live. They are host parameters (MIDI learn, your DAW's
 
 ![Performance row](../images/livelooper-performance.png)
 
-The **BEAT FX** block (since 1.6 the **BEAT FX** tab of the FX panel; **REPEAT / STUTTER** and **COLOR FX** are the tabs next to it) works like the beat FX section of a DJ mixer: one effect, locked to the beat, that you throw on and off while you play.
+The **BEAT FX** block (second FX row, left; **REPEAT / STUTTER** and **COLOR FX** are next to it) works like the beat FX section of a DJ mixer: one effect, locked to the beat, that you throw on and off while you play.
 
 | Control | Function |
 |---|---|
@@ -556,7 +556,7 @@ livelooper switches the controller into its programmer / DAW mode while it uses 
 
 ![Punch FX](../images/livelooper-punch-fx.png)
 
-The FX panel has a sixth tab, **PUNCH FX**: twelve quick effects you **hold** while you play – like the
+The **PUNCH FX** panel (first FX row, right): twelve quick effects you **hold** while you play – like the
 punch-in effects of a pocket sampler. Several at once combine (LOW-PASS + HIGH-PASS = band-pass). Each one
 fades in and out in 5 ms, so nothing clicks.
 
@@ -581,7 +581,7 @@ fades in and out in 5 ms, so nothing clicks.
   controller with velocity, the velocity.
 - **Target**: where they work – **Loops** (default), **Input**, **Master** (loops + input monitor) or **Drums**.
 
-**SEND FX** (right part of the tab): one send effect on the loops – **Delay** (X length, Y feedback),
+**SEND FX** (second FX row, next to the metronome; the type is chosen in its title row): one send effect on the loops – **Delay** (X length, Y feedback),
 **Reverb** (length, colour), **Distortion** (drive, colour), **Chorus** (modulation, feedback), **Filter**
 (bipolar DJ filter: X left cuts highs, right cuts lows; Y resonance), **Compressor** (drive, speed). **SEND** =
 how much of the loops goes in. Changing the type starts it clean.

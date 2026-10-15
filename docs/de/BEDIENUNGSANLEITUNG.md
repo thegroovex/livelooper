@@ -8,15 +8,15 @@ livelooper ist als **Instrument zum Erforschen und Live-Spielen** gebaut: Jedes 
 
 Die Oberfläche ist wie ein Hardware-Looper aufgebaut. Die Bezeichnungen in dieser Anleitung entsprechen der deutschen Oberfläche; bei englischer Oberfläche steht die englische Bezeichnung in Klammern (siehe auch [Kapitel 7](#7-sprache) und die [Übersicht am Ende](#16-bezeichnungen-deutsch--englisch)).
 
-Seit 1.6 stehen die Loops im Mittelpunkt: Die Spuren sind der größte und hellste Teil, jede mit eigener Farbe und einem großen Pad, das zum Spielen einlädt. Die Effekte kommen an zweiter Stelle, alles andere bleibt ruhig drumherum:
+Die Oberfläche hat die klassische Anordnung: alle Effekte oben in zwei Reihen (alles gleichzeitig sichtbar, keine Reiter), darunter die Loop-Spuren – der größte Teil, jede mit eigener Farbe, großem leuchtendem Pad und eigener Pegelanzeige – und rechts in einer schmalen Spalte Rhythmus und Master:
 
 | Bereich | Inhalt |
 |---|---|
 | Kopfzeile | Display (Tempo, Takt/Schlag, Quantisierung, Link, Master-VU in dB, Meldungen), **MIDI LEARN**, **MIDI MAP**, **SETUP**, **?** (Hilfe), der runde **REC**-Knopf (Performance-Recorder) |
-| SPUR 1–5 (oder 1–8) | die Loop-Spuren (SETUP → Looper → Spuren): Display mit Wellenform, das große REC/PLAY-Pad, STOP, RÜCKW. / 1SHOT / FX und eine kleine Mischpult-Zeile |
-| FX (unter den Spuren) | immer eine Gruppe – **EINGANGS-FX**, **SPUR-FX**, **BEAT-FX**, **REPEAT / STUTTER**, **COLOR-FX**. Ein kleines Licht auf einem Reiter zeigt, dass in dieser Gruppe etwas eingeschaltet ist (Abschnitte 3, 25–27) |
+| FX-Reihe 1 | **EINGANGS-FX** A–D, **EINGANGS-FX … BEARBEITEN** (Typ, zwei Parameter, Mix des gewählten Slots), **SPUR-FX** A–D, **PUNCH-FX** (Abschnitte 3, 39) |
+| FX-Reihe 2 | **BEAT-FX**, **REPEAT / STUTTER**, **COLOR-FX**, **SEND-FX**, **METRONOM** (Abschnitte 25–28, 39) |
+| SPUR 1–5 (oder 1–8) | die Loop-Spuren (SETUP → Looper → Spuren), von oben nach unten: Display mit Status und Wellenform, RÜCKW. / 1SHOT / FX, Pegel-Fader mit IN/OUT-Anzeige, PAN / COLOR, ZURÜCK / VOR / SETUP, das große REC/PLAY-Pad, STOP |
 | RHYTHMUS | Drumcomputer, Tempo, Tap, FILL, BEATS |
-| METRONOM | Klick an / aus, Akzent, Klang, Pegel (Abschnitt 28) |
 | MASTER | Quantisierung, Host-Sync, Pegel, Fade-Zeit, ALLE START / STOP, CAPTURE, ALLE LÖSCHEN |
 | Fußleiste | 8 Szenen-Knöpfe, SPEICHERN |
 
@@ -105,7 +105,7 @@ Es gibt zwei Effektbänke mit je vier Slots:
 - **EINGANGS-FX** (INPUT FX) bearbeiten das Eingangssignal – was du hörst, wird so auch aufgenommen.
 - **SPUR-FX** (TRACK FX) bearbeiten alle Spuren, bei denen **FX** eingeschaltet ist (gemeinsamer Effektweg), ohne die Aufnahme zu verändern.
 
-Beide Bänke sind Reiter des **FX**-Felds unter den Spuren (**EINGANGS-FX** / **SPUR-FX**). Das Pad **A/B/C/D** schaltet den Slot ein und aus und wählt ihn gleichzeitig zum Bearbeiten aus; ein Klick auf den Effektnamen darunter wählt ihn nur aus. Direkt daneben (**… BEARBEITEN**) stellst du Typ, zwei Parameter und Mix ein. Die Slots einer Bank sind in Reihe geschaltet (A → B → C → D).
+Beide Bänke liegen oben in der ersten FX-Reihe (**EINGANGS-FX** links, **SPUR-FX** rechts). Das Pad **A/B/C/D** schaltet den Slot ein und aus und wählt ihn gleichzeitig zum Bearbeiten aus; ein Klick auf den Effektnamen darunter wählt ihn nur aus. Direkt daneben (**… BEARBEITEN**) stellst du Typ, zwei Parameter und Mix ein. Die Slots einer Bank sind in Reihe geschaltet (A → B → C → D).
 
 | Effekt (englisch) | P1 | P2 | Mix |
 |---|---|---|---|
@@ -263,7 +263,7 @@ Auf die große Tempo-Zahl im Display klicken (oder **B** drücken, oder Rechtskl
 
 ## 12. Pegelanzeigen, Wellenform und Clip-LED
 
-- **Spur-Pegel** (Stereo, neben dem Fader; seit 1.6 standardmäßig aus – einschalten mit **SETUP → Looper → Pegelanzeigen pro Spur**): Während eine Spur aufnimmt oder overdubbt, zeigt er den **Eingangspegel** (orange, Beschriftung **IN**), sonst den **Ausgangspegel** der Spur (grün, **OUT**). Gelb ab -12 dB, rot ab -1 dB; der dünne Strich hält die Spitze etwa eine Sekunde.
+- **Spur-Pegel** (Stereo, neben dem Fader; standardmäßig an – ausblenden mit **SETUP → Looper → Pegelanzeigen pro Spur**): Während eine Spur aufnimmt oder overdubbt, zeigt er den **Eingangspegel** (orange, Beschriftung **IN**), sonst den **Ausgangspegel** der Spur (grün, **OUT**). Gelb ab -12 dB, rot ab -1 dB; der dünne Strich hält die Spitze etwa eine Sekunde.
 - **Master-VU** (seit 1.5): Die oberste Zeile im Display (**MASTER**) zeigt den Pegel des Hauptausgangs in dBFS, links und rechts, auf einer Skala von -60 bis +6 dB, rechts den Spitzenwert als Zahl. Grün bis -12 dB, gelb bis -3 dB, orange bis 0 dB, rot darüber – laute Stellen am besten im Gelben halten.
 - **Wellenform**: Das Spur-Display zeigt statt eines Fortschrittsbalkens eine Übersicht des Loops. Der schon gespielte Teil ist hell, ein weißer Strich markiert die Abspielposition. Bei der Aufnahme wächst die Wellenform von links nach rechts; Overdubs und Undo sind sofort sichtbar. Bei REVERSE wird sie gespiegelt.
 - **Clip-LED** (oben rechts an jeder Spur): aus = leer, grün = Spur enthält einen Loop, rot = erste Aufnahme läuft, rot blinkend = wartet auf den nächsten Takt, um aufzunehmen.
@@ -393,7 +393,7 @@ Neue Funktionen fürs Live-Spielen. Sie sind Host-Parameter (MIDI Learn, MIDI-Ma
 
 ![Performance-Reihe](../images/livelooper-performance-de.png)
 
-Der **BEAT-FX**-Block (seit 1.6 der Reiter **BEAT-FX** des FX-Felds; **REPEAT / STUTTER** und **COLOR-FX** sind die Reiter daneben) funktioniert wie die Beat-FX-Sektion eines DJ-Mixers: ein Effekt, fest am Schlag, den du beim Spielen ein- und auswirfst.
+Der **BEAT-FX**-Block (zweite FX-Reihe links; **REPEAT / STUTTER** und **COLOR-FX** liegen daneben) funktioniert wie die Beat-FX-Sektion eines DJ-Mixers: ein Effekt, fest am Schlag, den du beim Spielen ein- und auswirfst.
 
 | Element | Funktion |
 |---|---|
@@ -585,7 +585,7 @@ livelooper schaltet den Controller in seinen Programmer-/DAW-Modus, solange er i
 
 ![Punch-FX](../images/livelooper-punch-fx-de.png)
 
-Das FX-Feld hat einen sechsten Reiter, **PUNCH-FX**: zwölf schnelle Effekte, die du beim Spielen **hältst** –
+Das Feld **PUNCH-FX** (erste FX-Reihe rechts): zwölf schnelle Effekte, die du beim Spielen **hältst** –
 wie die Punch-in-Effekte eines Taschen-Samplers. Mehrere zugleich kombinieren sich (TIEFPASS + HOCHPASS =
 Bandpass). Jeder blendet in 5 ms ein und aus, damit nichts knackt.
 
@@ -610,7 +610,7 @@ Bandpass). Jeder blendet in 5 ms ein und aus, damit nichts knackt.
   Pad-Controller mit Anschlagstärke die Anschlagstärke.
 - **Ziel**: wo sie wirken – **Loops** (Standard), **Eingang**, **Master** (Loops + Eingangs-Mithören) oder **Drums**.
 
-**SEND-FX** (rechter Teil des Reiters): ein Send-Effekt auf den Loops – **Delay** (X Länge, Y Feedback),
+**SEND-FX** (zweite FX-Reihe neben dem Metronom; den Typ wählst du in seiner Titelzeile): ein Send-Effekt auf den Loops – **Delay** (X Länge, Y Feedback),
 **Hall** (Länge, Farbe), **Verzerrung** (Drive, Farbe), **Chorus** (Modulation, Feedback), **Filter**
 (bipolarer DJ-Filter: X links schneidet Höhen, rechts Tiefen; Y Resonanz), **Kompressor** (Drive,
 Geschwindigkeit). **SEND** = wie viel der Loops hineingeht. Ein Typwechsel startet ihn sauber.
