@@ -371,6 +371,7 @@ public:
             }
             expect (h.track (3).isEmpty());
             expect (h.get (gRhythmOn) >= 0.5f);
+            expectEquals (h.get (gMonitor), 0.0f, "input monitor muted with the demo set (no feedback)");
             expectWithinAbsoluteError (h.proc.getState().getParameter (gTempo)->convertFrom0to1 (h.get (gTempo)), 100.0f, 0.05f);
             expect (h.proc.sceneIsStored (0) && h.proc.sceneIsStored (1));
             h.press (gAllStartStop);
@@ -682,6 +683,7 @@ public:
             expect (! ed->isWelcomeVisible());
             expect (ed->isTourVisible(), "tour after the choice on the first start");
             expect (h.track (0).getState() == LoopTrack::State::Stopped, "demo set loaded");
+            expectEquals (h.get (gMonitor), 0.0f, "first start + demo set: microphone / input monitor muted");
             expectEquals (appsettings::getValue ("firstRunDone"), juce::String ("1"));
             auto* tour = ed->getTour();
             expectEquals (tour->getNumSteps(), 5);

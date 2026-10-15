@@ -203,6 +203,9 @@ bool LiveLooperProcessor::loadDemoSet()
     set (gRhythmKit, 0.0f);
     set (gRhythmGroove, 1.0f);
     set (gRhythmSwing, 54.0f);
+    // v1.6: the demo plays through the speakers - a monitored microphone would feed back.
+    // The input monitor starts muted (INPUT knob in MASTER); recording still works.
+    set (gMonitor, 0.0f);
 
     std::vector<StoredLoop> demo;
     juce::FlacAudioFormat flac;

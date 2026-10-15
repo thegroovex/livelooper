@@ -65,10 +65,23 @@ void GuidedTour::update()
     repaint();
 }
 
+namespace
+{
+    /** Width a tour button needs for its (translated) text in one line, at least minW. */
+    int tourButtonWidth (juce::TextButton& b, int minW)
+    {
+        const auto f = b.getLookAndFeel().getTextButtonFont (b, 34);
+        return juce::jmax (minW, (int) std::ceil (juce::GlyphArrangement::getStringWidth (f, tr (b.getButtonText()))) + 32);
+    }
+}
+
 juce::Rectangle<int> GuidedTour::getCardBounds() const
 {
     const auto area = steps.empty() || ! steps[(size_t) step].area ? juce::Rectangle<int>() : steps[(size_t) step].area();
-    const int w = 460, h = 210;
+    auto& self = const_cast<GuidedTour&> (*this);
+    // wide enough for all three buttons in one line in every language
+    const int need = tourButtonWidth (self.skipBtn, 110) + tourButtonWidth (self.backBtn, 84) + tourButtonWidth (self.nextBtn, 96) + 16 + 32 + 24;
+    const int w = juce::jmin (juce::jmax (460, need), juce::jmax (460, getWidth() - 16)), h = 210;
     // below the highlighted area when there is room, otherwise above it, centred on it
     int y = area.getBottom() + 14;
     if (y + h > getHeight() - 8)
@@ -81,10 +94,10 @@ void GuidedTour::resized()
 {
     auto card = getCardBounds().reduced (16);
     auto row = card.removeFromBottom (34);
-    nextBtn.setBounds (row.removeFromRight (96));
+    nextBtn.setBounds (row.removeFromRight (tourButtonWidth (nextBtn, 96)));
     row.removeFromRight (8);
-    backBtn.setBounds (row.removeFromRight (84));
-    skipBtn.setBounds (row.removeFromLeft (120));
+    backBtn.setBounds (row.removeFromRight (tourButtonWidth (backBtn, 84)));
+    skipBtn.setBounds (row.removeFromLeft (tourButtonWidth (skipBtn, 110)));
 }
 
 void GuidedTour::paint (juce::Graphics& g)
@@ -239,7 +252,7 @@ void LiveLooperEditor::chooseDemoSet (bool confirm)
     const bool first = welcome != nullptr && welcome->isFirstStart();
     auto load = [this, first] {
         proc.loadDemoSet();
-        showStatus (tr ("DEMO SET LOADED - PRESS ALL START / STOP"));
+        showStatus (tr ("DEMO SET LOADED - INPUT MUTED - PRESS ALL START / STOP"));
         closeWelcome (first);
     };
     if (! confirm || ! currentSetHasLoops())

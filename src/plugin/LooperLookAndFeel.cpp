@@ -154,7 +154,9 @@ void LooperLookAndFeel::drawButtonText (juce::Graphics& g, juce::TextButton& but
                          : colours::orange;
     g.setFont (getTextButtonFont (button, button.getHeight()));
     g.setColour (on ? led.brighter (0.4f) : (button.isEnabled() ? colours::text : colours::textDim));
-    g.drawFittedText (i18n::tr (button.getButtonText()), button.getLocalBounds().reduced (3, 1), juce::Justification::centred, 2, 0.8f);
+    // one line unless the text asks for two (a long translation shrinks a little instead of wrapping)
+    const auto text = i18n::tr (button.getButtonText());
+    g.drawFittedText (text, button.getLocalBounds().reduced (3, 1), juce::Justification::centred, text.containsChar ('\n') ? 2 : 1, 0.7f);
 }
 
 juce::Font LooperLookAndFeel::getTextButtonFont (juce::TextButton&, int buttonHeight)

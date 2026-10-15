@@ -652,6 +652,7 @@ namespace
           "Alle Loops werden gel\xc3\xb6" "scht und alle Einstellungen auf Standard gesetzt. Weiter?" },
         { "Clear everything", "Alles l\xc3\xb6" "schen" },
         { "DEMO SET LOADED - PRESS ALL START / STOP", "DEMO-SET GELADEN - ALLE START / STOP DR\xc3\x9c" "CKEN" },
+        { "DEMO SET LOADED - INPUT MUTED - PRESS ALL START / STOP", "DEMO-SET GELADEN - EINGANG STUMM - ALLE START / STOP DR\xc3\x9c" "CKEN" },
         { "EMPTY SET", "LEERES SET" },
         { "EXPORTING 9:16 CLIP ...", "9:16-CLIP WIRD EXPORTIERT ..." },
         { "Empty set (clear everything)", "Leeres Set (alles l\xc3\xb6" "schen)" },
