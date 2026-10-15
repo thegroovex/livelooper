@@ -12,6 +12,7 @@
 #include "plugin/SettingsPanel.h"
 #include "plugin/WelcomeScreen.h"
 #include "plugin/ControllerView.h"
+#include "plugin/controllers/Ko2.h"
 #include "plugin/AppSettings.h"
 
 using namespace livelooper;
