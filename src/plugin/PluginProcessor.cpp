@@ -3,6 +3,7 @@
 #include "Localisation.h"
 #include "push/PushDevice.h"
 #include "controllers/GridControllers.h"   // v1.6
+#include "controllers/Ko2.h"               // v1.6 K.O. II
 #include "AppSettings.h"
 #include "DrumSampleLoader.h"
 #include "SoundPacks.h"
@@ -10,6 +11,18 @@
 namespace livelooper
 {
 using namespace params;
+
+const TrackColour& getTrackColourInfo (int index) noexcept
+{
+    // Push 1 palette entries (bright / dim) and the matching screen colour
+    static const TrackColour colours[kNumTrackColours] = {
+        { "Red", 5, 7, 0xffff453a },     { "Orange", 9, 11, 0xffff9f0a }, { "Yellow", 13, 15, 0xffffd60a },
+        { "Lime", 17, 19, 0xffa8e23a },  { "Green", 21, 23, 0xff30d158 }, { "Mint", 29, 31, 0xff3ee0b0 },
+        { "Cyan", 37, 39, 0xff40c8ff },  { "Sky", 41, 43, 0xff4a9dff },   { "Blue", 45, 47, 0xff5e6bff },
+        { "Violet", 49, 51, 0xff9d6bff }, { "Magenta", 53, 55, 0xffff4fd8 }, { "Pink", 57, 59, 0xffff6f91 }
+    };
+    return colours[juce::jlimit (0, kNumTrackColours - 1, index)];
+}
 
 namespace
 {
@@ -139,6 +152,10 @@ LiveLooperProcessor::LiveLooperProcessor (bool withCueOutput, bool withTrackOutp
     triggers.back()->special = 2;
     addTrigger (gBeatLibPrev,  C::Capture, -1);
     triggers.back()->special = 3;
+    addTrigger (gKo2Resample,  C::Capture, -1);          // v1.6 K.O. II resample: message thread
+    triggers.back()->special = 4;
+    for (auto& c : trackColours)
+        c.store (-1);
     perfRecParam = apvts.getRawParameterValue (gPerfRec);
     for (int i = 0; i < kNumScenes; ++i)
     {
@@ -218,12 +235,26 @@ LiveLooperProcessor::LiveLooperProcessor (bool withCueOutput, bool withTrackOutp
     }
     engine.setUserPatterns (&userPatterns);
     updateDrumBank();
+    // v1.6 punch FX / send FX / controller audio
+    sfxType   = apvts.getRawParameterValue (gSfxType);
+    sfxX      = apvts.getRawParameterValue (gSfxX);
+    sfxY      = apvts.getRawParameterValue (gSfxY);
+    sfxLevel  = apvts.getRawParameterValue (gSfxLevel);
+    for (int i = 0; i < kNumPunchHolds; ++i)
+        pfxHold[(size_t) i] = apvts.getRawParameterValue (punchHoldId (i));
+    pfxAmount = apvts.getRawParameterValue (gPfxAmount);
+    pfxX      = apvts.getRawParameterValue (gPfxX);
+    pfxY      = apvts.getRawParameterValue (gPfxY);
+    pfxTarget = apvts.getRawParameterValue (gPfxTarget);
+    pfxLatch  = apvts.getRawParameterValue (gPfxLatch);
+    ctlAudioMode = apvts.getRawParameterValue (gCtlAudioMode);
 
     keyboardAvailable = wrapperType == wrapperType_Standalone;
     if (wrapperType != wrapperType_Undefined)      // a real host or the standalone app (not the unit tests)
     {
         createPushDevice();
         createGridControllers();                  // v1.6
+        createKo2Device();                        // v1.6 K.O. II
     }
     startTimerHz (30);
 }
@@ -236,6 +267,7 @@ LiveLooperProcessor::~LiveLooperProcessor()
     linkPtr.store (nullptr);
     pushDevice.reset();
     gridControllers.reset();      // v1.6
+    ko2Device.reset();
 }
 
 void LiveLooperProcessor::createPushDevice()
@@ -418,6 +450,37 @@ void LiveLooperProcessor::pushSettingsToEngine() noexcept
                                     beatMute[(size_t) r]->load() >= 0.5f || (anyRowSolo && beatSolo[(size_t) r]->load() < 0.5f));
     }
     engine.setRhythmFeel (juce::roundToInt (rhythmKit->load()), rhythmSwing->load() * 0.01f, rhythmHuman->load() * 0.01f);
+    // v1.6 punch FX (latch: a press switches the effect on / off) and send FX
+    {
+        PunchFxSettings ps;
+        const bool latch = pfxLatch->load() >= 0.5f;
+        for (int k = 0; k < kNumPunchHolds; ++k)
+        {
+            const bool on = pfxHold[(size_t) k]->load() >= 0.5f;
+            if (latch)
+            {
+                if (on && ! pfxLast[(size_t) k])
+                    pfxLatched[(size_t) k] = ! pfxLatched[(size_t) k];
+                ps.held[(size_t) k] = pfxLatched[(size_t) k];
+            }
+            else
+            {
+                pfxLatched[(size_t) k] = false;
+                ps.held[(size_t) k] = on;
+            }
+            pfxLast[(size_t) k] = on;
+        }
+        ps.amount = pfxAmount->load();
+        ps.x = pfxX->load();
+        ps.y = pfxY->load();
+        engine.setPunchFx (ps, (PunchTarget) juce::jlimit (0, (int) PunchTarget::NumTargets - 1, juce::roundToInt (pfxTarget->load())));
+        SendFxSettings sf;
+        sf.type = (SendFxType) juce::jlimit (0, (int) SendFxType::NumTypes - 1, juce::roundToInt (sfxType->load()));
+        sf.x = sfxX->load();
+        sf.y = sfxY->load();
+        sf.level = sfxLevel->load();
+        engine.setSendFx (sf);
+    }
     engine.setPerformance (tapeStopParam->load(), perfFilterParam->load());
 
     bool anySolo = false;
@@ -473,6 +536,8 @@ void LiveLooperProcessor::fireTrigger (Trigger& t) noexcept
         clipExportRequested.store (true);
     else if (t.special == 2 || t.special == 3)
         beatLibRequest.fetch_add (t.special == 2 ? 1 : -1);
+    else if (t.special == 4)
+        resampleRequested.store (true);
     else if (t.octave != 0)
         pendingOctave[(size_t) t.track].fetch_add (t.octave);      // the message thread changes the pitch
     else
@@ -837,6 +902,7 @@ void LiveLooperProcessor::timerCallback()
         sendChangeMessage();
 
     updatePerformanceRecorder();      // v1.6
+    updateControllers();              // v1.6 K.O. II: resample, latency offset, audio role
 }
 
 //============================================================================== v1.6 performance recorder
@@ -1135,6 +1201,11 @@ void LiveLooperProcessor::getStateInformation (juce::MemoryBlock& destData)
     root.setAttribute ("visibleTracks", visibleTracks.load());
     root.setAttribute ("push", pushEnabledSetting);
     {
+        juce::StringArray cols;                          // v1.6 track colours
+        for (auto& c : trackColours) cols.add (juce::String (c.load()));
+        root.setAttribute ("trackColours", cols.joinIntoString (","));
+    }
+    {
         juce::StringArray outs, scenes;
         for (auto& p : trackOutPair) outs.add (juce::String (p.load()));
         for (auto& m : sceneMasks)   scenes.add (juce::String (m.load()));
@@ -1194,6 +1265,11 @@ void LiveLooperProcessor::setStateInformation (const void* data, int sizeInBytes
     setMaxLoopSeconds (root->getDoubleAttribute ("maxLoopSeconds", 60.0));
     setVisibleTracks (root->getIntAttribute ("visibleTracks", kDefaultVisibleTracks));
     setPushEnabled (root->getBoolAttribute ("push", true));
+    {
+        const auto cols = juce::StringArray::fromTokens (root->getStringAttribute ("trackColours"), ",", "");
+        for (int t = 0; t < kNumTracks; ++t)
+            setTrackColour (t, t < cols.size() ? cols[t].getIntValue() : -1);
+    }
     if (root->hasAttribute ("trackOutputs"))
     {
         const auto outs = juce::StringArray::fromTokens (root->getStringAttribute ("trackOutputs"), ",", "");
@@ -1968,3 +2044,186 @@ juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
     return new livelooper::LiveLooperProcessor();
 }
 #endif
+
+//============================================================================== v1.6 K.O. II + controller audio
+namespace livelooper
+{
+void LiveLooperProcessor::createKo2Device()
+{
+    if (ko2Device != nullptr)
+        return;
+    ko2Device = std::make_unique<ko2::Device> (*this);
+    ko2Device->setClockOut (getKo2ClockOut());
+    ko2Device->setChannel (getKo2Channel());
+    ko2Device->onConnectionChanged = [this] (bool connected) {
+        postControllerNotice (connected ? i18n::tr ("K.O. II connected") : i18n::tr ("K.O. II disconnected"));
+        lastAudioRecord = -1;          // re-evaluate the audio role
+        sendChangeMessage();
+    };
+}
+
+bool LiveLooperProcessor::isKo2Connected() const noexcept
+{
+    return ko2Device != nullptr && ko2Device->isConnected();
+}
+
+bool LiveLooperProcessor::isPushConnected() const noexcept
+{
+    return pushDevice != nullptr && pushDevice->isConnected();
+}
+
+void LiveLooperProcessor::simulateControllers (bool ko2, bool pushOn)
+{
+    if (ko2)
+        createKo2Device();
+    if (ko2Device != nullptr)
+        ko2Device->setSimulatedConnection (ko2);
+    if (pushOn)
+        createPushDevice();
+    if (pushDevice != nullptr)
+        pushDevice->setSimulatedConnection (pushOn);
+    sendChangeMessage();
+}
+
+int LiveLooperProcessor::getControllerAudioMode() const noexcept
+{
+    return ctlAudioMode != nullptr && ctlAudioMode->load() >= 0.5f ? 1 : 0;
+}
+
+void LiveLooperProcessor::setControllerAudioMode (int mode)
+{
+    if (auto* p = apvts.getParameter (gCtlAudioMode))
+    {
+        p->beginChangeGesture();
+        p->setValueNotifyingHost (mode > 0 ? 1.0f : 0.0f);
+        p->endChangeGesture();
+    }
+    if (ctlAudioMode != nullptr)
+        ctlAudioMode->store (mode > 0 ? 1.0f : 0.0f);      // at once (the host may notify later)
+    updateControllers();
+}
+
+int LiveLooperProcessor::getKo2Groups() const          { return appsettings::getValue ("ko2.groups", "-1").getIntValue(); }
+void LiveLooperProcessor::setKo2Groups (int bits)      { appsettings::setValue ("ko2.groups", juce::String (bits)); }
+bool LiveLooperProcessor::getKo2ClockOut() const
+{
+    // standalone: on by default; plug-in: off (the DAW may already send clock)
+    const auto fallback = wrapperType == wrapperType_Standalone || wrapperType == wrapperType_Undefined ? "1" : "0";
+    return appsettings::getValue ("ko2.clockOut", fallback) == "1";
+}
+void LiveLooperProcessor::setKo2ClockOut (bool on)
+{
+    appsettings::setValue ("ko2.clockOut", on ? "1" : "0");
+    if (ko2Device != nullptr)
+        ko2Device->setClockOut (on);
+}
+int LiveLooperProcessor::getKo2Channel() const         { return appsettings::getValue ("ko2.channel", "0").getIntValue(); }
+void LiveLooperProcessor::setKo2Channel (int ch)
+{
+    appsettings::setValue ("ko2.channel", juce::String (juce::jlimit (0, 16, ch)));
+    if (ko2Device != nullptr)
+        ko2Device->setChannel (ch);
+}
+int LiveLooperProcessor::getKo2OffsetMs() const        { return appsettings::getValue ("ko2.offsetMs", "-1").getIntValue(); }
+void LiveLooperProcessor::setKo2OffsetMs (int ms)      { appsettings::setValue ("ko2.offsetMs", juce::String (juce::jlimit (-1, 200, ms))); }
+
+int LiveLooperProcessor::getKo2EffectiveOffsetSamples() const
+{
+    const int ms = getKo2OffsetMs();
+    if (ms >= 0)
+        return juce::roundToInt (ms * 0.001 * currentSampleRate);
+    return getLatencySamples() + currentBlockSize;     // automatic: what the host / device reports + one block
+}
+
+void LiveLooperProcessor::postControllerNotice (const juce::String& text)
+{
+    const juce::ScopedLock sl (noticeLock);
+    controllerNotices.add (text);
+    if (controllerNotices.size() > 8)
+        controllerNotices.remove (0);
+}
+
+juce::String LiveLooperProcessor::takeControllerNotice()
+{
+    const juce::ScopedLock sl (noticeLock);
+    if (controllerNotices.isEmpty())
+        return {};
+    auto t = controllerNotices[0];
+    controllerNotices.remove (0);
+    return t;
+}
+
+int LiveLooperProcessor::performKo2Resample()
+{
+    int target = -1;
+    for (int t = 0; t < visibleTracks.load() && target < 0; ++t)
+        if (engine.getTrack (t).isEmpty() && engine.getPending (t) == LooperEngine::Pending::None)
+            target = t;
+    if (target < 0)
+    {
+        postControllerNotice (i18n::tr ("No free track"));
+        return -1;
+    }
+    // N bars (capture length) from the input, starting on the next bar (quantised like any recording)
+    const int capIdx = juce::jlimit (0, kNumCaptureChoices - 1, juce::roundToInt (captureBars->load()));
+    if (auto* p = apvts.getParameter (trackId (target, kRecLen)))
+        p->setValueNotifyingHost ((float) (capIdx + 1) / 6.0f);
+    pressTrigger (trackId (target, kRecPlay));
+    resampleTrack = target;
+    postControllerNotice (i18n::tr ("Resample into track %1", juce::String (target + 1)));
+    return target;
+}
+
+void LiveLooperProcessor::updateControllers()
+{
+    if (resampleRequested.exchange (false))
+        performKo2Resample();
+
+    if (ko2Device != nullptr)
+    {
+        auto& c = ko2Device->getController();
+        const auto role = getControllerAudioMode() == 1 ? ko2::Role::Record : ko2::Role::Controller;
+        c.setRole (role);
+        const int g = getKo2Groups();
+        c.setGroups (g < 0 ? ko2::defaultGroups (role) : g);
+        if (c.takeKeysWarning())
+            postControllerNotice (i18n::tr ("K.O. II in KEYS mode - press KEYS to leave"));
+    }
+
+    // record K.O. II: the standalone app switches the audio device (callback), and finished first
+    // recordings are moved by the USB latency so they sit on the beat
+    const bool record = isKo2Connected() && getControllerAudioMode() == 1;
+    if ((int) record != lastAudioRecord)
+    {
+        bool anyRecording = false;
+        for (int t = 0; t < kNumTracks; ++t)
+            anyRecording = anyRecording || engine.getTrack (t).getState() == LoopTrack::State::Recording;
+        if (! anyRecording || ! record)          // never switch the device while a track records into it
+        {
+            lastAudioRecord = (int) record;
+            if (onControllerAudioChanged)
+                onControllerAudioChanged (record);
+        }
+    }
+    for (int t = 0; t < kNumTracks; ++t)
+    {
+        const int now = engine.getTrack (t).getState() == LoopTrack::State::Recording ? 1 : 0;
+        if (lastTrackState[(size_t) t] == 1 && now == 0)
+        {
+            if (record)
+            {
+                const int offset = getKo2EffectiveOffsetSamples();
+                if (offset > 0)
+                {
+                    engine.lockTrack (t);
+                    engine.getTrack (t).nudgeAlignment (offset);
+                    engine.unlockTrack (t);
+                }
+            }
+            if (t == resampleTrack)
+                resampleTrack = -1;
+        }
+        lastTrackState[(size_t) t] = now;
+    }
+}
+} // namespace livelooper

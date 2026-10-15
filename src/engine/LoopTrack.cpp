@@ -460,6 +460,16 @@ int LoopTrack::expectedPosition (double ppq) const noexcept
     return (int) positiveModulo (std::round (samples), (double) length) % length;
 }
 
+void LoopTrack::nudgeAlignment (int samples) noexcept
+{
+    if (length <= 0 || samples == 0)
+        return;
+    samples = samples % length;
+    if (anchorValid && recSamplesPerPpq > 0.0)
+        anchorPpq -= (double) samples / recSamplesPerPpq;
+    playPos = (int) positiveModulo ((double) playPos + samples, (double) length) % length;
+}
+
 void LoopTrack::resyncToTimeline (double ppqNow)
 {
     if (! settings.loopSync || settings.oneShot || ! anchorValid || length <= 0)

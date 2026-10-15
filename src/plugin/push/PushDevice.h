@@ -24,7 +24,9 @@ public:
 
     void setEnabled (bool e);
     bool isEnabled() const noexcept   { return enabled; }
-    bool isConnected() const noexcept { return input != nullptr && output != nullptr; }
+    bool isConnected() const noexcept { return simulated || (input != nullptr && output != nullptr); }
+    /** Tests / screenshots: behave as if Push were plugged in (the surface runs, nothing is sent). */
+    void setSimulatedConnection (bool on) noexcept { simulated = on; }
     juce::String getStatusText() const;
     PushSurface& getSurface() noexcept { return surface; }
 
@@ -42,6 +44,7 @@ private:
     PushSurface surface;
     bool standalone;
     bool enabled = true;
+    bool simulated = false;
     std::unique_ptr<juce::MidiInput> input;
     std::unique_ptr<juce::MidiOutput> output;
     juce::String inputId, outputId, deviceName;

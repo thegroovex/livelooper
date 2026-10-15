@@ -2,10 +2,26 @@
 #include "Localisation.h"
 #include "BinaryData.h"
 
+#include <array>
+#include <atomic>
+
 namespace livelooper
 {
+namespace
+{
+    std::array<std::atomic<juce::uint32>, 8> trackOverrides {};
+}
+
+void colours::setTrackOverride (int index, juce::uint32 argb)
+{
+    if (juce::isPositiveAndBelow (index, 8))
+        trackOverrides[(size_t) index].store (argb);
+}
+
 juce::Colour colours::track (int index)
 {
+    if (const auto o = trackOverrides[(size_t) juce::jlimit (0, 7, index)].load(); o != 0)
+        return juce::Colour (o);
     static const juce::Colour c[] = { juce::Colour (0xffff8a2a), juce::Colour (0xffff3d7a), juce::Colour (0xffb65cff), juce::Colour (0xff4fc8ff),
                                       juce::Colour (0xff3fdc7a), juce::Colour (0xffffcf3a), juce::Colour (0xff5a8cff), juce::Colour (0xffff5a4a) };
     return c[(size_t) juce::jlimit (0, 7, index)];

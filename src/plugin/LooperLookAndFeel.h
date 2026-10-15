@@ -28,6 +28,8 @@ namespace colours
 
     /** v1.6: one colour per track (accent of the strip, its title bar and the idle pad). */
     juce::Colour track (int index);
+    /** v1.6: a colour the user picked for a track (Push encoder page "Track colour"); 0 = the default. */
+    void setTrackOverride (int index, juce::uint32 argb);
 }
 
 /**

@@ -15,6 +15,12 @@ namespace livelooper
 {
 namespace push { class PushDevice; }
 namespace controllers { class GridControllerDevice; }   // v1.6
+namespace ko2 { class Device; }                         // v1.6 K.O. II
+
+/** v1.6: colours a track can get (Push encoder page "Colour", GUI strip, pad colours). -1 = the default look. */
+struct TrackColour { const char* name; int padBright; int padDim; juce::uint32 argb; };
+inline constexpr int kNumTrackColours = 12;
+const TrackColour& getTrackColourInfo (int index) noexcept;
 
 /**
     The plug-in: owns the parameters (APVTS), the MIDI-learn map and the engine.
@@ -142,6 +148,46 @@ public:
     /** Called from the timer when the user switches perf_rec; also notifies listeners. */
     std::function<void (const juce::File&)> onRecordingFinished;
     // ---- end v1.6 features
+    //============================================================================== v1.6 K.O. II + controller audio
+    /** The K.O. II on its USB MIDI port (null in unit tests until createKo2Device()). */
+    ko2::Device* getKo2Device() noexcept { return ko2Device.get(); }
+    void createKo2Device();
+    bool isKo2Connected() const noexcept;
+    /** Role from the host parameter ctl_audio_mode: 0 = controller only, 1 = record K.O. II. */
+    int  getControllerAudioMode() const noexcept;
+    void setControllerAudioMode (int mode);
+    /** SETUP > Controllers > K.O. II (saved for all instances): control groups (bits A=1 .. D=8, -1 = default
+        of the role), send clock, MIDI channel (0 = any), latency offset in ms (-1 = automatic). */
+    int  getKo2Groups() const;
+    void setKo2Groups (int bits);
+    bool getKo2ClockOut() const;
+    void setKo2ClockOut (bool on);
+    int  getKo2Channel() const;
+    void setKo2Channel (int ch);
+    int  getKo2OffsetMs() const;
+    void setKo2OffsetMs (int ms);
+    /** Offset actually used (automatic = reported input latency + one block). */
+    int  getKo2EffectiveOffsetSamples() const;
+    /** Resample: records capture-length bars of the input into the first empty track, starting on a bar.
+        Returns the track, -1 when no track is free. Also the host parameter ko2_resample. */
+    int  performKo2Resample();
+    int  getResampleTrack() const noexcept { return resampleTrack; }
+    /** Short messages for the editor (toasts): "No free track" ... taken once. */
+    juce::String takeControllerNotice();
+    void postControllerNotice (const juce::String& text);
+    /** Standalone app: switch the audio device to / from the K.O. II (record = role 1 and connected). */
+    std::function<void (bool recordFromKo2)> onControllerAudioChanged;
+    /** Tests / screenshots: a simulated K.O. II / Push (no hardware). */
+    void simulateControllers (bool ko2, bool push);
+    bool isPushConnected() const noexcept;
+    push::PushDevice* getPushDevice() noexcept { return pushDevice.get(); }
+    /** Track colours (-1 = default), saved with the state and sets. */
+    int  getTrackColour (int track) const noexcept { return trackColours[(size_t) juce::jlimit (0, kNumTracks - 1, track)].load(); }
+    void setTrackColour (int track, int colour) noexcept
+    {
+        if (juce::isPositiveAndBelow (track, kNumTracks))
+            trackColours[(size_t) track].store (juce::jlimit (-1, kNumTrackColours - 1, colour));
+    }
     //============================================================================== v1.6 rhythm (branch v1.6-rhythm)
     /** BEATS: the 16 user pattern slots ("User 1 .. 16" in the pattern selector), saved with the set. */
     BeatPatternBank& getUserPatterns() noexcept { return userPatterns; }
@@ -413,6 +459,21 @@ private:
     std::atomic<int> lastScene { -1 };
     std::atomic<bool> sceneStoreDone { false };
     std::unique_ptr<push::PushDevice> pushDevice;
+    // v1.6 punch FX / send FX / K.O. II
+    std::atomic<float>* sfxType {}; std::atomic<float>* sfxX {}; std::atomic<float>* sfxY {}; std::atomic<float>* sfxLevel {};
+    std::array<std::atomic<float>*, params::kNumPunchHolds> pfxHold {};
+    std::atomic<float>* pfxAmount {}; std::atomic<float>* pfxX {}; std::atomic<float>* pfxY {};
+    std::atomic<float>* pfxTarget {}; std::atomic<float>* pfxLatch {}; std::atomic<float>* ctlAudioMode {};
+    std::array<bool, params::kNumPunchHolds> pfxLast {}, pfxLatched {};
+    std::unique_ptr<ko2::Device> ko2Device;
+    std::atomic<bool> resampleRequested { false };
+    int resampleTrack = -1;
+    int lastAudioRecord = -1;
+    std::array<int, kNumTracks> lastTrackState {};
+    std::array<std::atomic<int>, kNumTracks> trackColours {};
+    juce::StringArray controllerNotices;
+    juce::CriticalSection noticeLock;
+    void updateControllers();
     bool pushEnabledSetting = true;
 
     // v1.6 features

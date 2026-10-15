@@ -103,6 +103,9 @@ juce::MidiMessage displayLine (int line, const juce::String& text);
 juce::MidiMessage clearDisplayLine (int line);
 /** Sysex that switches Push 1 between Live mode (false) and User mode (true). */
 juce::MidiMessage userModeSysex (bool userMode);
+/** v1.6: Sysex that sets the pad aftertouch mode of Push 1: polyphonic key pressure (true, one value per
+    pad) or channel pressure (false). F0 47 7F 15 5C 00 01 <mode> F7 (as Live's own Push script sends it). */
+juce::MidiMessage aftertouchModeSysex (bool polyphonic);
 /** Lays out up to eight texts in the eight 8.5-character columns under the encoders. */
 juce::String columns (const juce::StringArray& texts);
 

@@ -99,6 +99,9 @@ public:
 
     /** Re-aligns the playback position with the timeline (after a transport jump). */
     void resyncToTimeline (double ppqNow);
+    /** v1.6 (K.O. II latency): plays the loop 'samples' earlier against the timeline, so audio that
+        arrived late (USB input latency) sits on the beat. Lock the track first. */
+    void nudgeAlignment (int samples) noexcept;
     void invalidateAnchor() noexcept                     { anchorValid = false; }
 
     //============================================================================== processing

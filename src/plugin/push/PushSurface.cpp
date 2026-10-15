@@ -127,7 +127,9 @@ void PushSurface::handleMidi (const juce::MidiMessage& m)
             handlePad (padRow (note), padColumn (note), vel);
         else if (note == kTouchStripNote)
             handleStrip (vel > 0, -1);
-        return;            // encoder touch notes are not used
+        else if (note >= kEncoderTouchFirst && note < kEncoderTouchFirst + 8)
+            handleEncoderTouch (note - kEncoderTouchFirst, vel > 0);     // v1.6: double touch = next page
+        return;
     }
     if (m.isPitchWheel())
     {
@@ -136,13 +138,22 @@ void PushSurface::handleMidi (const juce::MidiMessage& m)
     }
     if (m.isAftertouch())
     {
+        // v1.6: polyphonic pressure - LOOP mode: chop speed of that track's loop, FX PAD: amount
         if (isPadNote (m.getNoteNumber()))
-            handlePressure (m.getAfterTouchValue());
+        {
+            if (mode == Mode::Loop)
+                handleLoopPressure (padColumn (m.getNoteNumber()), m.getAfterTouchValue());
+            else
+                handlePressure (m.getAfterTouchValue());
+        }
         return;
     }
     if (m.isChannelPressure())
     {
-        handlePressure (m.getChannelPressureValue());
+        if (mode == Mode::Loop)
+            handleLoopPressure (lastLoopPadTrack, m.getChannelPressureValue());   // channel pressure: the last pad
+        else
+            handlePressure (m.getChannelPressureValue());
         return;
     }
     if (! m.isController())
@@ -164,6 +175,20 @@ void PushSurface::handlePad (int row, int column, int velocity)
     }
     if (mode == Mode::FxPad)
     {
+        if (xyKind != XyKind::Slot)
+        {
+            // v1.6: beat FX, colour FX, repeat, stutter or a punch FX on the XY pad
+            if (velocity > 0)
+            {
+                xyApply (row, column, fxTouches <= 0);
+                fxTouches = juce::jmax (0, fxTouches) + 1;
+                fxTouchRow = row;
+                fxTouchColumn = column;
+            }
+            else if (--fxTouches <= 0)
+                xyRelease();
+            return;
+        }
         if (velocity > 0)
             fxPadTouch (row, column);
         else if (--fxTouches <= 0)
@@ -171,7 +196,15 @@ void PushSurface::handlePad (int row, int column, int velocity)
         return;
     }
     if (column >= proc.getVisibleTracks())
+    {
+        // v1.6: free columns (5 tracks): the pad under the beat flash = set (performance) recording
+        if (column == kFreePadColumn && row == kRecPadRow && velocity > 0)
+        {
+            toggleParam (gPerfRec);
+            showNotice (i18n::tr (getParam (gPerfRec) >= 0.5f ? "Set recording on" : "Set recording off"));
+        }
         return;
+    }
 
     const int t = column;
     const auto& st = proc.getEngine().getTrackStatus (t);
@@ -181,6 +214,10 @@ void PushSurface::handlePad (int row, int column, int velocity)
     if (velocity == 0)
     {
         // ---- releases: they end what the press started, whatever modifier is held now
+        if (chopTrack == t)
+            endChop();                                  // v1.6: pressure chop ends with the pad
+        if (lastLoopPadTrack == t)
+            lastLoopPadTrack = -1;
         if (muteHold[(size_t) t].active)
         {
             auto& h = muteHold[(size_t) t];
@@ -210,6 +247,7 @@ void PushSurface::handlePad (int row, int column, int velocity)
         return;
     }
 
+    lastLoopPadTrack = t;
     // ---- presses with a modifier
     if (deleteHeld)
     {
@@ -352,6 +390,12 @@ void PushSurface::handleStrip (bool touched, int value)
 
 void PushSurface::handlePressure (int value)
 {
+    if (mode == Mode::FxPad && xyKind != XyKind::Slot)
+    {
+        if (fxTouches > 0)
+            xyPressure (juce::jlimit (0.0f, 1.0f, (float) value / 127.0f));
+        return;
+    }
     if (mode != Mode::FxPad || fxTouches <= 0 || ! fxSnapshot.active)
         return;
     // press harder = more of the effect (from its own mix up to 100 %)
@@ -514,8 +558,30 @@ void PushSurface::handleButton (int number, bool pressed)
         if (mode == Mode::FxPad)
         {
             if (fxTouches > 0)
-                fxPadReleaseAll();
-            fxTarget = i;
+            {
+                if (xyKind == XyKind::Slot) fxPadReleaseAll();
+                else xyRelease();
+                fxTouches = 0;
+            }
+            if (shift)
+            {
+                // v1.6: SHIFT + top button = more FX on the XY pad
+                static constexpr XyKind kinds[] = { XyKind::BeatFx, XyKind::ColorFx, XyKind::Repeat, XyKind::Stutter };
+                if (i < 4)
+                    xyKind = kinds[i];
+                else
+                {
+                    const int page = i - 4;
+                    xyPunch = (xyKind == XyKind::Punch && xyPunch / 3 == page) ? page * 3 + (xyPunch % 3 + 1) % 3 : page * 3;
+                    xyKind = XyKind::Punch;
+                }
+            }
+            else
+            {
+                xyKind = XyKind::Slot;
+                fxTarget = i;
+            }
+            showNotice ("XY: " + xySelectionText());
         }
         else if (i < proc.getVisibleTracks())
             toggleParam (trackId (i, kTrackFx));
@@ -565,7 +631,16 @@ void PushSurface::handleButton (int number, bool pressed)
         case cc::device:     encoderMode = EncoderMode::Fx; break;
         case cc::play:       proc.pressTrigger (gAllStartStop); break;
         case cc::stop:       proc.pressTrigger (gAllStop); break;
-        case cc::record:     proc.pressTrigger (gCapture); break;
+        case cc::record:
+            if (shift)
+            {
+                // v1.6: SHIFT + RECORD = set (performance) recording on / off; RECORD alone stays CAPTURE
+                toggleParam (gPerfRec);
+                showNotice (i18n::tr (getParam (gPerfRec) >= 0.5f ? "Set recording on" : "Set recording off"));
+            }
+            else
+                proc.pressTrigger (gCapture);
+            break;
         case cc::metronome:
             if (shift)
             {
@@ -747,6 +822,20 @@ void PushSurface::handleEncoder (int number, int delta)
     if (i >= proc.getVisibleTracks())
         return;
     selectedTrack = i;
+    if (encoderMode == EncoderMode::Colour)
+    {
+        // v1.6: pick the track's colour from the palette (four ticks per colour, -1 = automatic)
+        auto& rem = encoderRemainder[(size_t) i];
+        rem += (float) delta / 4.0f;
+        const int move = (int) rem;
+        if (move != 0)
+        {
+            rem -= (float) move;
+            proc.setTrackColour (i, juce::jlimit (-1, kNumTrackColours - 1, proc.getTrackColour (i) + move));
+            proc.sendChangeMessage();
+        }
+        return;
+    }
     switch (encoderMode)
     {
         case EncoderMode::Volume:   nudge (trackId (i, kLevel), delta, 0.005f * fine); break;
@@ -754,7 +843,202 @@ void PushSurface::handleEncoder (int number, int delta)
         case EncoderMode::Pitch:    nudge (trackId (i, kPitch), delta, 0.0f); break;
         case EncoderMode::Feedback: nudge (trackId (i, kFeedback), delta, 0.01f * fine); break;
         case EncoderMode::Fx:
+        case EncoderMode::BeatFx:
+        case EncoderMode::Colour:   break;
+    }
+}
+
+//============================================================================== v1.6 controller additions
+bool PushSurface::beatPhaseOn (double duty) const
+{
+    auto& e = proc.getEngine();
+    if (! e.isTimelineRunning())
+        return false;
+    const double ppq = e.getTimelinePpq();
+    return ppq - std::floor (ppq) < duty;
+}
+
+PushSurface::EncoderMode PushSurface::nextTrackPage (EncoderMode m) noexcept
+{
+    switch (m)
+    {
+        case EncoderMode::Volume:   return EncoderMode::Pan;
+        case EncoderMode::Pan:      return EncoderMode::Pitch;
+        case EncoderMode::Pitch:    return EncoderMode::Feedback;
+        case EncoderMode::Feedback: return EncoderMode::Colour;
+        case EncoderMode::Colour:
+        case EncoderMode::Fx:
         case EncoderMode::BeatFx:   break;
+    }
+    return EncoderMode::Volume;
+}
+
+void PushSurface::handleEncoderTouch (int encoder, bool touched)
+{
+    if (! touched || mode == Mode::Step || encoder < 0 || encoder >= 8)
+        return;
+    const auto ms = now();
+    auto& last = encoderTouchAt[(size_t) encoder];
+    if (last != 0 && ms - last <= kEncoderDoubleTapMs)
+    {
+        last = 0;
+        encoderMode = nextTrackPage (encoderMode);
+        static const char* const names[] = { "Encoders: Volume", "Encoders: Pan", "Encoders: Pitch", "Encoders: Feedback",
+                                             "Encoders: FX", "Encoders: Beat FX", "Encoders: Track colour" };
+        showNotice (i18n::tr (names[(int) encoderMode]));
+        return;
+    }
+    last = ms;
+}
+
+void PushSurface::handleLoopPressure (int t, int value)
+{
+    if (t < 0 || t >= proc.getVisibleTracks())
+        return;
+    const auto state = (LoopTrack::State) proc.getEngine().getTrackStatus (t).state.load();
+    const bool playing = state == LoopTrack::State::Playing || state == LoopTrack::State::Overdubbing;
+    if (value >= kChopThreshold && playing)
+    {
+        if (chopTrack != t)
+        {
+            if (chopTrack >= 0)
+                endChop();
+            chopTrack = t;
+            chopPrevTarget = getParam (gBfxTarget);
+            chopPrevRate = getParam (gRepeatRate);
+            setParam (gBfxTarget, (float) ((int) FxTarget::Track1 + t) / (float) (kNumFxTargets - 1));
+            setParam (gRepeatHold, 1.0f);
+        }
+        // more pressure = faster: 1/4 .. 1/32 note (rate choices 1/2, 1/4, 1/8, 1/16, 1/32)
+        const float norm = (float) (value - kChopThreshold) / (float) (128 - kChopThreshold);
+        const int idx = 1 + juce::jlimit (0, 3, (int) (norm * 4.0f));
+        if (juce::roundToInt (getParam (gRepeatRate) * 4.0f) != idx)
+            setParam (gRepeatRate, (float) idx / 4.0f);
+    }
+    else if (chopTrack == t && value < kChopThreshold / 2)
+        endChop();          // pressure released: normal playback
+}
+
+void PushSurface::endChop()
+{
+    if (chopTrack < 0)
+        return;
+    chopTrack = -1;
+    if (! repeatHeld && getParam (gRepeatLatch) < 0.5f)
+        setParam (gRepeatHold, 0.0f);
+    setParam (gBfxTarget, chopPrevTarget);
+    setParam (gRepeatRate, chopPrevRate);
+}
+
+juce::String PushSurface::xySelectionText() const
+{
+    auto text = [this] (const juce::String& id) {
+        auto* p = proc.getState().getParameter (id);
+        return p != nullptr ? p->getCurrentValueAsText() : juce::String();
+    };
+    switch (xyKind)
+    {
+        case XyKind::Slot:    return (fxTarget < 4 ? "In FX " : "Trk FX ") + juce::String::charToString ((juce::juce_wchar) ('A' + fxTarget % 4))
+                                     + " " + text (fxParamId (kFxType));
+        case XyKind::BeatFx:  return "Beat FX " + text (gBfxType);
+        case XyKind::ColorFx: return "Color FX " + text (gColorType);
+        case XyKind::Repeat:  return "Beat Repeat";
+        case XyKind::Stutter: return "Stutter";
+        case XyKind::Punch:   return "Punch " + juce::String (xyPunch + 1) + " " + i18n::tr (getPunchFxName (xyPunch));
+    }
+    return {};
+}
+
+void PushSurface::xyApply (int row, int column, bool first)
+{
+    const float x = (float) column / (float) (kGridSize - 1), y = (float) row / (float) (kGridSize - 1);
+    const int visible = proc.getVisibleTracks();
+    switch (xyKind)
+    {
+        case XyKind::BeatFx:
+            if (first)
+            {
+                xySnapshot.a = getParam (gBfxBeat);
+                xySnapshot.b = getParam (gBfxDepth);
+                setParam (gBfxHold, 1.0f);
+            }
+            setParam (gBfxBeat, (float) juce::roundToInt (x * 10.0f) / 10.0f);     // 11 beat fractions
+            setParam (gBfxDepth, y);
+            break;
+        case XyKind::ColorFx:
+        {
+            if (first)
+            {
+                xySnapshot.a = getParam (gColorType);
+                for (int t = 0; t < 8; ++t)
+                    xySnapshot.knobs[(size_t) t] = getParam (trackId (t, kColor));
+            }
+            const int types = (int) ColorFxType::NumTypes;
+            setParam (gColorType, (float) juce::jmin (types - 1, row * types / kGridSize) / (float) (types - 1));
+            for (int t = 0; t < visible; ++t)
+                setParam (trackId (t, kColor), x);       // left = -1 .. right = +1
+            break;
+        }
+        case XyKind::Repeat:
+        case XyKind::Stutter:
+        {
+            const bool rep = xyKind == XyKind::Repeat;
+            if (first)
+                setParam (rep ? gRepeatHold : gStutterHold, 1.0f);
+            setParam (rep ? gRepeatRate : gStutterRate, (float) juce::roundToInt (x * 4.0f) / 4.0f);    // 1/2 .. 1/32
+            break;
+        }
+        case XyKind::Punch:
+            if (first)
+            {
+                xySnapshot.a = getParam (gPfxX);
+                xySnapshot.b = getParam (gPfxY);
+                xySnapshot.c = getParam (gPfxAmount);
+                setParam (punchHoldId (xyPunch), 1.0f);
+            }
+            setParam (gPfxX, x);
+            setParam (gPfxY, y);
+            break;
+        case XyKind::Slot:
+            break;
+    }
+}
+
+void PushSurface::xyPressure (float pressure)
+{
+    // press harder = more of the effect
+    if (xyKind == XyKind::Punch)
+        setParam (gPfxAmount, juce::jmax (0.15f, pressure));
+    else if (xyKind == XyKind::BeatFx)
+        setParam (gBfxDepth, juce::jmax (xySnapshot.b, pressure));
+}
+
+void PushSurface::xyRelease()
+{
+    fxTouches = 0;
+    fxTouchRow = fxTouchColumn = -1;
+    switch (xyKind)
+    {
+        case XyKind::BeatFx:
+            setParam (gBfxHold, 0.0f);
+            if (! shift) { setParam (gBfxBeat, xySnapshot.a); setParam (gBfxDepth, xySnapshot.b); }
+            break;
+        case XyKind::ColorFx:
+            if (! shift)
+            {
+                setParam (gColorType, xySnapshot.a);
+                for (int t = 0; t < 8; ++t)
+                    setParam (trackId (t, kColor), xySnapshot.knobs[(size_t) t]);
+            }
+            break;
+        case XyKind::Repeat:  setParam (gRepeatHold, 0.0f); break;
+        case XyKind::Stutter: setParam (gStutterHold, 0.0f); break;
+        case XyKind::Punch:
+            setParam (punchHoldId (xyPunch), 0.0f);
+            if (! shift) { setParam (gPfxX, xySnapshot.a); setParam (gPfxY, xySnapshot.b); setParam (gPfxAmount, xySnapshot.c); }
+            break;
+        case XyKind::Slot:
+            break;
     }
 }
 
@@ -820,19 +1104,24 @@ int PushSurface::trackPadColour (int t, int row, bool blinkOn) const
     const float prog = juce::jlimit (0.0f, 0.9999f, st.progress.load());
     const int head = (int) (prog * kProgressRows);
     const bool dub = state == LoopTrack::State::Overdubbing;
+    const int colour = proc.getTrackColour (t);          // v1.6: the track's own colour while it plays
+    const int bright = colour >= 0 ? getTrackColourInfo (colour).padBright : pad::green;
+    const int dim = colour >= 0 ? getTrackColourInfo (colour).padDim : pad::greenDim;
     if (segment == head)
     {
         if (isTrackMuted (t))
             return pad::redDim;                 // muted (drop): the play head goes dark red
-        if (st.cut.load())
-            return pad::cyan;                   // cut / stutter: out of the normal position
-        return dub ? pad::orange : pad::green;
+        if (st.cut.load() || chopTrack == t)
+            return pad::cyan;                   // cut / stutter / chop: out of the normal position
+        return dub ? pad::orange : bright;
     }
-    return segment < head ? (dub ? pad::orangeDim : pad::greenDim) : pad::off;
+    return segment < head ? (dub ? pad::orangeDim : dim) : pad::off;
 }
 
 int PushSurface::fxPadColour (int row, int column) const
 {
+    if (xyKind != XyKind::Slot && fxTouchRow < 0)
+        return xyKind == XyKind::Punch ? pad::magentaDim : pad::cyanDim;     // v1.6: other FX on the XY pad
     if (fxTouchRow >= 0)
     {
         if (row == fxTouchRow && column == fxTouchColumn)
@@ -904,6 +1193,13 @@ std::array<juce::String, kDisplayLines> PushSurface::buildDisplay() const
                 case EncoderMode::Pan:      names.add ("Pan " + juce::String (i + 1)); values.add (text (trackId (i, kPan))); break;
                 case EncoderMode::Pitch:    names.add ("Pit " + juce::String (i + 1)); values.add (text (trackId (i, kPitch)) + "st"); break;
                 case EncoderMode::Feedback: names.add ("Fbk " + juce::String (i + 1)); values.add (percent (value (trackId (i, kFeedback)))); break;
+                case EncoderMode::Colour:
+                {
+                    const int c = proc.getTrackColour (i);
+                    names.add ("Col " + juce::String (i + 1));
+                    values.add (c < 0 ? juce::String ("auto") : juce::String (getTrackColourInfo (c).name));
+                    break;
+                }
                 case EncoderMode::Fx:
                 case EncoderMode::BeatFx:   break;
             }
@@ -998,9 +1294,10 @@ std::array<juce::String, kDisplayLines> PushSurface::buildDisplay() const
         status << (proc.isLinkDriving() ? "  Link " + juce::String (proc.getLinkPeers()) : juce::String ("  Link"));
     if (st.getRawParameterValue (gSceneStore)->load() >= 0.5f)
         status << "  STORE";
+    if (st.getRawParameterValue (gPerfRec)->load() >= 0.5f)
+        status << "  SET REC";
     if (mode == Mode::FxPad)
-        status << "  XY: " << (fxTarget < 4 ? "In FX " : "Trk FX ") << juce::String::charToString ((juce::juce_wchar) ('A' + fxTarget % 4))
-               << " " << text (fxParamId (kFxType));
+        status << "  XY: " << xySelectionText();
     if (const auto n = getNotice(); n.isNotEmpty())
         status = n;
     return { columns (names), columns (values), line3, status };
@@ -1045,6 +1342,7 @@ void PushSurface::render (std::vector<juce::MidiMessage>& out, bool full)
     const int visible = proc.getVisibleTracks();
     auto& st = proc.getState();
 
+    auto isOn = [&st] (const juce::String& id) { return st.getRawParameterValue (id)->load() >= 0.5f; };
     // ---- pads
     if (mode == Mode::Step)
     {
@@ -1061,6 +1359,10 @@ void PushSurface::render (std::vector<juce::MidiMessage>& out, bool full)
                 c = stepPadColour (row, col, blinkOn);
             else if (col < visible)
                 c = trackPadColour (col, row, blinkOn);
+            else if (col == kFreePadColumn && row == kBeatPadRow)
+                c = beatPhaseOn (0.25) ? pad::orange : pad::off;                       // v1.6: beat flash
+            else if (col == kFreePadColumn && row == kRecPadRow)
+                c = isOn (gPerfRec) ? (beatPhaseOn() ? pad::red : pad::redDim) : pad::redDim;   // v1.6: set recording
             auto& last = padState[(size_t) (row * kGridSize + col)];
             if (c != last)
             {
@@ -1078,13 +1380,17 @@ void PushSurface::render (std::vector<juce::MidiMessage>& out, bool full)
             last = value;
         }
     };
-    auto isOn = [&st] (const juce::String& id) { return st.getRawParameterValue (id)->load() >= 0.5f; };
 
     for (int i = 0; i < 8; ++i)
     {
         using namespace twoColour;
         int top = 0, bottom = pad::off;
-        if (mode == Mode::FxPad)
+        if (mode == Mode::FxPad && xyKind != XyKind::Slot)
+        {
+            const int sel = xyKind == XyKind::Punch ? 4 + xyPunch / 3 : (int) xyKind - 1;
+            top = i == sel ? value (yellow, full) : value (i < 4 ? green : red, dim);
+        }
+        else if (mode == Mode::FxPad)
         {
             const bool on = isOn (fxId (i < 4, i % 4, kFxOn));
             top = i == fxTarget ? value (yellow, full) : value (i < 4 ? green : orange, on ? full : dim);
@@ -1111,8 +1417,9 @@ void PushSurface::render (std::vector<juce::MidiMessage>& out, bool full)
     for (int t = 0; t < visible; ++t)
         anyRunning = anyRunning || proc.getEngine().getTrack (t).isRunning();
 
-    setCC (cc::play, anyRunning ? button::on : button::dim);
-    setCC (cc::record, button::dim);
+    // v1.6: PLAY blinks in time while loops run (every track mode), RECORD while the set recording runs
+    setCC (cc::play, anyRunning ? (beatPhaseOn() ? button::on : button::dim) : button::dim);
+    setCC (cc::record, isOn (gPerfRec) ? (beatPhaseOn() ? button::on : button::dim) : button::dim);
     setCC (cc::stop, button::dim);
     setCC (cc::metronome, isOn (gRhythmOn) ? button::on : button::dim);
     setCC (cc::tapTempo, button::dim);

@@ -60,6 +60,12 @@ juce::MidiMessage userModeSysex (bool userMode)
     return juce::MidiMessage::createSysExMessage (data, (int) sizeof (data));
 }
 
+juce::MidiMessage aftertouchModeSysex (bool polyphonic)
+{
+    const juce::uint8 data[] = { kHeader[0], kHeader[1], kHeader[2], 0x5c, 0x00, 0x01, (juce::uint8) (polyphonic ? 1 : 0) };
+    return juce::MidiMessage::createSysExMessage (data, (int) sizeof (data));
+}
+
 juce::String columns (const juce::StringArray& texts)
 {
     // eight columns of 8 or 9 characters (17 per display segment), text centred

@@ -96,6 +96,8 @@ void PushDevice::connect()
     // Inside Live, the User button does it and Live's own Push stays in charge otherwise.
     if (standalone)
         output->sendMessageNow (userModeSysex (true));
+    // v1.6: polyphonic aftertouch, so every pad reports its own pressure (chop speed per track, FX amount)
+    output->sendMessageNow (aftertouchModeSysex (true));
     surface.invalidate();
     lastFullRefresh = 0;
 }
@@ -169,6 +171,14 @@ void PushDevice::timerCallback()
     ++ticks;
     if (! enabled)
         return;
+    if (simulated)
+    {
+        // no hardware: keep the surface state current for the on-screen Controller GUI
+        surface.update();
+        std::vector<juce::MidiMessage> discard;
+        surface.render (discard, false);
+        return;
+    }
 
     if (! isConnected())
     {
@@ -199,6 +209,8 @@ void PushDevice::timerCallback()
     const auto now = juce::Time::getMillisecondCounter();
     const bool idle = now - lastInputTime.load() > 3000;
     const bool full = now - lastFullRefresh > 1000 || (wasIdle && ! idle);
+    if (wasIdle && ! idle)
+        output->sendMessageNow (aftertouchModeSysex (true));     // Push came back (User mode again): poly aftertouch
     wasIdle = idle;
     if (full)
         lastFullRefresh = now;

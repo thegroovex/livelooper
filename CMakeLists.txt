@@ -140,7 +140,8 @@ set(LIVELOOPER_PLUGIN_SOURCES
     src/plugin/VideoWriterWin.cpp
     src/plugin/EditorFeatures16.cpp
     src/plugin/WelcomeScreen.cpp
-    src/plugin/controllers/GridControllers.cpp)
+    src/plugin/controllers/GridControllers.cpp
+    src/plugin/controllers/Ko2.cpp)
 if(APPLE)
     list(APPEND LIVELOOPER_PLUGIN_SOURCES src/plugin/VideoWriterMac.mm)
 endif()
@@ -225,6 +226,8 @@ if(LIVELOOPER_BUILD_TESTS)
         tests/Features16Tests.cpp
         tests/Rhythm16Tests.cpp
         tests/UiPolish16Tests.cpp
+        tests/Ko2Tests.cpp
+        tests/Push16Tests.cpp
         ${LIVELOOPER_ENGINE_SOURCES} ${LIVELOOPER_PLUGIN_SOURCES})
     target_include_directories(livelooper_tests PRIVATE src ${LIVELOOPER_THIRD_PARTY_INCLUDES})
     target_compile_definitions(livelooper_tests PRIVATE ${LIVELOOPER_DEFINES} LIVELOOPER_NO_PLUGIN_ENTRY=1 JUCE_MODAL_LOOPS_PERMITTED=1)

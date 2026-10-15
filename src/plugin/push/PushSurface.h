@@ -63,7 +63,11 @@ class PushSurface
 {
 public:
     enum class Mode { Loop, FxPad, Step };
-    enum class EncoderMode { Volume, Pan, Pitch, Feedback, Fx, BeatFx };
+    enum class EncoderMode { Volume, Pan, Pitch, Feedback, Fx, BeatFx, Colour };   // Colour: v1.6 track colours
+    /** v1.6 what the XY pad (FX PAD mode) plays: an FX slot (top buttons) or, with SHIFT + top buttons 1 - 8,
+        beat FX, colour FX, beat repeat, stutter or one of the punch FX (buttons 5 - 8 = pages of three,
+        press again for the next one of the page). */
+    enum class XyKind { Slot, BeatFx, ColorFx, Repeat, Stutter, Punch };
     enum class StripMode { TapeStop, Filter, RepeatRate, StutterRate };
 
     /** Timing of the gestures (milliseconds). */
@@ -72,6 +76,10 @@ public:
     static constexpr juce::uint32 kFootHoldMs = 1000;      // footswitch hold = clear
     static constexpr juce::uint32 kNoticeMs = 1500;        // short messages on display line 4
     static constexpr juce::uint32 kMeterIntervalMs = 40;   // meter lines at most 25 times per second
+    static constexpr juce::uint32 kEncoderDoubleTapMs = 400; // v1.6: two touches of a track encoder = next page
+    static constexpr int kChopThreshold = 16;               // v1.6: pad pressure that starts the chop
+    /** v1.6 free pads (5 tracks): top right = beat flash, the one below = set recording. */
+    static constexpr int kBeatPadRow = 7, kRecPadRow = 6, kFreePadColumn = 7;
 
     explicit PushSurface (LiveLooperProcessor& p);
 
@@ -88,6 +96,18 @@ public:
     EncoderMode getEncoderMode() const noexcept  { return encoderMode; }
     int getSelectedTrack() const noexcept        { return selectedTrack; }
     int getFxTarget() const noexcept             { return fxTarget; }
+    XyKind getXyKind() const noexcept            { return xyKind; }
+    int getXyPunch() const noexcept              { return xyPunch; }
+    /** v1.6 the track whose loop is chopped by pad pressure (-1 = none) and the rate index (1/4 .. 1/32). */
+    int getChopTrack() const noexcept            { return chopTrack; }
+    /** v1.6: true during the first half of every beat while the timeline runs (LED blinking in time). */
+    bool beatPhaseOn (double duty = 0.5) const;
+    /** v1.6 the 8 encoder pages a double touch cycles through (Volume, Pan, Pitch, Feedback, Colour). */
+    static EncoderMode nextTrackPage (EncoderMode m) noexcept;
+    /** Text of the XY selection for the display ("Punch: Tape Stop"). */
+    juce::String xySelectionText() const;
+    /** v1.6: CC value of a button as last rendered (-1 = never) - tests / Controller GUI. */
+    int getButtonState (int cc) const noexcept { return juce::isPositiveAndBelow (cc, 128) ? ccState[(size_t) cc] : -1; }
     bool areMetersShown() const noexcept         { return metersShown; }
     StripMode getStripMode() const noexcept      { return stripMode; }
     bool isStripTouched() const noexcept         { return stripTouched; }
@@ -117,6 +137,12 @@ private:
     float getParam (const juce::String& paramId) const;
     void toggleParam (const juce::String& paramId);
     void fxPadTouch (int row, int column);
+    void xyApply (int row, int column, bool first);
+    void xyPressure (float pressure);
+    void xyRelease();
+    void handleLoopPressure (int track, int value);
+    void endChop();
+    void handleEncoderTouch (int encoder, bool touched);
     void fxPadReleaseAll();
     juce::String fxParamId (const char* name) const;
     void selectTrack (int t);
@@ -143,6 +169,13 @@ private:
     EncoderMode encoderMode = EncoderMode::Volume;
     int selectedTrack = 0;
     int fxTarget = 0;               // 0 .. 3 input FX A - D, 4 .. 7 track FX A - D
+    XyKind xyKind = XyKind::Slot;   // v1.6
+    int xyPunch = 0;                // v1.6: punch FX on the XY pad (0 .. 11)
+    struct XySnapshot { float a = 0, b = 0, c = 0; std::array<float, 8> knobs {}; } xySnapshot;
+    int chopTrack = -1;             // v1.6 pad pressure chop
+    float chopPrevTarget = 0.0f, chopPrevRate = 0.0f;
+    int lastLoopPadTrack = -1;
+    std::array<juce::uint32, 8> encoderTouchAt {};
     bool shift = false, deleteHeld = false, muteHeld = false;
     bool selectHeld = false, soloHeld = false, duplicateHeld = false;
     bool repeatHeld = false, accentHeld = false;     // v1.5: REPEAT / ACCENT buttons held
