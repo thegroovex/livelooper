@@ -42,7 +42,7 @@ public:
     {
         KoSettings settings;
 
-        beginTest ("FX panel: sixth tab PUNCH FX shows 12 pads, XY field, amount, target, latch and the send FX");
+        beginTest ("FX rows: PUNCH FX panel (12 pads, XY field, amount, target, latch) and SEND FX panel always visible");
         {
             LiveLooperProcessor proc;
             std::unique_ptr<juce::AudioProcessorEditor> ed (proc.createEditor());
@@ -62,11 +62,12 @@ public:
                 }
             };
             walk (*ed);
-            expectEquals (visibleHolds, 3, "punch pads visible on the tab");
+            expectEquals (visibleHolds, 3, "punch pads visible");
             e.setFxTab (LiveLooperEditor::tabInput);
             visibleHolds = 0;
             walk (*ed);
-            expectEquals (visibleHolds, 0, "and hidden on other tabs");
+            expectEquals (visibleHolds, 3, "and still visible with another group focused (no tabs)");
+            expect (! e.getFxGroupArea (LiveLooperEditor::tabPunch).isEmpty());
         }
 
         beginTest ("K.O. II chip only while connected; question; Controller GUI only while a controller is connected");
