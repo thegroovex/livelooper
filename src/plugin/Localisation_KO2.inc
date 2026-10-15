@@ -145,6 +145,8 @@
         { "Controller view: K.O. II", "Controller-Ansicht: K.O. II" },
         { "Controller view: Push", "Controller-Ansicht: Push" },
         { "GUI", "Oberfl\xc3" "\xa4" "che" },
+        { "No K.O. II audio device found - check the USB connection", "Kein K.O.-II-Audioger\xc3" "\xa4" "t gefunden \xe2" "\x80" "\x93" " USB-Verbindung pr\xc3" "\xbc" "fen" },
+        { "K.O. II: back to %1", "K.O. II: zur\xc3" "\xbc" "ck zu %1" },
         { "Plug in the K.O. II: livelooper finds it and asks once how to use it - as controller only or to record it.", "Schlie\xc3" "\x9f" " den K.O. II an: livelooper findet ihn und fragt einmal, wie er genutzt werden soll \xe2" "\x80" "\x93" " nur als Controller oder zum Aufnehmen." },
         { "Its four pad groups are four pages: A loops, B track edit, C punch FX, D scenes.", "Seine vier Pad-Gruppen sind vier Seiten: A Loops, B Spur bearbeiten, C Punch-FX, D Szenen." },
         { "Set the K.O. II to clock in (SHIFT + ERASE, 1 0 1, ENTER): livelooper starts it on the bar.", "Stell den K.O. II auf Clock-Eingang (SHIFT + ERASE, 1 0 1, ENTER): livelooper startet ihn auf dem Takt." },

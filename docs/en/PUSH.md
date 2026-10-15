@@ -118,6 +118,27 @@ Push 1 has two footswitch jacks on the back (momentary footswitches).
 
 Like on a looper pedal, the first tap of a double tap already acts (REC / PLAY / DUB), the second one stops. If a footswitch works the wrong way round, plug it in while pressing it or use its polarity switch.
 
+### New in 1.6: pressure, more XY FX, set recording, encoder pages, track colours
+
+livelooper switches Push 1 to **polyphonic aftertouch** (every pad reports its own pressure) when it connects.
+
+| What | How |
+|---|---|
+| **Chop a loop by pressure** (LOOP mode) | press any pad of a playing track **harder**: that track's loop is chopped (beat repeat on that track) – more pressure = faster, **1/4 → 1/8 → 1/16 → 1/32**. Let go (or ease off) = normal playback. With channel pressure instead of poly aftertouch it acts on the last pad pressed. |
+| **Pressure on the XY pad** (FX PAD mode) | pad pressure = FX amount (poly aftertouch and channel pressure). |
+| **More FX on the XY pad** | in FX PAD mode **SHIFT + top button 1 – 8**: 1 beat FX (X = beat, Y = level) · 2 colour FX (X = knob of all tracks, Y = type) · 3 beat repeat (X = timing) · 4 stutter (X = timing) · 5 – 8 **punch FX** pages of three (press again = next of the page; X / Y = the effect's X / Y, pressure = amount). The display shows the selection (*XY: Punch 5 Tape Stop*). Top buttons without SHIFT = the FX slots again. |
+| **Beat flash + set recording pads** (any mode with free columns, e.g. 5 tracks) | the **top-right pad** flashes orange on every beat; the **pad below it** switches the **set (performance) recording** on / off – red, blinking in time while it records. |
+| **SHIFT + RECORD** (every track mode, made for 8 tracks) | set recording on / off; RECORD alone stays CAPTURE. RECORD blinks in time while the set recording runs. |
+| **PLAY** | blinks in time while loops run – in every track mode. (Before 1.6 it was simply lit; no mode had a beat blink.) |
+| **Encoder double touch** | touch any track encoder twice quickly (Push 1 encoders are touch-sensitive): the page cycles **Volume → Pan → Pitch → Feedback → Track colour → Volume**; the display shows the page. |
+| **Track colour page** | each encoder picks its track's colour from the palette (auto, red, orange, yellow, lime, green, mint, cyan, sky, blue, violet, magenta, pink). The colour tints the track in the GUI and the loop position pads; it is saved with the project and sets. |
+| **Controller GUI** | *SETUP → Controllers → GUI: Controller* (while Push is connected) shows a drawing of Push with the live pads, buttons and display – clickable. Unplug = back to the standard GUI. |
+
+| # | Control (legend, continued) |
+|---|---|
+| 21 | top-right pad (5 tracks): flashes on every beat |
+| 22 | pad below it: set recording on / off – blinks while recording |
+
 ### FX PAD mode (NOTE button)
 
 The 8 × 8 pads become an **XY pad** for one effect: X (left to right) = parameter 1, Y (bottom to top) = parameter 2, **pad pressure** = more effect (from the effect's own mix up to 100 % wet). Touching switches the effect on. Releasing the pads **snaps back** to the previous settings. Hold **SHIFT** while releasing to keep the effect as it is. The top buttons 1 – 4 choose input FX A – D, buttons 5 – 8 choose track FX A – D. **SESSION** returns to LOOP mode.

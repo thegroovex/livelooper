@@ -456,7 +456,7 @@ void ControllerView::paintPush (juce::Graphics& g, juce::Rectangle<float>)
                                                { doubleBtn, "DOUBLE" }, { quantize, "QUANTIZE" }, { fixedLength, "LENGTH" }, { automation, "AUTO REC" },
                                                { duplicate, "DUPLICATE" }, { newBtn, "STORE" }, { record, "CAPTURE" }, { play, "PLAY" },
                                                { master, "METERS" }, { stop, "STOP" }, { volume, "VOLUME" }, { panSend, "PAN" }, { track, "PITCH" },
-                                               { clip, "FEEDBACK" }, { device, "FX" }, { browse, "BEAT FX" }, { session, "LOOP" }, { note, "XY FX" },
+                                               { clip, "FEEDBACK" }, { push::cc::device, "FX" }, { browse, "BEAT FX" }, { session, "LOOP" }, { note, "XY FX" },
                                                { scales, "STEP" }, { shift, "SHIFT" } };
     for (const auto& [number, label] : fn)
         drawButton (number, tr (label), number == record || number == play ? (number == record ? colours::red : colours::green) : colours::text);

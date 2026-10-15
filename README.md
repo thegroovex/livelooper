@@ -11,7 +11,7 @@
 - **Live performance comes first.** Every function reacts instantly, lands on the beat and never stops the music. Nothing needs a menu while you play.
 - **Fun to play.** Beat FX, beat repeat and stutter, colour FX and a groove that feels like a drummer turn a loop into a performance – press, hold, let go, and you are back on the beat.
 - **Explore and play.** Capture what you just improvised, throw an effect on it with the XY pad, pitch it, reverse it, let it decay like tape – and keep what works.
-- **Hands on hardware.** Plug in an Ableton Push and livelooper takes it over – no mapping. Any other controller works through MIDI learn, every one of the 465 functions is mappable.
+- **Hands on hardware.** Plug in an Ableton Push and livelooper takes it over – no mapping. Any other controller works through MIDI learn, every one of the 488 functions is mappable.
 - **Your loops belong in your song.** Drag a loop straight from livelooper onto a track in your DAW, export stems, or keep everything saved with your project.
 
 ## Play it with Ableton Push
@@ -64,6 +64,9 @@ Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
 - **Drums through beat FX and beat repeat / stutter** – a switch per effect group
 - **Sound packs**: import kits and patterns (folder or zip, open format) – see [SOUND-PACKS.md](docs/en/SOUND-PACKS.md)
 - **Push 1 STEP mode**: the pads as a step sequencer, FILL on IN
+- **Punch FX and Send FX**: 12 quick effects you hold (tape stop, beat repeat, filters, grains …), pressure or velocity = amount, plus a send effect on the loops
+- **Push 1 additions**: pad pressure chops a loop (1/4 – 1/32), every FX on the XY pad, beat flash and set-recording pads, encoder double touch, track colours
+- **EP-133 K.O. II (experimental – please test)**: plug and play as controller (4 pad pages) or record it, livelooper as clock master, resample its pattern; Controller GUI for Push 1 and K.O. II
 - **Beat library**: SAVE stores a beat by name (steps, velocities, length, swing, row mixer), LOAD lists your saved beats or opens a file; step through them with the host parameters *Next / Previous Library Beat*
 <!-- end v1.6 features -->
 
@@ -87,7 +90,7 @@ Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
 - **Saved with your project**: loops stored losslessly (FLAC, 24 bit) in your DAW project; whole **looper sets** as `.llset` files
 - **Meters and waveforms**: stereo meter per track, master VU in dB on the display (green / yellow / red), waveform with play position, clip LED
 - **Comfort**: in-app help (searchable user guide), about window with update check, start with the last used or the default settings, list of the last used sets
-- **All 465 functions** are host parameters for your DAW's MIDI mapping and automation
+- **All 488 functions** are host parameters for your DAW's MIDI mapping and automation
 - **English and German** interface (*SETUP → Language / Sprache*)
 
 ## Download
@@ -126,6 +129,7 @@ Everything else is in the **[User Guide](docs/en/USER-GUIDE.md)**, MIDI control 
 | [USER-GUIDE.md](docs/en/USER-GUIDE.md) | Interface, all functions, beat FX, beat repeat / stutter, colour FX, rhythm, Link, setup, language |
 | [MIDI.md](docs/en/MIDI.md) | MIDI learn, your DAW's MIDI mapping, default mapping, parameter list |
 | [PUSH.md](docs/en/PUSH.md) | Ableton Push control (in any DAW and standalone): setup, pad layout, encoders, FX XY pad, performance FX, STEP mode |
+| [KO2.md](docs/en/KO2.md) | EP-133 K.O. II control (experimental – please test): pages, roles, clock, recording, test list |
 | [SOUND-PACKS.md](docs/en/SOUND-PACKS.md) | Sound packs: installing, folder layout, the pack and pattern format (for making and selling packs) |
 | [DEVELOPMENT.md](docs/en/DEVELOPMENT.md) | Building from source, architecture, tests, CI, translations |
 

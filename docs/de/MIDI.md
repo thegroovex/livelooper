@@ -67,7 +67,7 @@ Auch Automation ist möglich (in Live z. B. in der Arrangement-Ansicht), etwa um
 
 ## Parameterliste
 
-465 Parameter. Mit deutscher Oberfläche zeigt deine DAW die deutschen Namen, mit englischer die englischen (in Klammern). Die internen IDs und gespeicherte Zuweisungen bleiben in beiden Sprachen gleich – ein Sprachwechsel zerstört also keine MIDI-Map und keine Automation.
+488 Parameter. Mit deutscher Oberfläche zeigt deine DAW die deutschen Namen, mit englischer die englischen (in Klammern). Die internen IDs und gespeicherte Zuweisungen bleiben in beiden Sprachen gleich – ein Sprachwechsel zerstört also keine MIDI-Map und keine Automation.
 
 **Pro Spur (S1 … S5 / T1 … T5)** – je 16:
 `Rec/Play`, `Stop`, `Löschen` (Clear), `Rückgängig` (Undo), `Wiederherstellen` (Redo) – Taster · `Pegel` (Level), `Panorama` (Pan) · `Rückwärts` (Reverse), `One Shot`, `Loop-Sync` (Loop Sync), `Spur-FX` (Track FX) – Schalter · `Eingang` (Input), `Startmodus` (Start Mode), `Stoppmodus` (Stop Mode), `Dub-Modus` (Dub Mode), `Takte` (Measures) – Auswahl
@@ -102,3 +102,5 @@ Die internen Parameter-IDs (für Entwickler und gespeicherte Zuweisungen) lauten
 - IDs: `rhythm_variation`, `rhythm_fill`, `beat_switch`, `drums_bfx`, `drums_repeat`, `beat_mute1` … `beat_mute8`, `beat_solo1` …, `beat_vol1` …, `beat_pitch1` …
 
 **Seit 1.6 (Beat-Bibliothek)** – 2 weitere, nach den Rhythmus-Parametern angehängt: `Nächster Bibliotheks-Beat` (Next Library Beat), `Vorheriger Bibliotheks-Beat` (Previous Library Beat) (Tasten: blättern durch die mit BEATS → SPEICHERN gesicherten Beats; IDs `beat_lib_next`, `beat_lib_prev`).
+
+**Seit 1.6 (Punch-FX, Send-FX, Controller)** – 23 weitere, angehängt (Parameter 466 – 488): `Send-FX-Typ`, `Send-FX X`, `Send-FX Y`, `Send-FX-Anteil` (IDs `sfx_type`, `sfx_x`, `sfx_y`, `sfx_level`), `Punch-FX 1 … 12 (halten)` (`pfx_hold1` … `pfx_hold12`, Momentan: Note an / aus), `Punch-FX-Stärke`, `Punch-FX X`, `Punch-FX Y`, `Punch-FX-Ziel`, `Punch-FX halten` (`pfx_amount`, `pfx_x`, `pfx_y`, `pfx_target`, `pfx_latch`), `Controller-Audio` (`ctl_audio_mode`: nur Controller / Controller-Audio aufnehmen) und `Controller-Pattern resamplen` (`ko2_resample`, Taste). Die Namen sind allgemein; zum K.O. II siehe KO2.md. Hinweis: die Standard-MIDI-Map (Kanal 1, Noten 36 – 67) überschneidet sich mit dem Notenbereich des K.O. II – der K.O. II braucht sie nicht (livelooper öffnet seinen Port direkt).

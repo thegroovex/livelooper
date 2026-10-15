@@ -71,6 +71,8 @@ T = [
     ("On the K.O. II: SHIFT + ERASE, type 1 0 1, ENTER (clock in)", "Am K.O. II: SHIFT + ERASE, 1 0 1 eingeben, ENTER (Clock-Eingang)"),
     ("K.O. II", "K.O. II"), ("Standard", "Standard"), ("Controller view: K.O. II", "Controller-Ansicht: K.O. II"),
     ("Controller view: Push", "Controller-Ansicht: Push"), ("GUI", "Oberfläche"),
+    ("No K.O. II audio device found - check the USB connection", "Kein K.O.-II-Audiogerät gefunden – USB-Verbindung prüfen"),
+    ("K.O. II: back to %1", "K.O. II: zurück zu %1"),
     # ---- help guide
     ("Plug in the K.O. II: livelooper finds it and asks once how to use it - as controller only or to record it.",
      "Schließ den K.O. II an: livelooper findet ihn und fragt einmal, wie er genutzt werden soll – nur als Controller oder zum Aufnehmen."),

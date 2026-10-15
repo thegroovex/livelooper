@@ -118,6 +118,27 @@ Push 1 hat hinten zwei Fußschalter-Buchsen (Taster).
 
 Wie bei einem Looper-Pedal wirkt schon der erste Tipp eines Doppeltipps (REC / PLAY / DUB), der zweite stoppt. Arbeitet ein Fußschalter verkehrt herum, steck ihn gedrückt ein oder nutze seinen Polaritätsschalter.
 
+### Neu in 1.6: Druck, mehr XY-FX, Set-Aufnahme, Encoder-Seiten, Spurfarben
+
+livelooper schaltet Push 1 beim Verbinden auf **polyphonen Aftertouch** (jedes Pad meldet seinen eigenen Druck).
+
+| Was | Wie |
+|---|---|
+| **Loop per Druck zerhacken** (LOOP-Modus) | ein Pad einer laufenden Spur **fester drücken**: der Loop dieser Spur wird zerhackt (Beat Repeat auf dieser Spur) – mehr Druck = schneller, **1/4 → 1/8 → 1/16 → 1/32**. Loslassen (oder weniger Druck) = normale Wiedergabe. Mit Channel Pressure statt polyphonem Aftertouch wirkt es auf das zuletzt gedrückte Pad. |
+| **Druck auf dem XY-Pad** (FX-PAD-Modus) | Pad-Druck = Effektstärke (polyphoner Aftertouch und Channel Pressure). |
+| **Mehr FX auf dem XY-Pad** | im FX-PAD-Modus **SHIFT + obere Taste 1 – 8**: 1 Beat-FX (X = Beat, Y = Pegel) · 2 Color-FX (X = Regler aller Spuren, Y = Typ) · 3 Beat Repeat (X = Timing) · 4 Stutter (X = Timing) · 5 – 8 **Punch-FX** in Dreiergruppen (nochmal drücken = nächster der Gruppe; X / Y = X / Y des Effekts, Druck = Stärke). Das Display zeigt die Auswahl (*XY: Punch 5 Bandstopp*). Obere Tasten ohne SHIFT = wieder die FX-Slots. |
+| **Beat-Blinker + Set-Aufnahme-Pad** (jeder Modus mit freien Spalten, z. B. 5 Spuren) | das **Pad oben rechts** blinkt orange auf jedem Schlag; das **Pad darunter** schaltet die **Set-Aufnahme** (Performance-Rekorder) an / aus – rot, blinkt im Takt, solange sie läuft. |
+| **SHIFT + RECORD** (jeder Spur-Modus, gedacht für 8 Spuren) | Set-Aufnahme an / aus; RECORD allein bleibt CAPTURE. RECORD blinkt im Takt, solange die Set-Aufnahme läuft. |
+| **PLAY** | blinkt im Takt, solange Loops laufen – in jedem Spur-Modus. (Vor 1.6 leuchtete es nur; kein Modus hatte ein Takt-Blinken.) |
+| **Encoder doppelt berühren** | einen Spur-Encoder zweimal schnell berühren (die Encoder von Push 1 sind berührungsempfindlich): die Seite wechselt **Lautstärke → Panorama → Tonhöhe → Feedback → Spurfarbe → Lautstärke**; das Display zeigt die Seite. |
+| **Seite Spurfarbe** | jeder Encoder wählt die Farbe seiner Spur aus der Palette (auto, Rot, Orange, Gelb, Limette, Grün, Mint, Cyan, Himmelblau, Blau, Violett, Magenta, Pink). Die Farbe färbt die Spur in der Oberfläche und die Loop-Positions-Pads; sie wird mit Projekt und Sets gespeichert. |
+| **Controller-Oberfläche** | *SETUP → Controller → Oberfläche: Controller* (solange Push verbunden ist) zeigt eine Zeichnung von Push mit den Live-Pads, Tasten und dem Display – anklickbar. Abziehen = zurück zur Standard-Oberfläche. |
+
+| # | Element (Legende, Fortsetzung) |
+|---|---|
+| 21 | Pad oben rechts (5 Spuren): blinkt auf jedem Schlag |
+| 22 | Pad darunter: Set-Aufnahme an / aus – blinkt während der Aufnahme |
+
 ### FX-PAD-Modus (Taste NOTE)
 
 Die 8 × 8 Pads werden ein **XY-Pad** für einen Effekt: X (links nach rechts) = Parameter 1, Y (unten nach oben) = Parameter 2, **Pad-Druck** = mehr Effekt (vom eigenen Mix des Effekts bis 100 % Effektanteil). Berühren schaltet den Effekt ein. Beim Loslassen **springt er zurück** auf die vorherigen Einstellungen. Halte beim Loslassen **SHIFT**, um den Effekt so zu behalten. Die oberen Tasten 1 – 4 wählen Eingangs-FX A – D, die Tasten 5 – 8 Spur-FX A – D. **SESSION** führt zurück in den LOOP-Modus.

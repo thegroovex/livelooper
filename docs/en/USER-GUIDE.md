@@ -552,6 +552,49 @@ livelooper switches the controller into its programmer / DAW mode while it uses 
 <!-- end v1.6 features -->
 ---
 
+## 39. Punch FX and Send FX (new in 1.6)
+
+The FX panel has a sixth tab, **PUNCH FX**: twelve quick effects you **hold** while you play – like the
+punch-in effects of a pocket sampler. Several at once combine (LOW-PASS + HIGH-PASS = band-pass). Each one
+fades in and out in 5 ms, so nothing clicks.
+
+| # | Punch FX | AMOUNT does | X | Y |
+|---|---|---|---|---|
+| 1 | Pitch Scatter | how far the pitch may drop (0 … −12 semitones) | rate (1/32 … 1/4) | probability |
+| 2 | Slice Swap | how often a slice is swapped | slice size (1/4 … 2 beats) | how far back it reaches |
+| 3 | Grains | grain size | density | spray (position) |
+| 4 | Beat Repeat | repeat length 1/4 → 1/32 (harder = shorter), on the grid | gate | decay |
+| 5 | Tape Stop | how far the tape slows down | stop time | restart time |
+| 6 | Filter Wobble | LFO speed | depth | resonance |
+| 7 | Low-Pass | cutoff down | resonance | drive |
+| 8 | High-Pass | cutoff up | resonance | drive |
+| 9 | Send Throw | pushes the loops into the Send FX | – | – |
+| 10 | Tremolo | speed | depth | shape (sine ↔ square) |
+| 11 | Octave Drop | glides toward −12 semitones (X right: −24) | interval | glide time |
+| 12 | Decimator | bit + sample-rate reduction | bits | sample rate |
+
+- **Pads 1 – 12**: hold = on, release = off. **LATCH**: a press switches an effect on, the next press off.
+- **XY field**: hold the mouse to play the punch FX you clicked last, move for X / Y.
+- **AMOUNT**: how strong. On Push 1 the pad pressure sets it (XY pad, SHIFT + top buttons 5 – 8); on a pad
+  controller with velocity, the velocity.
+- **Target**: where they work – **Loops** (default), **Input**, **Master** (loops + input monitor) or **Drums**.
+
+**SEND FX** (right part of the tab): one send effect on the loops – **Delay** (X length, Y feedback),
+**Reverb** (length, colour), **Distortion** (drive, colour), **Chorus** (modulation, feedback), **Filter**
+(bipolar DJ filter: X left cuts highs, right cuts lows; Y resonance), **Compressor** (drive, speed). **SEND** =
+how much of the loops goes in. Changing the type starts it clean.
+
+Everything is a host parameter and MIDI-mappable: *Punch FX 1 … 12 (Hold)*, *Punch FX Amount / X / Y /
+Target / Latch*, *Send FX Type / X / Y / Amount*.
+
+## 40. Controller view and controllers (new in 1.6)
+
+With a supported controller connected (Ableton Push 1, EP-133 K.O. II – experimental), *SETUP → Controllers →
+GUI* offers **Controller**: instead of the standard surface livelooper shows a drawing of the controller with
+the live looper state on its pads, buttons and display. Click a drawn pad or button to press it.
+*◀ Standard* goes back; unplugging the controller falls back to the standard surface automatically. Push 1:
+see [PUSH.md](PUSH.md); K.O. II: see [KO2.md](KO2.md).
+
 ## Drums, BEATS and sound packs (1.6)
 
 ### Kits
