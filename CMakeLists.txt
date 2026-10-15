@@ -117,6 +117,7 @@ set(LIVELOOPER_PLUGIN_SOURCES
     src/plugin/Updates.cpp
     src/plugin/InfoWindows.cpp
     src/plugin/HelpGuide.cpp
+    src/plugin/SettingsPanel.cpp
     src/plugin/DrumSampleLoader.cpp
     src/plugin/SoundPacks.cpp
     src/plugin/LinkSync.cpp

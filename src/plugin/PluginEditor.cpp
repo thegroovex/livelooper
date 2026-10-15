@@ -5,6 +5,7 @@
 #include "Updates.h"
 #include "GuidedTour.h"   // v1.6
 #include "WelcomeScreen.h" // v1.6
+#include "SettingsPanel.h" // v1.6
 
 namespace livelooper
 {
@@ -338,6 +339,8 @@ LiveLooperEditor::LiveLooperEditor (LiveLooperProcessor& p)
 
 LiveLooperEditor::~LiveLooperEditor()
 {
+    if (settingsWindow != nullptr)      // v1.6
+        delete settingsWindow.getComponent();
     if (clipThread != nullptr)          // v1.6
         clipThread->stopThread (10000);
     proc.onRecordingFinished = nullptr;
@@ -1260,6 +1263,44 @@ void LiveLooperEditor::showMidiMapMenu()
 
 void LiveLooperEditor::showSetupMenu()
 {
+    // v1.6: SETUP opens a settings window (sidebar + grouped rows, generated from the menu below)
+    showSettingsWindow();
+}
+
+std::unique_ptr<juce::Component> LiveLooperEditor::createSettingsPanel (const juce::String& pageName)
+{
+    juce::Component::SafePointer<LiveLooperEditor> safe (this);
+    auto panel = std::make_unique<SettingsPanel> (
+        [safe] (juce::Array<int>& toggles) { return safe != nullptr ? safe->buildSetupMenu (toggles) : juce::PopupMenu(); },
+        [safe] (int r) { if (safe != nullptr) safe->handleSetupResult (r); });
+    panel->setLookAndFeel (&lookAndFeel);
+    if (pageName.isNotEmpty())
+        panel->showPage (pageName);
+    return panel;
+}
+
+void LiveLooperEditor::showSettingsWindow()
+{
+    if (settingsWindow != nullptr)
+    {
+        settingsWindow->toFront (true);
+        return;
+    }
+    juce::DialogWindow::LaunchOptions o;
+    o.dialogTitle = tr ("livelooper setup");
+    o.dialogBackgroundColour = juce::Colour (0xff131318);
+    o.content.setOwned (createSettingsPanel().release());
+    o.componentToCentreAround = this;
+    o.escapeKeyTriggersCloseButton = true;
+    o.useNativeTitleBar = true;
+    o.resizable = true;
+    settingsWindow = o.launchAsync();
+    if (settingsWindow != nullptr)
+        settingsWindow->setResizeLimits (640, 420, 1600, 1400);
+}
+
+juce::PopupMenu LiveLooperEditor::buildSetupMenu (juce::Array<int>& toggles)
+{
     auto& st = proc.getState();
     auto* recAction = dynamic_cast<juce::AudioParameterChoice*> (st.getParameter (gRecAction));
     auto* follow = dynamic_cast<juce::AudioParameterBool*> (st.getParameter (gFollow));
@@ -1398,187 +1439,227 @@ void LiveLooperEditor::showSetupMenu()
                                      : "Plug-in: downloaded and prepared, you install it with your DAW closed"), false);
 
     juce::PopupMenu menu;
-    menu.addSectionHeader (tr ("livelooper setup"));
+    // ---- Sets
+    menu.addSectionHeader (tr ("Sets"));
     menu.addItem (8, tr ("Save set ..."));
     menu.addItem (9, tr ("Load set ..."));
     menu.addSubMenu (tr ("Last used sets"), recentMenu);
     menu.addItem (10, tr ("Export stems (one WAV per track) ..."));
-    menu.addSeparator();
-    addFeatures16Menu (menu);      // v1.6
+    addFeatures16Menu (menu, 0);      // v1.6: shared set, welcome, demo / empty set
+    // ---- Looper
+    menu.addSectionHeader (tr ("Looper"));
     menu.addSubMenu (tr ("Tracks"), tracksMenu);
+    menu.addItem (450, tr ("Track meters"), true, TrackStrip::showMeters);
+    menu.addSubMenu (tr ("Record action"), rec);
+    menu.addSubMenu (tr ("Maximum loop length"), memory);
     menu.addSubMenu (tr ("Capture length"), captureMenu);
     menu.addSubMenu (tr ("Auto record"), autoRecMenu);
     menu.addSubMenu (tr ("Ducking source"), duckMenu);
-    if (proc.hasCueOutput())
-        menu.addSubMenu (tr ("Direct track outputs"), directMenu);
-    if (proc.isPushAvailable())
-        menu.addSubMenu (tr ("Ableton Push"), pushMenu);
-    menu.addSeparator();
-    menu.addSubMenu (tr ("Record action"), rec);
     menu.addItem (3, tr ("Follow host transport (start / stop with the host)"), true, follow->get());
-    menu.addSubMenu (tr ("Maximum loop length"), memory);
     menu.addItem (4, tr ("Save loops with the project"), true, proc.getSaveLoopsWithProject());
+    menu.addItem (7, tr ("Type in tempo (BPM) ..."));
+    // ---- Rhythm
+    menu.addSectionHeader (tr ("Rhythm"));
     menu.addSubMenu (tr ("Metronome sound"), click);
     menu.addSubMenu (tr ("Rhythm groove"), grooveMenu);
     menu.addSubMenu (tr ("Rhythm fills"), fillsMenu);
+    // ---- Recording
+    menu.addSectionHeader (tr ("Recording"));
+    addFeatures16Menu (menu, 1);      // v1.6: performance recorder, clip export
+    // ---- Audio
     if (proc.hasCueOutput())
+    {
+        menu.addSectionHeader (tr ("Audio"));
         menu.addSubMenu (tr ("Cue output (click / rhythm)"), cue);
+        menu.addSubMenu (tr ("Direct track outputs"), directMenu);
+    }
+    // ---- Controllers
+    menu.addSectionHeader (tr ("Controllers"));
+    if (proc.isPushAvailable())
+        menu.addSubMenu (tr ("Ableton Push"), pushMenu);
     if (proc.isKeyboardControlAvailable())
     {
-        menu.addSeparator();
         menu.addItem (5, tr ("Computer keyboard control"), true, proc.getKeyMap().isEnabled());
         menu.addItem (6, tr ("Keyboard mapping ..."));
     }
-    menu.addItem (7, tr ("Type in tempo (BPM) ..."));
-    menu.addSeparator();
+    addFeatures16Menu (menu, 2);      // v1.6: controller templates
+    // ---- Sync
+    menu.addSectionHeader (tr ("Sync"));
     menu.addSubMenu (tr ("Ableton Link"), linkMenu);
+    // ---- App
+    menu.addSectionHeader (tr ("App"));
+    menu.addSubMenu ("Language / Sprache", language);
     menu.addSubMenu (tr ("Settings on start"), startMenu);
     menu.addSubMenu (tr ("Updates"), updateMenu);
-    menu.addSubMenu ("Language / Sprache", language);
-    menu.addSeparator();
     menu.addItem (430, tr ("Help ..."));
+    addFeatures16Menu (menu, 3);      // v1.6: guided tour
     menu.addItem (431, tr ("About livelooper ..."));
 
-    juce::Component::SafePointer<LiveLooperEditor> safe (this);
-    menu.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&setupBtn),
-                        [safe, recAction, follow, lengths, clickSound, captureBars, autoRec, autoRecThresh, duckSource, thresholds,
-                         recent, linkOn, linkStartStop, groove, fills] (int r) {
-        if (safe == nullptr || r == 0)
+    toggles.addArray ({ 3, 4, 5, 120, 140, 400, 401, 421, 422, 450 });
+    return menu;
+}
+
+void LiveLooperEditor::handleSetupResult (int r)
+{
+    if (r == 0)
+        return;
+    if (handleFeatures16Menu (r))      // v1.6
+        return;
+    auto& st = proc.getState();
+    auto* recAction = dynamic_cast<juce::AudioParameterChoice*> (st.getParameter (gRecAction));
+    auto* follow = dynamic_cast<juce::AudioParameterBool*> (st.getParameter (gFollow));
+    const int lengths[] = { 30, 60, 120, 240, 480 };
+    auto* clickSound = dynamic_cast<juce::AudioParameterChoice*> (st.getParameter (gClickSound));
+    auto* groove = dynamic_cast<juce::AudioParameterChoice*> (st.getParameter (gRhythmGroove));
+    auto* fills = dynamic_cast<juce::AudioParameterChoice*> (st.getParameter (gRhythmFills));
+    auto* captureBars = dynamic_cast<juce::AudioParameterChoice*> (st.getParameter (gCaptureBars));
+    auto* autoRec = dynamic_cast<juce::AudioParameterBool*> (st.getParameter (gAutoRec));
+    auto* autoRecThresh = dynamic_cast<juce::AudioParameterFloat*> (st.getParameter (gAutoRecThresh));
+    auto* duckSource = dynamic_cast<juce::AudioParameterChoice*> (st.getParameter (gDuckSource));
+    const std::array<int, 5> thresholds { -50, -40, -30, -20, -12 };
+    const auto recent = appsettings::getRecentSets();
+    auto* linkOn = dynamic_cast<juce::AudioParameterBool*> (st.getParameter (gLinkOn));
+    auto* linkStartStop = dynamic_cast<juce::AudioParameterBool*> (st.getParameter (gLinkStartStop));
+    if (r == 450)
+    {
+        TrackStrip::showMeters = ! TrackStrip::showMeters;
+        appsettings::setValue ("trackMeters", TrackStrip::showMeters ? "1" : "0");
+        for (auto& s : strips)
+            s->resized();
+        surface.repaint();
+        return;
+    }
+    auto setParam = [] (juce::RangedAudioParameter* p, float plain) {
+        p->beginChangeGesture();
+        p->setValueNotifyingHost (p->convertTo0to1 (plain));
+        p->endChangeGesture();
+    };
+    // ---- v1.5
+    if (r >= 500 && r < 500 + groove->choices.size())
+    {
+        setParam (groove, (float) (r - 500));
+        showStatus (tr ("GROOVE: %1", i18n::upper (tr (grooveChoices()[r - 500]))));
+        return;
+    }
+    if (r >= 520 && r < 520 + fills->choices.size())
+    {
+        setParam (fills, (float) (r - 520));
+        showStatus (tr ("FILLS: %1", i18n::upper (tr (fillChoices()[r - 520]))));
+        return;
+    }
+    if (r >= 300 && r < 300 + recent.size())
+    {
+        loadSetFile (juce::File (recent[r - 300]));
+        return;
+    }
+    switch (r)
+    {
+        case 299: appsettings::clearRecentSets(); return;
+        case 400:
+            setParam (linkOn, linkOn->get() ? 0.0f : 1.0f);
+            showStatus (tr (linkOn->get() ? "LINK ON" : "LINK OFF"));
             return;
-        if (safe->handleFeatures16Menu (r))      // v1.6
+        case 401: setParam (linkStartStop, linkStartStop->get() ? 0.0f : 1.0f); return;
+        case 410: appsettings::setStartupMode (appsettings::StartupMode::LastSettings); return;
+        case 411: appsettings::setStartupMode (appsettings::StartupMode::Defaults); return;
+        case 412:
+            proc.applyDefaultSettings();
+            showStatus (tr ("SETTINGS RESET TO DEFAULTS"));
             return;
-        auto setParam = [] (juce::RangedAudioParameter* p, float plain) {
-            p->beginChangeGesture();
-            p->setValueNotifyingHost (p->convertTo0to1 (plain));
-            p->endChangeGesture();
-        };
-        // ---- v1.5
-        if (r >= 500 && r < 500 + groove->choices.size())
-        {
-            setParam (groove, (float) (r - 500));
-            safe->showStatus (tr ("GROOVE: %1", i18n::upper (tr (grooveChoices()[r - 500]))));
-            return;
-        }
-        if (r >= 520 && r < 520 + fills->choices.size())
-        {
-            setParam (fills, (float) (r - 520));
-            safe->showStatus (tr ("FILLS: %1", i18n::upper (tr (fillChoices()[r - 520]))));
-            return;
-        }
-        if (r >= 300 && r < 300 + recent.size())
-        {
-            safe->loadSetFile (juce::File (recent[r - 300]));
-            return;
-        }
-        switch (r)
-        {
-            case 299: appsettings::clearRecentSets(); return;
-            case 400:
-                setParam (linkOn, linkOn->get() ? 0.0f : 1.0f);
-                safe->showStatus (tr (linkOn->get() ? "LINK ON" : "LINK OFF"));
-                return;
-            case 401: setParam (linkStartStop, linkStartStop->get() ? 0.0f : 1.0f); return;
-            case 410: appsettings::setStartupMode (appsettings::StartupMode::LastSettings); return;
-            case 411: appsettings::setStartupMode (appsettings::StartupMode::Defaults); return;
-            case 412:
-                safe->proc.applyDefaultSettings();
-                safe->showStatus (tr ("SETTINGS RESET TO DEFAULTS"));
-                return;
-            case 420: safe->checkForUpdates (true); return;
-            case 421: appsettings::setCheckUpdatesOnStart (! appsettings::getCheckUpdatesOnStart()); return;
-            case 422: appsettings::setAutoInstallUpdates (! appsettings::getAutoInstallUpdates()); return;
-            case 430: safe->showHelp(); return;
-            case 431: safe->showAbout(); return;
-            default: break;
-        }
-        if (r == 10)
-        {
-            safe->exportStems();
-            return;
-        }
-        if (r == 100 || r == 101)
-        {
-            safe->proc.setVisibleTracks (r == 100 ? 5 : 8);
-            return;
-        }
-        if (r >= 110 && r < 110 + kNumCaptureChoices)
-        {
-            setParam (captureBars, (float) (r - 110));
-            return;
-        }
-        if (r == 120)
-        {
-            setParam (autoRec, autoRec->get() ? 0.0f : 1.0f);
-            safe->showStatus (tr (autoRec->get() ? "AUTO REC ON" : "AUTO REC OFF"));
-            return;
-        }
-        if (r >= 121 && r <= 125)
-        {
-            setParam (autoRecThresh, (float) thresholds[(size_t) (r - 121)]);
-            return;
-        }
-        if (r == 140)
-        {
-            safe->proc.setPushEnabled (! safe->proc.isPushEnabled());
-            return;
-        }
-        if (r >= 130 && r < 132)
-        {
-            setParam (duckSource, (float) (r - 130));
-            return;
-        }
-        if (r >= 200 && r < 200 + kNumTracks * 10)
-        {
-            safe->proc.setTrackOutputPair ((r - 200) / 10, (r - 200) % 10);
-            return;
-        }
-        if (r == 1 || r == 2)
-            recAction->setValueNotifyingHost (recAction->convertTo0to1 ((float) (r - 1)));
-        else if (r == 3)
-            follow->setValueNotifyingHost (follow->get() ? 0.0f : 1.0f);
-        else if (r == 4)
-            safe->proc.setSaveLoopsWithProject (! safe->proc.getSaveLoopsWithProject());
-        else if (r == 5)
-        {
-            auto& km = safe->proc.getKeyMap();
-            km.setEnabled (! km.isEnabled());
-            safe->showStatus (tr (km.isEnabled() ? "KEYBOARD CONTROL ON" : "KEYBOARD CONTROL OFF"));
-            if (km.isEnabled())
-                safe->grabKeyboardFocus();
-        }
-        else if (r == 6)
-            KeyMapEditor::show (safe->proc, *safe);
-        else if (r == 7)
-            safe->showTempoEntry();
-        else if (r == 8)
-            safe->saveSet();
-        else if (r == 9)
-            safe->loadSet();
-        else if (r >= 40 && r < 40 + clickSound->choices.size())
-        {
-            clickSound->beginChangeGesture();
-            clickSound->setValueNotifyingHost (clickSound->convertTo0to1 ((float) (r - 40)));
-            clickSound->endChangeGesture();
-            safe->showStatus (tr ("METRONOME: %1", i18n::upper (tr (clickSoundChoices()[r - 40]))));
-        }
-        else if (r >= 50 && r <= 50 + LiveLooperProcessor::kNumCuePairs)
-        {
-            safe->proc.setCuePair (r - 50);
-            safe->showStatus (tr ("CUE: %1", i18n::upper (LiveLooperProcessor::getCuePairName (r - 50))));
-        }
-        else if (r >= 60 && r <= 62)
-            safe->proc.setClickRoute ((ClickRoute) (r - 60));
-        else if (r >= 20 && r < 25)
-        {
-            safe->proc.setMaxLoopSeconds (lengths[r - 20]);
-            safe->showStatus (tr ("MAX LOOP LENGTH %1 S", juce::String (lengths[r - 20])));
-        }
-        else if (r >= 30 && r <= 32)
-        {
-            i18n::setSetting ((i18n::Language) (r - 30));
-            safe->showStatus (tr ("LANGUAGE: ENGLISH"));
-        }
-    });
+        case 420: checkForUpdates (true); return;
+        case 421: appsettings::setCheckUpdatesOnStart (! appsettings::getCheckUpdatesOnStart()); return;
+        case 422: appsettings::setAutoInstallUpdates (! appsettings::getAutoInstallUpdates()); return;
+        case 430: showHelp(); return;
+        case 431: showAbout(); return;
+        default: break;
+    }
+    if (r == 10)
+    {
+        exportStems();
+        return;
+    }
+    if (r == 100 || r == 101)
+    {
+        proc.setVisibleTracks (r == 100 ? 5 : 8);
+        return;
+    }
+    if (r >= 110 && r < 110 + kNumCaptureChoices)
+    {
+        setParam (captureBars, (float) (r - 110));
+        return;
+    }
+    if (r == 120)
+    {
+        setParam (autoRec, autoRec->get() ? 0.0f : 1.0f);
+        showStatus (tr (autoRec->get() ? "AUTO REC ON" : "AUTO REC OFF"));
+        return;
+    }
+    if (r >= 121 && r <= 125)
+    {
+        setParam (autoRecThresh, (float) thresholds[(size_t) (r - 121)]);
+        return;
+    }
+    if (r == 140)
+    {
+        proc.setPushEnabled (! proc.isPushEnabled());
+        return;
+    }
+    if (r >= 130 && r < 132)
+    {
+        setParam (duckSource, (float) (r - 130));
+        return;
+    }
+    if (r >= 200 && r < 200 + kNumTracks * 10)
+    {
+        proc.setTrackOutputPair ((r - 200) / 10, (r - 200) % 10);
+        return;
+    }
+    if (r == 1 || r == 2)
+        recAction->setValueNotifyingHost (recAction->convertTo0to1 ((float) (r - 1)));
+    else if (r == 3)
+        follow->setValueNotifyingHost (follow->get() ? 0.0f : 1.0f);
+    else if (r == 4)
+        proc.setSaveLoopsWithProject (! proc.getSaveLoopsWithProject());
+    else if (r == 5)
+    {
+        auto& km = proc.getKeyMap();
+        km.setEnabled (! km.isEnabled());
+        showStatus (tr (km.isEnabled() ? "KEYBOARD CONTROL ON" : "KEYBOARD CONTROL OFF"));
+        if (km.isEnabled())
+            grabKeyboardFocus();
+    }
+    else if (r == 6)
+        KeyMapEditor::show (proc, *this);
+    else if (r == 7)
+        showTempoEntry();
+    else if (r == 8)
+        saveSet();
+    else if (r == 9)
+        loadSet();
+    else if (r >= 40 && r < 40 + clickSound->choices.size())
+    {
+        clickSound->beginChangeGesture();
+        clickSound->setValueNotifyingHost (clickSound->convertTo0to1 ((float) (r - 40)));
+        clickSound->endChangeGesture();
+        showStatus (tr ("METRONOME: %1", i18n::upper (tr (clickSoundChoices()[r - 40]))));
+    }
+    else if (r >= 50 && r <= 50 + LiveLooperProcessor::kNumCuePairs)
+    {
+        proc.setCuePair (r - 50);
+        showStatus (tr ("CUE: %1", i18n::upper (LiveLooperProcessor::getCuePairName (r - 50))));
+    }
+    else if (r >= 60 && r <= 62)
+        proc.setClickRoute ((ClickRoute) (r - 60));
+    else if (r >= 20 && r < 25)
+    {
+        proc.setMaxLoopSeconds (lengths[r - 20]);
+        showStatus (tr ("MAX LOOP LENGTH %1 S", juce::String (lengths[r - 20])));
+    }
+    else if (r >= 30 && r <= 32)
+    {
+        i18n::setSetting ((i18n::Language) (r - 30));
+        showStatus (tr ("LANGUAGE: ENGLISH"));
+    }
 }
 
 //============================================================================== stems

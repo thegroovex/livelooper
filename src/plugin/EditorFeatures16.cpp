@@ -358,43 +358,50 @@ void LiveLooperEditor::showHelpMenu()
 }
 
 //============================================================================== SETUP menu block
-void LiveLooperEditor::addFeatures16Menu (juce::PopupMenu& menu)
+void LiveLooperEditor::addFeatures16Menu (juce::PopupMenu& menu, int part)
 {
-    menu.addItem (600, tr ("Save set to share (.livelooper, one file with all audio) ..."));
-    menu.addItem (604, tr ("Welcome / demo set ..."));
-    menu.addItem (601, tr ("Load demo set"));
-    menu.addItem (602, tr ("Empty set (clear everything)"));
-    menu.addSeparator();
+    if (part == 0)
+    {
+        menu.addItem (600, tr ("Save set to share (.livelooper, one file with all audio) ..."));
+        menu.addItem (604, tr ("Welcome / demo set ..."));
+        menu.addItem (601, tr ("Load demo set"));
+        menu.addItem (602, tr ("Empty set (clear everything)"));
+        return;
+    }
+    if (part == 1)
+    {
+        juce::PopupMenu rec;
+        rec.addItem (610, proc.isPerformanceRecording() ? tr ("Stop performance recording") : tr ("Start performance recording"));
+        rec.addItem (611, tr ("Show recordings folder"));
+        rec.addItem (612, tr ("Choose recordings folder ..."));
+        rec.addSeparator();
+        rec.addItem (613, PerformanceRecorder::getFolder().getFullPathName(), false);
+        menu.addSubMenu (tr ("Performance recorder"), rec);
 
-    juce::PopupMenu rec;
-    rec.addItem (610, proc.isPerformanceRecording() ? tr ("Stop performance recording") : tr ("Start performance recording"));
-    rec.addItem (611, tr ("Show recordings folder"));
-    rec.addItem (612, tr ("Choose recordings folder ..."));
-    rec.addSeparator();
-    rec.addItem (613, PerformanceRecorder::getFolder().getFullPathName(), false);
-    menu.addSubMenu (tr ("Performance recorder"), rec);
-
-    juce::PopupMenu clipMenu;
-    clipMenu.addItem (620, tr ("Export the last 20 seconds as 9:16 video ..."), clipThread == nullptr);
-    clipMenu.addItem (621, tr ("Export the last performance recording as 9:16 video ..."),
-                      clipThread == nullptr && proc.getRecorder().getLastFile().existsAsFile());
-    menu.addSubMenu (tr ("Clip export 9:16 (Reels, TikTok, Shorts)"), clipMenu);
-
-    juce::PopupMenu ctl;
-    auto* gc = proc.getGridControllers();
-    const auto chosen = gc != nullptr ? gc->getSelection() : controllers::Selection::Automatic;
-    ctl.addItem (638, tr (juce::String::fromUTF8 ("Experimental \xe2\x80\x93 untested on hardware, feedback welcome")), false);
-    ctl.addSeparator();
-    ctl.addItem (630, tr ("Automatic (by MIDI port name)"), gc != nullptr, chosen == controllers::Selection::Automatic);
-    ctl.addItem (631, tr ("Off"), gc != nullptr, chosen == controllers::Selection::Off);
-    for (int i = 0; i < controllers::kNumTemplates; ++i)
-        ctl.addItem (640 + i, controllers::templateName ((controllers::TemplateId) i) + " (" + tr ("experimental") + ")", gc != nullptr,
-                     chosen == (controllers::Selection) ((int) controllers::Selection::First + i));
-    ctl.addSeparator();
-    ctl.addItem (639, gc != nullptr ? gc->getStatusText() : tr ("Off"), false);
-    menu.addSubMenu (tr ("Controller templates (grid controllers, experimental)"), ctl);
+        juce::PopupMenu clipMenu;
+        clipMenu.addItem (620, tr ("Export the last 20 seconds as 9:16 video ..."), clipThread == nullptr);
+        clipMenu.addItem (621, tr ("Export the last performance recording as 9:16 video ..."),
+                          clipThread == nullptr && proc.getRecorder().getLastFile().existsAsFile());
+        menu.addSubMenu (tr ("Clip export 9:16 (Reels, TikTok, Shorts)"), clipMenu);
+        return;
+    }
+    if (part == 2)
+    {
+        juce::PopupMenu ctl;
+        auto* gc = proc.getGridControllers();
+        const auto chosen = gc != nullptr ? gc->getSelection() : controllers::Selection::Automatic;
+        ctl.addItem (630, tr ("Automatic (by MIDI port name)"), gc != nullptr, chosen == controllers::Selection::Automatic);
+        ctl.addItem (631, tr ("Off"), gc != nullptr, chosen == controllers::Selection::Off);
+        for (int i = 0; i < controllers::kNumTemplates; ++i)
+            ctl.addItem (640 + i, controllers::templateName ((controllers::TemplateId) i) + " (" + tr ("experimental") + ")", gc != nullptr,
+                         chosen == (controllers::Selection) ((int) controllers::Selection::First + i));
+        ctl.addSeparator();
+        ctl.addItem (638, tr (juce::String::fromUTF8 ("Experimental \xe2\x80\x93 untested on hardware, feedback welcome")), false);
+        ctl.addItem (639, gc != nullptr ? gc->getStatusText() : tr ("Off"), false);
+        menu.addSubMenu (tr ("Controller templates (grid controllers, experimental)"), ctl);
+        return;
+    }
     menu.addItem (603, tr ("Guided tour (60 seconds)"));
-    menu.addSeparator();
 }
 
 bool LiveLooperEditor::handleFeatures16Menu (int r)

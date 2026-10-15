@@ -94,7 +94,14 @@ public:
     void exportClip (bool fromRecording);
     bool isClipExportRunning() const noexcept { return clipThread != nullptr; }
     void saveSharedSet();
-    void addFeatures16Menu (juce::PopupMenu& menu);
+    /** part 0: sets, 1: recording / clip export, 2: controller templates, 3: guided tour. */
+    void addFeatures16Menu (juce::PopupMenu& menu, int part);
+    /** v1.6 SETUP: the menu structure (section headers = pages of the settings window) and its actions. */
+    juce::PopupMenu buildSetupMenu (juce::Array<int>& toggleIds);
+    void handleSetupResult (int result);
+    /** The settings window (Apple System Settings style); also used by the screenshot tool. */
+    std::unique_ptr<juce::Component> createSettingsPanel (const juce::String& page = {});
+    void showSettingsWindow();
     bool handleFeatures16Menu (int result);
     RecordButton& getPerfRecButton() noexcept { return perfRecBtn; }
     // ---- end v1.6 features
@@ -113,6 +120,7 @@ private:
     double recBlinkStartMs = 0.0, recBlinkBeat0 = 0.0;
     std::unique_ptr<APVTS::ButtonAttachment> perfRecAtt;
     std::unique_ptr<GuidedTour> tour;
+    juce::Component::SafePointer<juce::DialogWindow> settingsWindow;
     std::unique_ptr<WelcomeScreen> welcome;
     void closeWelcome (bool startTourAfter);
     std::unique_ptr<juce::Thread> clipThread;

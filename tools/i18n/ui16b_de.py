@@ -6,6 +6,23 @@ Writes src/plugin/Localisation_UI16b.inc (UTF-8 as escapes, safe for every compi
 import os
 
 T = [
+    # ---- SETUP window, FX tabs
+    ("Sets", "Sets"),
+    ("Looper", "Looper"),
+    ("Rhythm", "Rhythmus"),
+    ("Audio", "Audio"),
+    ("Controllers", "Controller"),
+    ("Sync", "Sync"),
+    ("App", "App"),
+    ("General", "Allgemein"),
+    ("Choose ...", "Auswählen …"),
+    ("Track meters", "Pegelanzeigen pro Spur"),
+    ("REPEAT / STUTTER", "REPEAT / STUTTER"),
+    ("COLOR FX", "COLOR-FX"),
+    ("BEAT FX", "BEAT-FX"),
+    ("Show this group of effects", "Diese Effektgruppe zeigen"),
+    ("Turn COLOR on a track to blend in the chosen effect - centre = off.", "Dreh COLOR an einer Spur, um den gewählten Effekt einzublenden – Mitte = aus."),
+
     # ---- help guide
     ("Guide", "Einstieg"),
     ("Welcome", "Willkommen"),
