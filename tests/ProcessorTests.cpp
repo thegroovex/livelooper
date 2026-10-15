@@ -78,7 +78,8 @@ public:
                                       + 7 + kNumTracks + 6 + 3 + 2 + 2
                                       + kNumTracks * 3 + 2 /* v1.6 features: loop tricks, recorder, clip export */
                                       + 5 + 4 * params::kNumBeatRows
-                                      + 2 /* v1.6 beat library: next / previous */);   // v1.6 rhythm: variation, fill, switch, drum FX routing x 2, BEATS row mute / solo / level / pitch   // v1.5: beat FX + colour type, colour per track, repeat / stutter, metronome, Link   // 8 tracks x (22 + 15 since 1.4), global (+3 rhythm feel since 1.3, +2 tape stop / filter since 1.4), FX
+                                      + 2 /* v1.6 beat library: next / previous */
+                                      + 23 /* v1.6 punch FX (4 send + 12 holds + 5), controller audio mode, resample */);   // v1.6 rhythm: variation, fill, switch, drum FX routing x 2, BEATS row mute / solo / level / pitch   // v1.5: beat FX + colour type, colour per track, repeat / stutter, metronome, Link   // 8 tracks x (22 + 15 since 1.4), global (+3 rhythm feel since 1.3, +2 tape stop / filter since 1.4), FX
             expectEquals (proc.getMidiMap().getNumParams(), ids.size(), "every parameter can be MIDI mapped");
             expect (ids.contains ("t3_recplay") && ids.contains ("allstartstop") && ids.contains ("trD_mix"));
         }
@@ -95,7 +96,14 @@ public:
             expectEquals (ids.indexOf (params::beatRowId (params::kBeatPitch, params::kNumBeatRows - 1)), 462, "rhythm ends at index 462");
             expectEquals (ids.indexOf (params::gBeatLibNext), 463);
             expectEquals (ids.indexOf (params::gBeatLibPrev), 464);
-            expectEquals (ids.size(), 465);
+            expectEquals (ids.indexOf (params::gSfxType), 465, "v1.6 punch FX block starts at index 465 (parameter 466)");
+            expectEquals (ids.indexOf (params::punchHoldId (0)), 469);
+            expectEquals (ids.indexOf (params::punchHoldId (11)), 480);
+            expectEquals (ids.indexOf (params::gPfxLatch), 485);
+            expectEquals (ids.indexOf (params::gCtlAudioMode), 486);
+            expectEquals (ids.indexOf (params::gKo2Resample), 487);
+            expectEquals (ids.size(), params::kNumParameters);
+            expectEquals (ids.size(), 488);
         }
 
         beginTest ("Trigger parameters drive the looper and reset themselves");

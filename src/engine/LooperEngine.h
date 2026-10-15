@@ -4,6 +4,7 @@
 #include "Effects.h"
 #include "LoopTrack.h"
 #include "Performance.h"
+#include "PunchFx.h"
 #include "RhythmGenerator.h"
 
 namespace livelooper
@@ -146,6 +147,13 @@ public:
     const BeatRepeat& getBeatRepeat() const noexcept { return beatRepeat; }
     int getFxTarget() const noexcept { return fxTarget; }
 
+    // ---- v1.6 punch FX (12 momentary effects) and send FX on the loop bus (audio thread, once per block)
+    void setPunchFx (const PunchFxSettings& s, PunchTarget target) noexcept { punchFx.setSettings (s); punchTarget = target; }
+    void setSendFx (const SendFxSettings& s) noexcept { sendFx.setSettings (s); }
+    const PunchFx& getPunchFx() const noexcept { return punchFx; }
+    const SendFx& getSendFx() const noexcept { return sendFx; }
+    PunchTarget getPunchTarget() const noexcept { return punchTarget; }
+
     // ---- commands (audio thread). Executed at the start of the next process() call.
     void queueCommand (Command c, int track = -1, int arg = 0) noexcept;
     /** v1.4 loop bus performance: tape stop depth 0 .. 1, filter -1 (low-pass) .. 0 (off) .. 1 (high-pass). */
@@ -251,6 +259,9 @@ private:
     bool drumsThroughBeatFx = false, drumsThroughRepeat = false;
     std::vector<float> drumL, drumR;
     int fxTarget = 0;
+    PunchFx punchFx;                       // v1.6
+    SendFx sendFx;
+    PunchTarget punchTarget = PunchTarget::Loops;
     std::array<ColorFx, kNumTracks> colorFx;
     std::array<float, kNumTracks> colorAmount {};
     ColorFxType colorType = ColorFxType::Filter;

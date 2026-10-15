@@ -110,7 +110,8 @@ set(LIVELOOPER_ENGINE_SOURCES
     src/engine/RhythmGenerator.cpp
     src/engine/MidiMap.cpp
     src/engine/Performance.cpp
-    src/engine/BeatFx.cpp)
+    src/engine/BeatFx.cpp
+    src/engine/PunchFx.cpp)
 set(LIVELOOPER_PLUGIN_SOURCES
     src/plugin/Localisation.cpp
     src/plugin/AppSettings.cpp

@@ -44,6 +44,8 @@ void LooperEngine::prepare (double newSampleRate, int maxBlockSize, double newMa
     beatRepeat.prepare (sampleRate, 6.0);
     drumBeatFx.prepare (sampleRate, 12.0);
     drumRepeat.prepare (sampleRate, 6.0);
+    punchFx.prepare (sampleRate, maxBlock);      // v1.6 punch FX / send FX
+    sendFx.prepare (sampleRate);
     for (auto& c : colorFx)
         c.prepare (sampleRate);
 
@@ -831,6 +833,8 @@ void LooperEngine::processChunk (const float* inL, const float* inR, float* outL
     inputFx.process (inProcL.data(), inProcR.data(), n, blockPpq, ppqPerSample, bpm);
     if (fxTarget == (int) FxTarget::Input)
         applyPerformanceFx (inProcL.data(), inProcR.data(), n, fxPpq);
+    if (punchTarget == PunchTarget::Input)        // v1.6
+        punchFx.process (inProcL.data(), inProcR.data(), n, fxPpq, ppqPerSample);
 
     std::fill (outL, outL + n, 0.0f);
     std::fill (outR, outR + n, 0.0f);
@@ -865,6 +869,8 @@ void LooperEngine::processChunk (const float* inL, const float* inR, float* outL
         drumRepeat.process (drumL.data(), drumR.data(), n, fxPpq, ppqPerSample);
     if (drumsThroughBeatFx)
         drumBeatFx.process (drumL.data(), drumR.data(), n, fxPpq, ppqPerSample);
+    if (punchTarget == PunchTarget::Drums)        // v1.6
+        punchFx.process (drumL.data(), drumR.data(), n, fxPpq, ppqPerSample);
     metronome.process (clickBuf.data(), clickBuf.data(), n, chunkStartPpq, ppqPerSample,
                        (int) std::lround (measurePpq), running && metronomeOn, nullptr);
     // process() adds to both pointers: they are the same buffer, so halve it again
@@ -985,20 +991,30 @@ void LooperEngine::processChunk (const float* inL, const float* inR, float* outL
     perfFilter.process (loopBusL.data(), loopBusR.data(), n);
     if (fxTarget == (int) FxTarget::Loops)
         applyPerformanceFx (loopBusL.data(), loopBusR.data(), n, fxPpq);
+    // v1.6: punch FX on the loops, then the send FX on the loop bus ("Send Throw" pushes more into it)
+    if (punchTarget == PunchTarget::Loops)
+        punchFx.process (loopBusL.data(), loopBusR.data(), n, fxPpq, ppqPerSample);
+    sendFx.process (loopBusL.data(), loopBusR.data(), n, punchFx.getSendThrow());
 
     const float mon = global.monitorLevel;
     const float master = global.masterLevel;
-    if (fxTarget == (int) FxTarget::Master)
+    const bool monitorInBus = fxTarget == (int) FxTarget::Master || punchTarget == PunchTarget::Master;
+    if (monitorInBus)
     {
-        // v1.5: the master channel of the beat FX = loops + input monitor (the click stays dry)
         for (int i = 0; i < n; ++i)
         {
             loopBusL[(size_t) i] += inProcL[(size_t) i] * mon;
             loopBusR[(size_t) i] += inProcR[(size_t) i] * mon;
         }
+        if (punchTarget == PunchTarget::Master)
+            punchFx.process (loopBusL.data(), loopBusR.data(), n, fxPpq, ppqPerSample);
+    }
+    if (fxTarget == (int) FxTarget::Master)
+    {
+        // v1.5: the master channel of the beat FX = loops + input monitor (the click stays dry)
         applyPerformanceFx (loopBusL.data(), loopBusR.data(), n, fxPpq);
     }
-    const float monMix = fxTarget == (int) FxTarget::Master ? 0.0f : mon;
+    const float monMix = monitorInBus ? 0.0f : mon;
     float pl = 0.0f, pr = 0.0f, pc = 0.0f;
     for (int i = 0; i < n; ++i)
     {

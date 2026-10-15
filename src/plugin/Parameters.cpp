@@ -22,6 +22,11 @@ juce::String beatRowId (const char* what, int row)
     return juce::String (what) + juce::String (row + 1);
 }
 
+juce::String punchHoldId (int index)
+{
+    return juce::String (kPunchHold) + juce::String (index + 1);
+}
+
 juce::String sceneId (int scene)
 {
     return "scene" + juce::String (scene + 1);
@@ -30,7 +35,7 @@ juce::String sceneId (int scene)
 bool isTrigger (const juce::String& id)
 {
     static const juce::StringArray globalTriggers { gAllStartStop, gAllStart, gAllStop, gClearAll, gTap, gCapture,
-                                                    gClipExport /* v1.6 */, gBeatLibNext, gBeatLibPrev };
+                                                    gClipExport /* v1.6 */, gBeatLibNext, gBeatLibPrev, gKo2Resample };
     if (globalTriggers.contains (id))
         return true;
     if (id.startsWith ("scene") && id.substring (5).containsOnly ("0123456789"))
@@ -49,6 +54,8 @@ bool isMomentary (const juce::String& id)
 {
     if (id == gBfxHold || id == gRepeatHold || id == gStutterHold || id == gRhythmFill)
         return true;
+    if (id.startsWith (kPunchHold) && id.substring ((int) strlen (kPunchHold)).containsOnly ("0123456789"))
+        return true;       // v1.6 punch FX: on while held
     if (id.startsWithChar ('t') && id.length() > 3 && id[2] == '_')
     {
         const auto name = id.substring (3);
@@ -70,6 +77,15 @@ juce::StringArray beatFractionChoices() { return { "1/32", "1/16", "1/8", "1/4",
 juce::StringArray repeatRateChoices() { return { "1/2", "1/4", "1/8", "1/16", "1/32" }; }
 juce::StringArray fillChoices() { return { "Off", "Every 4 Bars", "Every 8 Bars" }; }
 juce::StringArray beatSwitchChoices() { return { "Immediately", "Next Beat", "Next Bar" }; }   // v1.6
+juce::StringArray sendFxChoices()
+{
+    juce::StringArray s;
+    for (int i = 0; i < (int) SendFxType::NumTypes; ++i)
+        s.add (getSendFxName ((SendFxType) i));
+    return s;
+}
+juce::StringArray punchTargetChoices() { return { "Loops", "Input", "Master", "Drums" }; }
+juce::StringArray ctlAudioModeChoices() { return { "Controller only", "Record controller audio" }; }
 
 juce::StringArray grooveChoices()
 {
@@ -189,7 +205,12 @@ namespace
         { "rhythm_variation", "Drum Variation" }, { "rhythm_fill", "Fill (hold)" }, { "beat_switch", "Pattern Switch" },
         { "drums_bfx", "Drums through Beat FX" }, { "drums_repeat", "Drums through Repeat/Stutter" },
         // v1.6 beat library
-        { "beat_lib_next", "Next Library Beat" }, { "beat_lib_prev", "Previous Library Beat" }
+        { "beat_lib_next", "Next Library Beat" }, { "beat_lib_prev", "Previous Library Beat" },
+        // v1.6 punch FX / send FX / controller
+        { "sfx_type", "Send FX Type" }, { "sfx_x", "Send FX X" }, { "sfx_y", "Send FX Y" }, { "sfx_level", "Send FX Amount" },
+        { "pfx_amount", "Punch FX Amount" }, { "pfx_x", "Punch FX X" }, { "pfx_y", "Punch FX Y" },
+        { "pfx_target", "Punch FX Target" }, { "pfx_latch", "Punch FX Latch" },
+        { "ctl_audio_mode", "Controller Audio" }, { "ko2_resample", "Resample Controller Pattern" }
     };
 
     template <size_t N>
@@ -212,6 +233,9 @@ namespace
             return t (g);
         if (paramId.startsWith ("scene") && paramId.substring (5).containsOnly ("0123456789"))
             return t2 ("Scene %1", paramId.substring (5), {});
+        // v1.6 punch FX holds
+        if (paramId.startsWith (kPunchHold) && paramId.substring ((int) strlen (kPunchHold)).containsOnly ("0123456789"))
+            return t2 ("Punch FX %1 (Hold)", paramId.substring ((int) strlen (kPunchHold)), {});
         // v1.6 BEATS rows
         for (auto [prefix, text] : { std::pair<const char*, const char*> { kBeatMute, "Beat Row %1 Mute" }, { kBeatSolo, "Beat Row %1 Solo" },
                                      { kBeatVol, "Beat Row %1 Level" }, { kBeatPitch, "Beat Row %1 Pitch" } })
@@ -471,6 +495,30 @@ APVTS::ParameterLayout createLayout()
         auto group = std::make_unique<juce::AudioProcessorParameterGroup> ("beatlib", i18n::tr ("Beat Library"), "|");
         for (const auto& id : { gBeatLibNext, gBeatLibPrev })
             group->addChild (std::make_unique<juce::AudioParameterBool> (PID { id, 7 }, localisedName (id), false));
+        layout.add (std::move (group));
+    }
+
+    // ---------------------------------------------------------------- v1.6 punch FX, send FX, controller audio (appended)
+    {
+        auto group = std::make_unique<juce::AudioProcessorParameterGroup> ("punchfx", i18n::tr ("Punch FX"), "|");
+        auto pct = [] (const juce::String& id, float def) { return percentParam (id, localisedName (id), 1.0f, def, 8); };
+        group->addChild (std::make_unique<juce::AudioParameterChoice> (PID { gSfxType, 8 }, localisedName (gSfxType), translated (sendFxChoices()), 0));
+        group->addChild (pct (gSfxX, 0.5f));
+        group->addChild (pct (gSfxY, 0.5f));
+        group->addChild (pct (gSfxLevel, 0.3f));
+        for (int i = 0; i < kNumPunchHolds; ++i)
+            group->addChild (std::make_unique<juce::AudioParameterBool> (PID { punchHoldId (i), 8 }, localisedName (punchHoldId (i)), false));
+        group->addChild (pct (gPfxAmount, 0.7f));
+        group->addChild (pct (gPfxX, 0.5f));
+        group->addChild (pct (gPfxY, 0.5f));
+        group->addChild (std::make_unique<juce::AudioParameterChoice> (PID { gPfxTarget, 8 }, localisedName (gPfxTarget), translated (punchTargetChoices()), 0));
+        group->addChild (std::make_unique<juce::AudioParameterBool> (PID { gPfxLatch, 8 }, localisedName (gPfxLatch), false));
+        layout.add (std::move (group));
+    }
+    {
+        auto group = std::make_unique<juce::AudioProcessorParameterGroup> ("controller", i18n::tr ("Controller"), "|");
+        group->addChild (std::make_unique<juce::AudioParameterChoice> (PID { gCtlAudioMode, 8 }, localisedName (gCtlAudioMode), translated (ctlAudioModeChoices()), 0));
+        group->addChild (std::make_unique<juce::AudioParameterBool> (PID { gKo2Resample, 8 }, localisedName (gKo2Resample), false));
         layout.add (std::move (group));
     }
 

@@ -2,6 +2,7 @@
 
 #include "engine/BeatFx.h"
 #include "engine/Effects.h"
+#include "engine/PunchFx.h"
 #include "engine/MidiMap.h"
 
 #include <juce_audio_processors/juce_audio_processors.h>
@@ -135,6 +136,27 @@ juce::StringArray beatSwitchChoices();
 // ---- v1.6 beat library (appended after the rhythm block): step through the saved beats (Music/livelooper/Patterns)
 inline const juce::String gBeatLibNext { "beat_lib_next" };   // trigger: next beat of the library
 inline const juce::String gBeatLibPrev { "beat_lib_prev" };   // trigger: previous beat of the library
+
+// ---- v1.6 punch FX / send FX / controller audio (appended after the beat library; ids never change)
+inline const juce::String gSfxType      { "sfx_type" };       // send FX type (Off, Delay, Reverb, ...)
+inline const juce::String gSfxX         { "sfx_x" };
+inline const juce::String gSfxY         { "sfx_y" };
+inline const juce::String gSfxLevel     { "sfx_level" };      // send amount from the loop bus
+inline constexpr int kNumPunchHolds = 12;
+inline constexpr const char* kPunchHold = "pfx_hold";         // "pfx_hold1" .. "pfx_hold12": momentary
+juce::String punchHoldId (int index);                         // 0 .. 11
+inline const juce::String gPfxAmount    { "pfx_amount" };     // pressure / velocity write it
+inline const juce::String gPfxX         { "pfx_x" };
+inline const juce::String gPfxY         { "pfx_y" };
+inline const juce::String gPfxTarget    { "pfx_target" };     // Loops, Input, Master, Drums
+inline const juce::String gPfxLatch     { "pfx_latch" };      // on: a press switches a punch FX on / off
+inline const juce::String gCtlAudioMode { "ctl_audio_mode" }; // Controller only / Record controller audio (K.O. II)
+inline const juce::String gKo2Resample  { "ko2_resample" };   // trigger: resample the controller's pattern into a free track
+juce::StringArray sendFxChoices();
+juce::StringArray punchTargetChoices();
+juce::StringArray ctlAudioModeChoices();
+// ---- end v1.6 punch FX
+inline constexpr int kNumParameters = 488;
 
 inline constexpr int kNumScenes = 8;
 inline constexpr int kCaptureBars[] = { 1, 2, 4, 8, 16, 32 };   // 16 / 32 since 1.5 (appended)
