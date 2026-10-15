@@ -45,8 +45,13 @@ private:
     void timerCallback() override;
     void paintKo2 (juce::Graphics&, juce::Rectangle<float> area);
     void paintPush (juce::Graphics&, juce::Rectangle<float> area);
-    juce::Rectangle<float> ko2PadRect (int offset) const;
-    juce::Rectangle<float> ko2TabRect (int group) const;
+    juce::Rectangle<float> ko2PadRect (int offset) const;         // the pad on the drawn device
+    juce::Rectangle<float> ko2MapPadRect (int offset) const;      // the same pad in the large pad map beside it
+    juce::Rectangle<float> ko2TabRect (int group) const;          // page list (A - D) beside the device
+    juce::Rectangle<float> ko2GroupRect (int group) const;        // the group button A - D on the drawn device
+    /** Reference geometry (as on a photo of the real device) -> view coordinates. */
+    juce::Rectangle<float> koRef (float x, float y, float w, float h) const;
+    juce::Rectangle<float> pushRef (float x, float y, float w, float h) const;
     juce::Rectangle<float> pushPadRect (int row, int col) const;
     juce::Rectangle<float> pushButtonRect (int cc) const;
     juce::Colour ko2PadColour (int group, int offset, bool& active) const;
@@ -57,8 +62,9 @@ private:
     Device device = Device::Ko2;
     int viewPage = -1;
     juce::Rectangle<float> deviceArea, backButton, switchButton;
-    juce::Rectangle<float> ko2Body, ko2Display, ko2Grid, ko2Tabs;
+    juce::Rectangle<float> ko2Body, ko2Display, ko2Grid, ko2Tabs, ko2Map;
     juce::Rectangle<float> pushBody, pushGrid, pushDisplay;
+    float koScale = 1.0f, pushScale = 1.0f;
     int pressedNote = -1, pressedCC = -1;
 };
 } // namespace livelooper

@@ -6,6 +6,15 @@ Writes src/plugin/Localisation_KO2.inc (UTF-8 as escapes, safe for every compile
 import os
 
 T = [
+    # v1.6 Controller GUI (Push 1 / K.O. II drawn from photos of the real devices)
+    ("Hatched: sends no MIDI - not used by livelooper", "Schraffiert: sendet kein MIDI \u2013 von livelooper nicht genutzt"),
+    ("BEAT - / +", "BEAT - / +"),
+    ("PATTERN - / +", "PATTERN - / +"),
+    ("BEAT -", "BEAT -"), ("BEAT +", "BEAT +"), ("PATTERN -", "PATTERN -"), ("PATTERN +", "PATTERN +"),
+    ("PITCH -", "TON -"), ("PITCH +", "TON +"),
+    ("BFX ON", "BFX AN"), ("BFX HOLD", "BFX HALTEN"),
+    ("REPEAT", "REPEAT"), ("STUTTER", "STUTTER"), ("MUTE", "STUMM"), ("SOLO", "SOLO"), ("SELECT", "AUSWAHL"),
+    ("USER", "USER"), ("ALL START", "ALLE START"), ("TAPE STOP", "BANDSTOPP"),
     # ---- parameters, choices
     ("Punch FX", "Punch-FX"), ("Controller", "Controller"),
     ("Send FX Type", "Send-FX-Typ"), ("Send FX X", "Send-FX X"), ("Send FX Y", "Send-FX Y"), ("Send FX Amount", "Send-FX-Anteil"),
@@ -87,7 +96,7 @@ T = [
     ("Group buttons A - D: the pages", "Gruppentasten A – D: die Seiten"),
     ("Group C: the 12 punch FX - hit harder for more", "Gruppe C: die 12 Punch-FX – fester anschlagen = stärker"),
     ("Group D: '.' + ENTER held 1 s = Controller only / Record K.O. II", "Gruppe D: '.' + ENTER 1 s halten = Nur Controller / K.O. II aufnehmen"),
-    ("Knobs, fader and FX button send no MIDI", "Regler, Fader und FX-Taste senden kein MIDI"),
+    ("Hatched: knobs, fader and function buttons send no MIDI - not used", "Schraffiert: Regler, Fader und Funktionstasten senden kein MIDI - nicht genutzt"),
     ("Display: shows nothing from livelooper - the screen mirrors it", "Display: zeigt nichts von livelooper – der Bildschirm spiegelt ihn"),
     ("Top-right pad (5 tracks): flashes on every beat", "Pad oben rechts (5 Spuren): blinkt auf jedem Schlag"),
     ("Pad below it: set recording on / off - blinks while recording", "Pad darunter: Set-Aufnahme an / aus – blinkt während der Aufnahme"),

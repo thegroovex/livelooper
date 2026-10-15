@@ -14,7 +14,7 @@ K.O. II in die Loops auf – livelooper ist dabei der Clock-Master.
 1 Gruppe A, Pads 1 – 8: REC / PLAY / DUB Spur 1 – 8 · 2 Pad 9: alle Start / Stop – ENTER: Capture ·
 3 `.`: Stop (halten: löschen) – `0`: Rückgängig (halten: Wiederholen) · 4 Gruppentasten A – D: die Seiten ·
 5 Gruppe C: die 12 Punch-FX – fester anschlagen = stärker · 6 Gruppe D: `.` + ENTER 1 s halten = Nur Controller / K.O. II aufnehmen ·
-7 Regler, Fader und FX-Taste senden kein MIDI · 8 das Display zeigt nichts von livelooper – der Bildschirm spiegelt ihn
+7 Regler, Fader und Funktionstasten (schraffiert) senden kein MIDI – nur die 12 Pads (auf der mit den Gruppentasten A – D gewählten Seite) und PLAY (Start / Stop) kommen bei livelooper an · 8 das Display zeigt nichts von livelooper – der Bildschirm spiegelt ihn
 (dasselbe Bild steht in der Hilfe der App: **?** → *K.O. II*)
 
 ## 1. Was geht – und was nicht

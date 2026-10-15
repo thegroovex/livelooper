@@ -103,7 +103,7 @@ namespace
                 "Group buttons A - D: the pages",
                 "Group C: the 12 punch FX - hit harder for more",
                 "Group D: '.' + ENTER held 1 s = Controller only / Record K.O. II",
-                "Knobs, fader and FX button send no MIDI",
+                "Hatched: knobs, fader and function buttons send no MIDI - not used",
                 "Display: shows nothing from livelooper - the screen mirrors it" } },
         };
         return defs;

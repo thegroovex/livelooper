@@ -14,7 +14,7 @@ into the loops, with livelooper as the clock master.
 1 group A pads 1 – 8: REC / PLAY / DUB track 1 – 8 · 2 pad 9: all start / stop – ENTER: capture ·
 3 `.`: stop (hold: clear) – `0`: undo (hold: redo) · 4 group buttons A – D: the pages ·
 5 group C: the 12 punch FX – hit harder for more · 6 group D: `.` + ENTER held 1 s = Controller only / Record K.O. II ·
-7 knobs, fader and FX button send no MIDI · 8 the display shows nothing from livelooper – the screen mirrors it
+7 knobs, fader and the function buttons (hatched) send no MIDI – only the 12 pads (on the page chosen with the group buttons A – D) and PLAY (start / stop) reach livelooper · 8 the display shows nothing from livelooper – the screen mirrors it
 (the same picture is in the in-app help: **?** → *K.O. II*)
 
 ## 1. What works – and what doesn't
