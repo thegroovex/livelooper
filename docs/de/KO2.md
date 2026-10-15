@@ -106,7 +106,7 @@ Poly-Aftertouch noch Kanal-Druck, nur Note-on + Anschlagstärke –, festeres Dr
 ändert also von sich aus nichts. Darum lässt livelooper die Stärke ansteigen, solange du ein Punch-Pad hältst:
 sie **beginnt bei der Anschlagstärke und steigt bis 100 %** innerhalb der **Rampenzeit** und geht beim
 Loslassen auf die Anschlagstärke zurück. Ein neuer Schlag auf ein gehaltenes Pad setzt eine neue Startstärke.
-Rampenzeit: *SETUP → Controller → K.O. II → Punch-Pads: halten = stärker* – **Aus / 1 Schlag / 2 Schläge
+Rampenzeit: *SETUP → Controller → K.O. II → Halten = stärker (Punch-Pads)* – **Aus / 1 Schlag / 2 Schläge
 (Standard) / 1 Takt** (folgt dem Tempo), auch als Host-Parameter **Punch-FX Halte-Rampe** (`pfx_hold_ramp`,
 per MIDI zuweisbar). Die aktuelle Stärke zeigen das PUNCH-FX-Feld (*HALTEN 83 %* mit Balken, der
 STÄRKE-Regler bewegt sich mit) und das Display der Controller-Oberfläche. Sollte eine künftige
@@ -223,7 +223,7 @@ Noten 36 – 67 – genau die Gruppen A – C des K.O. II; der K.O. II braucht s
 | Der K.O. II folgt dem Tempo nicht | 101 (Clock-Eingang) einstellen; *Clock an K.O. II senden* prüfen |
 | Rückkopplung im Aufnahme-Modus | K.O.-II-Einstellung 510 statt 511; *K.O.-II-Audioausgang: Computer* |
 | Metronom / frühere Loops sind in der neuen Aufnahme | *SETUP → Controller → K.O. II → K.O.-II-Audioausgang: Computer*; Plug-in: DAW-Ausgang nicht auf dem K.O. II, Eingangs-Monitoring aus |
-| Punch-FX-Stärke ändert sich nur bei einem neuen Schlag | der K.O. II sendet keinen Pad-Druck – Pad halten: *Punch-Pads: halten = stärker* (nicht *Aus*) |
+| Punch-FX-Stärke ändert sich nur bei einem neuen Schlag | der K.O. II sendet keinen Pad-Druck – Pad halten: *Halten = stärker (Punch-Pads)* (nicht *Aus*) |
 
 ## 10. Hardware-Testliste (bitte durchgehen und melden, OS 2.5.1)
 

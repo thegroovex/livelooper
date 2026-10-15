@@ -496,7 +496,7 @@ void LiveLooperEditor::addControllerMenu (juce::PopupMenu& menu, juce::Array<int
         const char* const names[] = { "Off", "1 beat", "2 beats", "1 bar" };
         for (int i = 0; i < 4; ++i)
             ramp.addItem (763 + i, tr (names[i]), true, cur == i);
-        k.addSubMenu (tr ("Punch pads: hold to intensify"), ramp);
+        k.addSubMenu (tr ("Hold to intensify (punch pads)"), ramp);
     }
     k.addSeparator();
     const int groups = proc.getKo2Groups() < 0 ? ko2::defaultGroups (record ? ko2::Role::Record : ko2::Role::Controller) : proc.getKo2Groups();

@@ -113,7 +113,7 @@ T = [
     ("Role", "Rolle"),
     ("Computer (default)", "Computer (Standard)"),
     ("K.O. II audio output", "K.O.-II-Audioausgang"),
-    ("Punch pads: hold to intensify", "Punch-Pads: halten = st\u00e4rker"),
+    ("Hold to intensify (punch pads)", "Halten = st\u00e4rker (Punch-Pads)"),
     ("1 beat", "1 Schlag"), ("2 beats", "2 Schl\u00e4ge"),
     ("HOLD", "HALTEN"),
     ("Punch FX Hold Ramp", "Punch-FX Halte-Rampe"),

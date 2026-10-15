@@ -261,6 +261,12 @@ int main (int argc, char* argv[])
                     sp->showPage (i18n::tr ("Controllers"));
                     juce::MessageManager::getInstance()->runDispatchLoopUntil (80);
                     save (*sp, outDir.getChildFile ("livelooper-setup-controllers" + sfx + ".png"));
+                    // the whole page (K.O. II audio output, hold to intensify, notes)
+                    const auto size = sp->getBounds();
+                    sp->setSize (size.getWidth(), 1500);
+                    juce::MessageManager::getInstance()->runDispatchLoopUntil (80);
+                    save (*sp, outDir.getChildFile ("livelooper-setup-controllers-full" + sfx + ".png"));
+                    sp->setBounds (size);
                 }
             }
             appsettings::setValue ("gui.layout", "controller");

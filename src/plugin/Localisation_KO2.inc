@@ -187,7 +187,7 @@
         { "Role", "Rolle" },
         { "Computer (default)", "Computer (Standard)" },
         { "K.O. II audio output", "K.O.-II-Audioausgang" },
-        { "Punch pads: hold to intensify", "Punch-Pads: halten = st\xc3" "\xa4" "rker" },
+        { "Hold to intensify (punch pads)", "Halten = st\xc3" "\xa4" "rker (Punch-Pads)" },
         { "1 beat", "1 Schlag" },
         { "2 beats", "2 Schl\xc3" "\xa4" "ge" },
         { "HOLD", "HALTEN" },

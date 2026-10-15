@@ -104,7 +104,7 @@ Several pads at once combine (low-pass + high-pass = band-pass). The effects are
 and no channel pressure, only note on + velocity – so pressing a held pad harder changes nothing on its own.
 livelooper therefore ramps the amount while you hold a punch pad: it **starts at the hit velocity and rises to
 100 %** over the **ramp time**, and goes back to the hit amount when you let go. A new hit while a pad is held
-sets a new start amount. Ramp time: *SETUP → Controllers → K.O. II → Punch pads: hold to intensify* –
+sets a new start amount. Ramp time: *SETUP → Controllers → K.O. II → Hold to intensify (punch pads)* –
 **Off / 1 beat / 2 beats (default) / 1 bar** (follows the tempo), also the host parameter **Punch FX Hold Ramp**
 (`pfx_hold_ramp`, MIDI-mappable). The live amount shows in the PUNCH FX panel (*HOLD 83 %* with a bar, the
 AMOUNT knob moves) and on the display of the Controller GUI. Should a future K.O. II firmware send poly
@@ -216,7 +216,7 @@ K.O. II's groups A – C – the K.O. II does not need it.
 | The K.O. II does not follow the tempo | set 101 (clock in); check *Send clock to K.O. II* |
 | Feedback in Record mode | K.O. II setting 510 instead of 511; *K.O. II audio output: Computer* |
 | Metronome / earlier loops are in the new recording | *SETUP → Controllers → K.O. II → K.O. II audio output: Computer*; plug-in: DAW output not on the K.O. II, input monitoring off |
-| Punch FX amount changes only on a new hit | the K.O. II sends no pad pressure – hold the pad: *Punch pads: hold to intensify* (not *Off*) |
+| Punch FX amount changes only on a new hit | the K.O. II sends no pad pressure – hold the pad: *Hold to intensify (punch pads)* (not *Off*) |
 
 ## 10. Hardware test list (please run and report, OS 2.5.1)
 

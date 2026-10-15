@@ -161,7 +161,7 @@ public:
             // German
             const auto prev = i18n::getSetting();
             i18n::setSetting (i18n::Language::German, false);
-            for (auto s : { "K.O. II audio output", "Computer (default)", "Punch pads: hold to intensify", "1 beat", "2 beats", "HOLD", "Role",
+            for (auto s : { "K.O. II audio output", "Computer (default)", "Hold to intensify (punch pads)", "1 beat", "2 beats", "HOLD", "Role",
                             "K.O. II: input from the K.O. II, output on %1" })
                 expect (i18n::germanFor (s).isNotEmpty(), juce::String ("German for ") + s);
             toggles.clear();
