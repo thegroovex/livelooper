@@ -248,6 +248,7 @@ LiveLooperProcessor::LiveLooperProcessor (bool withCueOutput, bool withTrackOutp
     pfxTarget = apvts.getRawParameterValue (gPfxTarget);
     pfxLatch  = apvts.getRawParameterValue (gPfxLatch);
     ctlAudioMode = apvts.getRawParameterValue (gCtlAudioMode);
+    pfxHoldRamp = apvts.getRawParameterValue (gPfxHoldRamp);
 
     keyboardAvailable = wrapperType == wrapperType_Standalone;
     if (wrapperType != wrapperType_Undefined)      // a real host or the standalone app (not the unit tests)
@@ -2133,6 +2134,37 @@ int LiveLooperProcessor::getKo2EffectiveOffsetSamples() const
     if (ms >= 0)
         return juce::roundToInt (ms * 0.001 * currentSampleRate);
     return getLatencySamples() + currentBlockSize;     // automatic: what the host / device reports + one block
+}
+
+int LiveLooperProcessor::getKo2AudioOutput() const    { return appsettings::getValue ("ko2.audioOut", "computer") == "ko2" ? 1 : 0; }
+void LiveLooperProcessor::setKo2AudioOutput (int where)
+{
+    if (where == getKo2AudioOutput())
+        return;
+    appsettings::setValue ("ko2.audioOut", where == 1 ? "ko2" : "computer");
+    // already recording the K.O. II: the standalone app moves the output now
+    if (lastAudioRecord == 1 && onControllerAudioChanged)
+        onControllerAudioChanged (true);
+}
+
+int LiveLooperProcessor::getPunchHoldRamp() const noexcept
+{
+    return pfxHoldRamp != nullptr ? juce::jlimit (0, 3, juce::roundToInt (pfxHoldRamp->load())) : 2;
+}
+
+void LiveLooperProcessor::setPunchHoldRamp (int index)
+{
+    if (auto* p = apvts.getParameter (gPfxHoldRamp))
+    {
+        p->beginChangeGesture();
+        p->setValueNotifyingHost (p->convertTo0to1 ((float) juce::jlimit (0, 3, index)));
+        p->endChangeGesture();
+    }
+}
+
+float LiveLooperProcessor::getKo2LivePunchAmount() const noexcept
+{
+    return ko2Device != nullptr && isKo2Connected() ? ko2Device->getLivePunchAmount() : -1.0f;
 }
 
 void LiveLooperProcessor::postControllerNotice (const juce::String& text)

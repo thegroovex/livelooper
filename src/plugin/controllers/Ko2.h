@@ -20,8 +20,8 @@ namespace livelooper { class LiveLooperProcessor; }
     the feedback is on screen (header chip, Controller GUI).
 
     Roles: "Controller only" (pads control livelooper, audio unchanged) or "Record K.O. II"
-    (standalone: audio in / out switched to the K.O. II's USB stereo pair, only group D controls
-    livelooper by default). livelooper is the clock master: it sends MIDI clock, start (on a bar)
+    (standalone: audio input switched to the K.O. II's USB stereo pair, output stays on the computer,
+    only group D controls livelooper by default). livelooper is the clock master: it sends MIDI clock, start (on a bar)
     and stop to the K.O. II (set it to clock in, system setting 101).
 
     Everything except Ko2Device is pure (no I/O) and tested without hardware.
@@ -33,6 +33,39 @@ namespace livelooper::ko2
 bool matchesName (const juce::String& deviceName);
 /** Index of the port to use among the names (prefers "... MIDI 1"), -1 when none matches. */
 int pickPort (const juce::StringArray& names);
+
+//============================================================================== audio (standalone, Record K.O. II)
+/** Where livelooper's output goes while the K.O. II is recorded. */
+enum class AudioOutput : int { Computer = 0, Ko2 = 1 };
+
+/** Input and output device names for "Record K.O. II" within one audio device type. */
+struct AudioRoute
+{
+    juce::String input, output;     // output empty = no output device (none other than the K.O. II exists)
+    bool ok = false;                // false: no K.O. II input in this device type
+};
+
+/**
+    Picks the devices for "Record K.O. II": the input is always the K.O. II, the output stays on the
+    computer (the output used before, else the system default, else the first output that is not
+    the K.O. II) - otherwise livelooper's output (metronome, loops) would go into the K.O. II and come
+    back on its USB input, i.e. be recorded again. Only with AudioOutput::Ko2 the output is the K.O. II.
+    Pure (tested): ins / outs = the device names of one device type, defaultOutput = its default index.
+*/
+AudioRoute chooseAudioRoute (const juce::StringArray& ins, const juce::StringArray& outs,
+                             const juce::String& previousOutput, int defaultOutput, AudioOutput mode);
+
+//============================================================================== hold to intensify
+/**
+    The K.O. II sends no pad pressure (no poly / channel aftertouch, only note on + velocity). So a
+    held punch pad ramps the amount from the hit velocity up to 100 % (Off / 1 beat / 2 beats / 1 bar);
+    a note off lets it go. Pressure messages, should a future firmware send them, drive the amount instead.
+*/
+enum class HoldRamp : int { Off = 0, OneBeat = 1, TwoBeats = 2, OneBar = 3 };
+/** Ramp length in beats (quarter notes); 0 = off. */
+double holdRampBeats (HoldRamp r, double measurePpq) noexcept;
+/** Amount after holding for heldMs at bpm: from base up to 1 over rampBeats (0 = stays at base). */
+float holdRampAmount (float base, double heldMs, double bpm, double rampBeats) noexcept;
 
 //============================================================================== pads
 inline constexpr int kFirstNote = 36, kLastNote = 83, kPadsPerGroup = 12, kNumGroups = 4;
@@ -89,9 +122,16 @@ public:
     int  getGroups() const noexcept { return groups; }
     bool isControlGroup (int group) const noexcept { return (groups >> group) & 1; }
     void setNumTracks (int n) noexcept { numTracks = juce::jlimit (1, 8, n); }
+    void setHoldRamp (HoldRamp r) noexcept { holdRamp = r; }
+    HoldRamp getHoldRamp() const noexcept { return holdRamp; }
 
     /** A pad note (any channel). Appends what to do now. */
     void handleNote (int note, int velocity, bool on, juce::uint32 nowMs, std::vector<Action>& out);
+    /** Poly aftertouch (note >= 0) or channel pressure (note = -1), value 0 - 127: drives the held punch FX amount. */
+    void handlePressure (int note, int value, juce::uint32 nowMs);
+    /** Live amount (0 - 1) of the held punch pads (hold ramp / pressure), -1 while no punch pad is held. */
+    float livePunchAmount (juce::uint32 nowMs, double bpm, double measurePpq) const noexcept;
+    bool isPunchHeld() const noexcept { return punch.count > 0; }
     /** Timed gestures (holds); call regularly. */
     void update (juce::uint32 nowMs, std::vector<Action>& out);
     /** All pads up (disconnect). */
@@ -116,6 +156,10 @@ private:
     int numTracks = 8;
     int page = -1, lastTrack = 0;
     bool keysWarning = false, chordDone = false;
+    HoldRamp holdRamp = HoldRamp::TwoBeats;
+    struct PunchHold { int count = 0, velocity = 0, pressure = -1; juce::uint32 since = 0; bool pressureSeen = false; };
+    PunchHold punch;
+    void punchPressed (int velocity, juce::uint32 now) noexcept;
     bool compact (int group) const noexcept { return role == Role::Record && group == 3; }
     void press (int group, int offset, int velocity, juce::uint32 now, std::vector<Action>& out);
     void release (int group, int offset, juce::uint32 now, std::vector<Action>& out);
@@ -160,6 +204,8 @@ public:
     bool isConfirmed() const noexcept { return confirmed.load(); }
     bool isClockRunning() const noexcept { return clock.isStarted(); }
     Controller& getController() noexcept { return controller; }
+    /** Live punch FX amount from the held pads (hold ramp / pressure), -1 while none is held. */
+    float getLivePunchAmount() const noexcept { return liveAmount.load(); }
 
     void setClockOut (bool on) noexcept { clockOut.store (on); }
     bool getClockOut() const noexcept { return clockOut.load(); }
@@ -184,6 +230,7 @@ private:
     void disconnect();
     void processIncoming();
     void handle (const juce::MidiMessage& m);
+    void updatePunchAmount (juce::uint32 now);
 
     LiveLooperProcessor& proc;
     Controller controller;
@@ -193,6 +240,7 @@ private:
     juce::CriticalSection outputLock;
     juce::String inputId, deviceName, lastActionText;
     std::atomic<bool> confirmed { false }, clockOut { true };
+    std::atomic<float> liveAmount { -1.0f };
     int channel = 0;
     bool simulated = false;
     int ticks = 0;

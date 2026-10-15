@@ -62,7 +62,7 @@ public:
         juce::Component::addAndMakeVisible (settingsButton);
         resized();
         startTimer (1000);
-        // v1.6 K.O. II "Record" role: audio in / out to the K.O. II's USB stereo pair, back on unplug
+        // v1.6 K.O. II "Record" role: audio input from the K.O. II (output stays on the computer), back on unplug
         if (auto* p = dynamic_cast<LiveLooperProcessor*> (getAudioProcessor()))
             p->onControllerAudioChanged = [this] (bool record) { switchKo2Audio (record); };
     }
@@ -126,6 +126,11 @@ private:
 
     void switchKo2Audio (bool record)
     {
+        // Record K.O. II: the K.O. II is the INPUT only. The output stays on the computer (the output
+        // used before), so the metronome and the loops are not sent into the K.O. II and recorded again
+        // from its USB input. Only "K.O. II audio output: K.O. II" (SETUP > Controllers) sends it there.
+        // Input and output may be different devices (CoreAudio combines them, WASAPI / DirectSound / ALSA
+        // open them side by side). Unplugged: input and output as before.
         auto* p = dynamic_cast<LiveLooperProcessor*> (getAudioProcessor());
         if (p == nullptr)
             return;
@@ -133,38 +138,48 @@ private:
         if (record)
         {
             const auto now = dm.getAudioDeviceSetup();
-            if (ko2::matchesName (now.inputDeviceName) && ko2::matchesName (now.outputDeviceName))
-                return;
+            const auto mode = p->getKo2AudioOutput() == 1 ? ko2::AudioOutput::Ko2 : ko2::AudioOutput::Computer;
+            if (! switchedToKo2)
+                previousName = now.outputDeviceName;           // the computer's output before the switch
             for (auto* type : dm.getAvailableDeviceTypes())
             {
                 type->scanForDevices();
                 const auto ins = type->getDeviceNames (true), outs = type->getDeviceNames (false);
-                const int i = ko2::pickPort (ins), o = ko2::pickPort (outs);
-                if (i < 0)
+                const auto route = ko2::chooseAudioRoute (ins, outs, previousName, type->getDefaultDeviceIndex (false), mode);
+                if (! route.ok)
                     continue;
-                previousAudio = dm.createStateXml();
-                previousName = now.outputDeviceName;
+                if (switchedToKo2 && dm.getCurrentAudioDeviceType() == type->getTypeName()
+                    && now.inputDeviceName == route.input && now.outputDeviceName == route.output)
+                    return;                                    // already like this
+                if (! switchedToKo2)
+                    previousAudio = dm.createStateXml();
                 dm.setCurrentAudioDeviceType (type->getTypeName(), true);
                 auto s = dm.getAudioDeviceSetup();
-                s.inputDeviceName = ins[i];
-                if (o >= 0)
-                    s.outputDeviceName = outs[o];
+                s.inputDeviceName = route.input;
+                s.outputDeviceName = route.output;
                 s.sampleRate = 48000.0;
                 s.bufferSize = 256;
                 s.useDefaultInputChannels = s.useDefaultOutputChannels = true;
                 if (dm.setAudioDeviceSetup (s, true).isNotEmpty())
                 {
-                    s.sampleRate = 0.0;          // the device's own rate
+                    s.sampleRate = 0.0;          // the devices' own rate
                     s.bufferSize = 0;
                     dm.setAudioDeviceSetup (s, true);
                 }
                 switchedToKo2 = true;
-                // safe defaults: hear the K.O. II on its own jack (no input monitoring), tracks record its stereo pair
+                // safe defaults: no input monitoring (the K.O. II plays on its own speaker / jack),
+                // every track records only the K.O. II's stereo input (no resampling of livelooper's output)
                 if (auto* mon = p->getState().getParameter (params::gMonitor))
                     mon->setValueNotifyingHost (0.0f);
                 for (int t = 0; t < kNumTracks; ++t)
                     if (auto* in = p->getState().getParameter (params::trackId (t, params::kInput)))
                         in->setValueNotifyingHost (0.0f);
+                if (route.output.isEmpty())
+                    p->postControllerNotice (tr ("K.O. II: no other audio output found - metronome and loops are silent"));
+                else if (mode == ko2::AudioOutput::Ko2)
+                    p->postControllerNotice (tr ("K.O. II: output to the K.O. II - metronome and loops are recorded again"));
+                else
+                    p->postControllerNotice (tr ("K.O. II: input from the K.O. II, output on %1", route.output));
                 return;
             }
             p->postControllerNotice (tr ("No K.O. II audio device found - check the USB connection"));
@@ -176,6 +191,7 @@ private:
                 dm.initialise (2, 2, previousAudio.get(), true);
             else
                 dm.initialiseWithDefaultDevices (2, 2);
+            previousAudio.reset();
             p->postControllerNotice (tr ("K.O. II: back to %1", dm.getAudioDeviceSetup().outputDeviceName.isNotEmpty()
                                                                     ? dm.getAudioDeviceSetup().outputDeviceName : previousName));
         }

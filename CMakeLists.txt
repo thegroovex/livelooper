@@ -231,6 +231,7 @@ if(LIVELOOPER_BUILD_TESTS)
         tests/Ko2Tests.cpp
         tests/Push16Tests.cpp
         tests/Ko2UiTests.cpp
+        tests/Ko2AudioTests.cpp
         ${LIVELOOPER_ENGINE_SOURCES} ${LIVELOOPER_PLUGIN_SOURCES})
     target_include_directories(livelooper_tests PRIVATE src ${LIVELOOPER_THIRD_PARTY_INCLUDES})
     target_compile_definitions(livelooper_tests PRIVATE ${LIVELOOPER_DEFINES} LIVELOOPER_NO_PLUGIN_ENTRY=1 JUCE_MODAL_LOOPS_PERMITTED=1)

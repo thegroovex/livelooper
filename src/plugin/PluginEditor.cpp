@@ -596,6 +596,23 @@ void LiveLooperEditor::paintSurface (juce::Graphics& g)
     g.setOpacity (1.0f);
     g.drawImage (surfaceCache, juce::Rectangle<float> (0.0f, 0.0f, (float) surfaceWidth(), (float) kBaseHeight));
 
+    // v1.6: held K.O. II punch pads - live amount (hold ramp / pressure) in the PUNCH FX title row
+    if (shownLivePunch >= 0.0f)
+    {
+        const auto r = livePunchBadgeArea().toFloat();
+        if (r.getWidth() > 60.0f)
+        {
+            const auto bar = r.withTrimmedLeft (juce::jmin (r.getWidth() * 0.5f, 74.0f)).withSizeKeepingCentre (r.getWidth() - juce::jmin (r.getWidth() * 0.5f, 74.0f), 6.0f);
+            g.setColour (colours::learn);
+            g.setFont (LooperLookAndFeel::font (11.0f, true));
+            g.drawText (tr ("HOLD") + " " + juce::String (juce::roundToInt (shownLivePunch * 100.0f)) + " %", r.withWidth (72.0f), juce::Justification::centredLeft);
+            g.setColour (juce::Colours::white.withAlpha (0.10f));
+            g.fillRoundedRectangle (bar, 3.0f);
+            g.setColour (colours::learn);
+            g.fillRoundedRectangle (bar.withWidth (bar.getWidth() * juce::jlimit (0.0f, 1.0f, shownLivePunch)), 3.0f);
+        }
+    }
+
     // scene LEDs: stored = dim, last recalled = bright
     const int last = proc.getLastScene();
     for (int i = 0; i < kNumScenes; ++i)

@@ -86,6 +86,7 @@ juce::StringArray sendFxChoices()
 }
 juce::StringArray punchTargetChoices() { return { "Loops", "Input", "Master", "Drums" }; }
 juce::StringArray ctlAudioModeChoices() { return { "Controller only", "Record controller audio" }; }
+juce::StringArray holdRampChoices()     { return { "Off", "1 beat", "2 beats", "1 bar" }; }
 
 juce::StringArray grooveChoices()
 {
@@ -210,7 +211,8 @@ namespace
         { "sfx_type", "Send FX Type" }, { "sfx_x", "Send FX X" }, { "sfx_y", "Send FX Y" }, { "sfx_level", "Send FX Amount" },
         { "pfx_amount", "Punch FX Amount" }, { "pfx_x", "Punch FX X" }, { "pfx_y", "Punch FX Y" },
         { "pfx_target", "Punch FX Target" }, { "pfx_latch", "Punch FX Latch" },
-        { "ctl_audio_mode", "Controller Audio" }, { "ko2_resample", "Resample Controller Pattern" }
+        { "ctl_audio_mode", "Controller Audio" }, { "ko2_resample", "Resample Controller Pattern" },
+        { "pfx_hold_ramp", "Punch FX Hold Ramp" }
     };
 
     template <size_t N>
@@ -519,6 +521,12 @@ APVTS::ParameterLayout createLayout()
         auto group = std::make_unique<juce::AudioProcessorParameterGroup> ("controller", i18n::tr ("Controller"), "|");
         group->addChild (std::make_unique<juce::AudioParameterChoice> (PID { gCtlAudioMode, 8 }, localisedName (gCtlAudioMode), translated (ctlAudioModeChoices()), 0));
         group->addChild (std::make_unique<juce::AudioParameterBool> (PID { gKo2Resample, 8 }, localisedName (gKo2Resample), false));
+        layout.add (std::move (group));
+    }
+    {
+        // v1.6 (appended): pads that send no pressure - holding one raises the punch FX amount to 100 %
+        auto group = std::make_unique<juce::AudioProcessorParameterGroup> ("punchramp", i18n::tr ("Punch FX Hold Ramp"), "|");
+        group->addChild (std::make_unique<juce::AudioParameterChoice> (PID { gPfxHoldRamp, 8 }, localisedName (gPfxHoldRamp), translated (holdRampChoices()), 2));
         layout.add (std::move (group));
     }
 

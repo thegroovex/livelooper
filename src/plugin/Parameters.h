@@ -155,8 +155,11 @@ inline const juce::String gKo2Resample  { "ko2_resample" };   // trigger: resamp
 juce::StringArray sendFxChoices();
 juce::StringArray punchTargetChoices();
 juce::StringArray ctlAudioModeChoices();
+// ---- v1.6 punch pads without pressure (appended, id 489): hold a pad = the amount rises to 100 %
+inline const juce::String gPfxHoldRamp  { "pfx_hold_ramp" };  // Off, 1 beat, 2 beats (default), 1 bar
+juce::StringArray holdRampChoices();
 // ---- end v1.6 punch FX
-inline constexpr int kNumParameters = 488;
+inline constexpr int kNumParameters = 489;
 
 inline constexpr int kNumScenes = 8;
 inline constexpr int kCaptureBars[] = { 1, 2, 4, 8, 16, 32 };   // 16 / 32 since 1.5 (appended)

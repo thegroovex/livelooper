@@ -102,8 +102,9 @@ public:
             expectEquals (ids.indexOf (params::gPfxLatch), 485);
             expectEquals (ids.indexOf (params::gCtlAudioMode), 486);
             expectEquals (ids.indexOf (params::gKo2Resample), 487);
+            expectEquals (ids.indexOf (params::gPfxHoldRamp), 488, "v1.6 punch FX hold ramp appended (parameter 489)");
             expectEquals (ids.size(), params::kNumParameters);
-            expectEquals (ids.size(), 488);
+            expectEquals (ids.size(), 489);
         }
 
         beginTest ("Trigger parameters drive the looper and reset themselves");

@@ -168,6 +168,15 @@ public:
     void setKo2OffsetMs (int ms);
     /** Offset actually used (automatic = reported input latency + one block). */
     int  getKo2EffectiveOffsetSamples() const;
+    /** Record K.O. II (standalone): where livelooper's output goes - 0 = the computer (default:
+        metronome and loops are not recorded again), 1 = the K.O. II (they come back on its input). */
+    int  getKo2AudioOutput() const;
+    void setKo2AudioOutput (int where);
+    /** Punch FX hold ramp (host parameter pfx_hold_ramp): 0 off, 1 = 1 beat, 2 = 2 beats, 3 = 1 bar. */
+    int  getPunchHoldRamp() const noexcept;
+    void setPunchHoldRamp (int index);
+    /** Live punch FX amount of the held K.O. II pads (hold ramp / pressure), -1 while none is held. */
+    float getKo2LivePunchAmount() const noexcept;
     /** Resample: records capture-length bars of the input into the first empty track, starting on a bar.
         Returns the track, -1 when no track is free. Also the host parameter ko2_resample. */
     int  performKo2Resample();
@@ -464,6 +473,7 @@ private:
     std::array<std::atomic<float>*, params::kNumPunchHolds> pfxHold {};
     std::atomic<float>* pfxAmount {}; std::atomic<float>* pfxX {}; std::atomic<float>* pfxY {};
     std::atomic<float>* pfxTarget {}; std::atomic<float>* pfxLatch {}; std::atomic<float>* ctlAudioMode {};
+    std::atomic<float>* pfxHoldRamp {};
     std::array<bool, params::kNumPunchHolds> pfxLast {}, pfxLatched {};
     std::unique_ptr<ko2::Device> ko2Device;
     std::atomic<bool> resampleRequested { false };

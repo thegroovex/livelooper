@@ -109,6 +109,25 @@ T = [
      "XY-FX-Pad: SHIFT + obere Tasten wählen Beat-FX, Color-FX, Repeat, Stutter und die Punch-FX."),
     ("PUNCH FX: hold one of 12 quick effects - several at once combine. SEND FX adds echo, reverb and more to the loops.",
      "PUNCH-FX: halte einen von 12 schnellen Effekten – mehrere zugleich kombinieren sich. SEND-FX gibt den Loops Echo, Hall und mehr."),
+    # v1.6 K.O. II: output stays on the computer in "Record K.O. II", hold to intensify (no pad pressure)
+    ("Role", "Rolle"),
+    ("Computer (default)", "Computer (Standard)"),
+    ("K.O. II audio output", "K.O.-II-Audioausgang"),
+    ("Punch pads: hold to intensify", "Punch-Pads: halten = st\u00e4rker"),
+    ("1 beat", "1 Schlag"), ("2 beats", "2 Schl\u00e4ge"),
+    ("HOLD", "HALTEN"),
+    ("Punch FX Hold Ramp", "Punch-FX Halte-Rampe"),
+    ("K.O. II audio output: K.O. II sends livelooper's output (metronome, loops) into the K.O. II - it comes back on its input and is recorded again. Computer (default): only the K.O. II is recorded.",
+     "K.O.-II-Audioausgang: K.O. II schickt die Ausgabe von livelooper (Metronom, Loops) in den K.O. II \u2013 sie kommt \u00fcber seinen Eingang zur\u00fcck und wird mit aufgenommen. Computer (Standard): nur der K.O. II wird aufgenommen."),
+    ("The K.O. II sends no pad pressure: hold a punch pad and the amount rises from the hit to 100 %.",
+     "Der K.O. II sendet keinen Pad-Druck: Punch-Pad halten, und die St\u00e4rke steigt vom Anschlag bis 100 %."),
+    ("In the plug-in: the K.O. II as the track's audio input in the DAW, the DAW's output on the computer / interface, input monitoring off (Help > K.O. II).",
+     "Im Plug-in: den K.O. II als Audio-Eingang der Spur in der DAW w\u00e4hlen, die DAW-Ausgabe auf Computer / Interface, Eingangs-Monitoring aus (Hilfe > K.O. II)."),
+    ("K.O. II AUDIO OUTPUT: K.O. II - METRONOME AND LOOPS ARE RECORDED AGAIN", "K.O.-II-AUSGANG: K.O. II \u2013 METRONOM UND LOOPS WERDEN MIT AUFGENOMMEN"),
+    ("K.O. II AUDIO OUTPUT: COMPUTER", "K.O.-II-AUSGANG: COMPUTER"),
+    ("K.O. II: no other audio output found - metronome and loops are silent", "K.O. II: kein anderer Audioausgang gefunden \u2013 Metronom und Loops sind stumm"),
+    ("K.O. II: output to the K.O. II - metronome and loops are recorded again", "K.O. II: Ausgabe zum K.O. II \u2013 Metronom und Loops werden mit aufgenommen"),
+    ("K.O. II: input from the K.O. II, output on %1", "K.O. II: Eingang vom K.O. II, Ausgabe auf %1"),
 ]
 
 def esc(s):

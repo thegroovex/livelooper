@@ -93,11 +93,13 @@ int main (int argc, char* argv[])
     // + 37 v1.6 rhythm (variation, fill, pattern switch, drum FX routing x 2, BEATS rows x 8 x 4)
     // + 2 v1.6 beat library (next / previous library beat)
     // + 23 v1.6 punch FX / send FX / controller (sfx_* x 4, pfx_hold1..12, pfx_* x 5, ctl_audio_mode, ko2_resample)
+    // + 1 v1.6 punch FX hold ramp (pfx_hold_ramp)
     constexpr int kExpectedParams = 400
                                   + 26    // v1.6 features
                                   + 37    // v1.6 rhythm
                                   + 2     // v1.6 beat library
-                                  + 23;   // v1.6 punch FX, send FX, controller
+                                  + 23    // v1.6 punch FX, send FX, controller
+                                  + 1;    // v1.6 punch FX hold ramp
     check (looperParams == kExpectedParams, juce::String (kExpectedParams) + " looper parameters exposed (" + juce::String (looperParams) + ")");
 
     plugin->enableAllBuses();

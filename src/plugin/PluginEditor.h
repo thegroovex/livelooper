@@ -164,6 +164,8 @@ private:
     std::unique_ptr<APVTS::ButtonAttachment> pfxLatchAtt;
     std::unique_ptr<juce::Component> punchXY;
     int selectedPunch = 0;
+    float shownLivePunch = -1.0f;       // v1.6 K.O. II hold ramp: live amount shown in the PUNCH FX title row
+    juce::Rectangle<int> livePunchBadgeArea() const;
     std::unique_ptr<juce::Button> ko2Chip;
     std::unique_ptr<juce::Component> ko2Toast;
     std::unique_ptr<ControllerView> controllerView;

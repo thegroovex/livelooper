@@ -32,6 +32,60 @@ int pickPort (const juce::StringArray& names)
     return found;
 }
 
+//============================================================================== audio
+AudioRoute chooseAudioRoute (const juce::StringArray& ins, const juce::StringArray& outs,
+                             const juce::String& previousOutput, int defaultOutput, AudioOutput mode)
+{
+    AudioRoute r;
+    const int in = pickPort (ins);
+    if (in < 0)
+        return r;
+    r.ok = true;
+    r.input = ins[in];
+    if (mode == AudioOutput::Ko2)
+        if (const int o = pickPort (outs); o >= 0)
+        {
+            r.output = outs[o];
+            return r;
+        }
+    // the computer: the output used before, the system default, the first other output
+    if (previousOutput.isNotEmpty() && ! matchesName (previousOutput) && outs.contains (previousOutput))
+        r.output = previousOutput;
+    else if (juce::isPositiveAndBelow (defaultOutput, outs.size()) && ! matchesName (outs[defaultOutput]))
+        r.output = outs[defaultOutput];
+    else
+        for (const auto& o : outs)
+            if (! matchesName (o))
+            {
+                r.output = o;
+                break;
+            }
+    return r;
+}
+
+//============================================================================== hold ramp
+double holdRampBeats (HoldRamp r, double measurePpq) noexcept
+{
+    switch (r)
+    {
+        case HoldRamp::OneBeat:  return 1.0;
+        case HoldRamp::TwoBeats: return 2.0;
+        case HoldRamp::OneBar:   return measurePpq > 0.0 ? measurePpq : 4.0;
+        case HoldRamp::Off:      break;
+    }
+    return 0.0;
+}
+
+float holdRampAmount (float base, double heldMs, double bpm, double rampBeats) noexcept
+{
+    base = juce::jlimit (0.0f, 1.0f, base);
+    if (rampBeats <= 0.0 || bpm <= 0.0 || heldMs <= 0.0)
+        return base;
+    const double beats = heldMs * bpm / 60000.0;
+    const float t = (float) juce::jlimit (0.0, 1.0, beats / rampBeats);
+    return base + (1.0f - base) * t;
+}
+
 //============================================================================== pads
 juce::String padLabel (int offset)
 {
@@ -154,7 +208,17 @@ void Controller::press (int group, int offset, int velocity, juce::uint32 now, s
     using K = Action::Kind;
     auto& p = h (group, offset);
     if (p.down)
+    {
+        // a new hit on a held punch pad (if a device ever sends one): new start amount, the ramp starts again
+        int idx = -1;
+        if (functionOf (group, offset, idx) == K::Punch)
+        {
+            p.velocity = velocity;
+            punchPressed (velocity, now);
+            out.push_back ({ K::Punch, idx, true, velocity });
+        }
         return;
+    }
     const auto lastTapAt = lastTap[(size_t) (group * kPadsPerGroup + offset)];
     p = { true, now, velocity, false, false };
     lastTap[(size_t) (group * kPadsPerGroup + offset)] = now;
@@ -202,6 +266,8 @@ void Controller::press (int group, int offset, int velocity, juce::uint32 now, s
             out.push_back ({ K::Stop, index });
             return;
         case K::Punch:
+            ++punch.count;
+            punchPressed (velocity, now);      // the latest hit sets the start amount
             out.push_back ({ K::Punch, index, true, velocity });
             return;
         case K::Fill:
@@ -233,7 +299,16 @@ void Controller::release (int group, int offset, juce::uint32 now, std::vector<A
     const auto kind = functionOf (group, offset, index);
     if (kind == K::Punch)
     {
-        out.push_back ({ K::Punch, index, false });
+        // the last punch pad up: the amount goes back to the hit (the ramp / pressure moved it)
+        punch.count = juce::jmax (0, punch.count - 1);
+        int back = 0;
+        if (punch.count == 0)
+        {
+            if (holdRamp != HoldRamp::Off || punch.pressureSeen)
+                back = juce::jmax (1, punch.velocity);
+            punch = {};
+        }
+        out.push_back ({ K::Punch, index, false, back });
         return;
     }
     if (kind == K::Fill)
@@ -263,6 +338,41 @@ void Controller::release (int group, int offset, juce::uint32 now, std::vector<A
         default:
             return;
     }
+}
+
+void Controller::punchPressed (int velocity, juce::uint32 now) noexcept
+{
+    punch.velocity = velocity;
+    punch.since = now;
+    punch.pressure = -1;
+}
+
+void Controller::handlePressure (int note, int value, juce::uint32 nowMs)
+{
+    juce::ignoreUnused (nowMs);
+    if (punch.count <= 0)
+        return;
+    if (note >= 0)
+    {
+        // poly aftertouch: only for a held punch pad of a control group
+        if (! isPadNote (note) || ! isHeld (note) || ! isControlGroup (groupOf (note)))
+            return;
+        int idx = -1;
+        if (functionOf (groupOf (note), offsetOf (note), idx) != Action::Kind::Punch)
+            return;
+    }
+    punch.pressure = juce::jlimit (0, 127, value);
+    punch.pressureSeen = true;
+}
+
+float Controller::livePunchAmount (juce::uint32 nowMs, double bpm, double measurePpq) const noexcept
+{
+    if (punch.count <= 0)
+        return -1.0f;
+    const float base = punchAmountFromVelocity (punch.velocity);
+    if (punch.pressureSeen)          // pressure drives it (no time ramp)
+        return juce::jmax (base, punch.pressure < 0 ? 0.0f : (float) punch.pressure / 127.0f);
+    return holdRampAmount (base, (double) (nowMs - punch.since), bpm, holdRampBeats (holdRamp, measurePpq));
 }
 
 void Controller::update (juce::uint32 now, std::vector<Action>& out)
@@ -397,8 +507,8 @@ void apply (LiveLooperProcessor& p, const Action& a)
         case K::Punch:
             if (a.index >= 0 && a.index < kNumPunchHolds)
             {
-                if (a.on)
-                    set (gPfxAmount, punchAmountFromVelocity (a.velocity));     // velocity = amount
+                if (a.on || a.velocity > 0)
+                    set (gPfxAmount, punchAmountFromVelocity (a.velocity));     // velocity = amount (release: back to the hit)
                 set (punchHoldId (a.index), a.on ? 1.0f : 0.0f);
             }
             break;
@@ -574,12 +684,15 @@ void Device::handle (const juce::MidiMessage& m)
     const auto now = juce::Time::getMillisecondCounter();
     std::vector<Action> out;
     controller.setNumTracks (proc.getVisibleTracks());
+    controller.setHoldRamp ((HoldRamp) proc.getPunchHoldRamp());
+    if (channel > 0 && m.getChannel() > 0 && m.getChannel() != channel)
+        return;                                              // channel messages from other channels
     if (m.isNoteOnOrOff())
-    {
-        if (channel > 0 && m.getChannel() != channel)
-            return;
         controller.handleNote (m.getNoteNumber(), m.isNoteOn() ? m.getVelocity() : 0, m.isNoteOn(), now, out);
-    }
+    else if (m.isAftertouch())                              // poly pressure (0xA0): not sent by OS 2.x, handled anyway
+        controller.handlePressure (m.getNoteNumber(), m.getAfterTouchValue(), now);
+    else if (m.isChannelPressure())                         // channel pressure (0xD0): likewise
+        controller.handlePressure (-1, m.getChannelPressureValue(), now);
     else if ((m.isMidiStart() || m.isMidiContinue()) && ! clockOut.load())
         out.push_back ({ Action::Kind::AllStart, -1 });       // the device's PLAY (only while it is not clocked by us)
     else if (m.isMidiStop() && ! clockOut.load())
@@ -589,6 +702,25 @@ void Device::handle (const juce::MidiMessage& m)
         apply (proc, a);
         lastActionText = describe (a.kind, a.index);
     }
+    updatePunchAmount (now);
+}
+
+void Device::updatePunchAmount (juce::uint32 now)
+{
+    // hold to intensify: the held punch pads ramp the amount (the K.O. II sends no pressure)
+    controller.setHoldRamp ((HoldRamp) proc.getPunchHoldRamp());
+    auto& e = proc.getEngine();
+    const float a = controller.livePunchAmount (now, e.getCurrentBpm(), e.getMeasurePpq());
+    liveAmount.store (a);
+    if (a < 0.0f)
+        return;
+    if (auto* prm = proc.getState().getParameter (gPfxAmount))
+        if (std::abs (prm->getValue() - a) > 0.004f)
+        {
+            prm->beginChangeGesture();
+            prm->setValueNotifyingHost (a);
+            prm->endChangeGesture();
+        }
 }
 
 void Device::handleAsyncUpdate()
@@ -605,6 +737,7 @@ void Device::timerCallback()
         controller.update (juce::Time::getMillisecondCounter(), out);
         for (const auto& a : out)
             apply (proc, a);
+        updatePunchAmount (juce::Time::getMillisecondCounter());
         return;
     }
     if (input == nullptr)
@@ -632,6 +765,7 @@ void Device::timerCallback()
         apply (proc, a);
         lastActionText = describe (a.kind, a.index);
     }
+    updatePunchAmount (juce::Time::getMillisecondCounter());
 }
 
 void Device::hiResTimerCallback()

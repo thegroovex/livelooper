@@ -409,8 +409,20 @@ void ControllerView::paintKo2 (juce::Graphics& g, juce::Rectangle<float>)
                         + (dev != nullptr && dev->isClockRunning() ? juce::String (juce::CharPointer_UTF8 ("CLK \xe2\x86\x92 KO")) : tr ("no clock")),
                     d.removeFromTop (d.getHeight() * 0.5f), juce::Justification::centred);
         const auto last = dev != nullptr ? dev->getLastActionText() : juce::String();
+        const float live = proc.getKo2LivePunchAmount();     // held punch pads: hold ramp / pressure
         g.setColour (juce::Colour (0xffff8a3a).withAlpha (0.8f));
-        g.drawText (last.isNotEmpty() ? last : juce::String ("livelooper"), d, juce::Justification::centred);
+        if (live >= 0.0f)
+        {
+            auto line = d;
+            const auto bar = line.removeFromBottom (juce::jmax (3.0f, 7.0f * s)).reduced (d.getWidth() * 0.12f, 0.0f);
+            g.drawText (last + "  " + juce::String (juce::roundToInt (live * 100.0f)) + " %", line, juce::Justification::centred);
+            g.setColour (juce::Colour (0xff3a2a20));
+            g.fillRoundedRectangle (bar, 2.0f);
+            g.setColour (juce::Colour (0xffff6a2a));
+            g.fillRoundedRectangle (bar.withWidth (bar.getWidth() * juce::jlimit (0.0f, 1.0f, live)), 2.0f);
+        }
+        else
+            g.drawText (last.isNotEmpty() ? last : juce::String ("livelooper"), d, juce::Justification::centred);
     }
 
     // control deck

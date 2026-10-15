@@ -323,8 +323,23 @@ void LiveLooperEditor::setControllerGui (bool on)
     updateKo2Ui();
 }
 
+juce::Rectangle<int> LiveLooperEditor::livePunchBadgeArea() const
+{
+    // PUNCH FX title row, between the title and the target box
+    return { punchArea.getX() + 104, punchArea.getY() + 9, juce::jmax (0, punchArea.getWidth() - 104 - 196), 20 };
+}
+
 void LiveLooperEditor::updateKo2Ui()
 {
+    // held K.O. II punch pads: the live amount (hold ramp / pressure) in the PUNCH FX title row
+    {
+        const float live = proc.getKo2LivePunchAmount();
+        if (std::abs (live - shownLivePunch) > 0.004f)
+        {
+            shownLivePunch = live;
+            surface.repaint (livePunchBadgeArea());
+        }
+    }
     // track colours (Push encoder page) tint the strips
     for (int t = 0; t < 8; ++t)
     {
@@ -464,8 +479,26 @@ void LiveLooperEditor::addControllerMenu (juce::PopupMenu& menu, juce::Array<int
     const bool connected = proc.isKo2Connected();
     const bool record = proc.getControllerAudioMode() == 1;
     juce::PopupMenu k;
+    k.addSectionHeader (tr ("Role"));
     k.addItem (700, tr ("Controller only"), true, ! record);
     k.addItem (701, tr ("Record K.O. II"), true, record);
+    k.addSeparator();
+    {
+        // Record K.O. II: the K.O. II is the input; the output stays on the computer unless chosen here
+        juce::PopupMenu out;
+        const bool toKo2 = proc.getKo2AudioOutput() == 1;
+        out.addItem (761, tr ("Computer (default)"), true, ! toKo2);
+        out.addItem (762, tr ("K.O. II"), true, toKo2);
+        k.addSubMenu (tr ("K.O. II audio output"), out);
+        // the K.O. II sends no pad pressure: a held punch pad raises the amount
+        juce::PopupMenu ramp;
+        const int cur = proc.getPunchHoldRamp();
+        const char* const names[] = { "Off", "1 beat", "2 beats", "1 bar" };
+        for (int i = 0; i < 4; ++i)
+            ramp.addItem (763 + i, tr (names[i]), true, cur == i);
+        k.addSubMenu (tr ("Punch pads: hold to intensify"), ramp);
+    }
+    k.addSeparator();
     const int groups = proc.getKo2Groups() < 0 ? ko2::defaultGroups (record ? ko2::Role::Record : ko2::Role::Controller) : proc.getKo2Groups();
     for (int g = 0; g < 4; ++g)
         k.addItem (710 + g, tr ("Control group %1", juce::String::charToString ((juce::juce_wchar) ('A' + g))), true, (groups >> g) & 1);
@@ -487,6 +520,10 @@ void LiveLooperEditor::addControllerMenu (juce::PopupMenu& menu, juce::Array<int
     auto* dev = proc.getKo2Device();
     k.addItem (797, connected ? tr ("Connected: %1", dev->getDeviceName()) + (dev->isConfirmed() ? juce::String() : " (" + tr ("not confirmed") + ")")
                               : tr ("No K.O. II found"), false);
+    k.addItem (793, tr ("K.O. II audio output: K.O. II sends livelooper's output (metronome, loops) into the K.O. II - it comes back on its input and is recorded again. Computer (default): only the K.O. II is recorded."), false);
+    k.addItem (792, tr ("The K.O. II sends no pad pressure: hold a punch pad and the amount rises from the hit to 100 %."), false);
+    if (proc.wrapperType != juce::AudioProcessor::wrapperType_Standalone)
+        k.addItem (791, tr ("In the plug-in: the K.O. II as the track's audio input in the DAW, the DAW's output on the computer / interface, input monitoring off (Help > K.O. II)."), false);
     k.addItem (796, tr (juce::String::fromUTF8 ("Experimental \xe2\x80\x93 please test (see the K.O. II page of the docs)")), false);
     k.addItem (795, tr ("On the K.O. II: SHIFT + ERASE, type 1 0 1, ENTER (clock in)"), false);
     menu.addSubMenu (tr ("K.O. II"), k);
@@ -533,6 +570,14 @@ bool LiveLooperEditor::handleControllerMenu (int r)
         proc.setKo2Channel (r - 720);
     else if (r == 740)
         proc.setKo2ClockOut (! proc.getKo2ClockOut());
+    else if (r == 761 || r == 762)
+    {
+        proc.setKo2AudioOutput (r - 761);
+        showStatus (r == 762 ? tr ("K.O. II AUDIO OUTPUT: K.O. II - METRONOME AND LOOPS ARE RECORDED AGAIN")
+                             : tr ("K.O. II AUDIO OUTPUT: COMPUTER"));
+    }
+    else if (r >= 763 && r <= 766)
+        proc.setPunchHoldRamp (r - 763);
     else if (r >= 750 && r <= 760)
     {
         const int offsets[] = { -1, 0, 5, 10, 20, 30, 50, 80, 100, 150, 200 };
