@@ -167,23 +167,37 @@ HelpComponent::HelpComponent()
         { de ? "MIDI-de.md" : "MIDI-en.md", "MIDI" },
         { de ? "INSTALLATION-de.md" : "INSTALLATION-en.md", de ? "Installation & Probleme" : "Installation & troubleshooting" },
     };
+    sections.addArray (guidePages());          // v1.6: illustrated pages first
     for (const auto& d : docs)
         sections.addArray (parse (getEmbeddedText (d.file), d.name));
 
     searchBox.setTextToShowWhenEmpty (tr ("Search the help (e.g. stutter, Link, capture)"), colours::textDim);
-    searchBox.setColour (juce::TextEditor::backgroundColourId, colours::lcdBack);
+    searchBox.setColour (juce::TextEditor::backgroundColourId, juce::Colours::white.withAlpha (0.07f));
     searchBox.setColour (juce::TextEditor::textColourId, colours::text);
+    searchBox.setColour (juce::TextEditor::outlineColourId, juce::Colours::white.withAlpha (0.10f));
     searchBox.setFont (LooperLookAndFeel::font (15.0f));
+    searchBox.setIndents (12, 7);
     searchBox.onTextChange = [this] { setQuery (searchBox.getText()); };
     addAndMakeVisible (searchBox);
 
     list.setModel (this);
-    list.setRowHeight (24);
-    list.setColour (juce::ListBox::backgroundColourId, colours::section);
+    list.setRowHeight (30);
+    list.setColour (juce::ListBox::backgroundColourId, juce::Colours::transparentBlack);
+    list.setOutlineThickness (0);
     addAndMakeVisible (list);
 
     styleText (text);
-    addAndMakeVisible (text);
+    text.setColour (juce::TextEditor::backgroundColourId, juce::Colours::transparentBlack);
+    text.setColour (juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
+    text.setFont (LooperLookAndFeel::font (15.0f));
+    text.setIndents (24, 20);
+    addChildComponent (text);
+
+    guide = std::make_unique<GuidePage>();
+    guideView.setViewedComponent (guide.get(), false);
+    guideView.setScrollBarsShown (true, false);
+    guideView.setScrollBarThickness (8);
+    addChildComponent (guideView);
 
     hint.setText (tr ("Tip: hover over any control for a short explanation, right-click it for MIDI learn."), juce::dontSendNotification);
     hint.setColour (juce::Label::textColourId, colours::textDim);
@@ -191,7 +205,12 @@ HelpComponent::HelpComponent()
     addAndMakeVisible (hint);
 
     setQuery ({});
-    setSize (980, 680);
+    setSize (1040, 720);
+}
+
+HelpComponent::~HelpComponent()
+{
+    guideView.setViewedComponent (nullptr, false);
 }
 
 void HelpComponent::setQuery (const juce::String& q)
@@ -207,15 +226,33 @@ void HelpComponent::setQuery (const juce::String& q)
         showSection (visible[0]);
     }
     else
+    {
+        guideView.setVisible (false);
+        text.setVisible (true);
         text.setText (tr ("Nothing found."), false);
+        shown = -1;
+    }
 }
 
 void HelpComponent::showSection (int index)
 {
     if (! juce::isPositiveAndBelow (index, sections.size()))
         return;
+    shown = index;
     const auto& s = sections.getReference (index);
-    text.setText (i18n::upper (s.title) + "\n\n" + toPlainText (s.text), false);
+    const bool isGuide = s.level == 0;
+    guideView.setVisible (isGuide);
+    text.setVisible (! isGuide);
+    if (isGuide)
+    {
+        const int w = juce::jmax (300, guideView.getWidth() - guideView.getScrollBarThickness());
+        guide->setSize (w, 10);
+        guide->setPage (s);
+        guide->setSize (w, guide->getHeightForWidth (w));
+        guideView.setViewPosition (0, 0);
+        return;
+    }
+    text.setText (s.title + "\n\n" + toPlainText (s.text), false);
     text.moveCaretToTop (false);
 }
 
@@ -224,11 +261,36 @@ void HelpComponent::paintListBoxItem (int row, juce::Graphics& g, int w, int h, 
     if (! juce::isPositiveAndBelow (row, visible.size()))
         return;
     const auto& s = sections.getReference (visible[row]);
+    const auto r = juce::Rectangle<float> (4.0f, 2.0f, (float) w - 8.0f, (float) h - 4.0f);
     if (selected)
-        g.fillAll (colours::cyan.withAlpha (0.25f));
-    g.setColour (s.level <= 1 ? colours::yellow : (s.level == 2 ? colours::text : colours::textDim));
-    g.setFont (LooperLookAndFeel::font (13.0f, s.level <= 2));
-    const int indent = s.level == 3 ? 22 : 8;
+    {
+        juce::ColourGradient brand (juce::Colour (0xffff7a18).withAlpha (0.55f), r.getX(), 0.0f,
+                                    juce::Colour (0xffb14bff).withAlpha (0.55f), r.getRight(), 0.0f, false);
+        brand.addColour (0.5, juce::Colour (0xffff2d6f).withAlpha (0.55f));
+        g.setGradientFill (brand);
+        g.fillRoundedRectangle (r, 7.0f);
+    }
+    if (s.level == 0)
+    {
+        juce::ColourGradient dot (juce::Colour (0xffff7a18), 12.0f, 0.0f, juce::Colour (0xffb14bff), 22.0f, 0.0f, false);
+        g.setGradientFill (dot);
+        g.fillRoundedRectangle (12.0f, (float) h * 0.5f - 5.0f, 10.0f, 10.0f, 3.0f);
+        g.setColour (juce::Colours::white);
+        g.setFont (LooperLookAndFeel::font (14.0f, true));
+        g.drawText (s.title, 32, 0, w - 36, h, juce::Justification::centredLeft, true);
+        return;
+    }
+    if (s.level <= 1)
+    {
+        // document title: a quiet group heading, like a sidebar section in System Settings
+        g.setColour (selected ? juce::Colours::white : colours::textDim);
+        g.setFont (LooperLookAndFeel::font (11.5f, true));
+        g.drawText (i18n::upper (s.title), 12, 0, w - 16, h, juce::Justification::bottomLeft, true);
+        return;
+    }
+    g.setColour (selected || s.level == 2 ? colours::text : colours::textDim);
+    g.setFont (LooperLookAndFeel::font (13.5f, false));
+    const int indent = s.level == 3 ? 28 : 14;
     g.drawText (s.title, indent, 0, w - indent - 4, h, juce::Justification::centredLeft, true);
 }
 
@@ -240,18 +302,34 @@ void HelpComponent::selectedRowsChanged (int row)
 
 void HelpComponent::paint (juce::Graphics& g)
 {
-    g.fillAll (colours::panel);
+    g.fillAll (juce::Colour (0xff111116));
+    // sidebar: a glass column
+    const auto side = list.getBounds().toFloat().expanded (6.0f).withTop (8.0f).withBottom ((float) getHeight() - 36.0f);
+    g.setColour (juce::Colours::white.withAlpha (0.045f));
+    g.fillRoundedRectangle (side, 14.0f);
+    g.setColour (juce::Colours::white.withAlpha (0.08f));
+    g.drawRoundedRectangle (side, 14.0f, 1.0f);
+    // content card
+    const auto content = guideView.getBounds().toFloat();
+    g.setColour (juce::Colours::white.withAlpha (0.03f));
+    g.fillRoundedRectangle (content, 14.0f);
 }
 
 void HelpComponent::resized()
 {
-    auto b = getLocalBounds().reduced (12);
-    hint.setBounds (b.removeFromBottom (22));
-    searchBox.setBounds (b.removeFromTop (32));
-    b.removeFromTop (8);
-    list.setBounds (b.removeFromLeft (juce::jmin (330, b.getWidth() / 3)));
-    b.removeFromLeft (8);
+    auto b = getLocalBounds().reduced (14);
+    hint.setBounds (b.removeFromBottom (24).withTrimmedLeft (6));
+    b.removeFromBottom (6);
+    auto sideCol = b.removeFromLeft (juce::jmin (290, b.getWidth() / 3));
+    sideCol.reduce (6, 0);
+    searchBox.setBounds (sideCol.removeFromTop (34));
+    sideCol.removeFromTop (8);
+    list.setBounds (sideCol);
+    b.removeFromLeft (14);
+    guideView.setBounds (b);
     text.setBounds (b);
+    if (juce::isPositiveAndBelow (shown, sections.size()) && sections[shown].level == 0)
+        showSection (shown);
 }
 
 void HelpWindow::show (juce::Component& parent)

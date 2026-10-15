@@ -28,14 +28,23 @@ juce::Image getEmbeddedImage (const juce::String& fileName);
     split into sections, with a search field. Generated from the same Markdown files as the
     documentation, so it is always consistent with the user guide.
 */
+class GuidePage;
+
 class HelpComponent : public juce::Component, private juce::ListBoxModel
 {
 public:
     HelpComponent();
+    ~HelpComponent() override;
     void resized() override;
     void paint (juce::Graphics&) override;
 
-    struct Section { juce::String document, title, text; int level = 2; };
+    /** level 0 = illustrated guide page (image + short lines + numbered legend), 1 = document, 2 / 3 = headings. */
+    struct Section { juce::String document, title, text; int level = 2; juce::String image; juce::StringArray legend; };
+    /** v1.6: the illustrated guide pages (Welcome, Loops, FX, BEATS, Recording, Link, Push 1, Push 1 STEP), translated. */
+    static juce::Array<Section> guidePages();
+    /** Index of the section on screen (-1: none). */
+    int getShownSection() const noexcept { return shown; }
+    void showSectionForTests (int index) { showSection (index); }
     /** Parses Markdown into sections at '##' / '###' headings (public for tests). */
     static juce::Array<Section> parse (const juce::String& markdown, const juce::String& documentName);
     /** Plain text of a Markdown section (links, emphasis and table bars simplified). */
@@ -58,6 +67,23 @@ private:
     juce::TextEditor searchBox, text;
     juce::ListBox list;
     juce::Label hint;
+    juce::Viewport guideView;
+    std::unique_ptr<GuidePage> guide;
+    int shown = -1;
+};
+
+/** One illustrated guide page (inside a viewport of the help window). */
+class GuidePage : public juce::Component
+{
+public:
+    void setPage (const HelpComponent::Section& s);
+    int getHeightForWidth (int width) const;
+    void paint (juce::Graphics&) override;
+    bool hasImage() const noexcept { return image.isValid(); }
+    static constexpr int kMargin = 28, kLegendRow = 30;
+private:
+    HelpComponent::Section section;
+    juce::Image image;
 };
 
 class HelpWindow

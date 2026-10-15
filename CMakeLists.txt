@@ -59,6 +59,7 @@ if(LIVELOOPER_WITH_LINK)
 endif()
 
 # ---------------------------------------------------------------- embedded resources (help, licences, logo, drum samples)
+file(GLOB LIVELOOPER_HELP_IMAGES ${CMAKE_CURRENT_SOURCE_DIR}/resources/help/*.png)
 file(GLOB LIVELOOPER_DRUM_SAMPLES ${CMAKE_CURRENT_SOURCE_DIR}/resources/drums/*.flac)
 # v1.6 features: demo set loops (self-made, CC0, tools/demo/make_demo_loops.py)
 set(LIVELOOPER_DEMO_LOOPS
@@ -87,6 +88,7 @@ juce_add_binary_data(livelooper_resources
         docs/brand/beattactics-icon.svg
         resources/livelooper-icon-256.png
         ${LIVELOOPER_DRUM_SAMPLES}
+        ${LIVELOOPER_HELP_IMAGES}
         ${LIVELOOPER_DEMO_LOOPS}
         resources/fonts/Manrope-800.ttf
         resources/fonts/Manrope-600.ttf)
@@ -114,6 +116,7 @@ set(LIVELOOPER_PLUGIN_SOURCES
     src/plugin/AppSettings.cpp
     src/plugin/Updates.cpp
     src/plugin/InfoWindows.cpp
+    src/plugin/HelpGuide.cpp
     src/plugin/DrumSampleLoader.cpp
     src/plugin/SoundPacks.cpp
     src/plugin/LinkSync.cpp
