@@ -52,11 +52,15 @@ public:
     bool isLearnMode() const noexcept { return learnMode; }
     void selectFxSlot (bool inputFx, int slot);
     void showStatus (const juce::String& text);
-    /** v1.6: the FX panel shows one group at a time (progressive disclosure):
-        0 input FX, 1 track FX, 2 beat FX, 3 beat repeat / stutter, 4 colour FX, 5 punch FX + send FX. */
+    /** FX groups: 0 input FX, 1 track FX, 2 beat FX, 3 beat repeat / stutter, 4 colour FX, 5 punch FX + send FX.
+        v1.6 final layout: every group is visible at once in the two FX rows at the top (no tabs); the "tab" only
+        remembers the group last focused (slot selection, tour) - kept for MIDI / tests. */
     enum FxTab { tabInput = 0, tabTrack, tabBeat, tabRepeat, tabColor, tabPunch, numFxTabs };
     void setFxTab (int tab);
     int getFxTab() const noexcept { return fxTab; }
+    /** Panel of an FX group in the FX rows (surface coordinates). */
+    juce::Rectangle<int> getFxGroupArea (int group) const;
+    juce::Rectangle<int> getRightColumnArea() const { return rhythmArea.getUnion (masterArea); }
 
     // computer keyboard (standalone app)
     bool keyPressed (const juce::KeyPress& key) override;
@@ -185,6 +189,7 @@ private:
     std::array<std::unique_ptr<FxTabButton>, numFxTabs> fxTabs;
     int fxTab = tabInput;
     juce::Rectangle<int> fxPanelArea, fxContentArea, rhythmArea, masterArea;
+    juce::Rectangle<int> inputFxArea, fxEditArea, trackFxArea, punchArea, sendArea;   // v1.6 FX rows
     void layoutFxPanel (int dx);
     // cached static surface (background, glass panels, titles) - rebuilt only when the layout changes
     juce::Image surfaceCache;

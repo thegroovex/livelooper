@@ -326,7 +326,7 @@ void LiveLooperEditor::startTour()
           [this] { return rhythmArea; } },
         { "BEAT FX",
           "Pick a beat FX and press ON - or hold HOLD for a short effect. The FX channel decides where it works: master, loops, input or one track.",
-          [this] { return fxPanelArea; }, [this] { setFxTab (tabBeat); } },
+          [this] { return beatFxArea; }, [this] { setFxTab (tabBeat); } },
         { "SCENE",
           "Scenes remember which tracks play. Press STORE, then a scene button. Later that button starts exactly those tracks, in time. "
           "Have fun - the tour is always in the help menu (?).",

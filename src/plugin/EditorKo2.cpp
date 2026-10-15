@@ -48,8 +48,9 @@ namespace
             g.setColour (on ? colours::learn : colours::text.withAlpha (0.7f));
             g.fillEllipse (juce::Rectangle<float> (12.0f, 12.0f).withCentre (c));
             g.setColour (colours::textDim);
-            g.setFont (LooperLookAndFeel::font (10.0f, true));
-            g.drawText ("XY  " + i18n::upper (tr (getPunchFxName (selected()))), r.reduced (8.0f, 5.0f), juce::Justification::topLeft);
+            g.setFont (LooperLookAndFeel::font (r.getWidth() < 100.0f ? 9.0f : 10.0f, true));
+            g.drawFittedText ((r.getWidth() < 100.0f ? juce::String() : juce::String ("XY  ")) + i18n::upper (tr (getPunchFxName (selected()))),
+                              r.reduced (6.0f, 4.0f).toNearestInt(), juce::Justification::centredTop, 1, 0.7f);
             g.setColour (juce::Colours::white.withAlpha (0.10f));
             g.drawRoundedRectangle (r, 10.0f, 1.0f);
         }
@@ -256,39 +257,44 @@ void LiveLooperEditor::initKo2()
 
 void LiveLooperEditor::layoutPunchTab (juce::Rectangle<int> c)
 {
-    const bool on = fxTab == tabPunch;
+    // v1.6 final: PUNCH FX and SEND FX are panels of their own in the FX rows (always visible)
     for (auto& b : punchBtns)
-        b->setVisible (on);
+        b->setVisible (true);
     for (juce::Component* comp : { (juce::Component*) pfxAmountKnob.get(), (juce::Component*) sfxXKnob.get(), (juce::Component*) sfxYKnob.get(),
                                    (juce::Component*) sfxLevelKnob.get(), (juce::Component*) &pfxTargetBox, (juce::Component*) &sfxTypeBox,
                                    (juce::Component*) pfxLatchBtn.get(), punchXY.get() })
-        comp->setVisible (on);
+        comp->setVisible (true);
 
-    // 4 x 3 punch pads | XY | amount | target + latch || send FX: type, send / X / Y
-    auto r = c.reduced (0, 2);
-    punchCaption = r.removeFromTop (0);
-    auto grid = r.removeFromLeft (4 * 80);
-    const int ph = grid.getHeight() / 3;
+    // PUNCH FX: target + LATCH in the title row; 4 x 3 pads | XY field | AMOUNT
+    {
+        auto t = juce::Rectangle<int> (punchArea.getX() + 12, punchArea.getY() + 8, punchArea.getWidth() - 24, 22);
+        pfxLatchBtn->setBounds (t.removeFromRight (64));
+        t.removeFromRight (6);
+        pfxTargetBox.setBounds (t.removeFromRight (112));
+    }
+    auto r = c;
+    const int amountW = 56;
+    const int xy = juce::jmin (r.getHeight(), 96);
+    auto grid = r.removeFromLeft (r.getWidth() - xy - amountW - 16);
+    const int pw = grid.getWidth() / 4, ph = (grid.getHeight() + 3) / 3;
     for (int i = 0; i < kNumPunchFx; ++i)
-        punchBtns[(size_t) i]->setBounds (grid.getX() + (i % 4) * 80, grid.getY() + (i / 4) * ph, 78, ph - 3);
-    r.removeFromLeft (10);
-    punchXY->setBounds (r.removeFromLeft (juce::jmin (120, r.getHeight())).withSizeKeepingCentre (juce::jmin (120, r.getHeight()), r.getHeight()));
+        punchBtns[(size_t) i]->setBounds (grid.getX() + (i % 4) * pw, grid.getY() + (i / 4) * ph, pw - 3, ph - 3);
     r.removeFromLeft (8);
-    pfxAmountKnob->setBounds (r.removeFromLeft (70));
-    r.removeFromLeft (6);
-    auto col = r.removeFromLeft (110);
-    pfxTargetBox.setBounds (col.removeFromTop (30).reduced (0, 1));
-    col.removeFromTop (10);
-    pfxLatchBtn->setBounds (col.removeFromTop (30).reduced (0, 1));
-    r.removeFromLeft (18);
-    sendCaption = juce::Rectangle<int> (r.getX(), fxPanelArea.getY() + 40, 120, 14);
-    punchCaption = juce::Rectangle<int> (grid.getX(), fxPanelArea.getY() + 40, 120, 14);
-    auto send = r;
-    sfxTypeBox.setBounds (send.removeFromTop (30).withWidth (juce::jmin (send.getWidth(), 156)).reduced (0, 1));
-    const int kw = juce::jmin (52, send.getWidth() / 3);
-    sfxLevelKnob->setBounds (send.removeFromLeft (kw));
-    sfxXKnob->setBounds (send.removeFromLeft (kw));
-    sfxYKnob->setBounds (send.removeFromLeft (kw));
+    punchXY->setBounds (r.removeFromLeft (xy).withSizeKeepingCentre (xy, xy));
+    r.removeFromLeft (8);
+    pfxAmountKnob->setBounds (r);
+
+    // SEND FX: type in the title row; SEND | X | Y
+    {
+        auto t = juce::Rectangle<int> (sendArea.getX() + 12, sendArea.getY() + 8, sendArea.getWidth() - 24, 22);
+        sfxTypeBox.setBounds (t.removeFromRight (juce::jmin (124, t.getWidth() - 80)));
+        auto k = sendArea.reduced (12, 8).withTrimmedTop (26);
+        const int kw = k.getWidth() / 3;
+        sfxLevelKnob->setBounds (k.removeFromLeft (kw));
+        sfxXKnob->setBounds (k.removeFromLeft (kw));
+        sfxYKnob->setBounds (k);
+    }
+    punchCaption = sendCaption = {};
 }
 
 void LiveLooperEditor::layoutKo2 (int dx)

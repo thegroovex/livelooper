@@ -812,49 +812,54 @@ TrackStrip::TrackStrip (LiveLooperProcessor& p, int t)
     addAndMakeVisible (stop);
 }
 
-bool TrackStrip::showMeters = false;
+bool TrackStrip::showMeters = true;     // v1.6 final: IN / OUT meters by default (SETUP can hide them)
 
 void TrackStrip::resized()
 {
-    // v1.6 hierarchy: the pad dominates; the mixer controls sit small and quiet at the bottom
+    // v1.6 final: the classic order - display, REV / 1SHOT / FX, fader + meter + PAN / COLOR + UNDO / REDO / SETUP,
+    // the big REC / PLAY pad, STOP at the bottom
     auto b = getLocalBounds().reduced (10, 8);
     auto title = b.removeFromTop (26);
     ledArea = title.removeFromRight (16).withSizeKeepingCentre (10, 10);
-    lcdArea = b.removeFromTop (58);
+    lcdArea = b.removeFromTop (60);
     b.removeFromTop (8);
 
-    auto mix = b.removeFromBottom (102);
-    b.removeFromBottom (8);
-    auto row = b.removeFromBottom (24);
+    auto row = b.removeFromTop (24);
     const int bw = row.getWidth() / 3;
     reverse.setBounds (row.removeFromLeft (bw).reduced (2, 0));
     oneShot.setBounds (row.removeFromLeft (bw).reduced (2, 0));
     fx.setBounds (row.reduced (2, 0));
-    b.removeFromBottom (8);
-    stop.setBounds (b.removeFromBottom (38));
-    b.removeFromBottom (6);
-    recPlay.setBounds (b);
+    b.removeFromTop (8);
 
+    auto mix = b.removeFromTop (juce::jmin (136, b.getHeight() * 42 / 100));
     level.setBounds (mix.removeFromLeft (30));
     if (showMeters)
-        meterArea = mix.removeFromLeft (10).withTrimmedTop (6).withTrimmedBottom (16);   // stereo meter + IN / OUT caption
+        meterArea = mix.removeFromLeft (12).withTrimmedTop (6).withTrimmedBottom (16);   // stereo meter + IN / OUT caption
     else
         meterArea = {};
     mix.removeFromLeft (6);
     {
-        auto knobs = mix.removeFromTop (42);
-        pan.setBounds (knobs.removeFromLeft (knobs.getWidth() / 2).withSizeKeepingCentre (42, 42));
-        color.setBounds (knobs.withSizeKeepingCentre (42, 42));
+        auto knobs = mix.removeFromTop (44);
+        const int k = juce::jmin (44, knobs.getWidth() / 2);
+        pan.setBounds (knobs.removeFromLeft (knobs.getWidth() / 2).withSizeKeepingCentre (k, k));
+        color.setBounds (knobs.withSizeKeepingCentre (k, k));
     }
-    mix.removeFromTop (13);                           // "PAN" / "COLOR" captions
-    mix.removeFromTop (3);
-    auto r1 = mix.removeFromTop (21);
-    undo.setBounds (r1.removeFromLeft (r1.getWidth() / 2).withTrimmedRight (2));
-    redo.setBounds (r1.withTrimmedLeft (2));
-    mix.removeFromTop (3);
-    settings.setBounds (mix.removeFromTop (21));
+    mix.removeFromTop (14);                           // "PAN" / "COLOR" captions
+    const int bh = juce::jmin (24, (mix.getHeight() - 6) / 3);
+    const int gap = (mix.getHeight() - 3 * bh) / 3;
+    mix.removeFromTop (gap);
+    undo.setBounds (mix.removeFromTop (bh));
+    mix.removeFromTop (gap);
+    redo.setBounds (mix.removeFromTop (bh));
+    mix.removeFromTop (gap);
+    settings.setBounds (mix.removeFromTop (bh));
     for (auto* btn : { &undo, &redo, &settings })
         LooperLookAndFeel::setEmphasis (*btn, 0);
+
+    b.removeFromTop (8);
+    stop.setBounds (b.removeFromBottom (38));
+    b.removeFromBottom (6);
+    recPlay.setBounds (b);
 }
 
 void TrackStrip::paint (juce::Graphics& g)
@@ -915,7 +920,7 @@ void TrackStrip::paint (juce::Graphics& g)
         g.fillRoundedRectangle (in, 7.5f);
     }
     auto text = lcd.reduced (9.0f, 5.0f);
-    g.setFont (LooperLookAndFeel::font (15.0f, true));
+    g.setFont (LooperLookAndFeel::font (16.5f, true));
     if (state != LoopTrack::State::Empty || pending != LooperEngine::Pending::None)
     {
         g.setColour (stateColour.withAlpha (0.18f));

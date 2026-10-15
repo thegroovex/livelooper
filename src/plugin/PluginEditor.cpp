@@ -15,17 +15,28 @@ using i18n::tr;
 
 namespace layout
 {
-    // v1.6: loop tracks first (largest, brightest), FX second, everything else subdued around them
+    // v1.6 final: the classic arrangement (FX rows on top, tracks below, rhythm / master on the right) in the new glass look.
+    // x positions are for 5 tracks; with 6 - 8 tracks the FX rows stretch (fxX) and the right column moves right.
     const juce::Rectangle<int> header       { 0, 0, 1180, 88 };
     const juce::Rectangle<int> lcd          { 318, 10, 530, 72 };
-    const juce::Rectangle<int> tracks       { 12, 96, 850, 512 };
-    const juce::Rectangle<int> fxPanel      { 12, 618, 850, 180 };
-    const juce::Rectangle<int> rhythm       { 870, 96, 298, 234 };
-    const juce::Rectangle<int> metronome    { 870, 338, 298, 98 };
-    const juce::Rectangle<int> masterPanel  { 870, 444, 298, 354 };
+    constexpr int row1Y = 94, row1H = 112;          // INPUT FX | INPUT FX EDIT | TRACK FX | PUNCH FX
+    constexpr int row2Y = 212, row2H = 110;         // BEAT FX | REPEAT / STUTTER | COLOR FX | SEND FX | METRONOME
+    // column edges of the FX rows (5 tracks)
+    constexpr int inputX0 = 12,  inputX1 = 228;
+    constexpr int editX0 = 236,  editX1 = 544;
+    constexpr int trackX0 = 552, trackX1 = 768;
+    constexpr int punchX0 = 776, punchX1 = 1168;
+    constexpr int beatX0 = 12,   beatX1 = 384;
+    constexpr int repeatX0 = 392, repeatX1 = 590;
+    constexpr int colorX0 = 598, colorX1 = 768;
+    constexpr int sendX0 = 776,  sendX1 = 1000;
+    constexpr int metroX0 = 1008, metroX1 = 1168;
+    const juce::Rectangle<int> tracks       { 12, 328, 908, 470 };
+    const juce::Rectangle<int> rhythm       { 928, 328, 240, 206 };
+    const juce::Rectangle<int> masterPanel  { 928, 542, 240, 256 };
     const juce::Rectangle<int> footer       { 0, 804, 1180, 52 };
-    // kept for the BEATS page (covers FX + tracks) and older references
-    const juce::Rectangle<int> inputFx      { 12, 96, 380, 122 };
+    // BEATS page: covers the FX rows and the tracks
+    const juce::Rectangle<int> inputFx      { 12, row1Y, 216, row1H };
 }
 
 LiveLooperEditor::LiveLooperEditor (LiveLooperProcessor& p)
@@ -80,7 +91,7 @@ LiveLooperEditor::LiveLooperEditor (LiveLooperProcessor& p)
             fxTabs[(size_t) i] = std::make_unique<FxTabButton> (names[i], leds[i]);
             fxTabs[(size_t) i]->onClick = [this, i] { setFxTab (i); };
             fxTabs[(size_t) i]->setTooltip ("Show this group of effects");
-            surface.addAndMakeVisible (*fxTabs[(size_t) i]);
+            surface.addChildComponent (*fxTabs[(size_t) i]);     // v1.6 final: no tabs, all FX groups visible
         }
         auto anyOn = [this] (bool input) {
             for (int sl = 0; sl < kNumFxSlots; ++sl)
@@ -97,7 +108,7 @@ LiveLooperEditor::LiveLooperEditor (LiveLooperProcessor& p)
         fxTabs[tabColor]->activeFn  = [param] { return juce::roundToInt (param (gColorType)) != 0; };
         fxTabs[tabPunch]->activeFn  = [this, param] { return proc.getEngine().getPunchFx().isActive() || (juce::roundToInt (param (gSfxType)) != 0 && param (gSfxLevel) > 0.01f); };
     }
-    TrackStrip::showMeters = appsettings::getValue ("trackMeters") == "1";
+    TrackStrip::showMeters = appsettings::getValue ("trackMeters") != "0";   // per-track IN / OUT meters: on by default
 
     // ---- v1.5 performance row: beat FX
     bfxType.setEnglishItems (beatFxChoices());
@@ -409,46 +420,46 @@ void LiveLooperEditor::layoutSurface()
     for (int t = 0; t < visible; ++t)
         strips[(size_t) t]->setBounds (tracks.removeFromLeft (stripW).reduced (3, 0));
 
-    // RHYTHM
+    // RHYTHM (right column, narrow): RHYTHM + pattern | kit + TAP | LEVEL SWING FEEL TEMPO; FILL / BEATS in the title row
     rhythmArea = layout::rhythm.translated (dx, 0);
-    auto rh = rhythmArea.reduced (14, 12).withTrimmedTop (30);
+    auto rh = rhythmArea.reduced (12, 10).withTrimmedTop (28);
     auto row = rh.removeFromTop (30);
-    rhythmOn.setBounds (row.removeFromLeft (98));
-    row.removeFromLeft (8);
+    rhythmOn.setBounds (row.removeFromLeft (94));
+    row.removeFromLeft (6);
     rhythmPattern.setBounds (row);
     rh.removeFromTop (6);
     row = rh.removeFromTop (28);
-    tap.setBounds (row.removeFromRight (70));
-    row.removeFromRight (8);
+    tap.setBounds (row.removeFromRight (58));
+    row.removeFromRight (6);
     rhythmKit.setBounds (row);
-    rh.removeFromTop (6);
+    rh.removeFromTop (4);
     row = rh;
     const int quarter = row.getWidth() / 4;
-    rhythmLevel->setBounds (row.removeFromLeft (quarter).reduced (3));
-    rhythmSwing->setBounds (row.removeFromLeft (quarter).reduced (3));
-    rhythmHuman->setBounds (row.removeFromLeft (quarter).reduced (3));
-    tempo->setBounds (row.reduced (3));
+    rhythmLevel->setBounds (row.removeFromLeft (quarter).reduced (1));
+    rhythmSwing->setBounds (row.removeFromLeft (quarter).reduced (1));
+    rhythmHuman->setBounds (row.removeFromLeft (quarter).reduced (1));
+    tempo->setBounds (row.reduced (1));
 
-    // MASTER
+    // MASTER: quantize + HOST SYNC | MASTER INPUT FADE | ALL START / STOP | CAPTURE + CLEAR ALL
     masterArea = layout::masterPanel.translated (dx, 0);
-    auto ms = masterArea.reduced (14, 12).withTrimmedTop (30);
+    auto ms = masterArea.reduced (12, 10).withTrimmedTop (28);
     row = ms.removeFromTop (30);
-    quantize.setBounds (row.removeFromLeft (row.getWidth() / 2).withTrimmedRight (4));
-    sync.setBounds (row.withTrimmedLeft (4));
-    ms.removeFromTop (8);
+    quantize.setBounds (row.removeFromLeft (row.getWidth() / 2).withTrimmedRight (3));
+    sync.setBounds (row.withTrimmedLeft (3));
     ms.removeFromTop (6);
-    row = ms.removeFromTop (96);
+    row = ms.removeFromTop (88);
     const int kn = row.getWidth() / 3;
-    master->setBounds (row.removeFromLeft (kn).reduced (4));
-    monitor->setBounds (row.removeFromLeft (kn).reduced (4));
-    fade->setBounds (row.reduced (4));
+    master->setBounds (row.removeFromLeft (kn).reduced (2));
+    monitor->setBounds (row.removeFromLeft (kn).reduced (2));
+    fade->setBounds (row.reduced (2));
     {
         auto bottom = ms.removeFromBottom (30);
-        capture.setBounds (bottom.removeFromLeft (bottom.getWidth() / 2).withTrimmedRight (4));
-        clearAll.setBounds (bottom.withTrimmedLeft (4));
+        capture.setBounds (bottom.removeFromLeft (bottom.getWidth() / 2).withTrimmedRight (3));
+        clearAll.setBounds (bottom.withTrimmedLeft (3));
     }
-    ms.removeFromBottom (12);
-    allStartStop.setBounds (ms.removeFromBottom (juce::jmin (68, ms.getHeight() - 12)));
+    ms.removeFromBottom (8);
+    ms.removeFromTop (6);
+    allStartStop.setBounds (ms);
     LooperLookAndFeel::setEmphasis (allStartStop, 2);
     for (auto* b2 : { &capture, &clearAll, &tap, &sync })
         LooperLookAndFeel::setEmphasis (*b2, 0);
@@ -489,69 +500,71 @@ void LiveLooperEditor::renderSurfaceCache()
     glow ((float) w * 0.45f, (float) h + 80.0f, 620.0f, colours::brand1, 0.08f);
     glow ((float) w - 80.0f, 160.0f, 560.0f, colours::brand2, 0.10f);
 
-    // logo: livelooper in the brand gradient, quiet subtitle
+    // logo: the classic "livelooper" wordmark with the coloured dots, quiet subtitle
     {
-        const auto f = LooperLookAndFeel::font (32.0f, true);
-        const juce::Rectangle<float> logo (24.0f, 14.0f, juce::GlyphArrangement::getStringWidth (f, "livelooper") + 2.0f, 40.0f);
-        g.setGradientFill (LooperLookAndFeel::brandGradient (logo));
+        const auto f = LooperLookAndFeel::font (34.0f, true);
+        const float tw = juce::GlyphArrangement::getStringWidth (f, "livelooper");
+        g.setColour (colours::text);
         g.setFont (f);
-        g.drawText ("livelooper", logo, juce::Justification::centredLeft);
+        g.drawText ("livelooper", juce::Rectangle<float> (22.0f, 12.0f, tw + 4.0f, 42.0f), juce::Justification::centredLeft);
+        const juce::Colour dots[] = { colours::red, colours::orange, colours::green, colours::cyan, colours::learn };
+        for (int i = 0; i < 5; ++i)
+        {
+            const float x = 22.0f + tw + 12.0f + (float) i * 16.0f;
+            g.setColour (dots[i].withAlpha (0.3f));
+            g.fillEllipse (x - 2.0f, 31.0f, 13.0f, 13.0f);
+            g.setColour (dots[i]);
+            g.fillEllipse (x, 33.0f, 9.0f, 9.0f);
+        }
         g.setColour (colours::textDim);
         g.setFont (LooperLookAndFeel::font (11.0f, true));
-        g.drawText (tr ("%1 TRACK LOOP STATION", juce::String (proc.getVisibleTracks())) + "  \xc2\xb7  designed by groovex",
-                    26, 54, 290, 16, juce::Justification::centredLeft);
+        const auto sub = tr ("%1 TRACK LOOP STATION", juce::String (proc.getVisibleTracks()));
+        g.drawText (sub, 24, 52, 200, 16, juce::Justification::centredLeft);
+        const auto sf = LooperLookAndFeel::font (11.0f, true);
+        g.setColour (colours::textDim.withAlpha (0.6f));
+        g.setFont (LooperLookAndFeel::font (9.5f));
+        g.drawText ("designed by groovex", 24 + juce::roundToInt (juce::GlyphArrangement::getStringWidth (sf, sub)) + 10, 52, 120, 16,
+                    juce::Justification::centredLeft);
     }
 
-    auto title = [&g] (juce::Rectangle<int> r, const juce::String& text, juce::Colour accent, bool quiet)
+    auto title = [&g] (juce::Rectangle<int> r, const juce::String& text, juce::Colour accent)
     {
-        g.setColour (accent.withAlpha (quiet ? 0.7f : 1.0f));
-        g.fillRoundedRectangle ((float) r.getX() + 14.0f, (float) r.getY() + 17.0f, 4.0f, 12.0f, 2.0f);
-        g.setColour (quiet ? colours::textDim.brighter (0.2f) : colours::text);
-        g.setFont (LooperLookAndFeel::font (quiet ? 12.0f : 13.0f, true));
-        g.drawText (text, r.getX() + 24, r.getY() + 12, r.getWidth() - 40, 22, juce::Justification::centredLeft);
+        g.setColour (accent);
+        g.fillRoundedRectangle ((float) r.getX() + 12.0f, (float) r.getY() + 13.0f, 4.0f, 12.0f, 2.0f);
+        g.setColour (colours::text);
+        g.setFont (LooperLookAndFeel::font (12.5f, true));
+        g.drawText (text, r.getX() + 22, r.getY() + 8, r.getWidth() - 34, 22, juce::Justification::centredLeft);
     };
 
     // tracks: the brightest glass, tinted with each track's colour
     for (int t = 0; t < proc.getVisibleTracks(); ++t)
-        LooperLookAndFeel::drawGlassPanel (g, strips[(size_t) t]->getBounds().toFloat(), 16.0f, 2, colours::track (t));
-    // FX: second level
-    LooperLookAndFeel::drawGlassPanel (g, fxPanelArea.toFloat(), 16.0f, 1);
-    title (fxPanelArea, tr ("FX"), colours::orange, false);
-    if (fxTab == tabInput || fxTab == tabTrack)
+        LooperLookAndFeel::drawGlassPanel (g, strips[(size_t) t]->getBounds().toFloat(), 14.0f, 2, colours::track (t));
+
+    // FX rows: every group visible at once
+    const auto fxEditTitle = tr (selectedInput ? "INPUT FX" : "TRACK FX") + " " + juce::String::charToString ((juce::juce_wchar) ('A' + selectedSlot))
+                             + "  " + tr ("EDIT");
+    struct P { juce::Rectangle<int> r; juce::String text; juce::Colour c; };
+    const P panels[] = {
+        { inputFxArea, tr ("INPUT FX"), colours::cyan },
+        { fxEditArea, fxEditTitle, selectedInput ? colours::cyan : colours::orange },
+        { trackFxArea, tr ("TRACK FX"), colours::orange },
+        { punchArea, tr ("PUNCH FX"), colours::learn },
+        { beatFxArea, tr ("BEAT FX"), colours::orange },
+        { repeatArea, tr ("REPEAT / STUTTER"), colours::red },
+        { colorArea, tr ("COLOR FX"), colours::blue },
+        { sendArea, tr ("SEND FX"), colours::learn },
+        { metroArea, tr ("METRONOME"), colours::yellow },
+    };
+    for (const auto& p : panels)
     {
-        // caption above the editor of the selected slot
-        const auto ed = fxType.getBounds();
-        g.setColour (colours::textDim);
-        g.setFont (LooperLookAndFeel::font (11.0f, true));
-        g.drawText (tr (selectedInput ? "INPUT FX" : "TRACK FX") + " " + juce::String::charToString ((juce::juce_wchar) ('A' + selectedSlot)) + "  " + tr ("EDIT"),
-                    ed.getX(), ed.getY() - 22, 260, 18, juce::Justification::centredLeft);
-        g.setColour (juce::Colours::white.withAlpha (0.07f));
-        g.fillRect ((float) ed.getX() - 14.0f, (float) fxContentArea.getY() + 6.0f, 1.0f, (float) fxContentArea.getHeight() - 12.0f);
+        LooperLookAndFeel::drawGlassPanel (g, p.r.toFloat(), 14.0f, 1);
+        title (p.r, p.text, p.c);
     }
-    else if (fxTab == tabPunch)
-    {
-        // v1.6: captions of the punch FX / send FX blocks and a divider
-        g.setColour (colours::textDim);
-        g.setFont (LooperLookAndFeel::font (11.0f, true));
-        g.drawText (tr ("PUNCH FX"), punchCaption, juce::Justification::centredLeft);
-        g.drawText (tr ("SEND FX"), sendCaption, juce::Justification::centredLeft);
-        g.setColour (juce::Colours::white.withAlpha (0.07f));
-        g.fillRect ((float) sendCaption.getX() - 8.0f, (float) fxContentArea.getY() + 6.0f, 1.0f, (float) fxContentArea.getHeight() - 12.0f);
-    }
-    else if (fxTab == tabColor)
-    {
-        g.setColour (colours::textDim);
-        g.setFont (LooperLookAndFeel::font (12.0f));
-        g.drawFittedText (tr ("Turn COLOR on a track to blend in the chosen effect - centre = off."),
-                          fxContentArea.withTrimmedTop (fxContentArea.getHeight() - 26), juce::Justification::centredLeft, 1, 0.8f);
-    }
-    // everything else: quiet
-    LooperLookAndFeel::drawGlassPanel (g, rhythmArea.toFloat(), 16.0f, 0);
-    title (rhythmArea, tr ("RHYTHM"), colours::orange, true);
-    LooperLookAndFeel::drawGlassPanel (g, metroArea.toFloat(), 16.0f, 0);
-    title (metroArea, tr ("METRONOME"), colours::yellow, true);
-    LooperLookAndFeel::drawGlassPanel (g, masterArea.toFloat(), 16.0f, 0);
-    title (masterArea, tr ("MASTER"), colours::green, true);
+    // right column
+    LooperLookAndFeel::drawGlassPanel (g, rhythmArea.toFloat(), 14.0f, 1);
+    title (rhythmArea, tr ("RHYTHM"), colours::orange);
+    LooperLookAndFeel::drawGlassPanel (g, masterArea.toFloat(), 14.0f, 1);
+    title (masterArea, tr ("MASTER"), colours::green);
 
     // footer: scenes, tips, version
     const auto footer = layout::footer.withWidth (w).reduced (20, 12);
@@ -623,144 +636,167 @@ void LiveLooperEditor::FxTabButton::paintButton (juce::Graphics& g, bool over, b
 
 void LiveLooperEditor::setFxTab (int tab)
 {
+    // v1.6 final: all FX groups are visible at once; this only remembers the focused group
     fxTab = juce::jlimit (0, (int) numFxTabs - 1, tab);
     for (int i = 0; i < numFxTabs; ++i)
         fxTabs[(size_t) i]->setToggleState (i == fxTab, juce::dontSendNotification);
-    if (fxTab == tabInput && ! selectedInput)
-        selectFxSlot (true, selectedSlot);
-    else if (fxTab == tabTrack && selectedInput)
-        selectFxSlot (false, selectedSlot);
-    layoutFxPanel (surfaceWidth() - kBaseWidth);
-    surface.repaint();
+}
+
+juce::Rectangle<int> LiveLooperEditor::getFxGroupArea (int group) const
+{
+    switch (group)
+    {
+        case tabInput:  return inputFxArea;
+        case tabTrack:  return trackFxArea;
+        case tabBeat:   return beatFxArea;
+        case tabRepeat: return repeatArea;
+        case tabColor:  return colorArea;
+        case tabPunch:  return punchArea.getUnion (sendArea);
+        default:        return fxPanelArea;
+    }
 }
 
 void LiveLooperEditor::layoutFxPanel (int dx)
 {
-    fxPanelArea = layout::fxPanel.withWidth (layout::fxPanel.getWidth() + dx);
-    // tab bar right of the title
-    auto bar = fxPanelArea.reduced (14, 0).withTrimmedTop (10).withHeight (28).withTrimmedLeft (54);
-    const int widths[] = { 112, 112, 104, 168, 112, 112 };
-    for (int i = 0; i < numFxTabs; ++i)
-    {
-        fxTabs[(size_t) i]->setBounds (bar.removeFromLeft (widths[i]));
-        bar.removeFromLeft (4);
-        fxTabs[(size_t) i]->setToggleState (i == fxTab, juce::dontSendNotification);
-        LooperLookAndFeel::setEmphasis (*fxTabs[(size_t) i], 1);
-    }
-    fxContentArea = fxPanelArea.reduced (16, 10).withTrimmedTop (36);
-    const auto c = fxContentArea;
+    // two FX rows across the full width (classic arrangement); with 6 - 8 tracks every column stretches
+    const int w = kBaseWidth + dx;
+    auto fxX = [w] (int x) { return 12 + juce::roundToInt ((double) (x - 12) * (double) (w - 24) / (double) (kBaseWidth - 24)); };
+    auto panel = [fxX] (int x0, int x1, int y, int h) { return juce::Rectangle<int> (fxX (x0), y, fxX (x1) - fxX (x0), h); };
+    using namespace layout;
+    inputFxArea = panel (inputX0, inputX1, row1Y, row1H);
+    fxEditArea  = panel (editX0, editX1, row1Y, row1H);
+    trackFxArea = panel (trackX0, trackX1, row1Y, row1H);
+    punchArea   = panel (punchX0, punchX1, row1Y, row1H);
+    beatFxArea  = panel (beatX0, beatX1, row2Y, row2H);
+    repeatArea  = panel (repeatX0, repeatX1, row2Y, row2H);
+    colorArea   = panel (colorX0, colorX1, row2Y, row2H);
+    sendArea    = panel (sendX0, sendX1, row2Y, row2H);
+    metroArea   = panel (metroX0, metroX1, row2Y, row2H);
+    fxPanelArea = inputFxArea.getUnion (metroArea).getUnion (punchArea);
+    fxContentArea = fxPanelArea;
 
-    auto show = [] (std::initializer_list<juce::Component*> comps, bool on) { for (auto* x : comps) x->setVisible (on); };
-    const bool slotsTab = fxTab == tabInput || fxTab == tabTrack;
+    // content of a panel: below the title row; titleRow: the right part of the title row (small buttons / boxes)
+    auto content = [] (juce::Rectangle<int> r) { return r.reduced (12, 8).withTrimmedTop (26); };
+    auto titleRow = [] (juce::Rectangle<int> r) { return juce::Rectangle<int> (r.getX() + 12, r.getY() + 8, r.getWidth() - 24, 22); };
+
+    for (auto* comp : { (juce::Component*) &fxType, (juce::Component*) fxP1.get(), (juce::Component*) fxP2.get(), (juce::Component*) fxMix.get(),
+                        (juce::Component*) &bfxType, (juce::Component*) &bfxTarget, (juce::Component*) &beatDown, (juce::Component*) &beatUp,
+                        (juce::Component*) &bfxBeat, (juce::Component*) &bfxOn, (juce::Component*) bfxHold.get(), (juce::Component*) bfxDepth.get(),
+                        (juce::Component*) &drumsBfxBtn, (juce::Component*) repeatHold.get(), (juce::Component*) stutterHold.get(),
+                        (juce::Component*) &repeatRate, (juce::Component*) &stutterRate, (juce::Component*) &repeatLatch,
+                        (juce::Component*) &stutterLatch, (juce::Component*) &drumsRepBtn })
+        comp->setVisible (true);
     for (int s = 0; s < kNumFxSlots; ++s)
     {
-        inputSlots[(size_t) s]->setVisible (fxTab == tabInput);
-        trackSlots[(size_t) s]->setVisible (fxTab == tabTrack);
+        inputSlots[(size_t) s]->setVisible (true);
+        trackSlots[(size_t) s]->setVisible (true);
     }
-    show ({ &fxType, fxP1.get(), fxP2.get(), fxMix.get() }, slotsTab);
-    show ({ &bfxType, &bfxTarget, &beatDown, &beatUp, &bfxBeat, &bfxOn, bfxHold.get(), bfxDepth.get(), &drumsBfxBtn }, fxTab == tabBeat);
-    show ({ repeatHold.get(), stutterHold.get(), &repeatRate, &stutterRate, &repeatLatch, &stutterLatch, &drumsRepBtn }, fxTab == tabRepeat);
     for (auto& b : colorBtns)
-        b->setVisible (fxTab == tabColor);
-    layoutPunchTab (c);          // v1.6 punch FX + send FX (shows / hides its controls)
+        b->setVisible (true);
 
-    // INPUT / TRACK FX: four slot pads, then the editor of the selected slot
+    // INPUT FX / TRACK FX: four slot pads each
     {
-        auto r = c;
-        auto slots = r.removeFromLeft (4 * 98);
+        auto in = content (inputFxArea), tr2 = content (trackFxArea);
+        const int sw = in.getWidth() / kNumFxSlots;
         for (int s = 0; s < kNumFxSlots; ++s)
         {
-            const auto sb = slots.removeFromLeft (98);
-            inputSlots[(size_t) s]->setBounds (sb);
-            trackSlots[(size_t) s]->setBounds (sb);
+            inputSlots[(size_t) s]->setBounds (in.removeFromLeft (sw));
+            trackSlots[(size_t) s]->setBounds (tr2.removeFromLeft (sw));
         }
-        r.removeFromLeft (30);
-        auto ed = r.withTrimmedTop (24);
-        fxType.setBounds (ed.removeFromLeft (170).withHeight (30));
-        ed.removeFromLeft (16);
-        const int kw = juce::jmin (100, ed.getWidth() / 3);
-        auto knobs = juce::Rectangle<int> (ed.getX(), c.getY() + 2, kw * 3, c.getHeight() - 4);
-        fxP1->setBounds (knobs.removeFromLeft (kw));
-        fxP2->setBounds (knobs.removeFromLeft (kw));
-        fxMix->setBounds (knobs);
     }
 
-    // BEAT FX: type / channel | beat | level | ON / HOLD, DRUMS
+    // EDIT: type | three knobs
     {
-        auto r = c.reduced (0, 4);
-        auto col = r.removeFromLeft (200 + dx / 3);
-        bfxType.setBounds (col.removeFromTop (32).reduced (0, 1));
-        col.removeFromTop (12);
-        bfxTarget.setBounds (col.removeFromTop (32).reduced (0, 1));
-        r.removeFromLeft (20);
-        col = r.removeFromLeft (150);
+        auto ed = content (fxEditArea);
+        const int cw = juce::jmin (150, ed.getWidth() * 38 / 100);
+        fxType.setBounds (ed.removeFromLeft (cw).withSizeKeepingCentre (cw, 30));
+        ed.removeFromLeft (6);
+        const int kw = ed.getWidth() / 3;
+        fxP1->setBounds (ed.removeFromLeft (kw));
+        fxP2->setBounds (ed.removeFromLeft (kw));
+        fxMix->setBounds (ed);
+    }
+
+    // PUNCH FX: 4 x 3 pads | XY | AMOUNT; target + LATCH in the title row
+    layoutPunchTab (content (punchArea));
+
+    // BEAT FX: type / channel | beat fraction | level | ON / HOLD; DRUMS in the title row
+    {
+        drumsBfxBtn.setBounds (titleRow (beatFxArea).removeFromRight (64));
+        auto r = content (beatFxArea);
+        const int extra = r.getWidth() - 348;                 // > 0 with 6 - 8 tracks: wider boxes
+        auto col = r.removeFromLeft (106 + extra / 2);
+        bfxType.setBounds (col.removeFromTop (30).reduced (0, 1));
+        bfxTarget.setBounds (col.removeFromBottom (30).reduced (0, 1));
+        r.removeFromLeft (6);
+        col = r.removeFromLeft (100 + extra / 4);
         {
-            auto rowB = col.removeFromTop (32);
-            beatDown.setBounds (rowB.removeFromLeft (30).reduced (0, 1));
-            beatUp.setBounds (rowB.removeFromRight (30).reduced (0, 1));
-            bfxBeat.setBounds (rowB.reduced (4, 1));
+            auto rowB = col.removeFromTop (30);
+            beatDown.setBounds (rowB.removeFromLeft (22).reduced (0, 1));
+            beatUp.setBounds (rowB.removeFromRight (22).reduced (0, 1));
+            bfxBeat.setBounds (rowB.reduced (3, 1));
         }
-        col.removeFromTop (12);
-        drumsBfxBtn.setBounds (col.removeFromTop (32).reduced (0, 1));
-        r.removeFromLeft (20);
-        auto onCol = r.removeFromRight (130);
-        bfxOn.setBounds (onCol.removeFromTop (54).reduced (0, 1));
-        onCol.removeFromTop (8);
-        bfxHold->setBounds (onCol.removeFromTop (40).reduced (0, 1));
-        bfxDepth->setBounds (r.withSizeKeepingCentre (juce::jmin (100, r.getWidth()), r.getHeight()));
+        r.removeFromLeft (4);
+        auto onCol = r.removeFromRight (74);
+        bfxOn.setBounds (onCol.removeFromTop (34).reduced (0, 1));
+        bfxHold->setBounds (onCol.removeFromBottom (30).reduced (0, 1));
+        r.removeFromRight (4);
+        bfxDepth->setBounds (r.withSizeKeepingCentre (juce::jmin (64, r.getWidth()), r.getHeight()));
         LooperLookAndFeel::setEmphasis (bfxOn, 2);
     }
 
-    // BEAT REPEAT / STUTTER: two rows, DRUMS on the right
+    // BEAT REPEAT / STUTTER: two rows (HOLD | rate | LATCH); DRUMS in the title row
     {
-        auto r = c.reduced (0, 6);
-        auto drums = r.removeFromRight (120);
-        drumsRepBtn.setBounds (drums.withSizeKeepingCentre (110, 34));
-        r.removeFromRight (20);
+        drumsRepBtn.setBounds (titleRow (repeatArea).removeFromRight (64));
+        auto r = content (repeatArea);
+        const int rowH = 30, gap = r.getHeight() - 2 * rowH;
         for (int i = 0; i < 2; ++i)
         {
-            auto rowR = r.removeFromTop (44);
+            auto rowR = r.removeFromTop (rowH);
             auto& hold = i == 0 ? *repeatHold : *stutterHold;
             auto& rate = i == 0 ? repeatRate : stutterRate;
             auto& latch = i == 0 ? repeatLatch : stutterLatch;
-            hold.setBounds (rowR.removeFromLeft (180).reduced (0, 2));
-            rowR.removeFromLeft (14);
-            latch.setBounds (rowR.removeFromRight (110).reduced (0, 4));
-            rowR.removeFromRight (14);
-            rate.setBounds (rowR.removeFromLeft (160).reduced (0, 6));
-            r.removeFromTop (12);
+            const int unit = rowR.getWidth();
+            hold.setBounds (rowR.removeFromLeft (unit * 36 / 100).reduced (0, 1));
+            rowR.removeFromLeft (5);
+            latch.setBounds (rowR.removeFromRight (unit * 27 / 100).reduced (0, 1));
+            rowR.removeFromRight (5);
+            rate.setBounds (rowR.reduced (0, 2));
+            r.removeFromTop (gap);
             LooperLookAndFeel::setEmphasis (hold, 2);
         }
     }
 
-    // COLOR FX: six large type buttons
+    // COLOR FX: 3 x 2 type buttons
     {
-        auto r = c.withTrimmedBottom (34);
-        const int bw = r.getWidth() / (int) colorBtns.size();
+        auto r = content (colorArea);
+        const int bw = r.getWidth() / 3;
+        const int rowH = 30, gap = r.getHeight() - 2 * rowH;
         for (int i = 0; i < (int) colorBtns.size(); ++i)
-            colorBtns[(size_t) i]->setBounds (r.removeFromLeft (bw).reduced (5, 6));
+            colorBtns[(size_t) i]->setBounds (r.getX() + (i % 3) * bw + 2, r.getY() + (i / 3) * (rowH + gap), bw - 4, rowH);
+    }
+
+    // METRONOME: METRONOME / ACCENT / sound | LEVEL
+    {
+        auto m = content (metroArea);
+        metroLevel->setBounds (m.removeFromRight (juce::jmin (56, m.getWidth() / 3)));
+        m.removeFromRight (4);
+        const int h = (m.getHeight() - 6) / 3;
+        metroOn.setBounds (m.removeFromTop (h));
+        m.removeFromTop (3);
+        metroAccent.setBounds (m.removeFromTop (h));
+        m.removeFromTop (3);
+        clickSoundBox.setBounds (m.removeFromTop (h));
+        for (auto* b2 : { &metroOn, &metroAccent })
+            LooperLookAndFeel::setEmphasis (*b2, 0);
     }
 }
 
 //============================================================================== v1.5 performance row
 void LiveLooperEditor::layoutPerformanceRow (int dx)
 {
-    // v1.6: beat FX, beat repeat / stutter and colour FX live in the tabbed FX panel
+    // v1.6 final: input / track / punch FX in row 1, beat FX / repeat / colour / send FX / metronome in row 2
     layoutFxPanel (dx);
-    beatFxArea = repeatArea = colorArea = fxPanelArea;
-
-    // metronome (quiet, right column): on / accent / sound | level
-    metroArea = layout::metronome.translated (dx, 0);
-    auto m = metroArea.reduced (14, 10).withTrimmedTop (30);
-    metroLevel->setBounds (m.removeFromRight (64).withTrimmedTop (-30).reduced (0, 2));
-    m.removeFromRight (8);
-    auto rowM = m.removeFromTop (24);
-    metroOn.setBounds (rowM.removeFromLeft (rowM.getWidth() * 3 / 5).withTrimmedRight (3));
-    metroAccent.setBounds (rowM.withTrimmedLeft (3));
-    m.removeFromTop (5);
-    clickSoundBox.setBounds (m.removeFromTop (24));
-    for (auto* b2 : { &metroOn, &metroAccent })
-        LooperLookAndFeel::setEmphasis (*b2, 0);
 }
 
 void LiveLooperEditor::updatePerformanceLabels()
@@ -792,7 +828,7 @@ void LiveLooperEditor::selectFxSlot (bool inputFx, int slot)
         trackSlots[(size_t) s]->setSelected (! inputFx && s == slot);
     }
     updateFxEditorLabels();
-    if (fxTab <= tabTrack && fxTabs[0] != nullptr && fxTab != (inputFx ? tabInput : tabTrack))
+    if (fxTabs[0] != nullptr)
         setFxTab (inputFx ? tabInput : tabTrack);
     surface.repaint (fxPanelArea);
 }
@@ -1864,11 +1900,11 @@ void LiveLooperEditor::layoutRhythm16 (int dx)
     // header buttons: BEATS + FILL in the rhythm panel, DRUMS in the beat FX and beat repeat panels
     // (DRUMS buttons: in the BEAT FX and REPEAT tabs of the FX panel, see layoutFxPanel)
     const auto rh = layout::rhythm.translated (dx, 0);
-    beatsBtn.setBounds (rh.getRight() - 14 - 72, rh.getY() + 11, 72, 24);
-    fillBtn->setBounds (rh.getRight() - 14 - 72 - 6 - 60, rh.getY() + 11, 60, 24);
+    beatsBtn.setBounds (rh.getRight() - 12 - 60, rh.getY() + 8, 60, 22);
+    fillBtn->setBounds (rh.getRight() - 12 - 60 - 6 - 50, rh.getY() + 8, 50, 22);
     if (beatsPage != nullptr)
-        beatsPage->setBounds (juce::Rectangle<int> (12, layout::tracks.getY(), surfaceWidth() - 24,
-                                                    layout::fxPanel.getBottom() - layout::tracks.getY()));
+        beatsPage->setBounds (juce::Rectangle<int> (12, layout::row1Y, surfaceWidth() - 24,
+                                                    layout::tracks.getBottom() - layout::row1Y));
 }
 
 void LiveLooperEditor::showBeatsPage (bool show)
