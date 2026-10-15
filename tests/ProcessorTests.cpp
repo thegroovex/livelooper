@@ -79,7 +79,8 @@ public:
                                       + kNumTracks * 3 + 2 /* v1.6 features: loop tricks, recorder, clip export */
                                       + 5 + 4 * params::kNumBeatRows
                                       + 2 /* v1.6 beat library: next / previous */
-                                      + 23 /* v1.6 punch FX (4 send + 12 holds + 5), controller audio mode, resample */);   // v1.6 rhythm: variation, fill, switch, drum FX routing x 2, BEATS row mute / solo / level / pitch   // v1.5: beat FX + colour type, colour per track, repeat / stutter, metronome, Link   // 8 tracks x (22 + 15 since 1.4), global (+3 rhythm feel since 1.3, +2 tape stop / filter since 1.4), FX
+                                      + 23 /* v1.6 punch FX (4 send + 12 holds + 5), controller audio mode, resample */
+                                      + 1 /* v1.6 punch FX hold ramp */);   // v1.6 rhythm: variation, fill, switch, drum FX routing x 2, BEATS row mute / solo / level / pitch   // v1.5: beat FX + colour type, colour per track, repeat / stutter, metronome, Link   // 8 tracks x (22 + 15 since 1.4), global (+3 rhythm feel since 1.3, +2 tape stop / filter since 1.4), FX
             expectEquals (proc.getMidiMap().getNumParams(), ids.size(), "every parameter can be MIDI mapped");
             expect (ids.contains ("t3_recplay") && ids.contains ("allstartstop") && ids.contains ("trD_mix"));
         }

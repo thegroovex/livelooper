@@ -230,7 +230,7 @@ public:
             expectWithinAbsoluteError (ko2::holdRampAmount (0.4f, 5000.0, 120.0, 0.0), 0.4f, 1.0e-5f);
 
             ko2::Controller c;
-            expectEquals (c.getHoldRamp(), ko2::HoldRamp::TwoBeats, "2 beats by default");
+            expectEquals ((int) c.getHoldRamp(), (int) ko2::HoldRamp::TwoBeats, "2 beats by default");
             expectEquals (c.livePunchAmount (0, 120.0, 4.0), -1.0f, "nothing held");
             auto out = hit (c, 4, true, 1000, 1);
             expect (out.size() == 1 && out[0].kind == K::Punch && out[0].on);
