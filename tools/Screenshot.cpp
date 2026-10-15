@@ -11,6 +11,8 @@
 #include "plugin/PerformanceRecorder.h"
 #include "plugin/SettingsPanel.h"
 #include "plugin/WelcomeScreen.h"
+#include "plugin/ControllerView.h"
+#include "plugin/AppSettings.h"
 
 using namespace livelooper;
 using namespace livelooper::params;
@@ -222,6 +224,73 @@ int main (int argc, char* argv[])
         runBlocks (proc, 2, 0.0f);
         juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
 
+        // v1.6 punch FX tab (Tape Stop held, send FX reverb)
+        {
+            ed->setFxTab (LiveLooperEditor::tabPunch);
+            set (gSfxType, 2.0f);
+            set (gSfxLevel, 0.35f);
+            set (punchHoldId (4), 1.0f);
+            for (int f = 0; f < 4; ++f)
+            {
+                runBlocks (proc, 3, 0.4f);
+                juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+            }
+            save (*editor, outDir.getChildFile ("livelooper-punch-fx" + sfx + ".png"));
+            set (punchHoldId (4), 0.0f);
+            set (gSfxType, 0.0f);
+            ed->setFxTab (LiveLooperEditor::tabInput);
+            runBlocks (proc, 4, 0.0f);
+        }
+        // v1.6 K.O. II (simulated): header chip + the one-time question, SETUP > Controllers, Controller GUI
+        {
+            proc.simulateControllers (true, true);
+            ed->updateKo2Ui();
+            ed->showKo2Toast (true);
+            for (int f = 0; f < 4; ++f)
+            {
+                runBlocks (proc, 3, 0.3f);
+                juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+            }
+            save (*editor, outDir.getChildFile ("livelooper-ko2" + sfx + ".png"));
+            if (auto* t = ed->getKo2Toast())
+                t->setVisible (false);
+            {
+                auto panel = ed->createSettingsPanel();
+                if (auto* sp = dynamic_cast<SettingsPanel*> (panel.get()))
+                {
+                    sp->showPage (i18n::tr ("Controllers"));
+                    juce::MessageManager::getInstance()->runDispatchLoopUntil (80);
+                    save (*sp, outDir.getChildFile ("livelooper-setup-controllers" + sfx + ".png"));
+                }
+            }
+            appsettings::setValue ("gui.layout", "controller");
+            appsettings::setValue ("gui.controller", "ko2");
+            ed->updateKo2Ui();
+            if (auto* cv = ed->getControllerView())
+                cv->setKo2Page (0);
+            for (int f = 0; f < 4; ++f)
+            {
+                runBlocks (proc, 3, 0.3f);
+                juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+            }
+            save (*editor, outDir.getChildFile ("livelooper-controller-ko2" + sfx + ".png"));
+            appsettings::setValue ("gui.controller", "push");
+            ed->updateKo2Ui();
+            for (int f = 0; f < 4; ++f)
+            {
+                runBlocks (proc, 3, 0.3f);
+                juce::MessageManager::getInstance()->runDispatchLoopUntil (60);
+            }
+            save (*editor, outDir.getChildFile ("livelooper-controller-push" + sfx + ".png"));
+            appsettings::setValue ("gui.layout", "standard");
+            appsettings::setValue ("gui.controller", "ko2");
+            if (auto* cv = ed->getControllerView())
+                cv->setKo2Page (-1);
+            proc.simulateControllers (false, false);
+            ed->updateKo2Ui();
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (60);
+        }
+
         // in-app help (searchable user guide) and the about window
         {
             HelpComponent help;
@@ -235,6 +304,9 @@ int main (int argc, char* argv[])
             help.showSectionForTests (find (i18n::tr ("Loops")));
             juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
             save (help, outDir.getChildFile ("livelooper-help-loops" + sfx + ".png"));
+            help.showSectionForTests (find (i18n::tr ("K.O. II")));          // v1.6
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
+            save (help, outDir.getChildFile ("livelooper-help-ko2" + sfx + ".png"));
             help.setQuery ("Link");
             juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
             save (help, outDir.getChildFile ("livelooper-help-search" + sfx + ".png"));

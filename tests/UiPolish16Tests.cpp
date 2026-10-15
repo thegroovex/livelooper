@@ -123,13 +123,14 @@ public:
             {
                 LangScope l (lang);
                 const auto pages = HelpComponent::guidePages();
-                expectEquals (pages.size(), 8);
+                expectEquals (pages.size(), 9);            // v1.6: + K.O. II
                 for (const auto& p : pages)
                 {
                     expect (getEmbeddedImage (p.image).isValid(), "picture " + p.image);
                     expect (p.text.isNotEmpty() && p.level == 0);
                 }
-                expectEquals (pages[6].legend.size(), 20, "Push 1: 20 numbered controls");
+                expectEquals (pages[6].legend.size(), 22, "Push 1: 22 numbered controls (v1.6: beat flash, set recording)");
+                expectEquals (pages[8].legend.size(), 8, "K.O. II: 8 numbered controls");
                 expectEquals (pages[7].legend.size(), 10, "Push 1 STEP: 10 numbered controls");
                 if (lang == i18n::Language::German)
                     expectEquals (pages[0].title, juce::String ("Willkommen"));
