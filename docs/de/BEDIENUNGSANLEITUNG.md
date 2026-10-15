@@ -8,15 +8,15 @@ livelooper ist als **Instrument zum Erforschen und Live-Spielen** gebaut: Jedes 
 
 Die Oberfläche ist wie ein Hardware-Looper aufgebaut. Die Bezeichnungen in dieser Anleitung entsprechen der deutschen Oberfläche; bei englischer Oberfläche steht die englische Bezeichnung in Klammern (siehe auch [Kapitel 7](#7-sprache) und die [Übersicht am Ende](#16-bezeichnungen-deutsch--englisch)).
 
+Seit 1.6 stehen die Loops im Mittelpunkt: Die Spuren sind der größte und hellste Teil, jede mit eigener Farbe und einem großen Pad, das zum Spielen einlädt. Die Effekte kommen an zweiter Stelle, alles andere bleibt ruhig drumherum:
+
 | Bereich | Inhalt |
 |---|---|
-| Kopfzeile | Display (Tempo, Takt/Schlag, Quantisierung, Link, Master-VU in dB, Meldungen), **MIDI LEARN**, **MIDI MAP**, **SETUP**, **?** (Hilfe) |
-| EINGANGS-FX (links) | vier Effekt-Slots A–D für das Eingangssignal |
-| … BEARBEITEN (Mitte) | Effekttyp und Regler des gerade gewählten Slots |
-| SPUR-FX (rechts) | vier Effekt-Slots A–D für die Spuren mit eingeschaltetem **FX** |
-| Performance-Reihe (seit 1.5) | **BEAT-FX**, **BEAT REPEAT / STUTTER**, **COLOR-FX**, **METRONOM** (Abschnitte 25–28) |
-| SPUR 1–5 (oder 1–8) | die Loop-Spuren (SETUP → Spuren) |
-| RHYTHMUS | Drumcomputer, Tempo, Tap |
+| Kopfzeile | Display (Tempo, Takt/Schlag, Quantisierung, Link, Master-VU in dB, Meldungen), **MIDI LEARN**, **MIDI MAP**, **SETUP**, **?** (Hilfe), der runde **REC**-Knopf (Performance-Recorder) |
+| SPUR 1–5 (oder 1–8) | die Loop-Spuren (SETUP → Looper → Spuren): Display mit Wellenform, das große REC/PLAY-Pad, STOP, RÜCKW. / 1SHOT / FX und eine kleine Mischpult-Zeile |
+| FX (unter den Spuren) | immer eine Gruppe – **EINGANGS-FX**, **SPUR-FX**, **BEAT-FX**, **REPEAT / STUTTER**, **COLOR-FX**. Ein kleines Licht auf einem Reiter zeigt, dass in dieser Gruppe etwas eingeschaltet ist (Abschnitte 3, 25–27) |
+| RHYTHMUS | Drumcomputer, Tempo, Tap, FILL, BEATS |
+| METRONOM | Klick an / aus, Akzent, Klang, Pegel (Abschnitt 28) |
 | MASTER | Quantisierung, Host-Sync, Pegel, Fade-Zeit, ALLE START / STOP, CAPTURE, ALLE LÖSCHEN |
 | Fußleiste | 8 Szenen-Knöpfe, SPEICHERN |
 
@@ -105,7 +105,7 @@ Es gibt zwei Effektbänke mit je vier Slots:
 - **EINGANGS-FX** (INPUT FX) bearbeiten das Eingangssignal – was du hörst, wird so auch aufgenommen.
 - **SPUR-FX** (TRACK FX) bearbeiten alle Spuren, bei denen **FX** eingeschaltet ist (gemeinsamer Effektweg), ohne die Aufnahme zu verändern.
 
-Der Knopf **A/B/C/D** schaltet den Slot ein und aus und wählt ihn gleichzeitig zum Bearbeiten aus; ein Klick auf den Effektnamen darunter wählt ihn nur aus. Im Feld **… BEARBEITEN** stellst du Typ, zwei Parameter und Mix ein. Die Slots einer Bank sind in Reihe geschaltet (A → B → C → D).
+Beide Bänke sind Reiter des **FX**-Felds unter den Spuren (**EINGANGS-FX** / **SPUR-FX**). Das Pad **A/B/C/D** schaltet den Slot ein und aus und wählt ihn gleichzeitig zum Bearbeiten aus; ein Klick auf den Effektnamen darunter wählt ihn nur aus. Direkt daneben (**… BEARBEITEN**) stellst du Typ, zwei Parameter und Mix ein. Die Slots einer Bank sind in Reihe geschaltet (A → B → C → D).
 
 | Effekt (englisch) | P1 | P2 | Mix |
 |---|---|---|---|
@@ -173,6 +173,10 @@ Die Kit-Namen beschreiben einen Klangstil; „909 Style“ und „808“ sind ni
 ---
 
 ## 6. SETUP-Menü
+
+Seit 1.6 öffnet **SETUP** ein Einstellungsfenster im Stil der macOS-Systemeinstellungen: links die Seiten (**Sets**, **Looper**, **Rhythmus**, **Aufnahme**, **Audio**, **Controller**, **Sync**, **App**), rechts gruppierte Zeilen – Schalter, Aufklappmenüs und Aktionen, darunter kurze Hinweise. Jeder Eintrag unten steht auf einer dieser Seiten.
+
+![SETUP](../images/livelooper-setup-de.png)
 
 | Eintrag | Bedeutung |
 |---|---|
@@ -259,7 +263,7 @@ Auf die große Tempo-Zahl im Display klicken (oder **B** drücken, oder Rechtskl
 
 ## 12. Pegelanzeigen, Wellenform und Clip-LED
 
-- **Spur-Pegel** (Stereo, neben dem Fader): Während eine Spur aufnimmt oder overdubbt, zeigt er den **Eingangspegel** (orange, Beschriftung **IN**), sonst den **Ausgangspegel** der Spur (grün, **OUT**). Gelb ab -12 dB, rot ab -1 dB; der dünne Strich hält die Spitze etwa eine Sekunde.
+- **Spur-Pegel** (Stereo, neben dem Fader; seit 1.6 standardmäßig aus – einschalten mit **SETUP → Looper → Pegelanzeigen pro Spur**): Während eine Spur aufnimmt oder overdubbt, zeigt er den **Eingangspegel** (orange, Beschriftung **IN**), sonst den **Ausgangspegel** der Spur (grün, **OUT**). Gelb ab -12 dB, rot ab -1 dB; der dünne Strich hält die Spitze etwa eine Sekunde.
 - **Master-VU** (seit 1.5): Die oberste Zeile im Display (**MASTER**) zeigt den Pegel des Hauptausgangs in dBFS, links und rechts, auf einer Skala von -60 bis +6 dB, rechts den Spitzenwert als Zahl. Grün bis -12 dB, gelb bis -3 dB, orange bis 0 dB, rot darüber – laute Stellen am besten im Gelben halten.
 - **Wellenform**: Das Spur-Display zeigt statt eines Fortschrittsbalkens eine Übersicht des Loops. Der schon gespielte Teil ist hell, ein weißer Strich markiert die Abspielposition. Bei der Aufnahme wächst die Wellenform von links nach rechts; Overdubs und Undo sind sofort sichtbar. Bei REVERSE wird sie gespiegelt.
 - **Clip-LED** (oben rechts an jeder Spur): aus = leer, grün = Spur enthält einen Loop, rot = erste Aufnahme läuft, rot blinkend = wartet auf den nächsten Takt, um aufzunehmen.
@@ -389,7 +393,7 @@ Neue Funktionen fürs Live-Spielen. Sie sind Host-Parameter (MIDI Learn, MIDI-Ma
 
 ![Performance-Reihe](../images/livelooper-performance-de.png)
 
-Der **BEAT-FX**-Block funktioniert wie die Beat-FX-Sektion eines DJ-Mixers: ein Effekt, fest am Schlag, den du beim Spielen ein- und auswirfst.
+Der **BEAT-FX**-Block (seit 1.6 der Reiter **BEAT-FX** des FX-Felds; **REPEAT / STUTTER** und **COLOR-FX** sind die Reiter daneben) funktioniert wie die Beat-FX-Sektion eines DJ-Mixers: ein Effekt, fest am Schlag, den du beim Spielen ein- und auswirfst.
 
 | Element | Funktion |
 |---|---|
@@ -461,7 +465,7 @@ Das Beitreten ändert nie das Tempo einer Session – livelooper übernimmt das 
 
 ## 30. Hilfe
 
-Der Knopf **?** (oben rechts) oder **SETUP → Hilfe …** öffnet die Hilfe: diese Bedienungsanleitung, die Push-Anleitung und die MIDI-Anleitung in deiner Sprache, in Abschnitte aufgeteilt, mit Suchfeld (z. B. *Stutter*, *Link*, *Capture*). Fährt man mit der Maus über ein Element, erscheint ein kurzer Hinweis.
+Der Knopf **?** (oben rechts) oder **SETUP → App → Hilfe …** öffnet die Hilfe. Sie beginnt mit bebilderten Seiten (seit 1.6): **Willkommen**, **Loops**, **FX**, **BEATS**, **Aufnahme**, **Link**, **Push 1** (der ganze Controller mit nummerierten Tasten und ihrer Funktion) und **Push 1: STEP**. Danach folgen diese Bedienungsanleitung, die Push-Anleitung und die MIDI-Anleitung in deiner Sprache, in Abschnitte aufgeteilt, mit Suchfeld (z. B. *Stutter*, *Link*, *Capture*). Fährt man mit der Maus über ein Element, erscheint ein kurzer Hinweis.
 
 ![Hilfe](../images/livelooper-help-de.png)
 
@@ -495,6 +499,10 @@ Beim **allerersten Start** zeigt livelooper seinen **Willkommensbildschirm** und
 - **MIT LEEREM SET STARTEN** – ein leerer Looper für deinen ersten eigenen Loop.
 
 Der Hinweis auf dem Bildschirm sagt es: **Das Demo-Set ersetzt das aktuelle Set** (Loops und Einstellungen), und ein leeres Set kannst du jederzeit mit **SETUP → Leeres Set (alles löschen)** laden. Nach deiner Wahl startet die geführte Tour.
+
+![Willkommensbildschirm](../images/livelooper-welcome-de.png)
+
+Das Demo spielt über deine Lautsprecher, deshalb **startet es mit stummem Eingang** (Regler **EINGANG** im MASTER auf 0) – keine Rückkopplung durch ein offenes Mikrofon. Aufnehmen funktioniert trotzdem; dreh **EINGANG** auf, um zu hören, was du spielst.
 
 - **SETUP → Willkommen / Demo-Set …** zeigt denselben Bildschirm jederzeit (ohne Tour). **SETUP → Demo-Set laden** lädt das Demo direkt.
 - Enthält das aktuelle Set Loops, **fragt livelooper nach**, bevor das Demo-Set (oder das leere Set) es ersetzt.

@@ -16,7 +16,7 @@
 
 ## Play it with Ableton Push
 
-![livelooper on Ableton Push](docs/images/livelooper-live-push.jpg)
+![livelooper on Push 1](docs/images/livelooper-push1.png)
 
 Connect a Push (1 and up), press **User**, and livelooper turns it into a dedicated looper surface – in the plug-in in any DAW and in the standalone app, because livelooper talks to Push directly over its User port:
 

@@ -4,7 +4,7 @@ livelooper talks **directly** to an Ableton Push (1) through its **User port**, 
 
 With a Push, livelooper becomes a self-contained instrument: no mouse, no screen, just pads and encoders – the way it is meant to be played live.
 
-![livelooper on Ableton Push](../images/livelooper-live-push.jpg)
+![livelooper on Push 1](../images/livelooper-push1.png)
 
 Push 2 and Push 3 send the same pad and button messages, so the controls should work on them too (not tested yet). LED colours may differ there, and their display is not used. The touch strip, footswitch and display features are made for Push 1.
 
@@ -24,6 +24,25 @@ Push 2 and Push 3 send the same pad and button messages, so the controls should 
 Only one livelooper instance controls Push at a time. **SETUP → Ableton Push** switches the control on or off.
 
 ## Layout
+
+### Layout at a glance
+
+![Push 1 layout in LOOP mode](../images/livelooper-push1-layout.png)
+
+| # | Control | # | Control |
+|---|---|---|---|
+| 1 | bottom pad row: REC / PLAY / DUB | 11 | METRONOME: rhythm on / off · SHIFT: Link |
+| 2 | second pad row: STOP | 12 | SCALES: STEP sequencer |
+| 3 | pads 3 – 8: loop position – tap to jump, hold to stutter | 13 | SHIFT: second function of a button |
+| 4 | top button row: track FX on / off | 14 | REPEAT / ACCENT: beat repeat / stutter while held |
+| 5 | second button row: reverse · SHIFT: reverse the loop audio | 15 | MUTE / SOLO + pad: mute or solo while held |
+| 6 | touch strip: tape stop · SHIFT: filter | 16 | IN: fill · OUT: drums through the beat FX |
+| 7 | scene buttons: scenes 1 – 8 · SHIFT: store | 17 | encoders: level, pan, pitch, FX (mode buttons) |
+| 8 | PLAY: all start / stop | 18 | display: names, values, tempo and meters |
+| 9 | RECORD: capture the last bars as a loop | 19 | OCTAVE: pitch · SHIFT: half / double speed |
+| 10 | UNDO · SHIFT: redo | 20 | SESSION: LOOP mode · NOTE: XY FX pad |
+
+The same picture with the legend is in the in-app help (**?** → *Push 1*).
 
 ### LOOP mode (SESSION button)
 
@@ -166,6 +185,10 @@ Every Push gesture uses functions that are also host parameters, so any MIDI con
 ### STEP mode and FILL (1.6)
 
 **SCALES** switches to the **STEP mode**: the pads become a step sequencer for the drums (press SCALES again, SESSION or NOTE to leave it).
+
+![Push 1 in STEP mode](../images/livelooper-push1-step.png)
+
+1 pad rows = drum voices (kick at the bottom, tom on top) · 2 the green / white column plays now · 3 top buttons: row mute · 4 lower buttons: row solo · 5 SCALES: STEP mode on / off · 6 LEFT / RIGHT: previous / next 8 steps · 7 IN: fill while held · 8 OUT: drums through the beat FX · 9 encoders: row level (SHIFT: pitch) · 10 SHIFT + pad: accent
 
 | | STEP mode |
 |---|---|

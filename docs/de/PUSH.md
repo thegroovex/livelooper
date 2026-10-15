@@ -4,7 +4,7 @@ livelooper spricht **direkt** mit einem Ableton Push (1) über dessen **User-Por
 
 Mit einem Push wird livelooper zu einem eigenständigen Instrument: keine Maus, kein Bildschirm, nur Pads und Encoder – so, wie es live gespielt werden soll.
 
-![livelooper auf Ableton Push](../images/livelooper-live-push.jpg)
+![livelooper auf Push 1](../images/livelooper-push1.png)
 
 Push 2 und Push 3 senden dieselben Pad- und Tasten-Nachrichten, die Bedienung sollte dort also auch funktionieren (noch nicht getestet). Die LED-Farben können dort abweichen, und ihr Display wird nicht genutzt. Touchstrip, Fußschalter und Display-Funktionen sind für Push 1 gemacht.
 
@@ -24,6 +24,25 @@ Push 2 und Push 3 senden dieselben Pad- und Tasten-Nachrichten, die Bedienung so
 Push wird immer nur von einer livelooper-Instanz gesteuert. **SETUP → Ableton Push** schaltet die Steuerung ein oder aus.
 
 ## Belegung
+
+### Überblick
+
+![Push 1 im LOOP-Modus](../images/livelooper-push1-layout.png)
+
+| # | Element | # | Element |
+|---|---|---|---|
+| 1 | unterste Pad-Reihe: REC / PLAY / DUB | 11 | METRONOME: Rhythmus an / aus · SHIFT: Link |
+| 2 | zweite Pad-Reihe: STOP | 12 | SCALES: STEP-Sequencer |
+| 3 | Pads 3 – 8: Loop-Position – tippen springt, halten stottert | 13 | SHIFT: Zweitfunktion einer Taste |
+| 4 | obere Tastenreihe: Spur-FX an / aus | 14 | REPEAT / ACCENT: Beat Repeat / Stutter, solange gehalten |
+| 5 | zweite Tastenreihe: rückwärts · SHIFT: Loop-Audio umdrehen | 15 | MUTE / SOLO + Pad: stumm oder solo, solange gehalten |
+| 6 | Touch-Strip: Tape-Stop · SHIFT: Filter | 16 | IN: Fill · OUT: Drums durch die Beat-FX |
+| 7 | Szenen-Tasten: Szenen 1 – 8 · SHIFT: speichern | 17 | Encoder: Pegel, Panorama, Tonhöhe, FX (Modus-Tasten) |
+| 8 | PLAY: alle Start / Stop | 18 | Display: Namen, Werte, Tempo und Pegel |
+| 9 | RECORD: die letzten Takte als Loop übernehmen | 19 | OCTAVE: Tonhöhe · SHIFT: halbe / doppelte Geschwindigkeit |
+| 10 | UNDO · SHIFT: Wiederholen | 20 | SESSION: Loop-Modus · NOTE: XY-FX-Pad |
+
+Dasselbe Bild mit Legende steht in der Hilfe in der App (**?** → *Push 1*).
 
 ### LOOP-Modus (Taste SESSION)
 
@@ -164,6 +183,10 @@ Jede Push-Geste nutzt Funktionen, die auch Host-Parameter sind – jeder MIDI-Co
 
 
 ### STEP-Modus und FILL (1.6)
+
+![Push 1 im STEP-Modus](../images/livelooper-push1-step.png)
+
+1 Pad-Reihen = Drum-Stimmen (Kick unten, Tom oben) · 2 die grüne / weiße Spalte spielt gerade · 3 obere Tasten: Reihe stumm · 4 untere Tasten: Reihe solo · 5 SCALES: STEP-Modus an / aus · 6 LINKS / RECHTS: vorherige / nächste 8 Schritte · 7 IN: Fill, solange gehalten · 8 OUT: Drums durch die Beat-FX · 9 Encoder: Pegel der Reihe (SHIFT: Tonhöhe) · 10 SHIFT + Pad: Akzent
 
 **SCALES** schaltet in den **STEP-Modus**: Die Pads werden zum Step-Sequencer für die Drums (nochmal SCALES, SESSION oder NOTE beendet ihn).
 

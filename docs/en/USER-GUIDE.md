@@ -6,17 +6,15 @@ livelooper is built as an **instrument for exploring and playing live**: every c
 
 ![Interface](../images/livelooper.png)
 
-The interface is laid out like a hardware looper:
+The interface puts the loops first (since 1.6): the track strips are the largest and brightest part, each with its own colour and a big pad that invites you to play. The effects come second, everything else stays quiet around them:
 
 | Area | Contents |
 |---|---|
-| Header | display (tempo, bar/beat, quantization, Link, master VU in dB, messages), **MIDI LEARN**, **MIDI MAP**, **SETUP**, **?** (help) |
-| INPUT FX (left) | four effect slots A–D for the input signal |
-| FX EDIT (centre) | effect type and knobs of the selected slot |
-| TRACK FX (right) | four effect slots A–D for the tracks with **FX** switched on |
-| Performance row (since 1.5) | **BEAT FX**, **BEAT REPEAT / STUTTER**, **COLOR FX**, **METRONOME** (sections 25–28) |
-| TRACK 1–5 (or 1–8) | the loop tracks (SETUP → Tracks) |
-| RHYTHM | drum machine, tempo, tap |
+| Header | display (tempo, bar/beat, quantization, Link, master VU in dB, messages), **MIDI LEARN**, **MIDI MAP**, **SETUP**, **?** (help), the round **REC** button (performance recorder) |
+| TRACK 1–5 (or 1–8) | the loop tracks (SETUP → Looper → Tracks): display with waveform, the big REC/PLAY pad, STOP, REV / 1SHOT / FX and a small mixer row |
+| FX (below the tracks) | one group at a time – **INPUT FX**, **TRACK FX**, **BEAT FX**, **REPEAT / STUTTER**, **COLOR FX**. A small light on a tab shows that something in that group is on (sections 3, 25–27) |
+| RHYTHM | drum machine, tempo, tap, FILL, BEATS |
+| METRONOME | click on / off, accent, sound, level (section 28) |
 | MASTER | quantization, host sync, levels, fade time, ALL START/STOP, CAPTURE, CLEAR ALL |
 | Footer | 8 scene buttons, STORE |
 
@@ -105,7 +103,7 @@ There are two effect banks with four slots each:
 - **INPUT FX** process the input signal – what you hear is also what gets recorded.
 - **TRACK FX** process all tracks that have **FX** switched on (a shared effect bus), without changing the recording.
 
-The **A/B/C/D** button switches the slot on and off and selects it for editing at the same time; clicking the effect name below it only selects it. In the **FX EDIT** area you set the type, two parameters and the mix. The slots of a bank are connected in series (A → B → C → D).
+Both banks are tabs of the **FX** panel below the tracks (**INPUT FX** / **TRACK FX**). The **A/B/C/D** pad switches the slot on and off and selects it for editing at the same time; clicking the effect name below it only selects it. Right next to the pads (**… EDIT**) you set the type, two parameters and the mix. The slots of a bank are connected in series (A → B → C → D).
 
 | Effect | P1 | P2 | Mix |
 |---|---|---|---|
@@ -173,6 +171,10 @@ The kit names describe a sound style; "909 Style" and "808" are not the original
 ---
 
 ## 6. SETUP menu
+
+Since 1.6 **SETUP** opens a settings window in the style of the macOS System Settings: the pages on the left (**Sets**, **Looper**, **Rhythm**, **Recording**, **Audio**, **Controllers**, **Sync**, **App**), grouped rows on the right – switches, pop-up menus and actions, with short notes underneath. Every entry below is on one of these pages.
+
+![SETUP](../images/livelooper-setup.png)
 
 | Entry | Meaning |
 |---|---|
@@ -257,7 +259,7 @@ Click the big tempo number on the display (or press **B**, or right-click the TE
 
 ## 12. Meters, waveform and clip LED
 
-- **Track meter** (stereo, next to the level fader): while a track records or overdubs it shows the **input** level (orange, caption **IN**), otherwise the track's **output** level (green, **OUT**). Yellow from -12 dB, red from -1 dB; the thin line holds the peak for about a second.
+- **Track meter** (stereo, next to the level fader; off by default since 1.6 – switch it on with **SETUP → Looper → Track meters**): while a track records or overdubs it shows the **input** level (orange, caption **IN**), otherwise the track's **output** level (green, **OUT**). Yellow from -12 dB, red from -1 dB; the thin line holds the peak for about a second.
 - **Master VU** (since 1.5): the top row of the display (**MASTER**) shows the level of the main output in dBFS, left and right, on a scale from -60 to +6 dB, with the peak as a number on the right. Green up to -12 dB, yellow up to -3 dB, orange up to 0 dB, red above – keep the loud parts in the yellow.
 - **Waveform**: the track display shows an overview of the loop instead of a plain progress bar. The part already played is bright, a white line marks the play position. While recording, the waveform grows from left to right; overdubs and undo show up right away. Reversed tracks show the waveform mirrored.
 - **Clip LED** (top right of every track): off = empty, green = the track holds a loop, red = first recording, blinking red = waiting for the next bar to start recording.
@@ -362,7 +364,7 @@ New functions for playing live. They are host parameters (MIDI learn, your DAW's
 
 ![Performance row](../images/livelooper-performance.png)
 
-The **BEAT FX** block works like the beat FX section of a DJ mixer: one effect, locked to the beat, that you throw on and off while you play.
+The **BEAT FX** block (since 1.6 the **BEAT FX** tab of the FX panel; **REPEAT / STUTTER** and **COLOR FX** are the tabs next to it) works like the beat FX section of a DJ mixer: one effect, locked to the beat, that you throw on and off while you play.
 
 | Control | Function |
 |---|---|
@@ -434,7 +436,7 @@ Joining a session never changes its tempo – livelooper takes over the tempo of
 
 ## 30. Help
 
-The **?** button (top right) or **SETUP → Help …** opens the help: this user guide, the Push guide and the MIDI guide in your language, split into sections, with a search field (e.g. *stutter*, *Link*, *capture*). Hover over any control for a short tooltip.
+The **?** button (top right) or **SETUP → App → Help …** opens the help. It starts with illustrated pages (since 1.6): **Welcome**, **Loops**, **FX**, **BEATS**, **Recording**, **Link**, **Push 1** (the whole controller with numbered buttons and what they do) and **Push 1: STEP**. Below them follow this user guide, the Push guide and the MIDI guide in your language, split into sections, with a search field (e.g. *stutter*, *Link*, *capture*). Hover over any control for a short tooltip.
 
 ![Help](../images/livelooper-help.png)
 
@@ -468,6 +470,10 @@ On the **very first start** livelooper shows its **welcome screen** and lets you
 - **START WITH EMPTY SET** – a blank looper for your own first loop.
 
 The note on the screen says it: **the demo set replaces the current set** (loops and settings), and an empty set can be loaded any time with **SETUP → Empty set (clear everything)**. After your choice the guided tour starts.
+
+![Welcome screen](../images/livelooper-welcome.png)
+
+The demo plays through your speakers, so it **starts with the input muted** (the **INPUT** knob in MASTER at 0) – no feedback from an open microphone. Recording still works; turn **INPUT** up to hear what you play.
 
 - **SETUP → Welcome / demo set …** shows the same screen any time (without the tour). **SETUP → Load demo set** loads the demo directly.
 - When the current set holds loops, livelooper **asks before** the demo set (or the empty set) replaces it.
