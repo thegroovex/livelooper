@@ -107,6 +107,9 @@ BeatsPage::BeatsPage (LiveLooperProcessor& p) : proc (p)
         pitchKnobs[(size_t) r] = std::make_unique<Knob> (st, beatRowId (kBeatPitch, r), "Pitch", colours::learn);
         addAndMakeVisible (*volKnobs[(size_t) r]);
         addAndMakeVisible (*pitchKnobs[(size_t) r]);
+        rowNameBtns[(size_t) r] = std::make_unique<RowNameButton> (*this, r);
+        rowNameBtns[(size_t) r]->onClick = [this, r] { showRowSampleMenu (r); };
+        addAndMakeVisible (*rowNameBtns[(size_t) r]);
     }
 
     rhythmOnBtn.setClickingTogglesState (true);
@@ -556,6 +559,12 @@ void BeatsPage::timerCallback()
         lastPackVersion = SoundPacks::get().getVersion();
         refreshTexts();
     }
+    if (proc.getRowSampleVersion() != lastRowSampleVersion)
+    {
+        lastRowSampleVersion = proc.getRowSampleVersion();
+        for (auto& b : rowNameBtns)
+            b->repaint();
+    }
     const int cell = playingCell();
     if (cell != lastCell)
     {
@@ -639,7 +648,7 @@ void BeatsPage::resized()
     {
         auto rr = juce::Rectangle<int> (rowHeader.getX(), rowHeader.getY() + juce::roundToInt (rowH * (float) row),
                                         rowHeader.getWidth(), juce::roundToInt (rowH));
-        rr.removeFromLeft (104);      // name
+        rowNameBtns[(size_t) row]->setBounds (rr.removeFromLeft (104).reduced (0, 1));      // name + own sample
         const int h = rr.getHeight();
         muteBtns[(size_t) row]->setBounds (rr.removeFromLeft (30).withSizeKeepingCentre (28, juce::jmin (26, h - 6)));
         soloBtns[(size_t) row]->setBounds (rr.removeFromLeft (30).withSizeKeepingCentre (28, juce::jmin (26, h - 6)));
@@ -657,18 +666,7 @@ void BeatsPage::paint (juce::Graphics& g)
     g.setColour (colours::sectionEdge);
     g.drawRoundedRectangle (getLocalBounds().toFloat().reduced (0.5f), 8.0f, 1.0f);
 
-    // row names (voices of the current kit)
-    const float rowH = (float) rowHeader.getHeight() / (float) BeatPattern::kRows;
-    for (int row = 0; row < BeatPattern::kRows; ++row)
-    {
-        auto rr = juce::Rectangle<float> ((float) rowHeader.getX(), (float) rowHeader.getY() + rowH * (float) row, 100.0f, rowH);
-        g.setColour (brand ((float) row / 7.0f));
-        g.fillRoundedRectangle (rr.getX(), rr.getCentreY() - 7.0f, 4.0f, 14.0f, 2.0f);
-        g.setColour (colours::text);
-        g.setFont (LooperLookAndFeel::font (13.0f, true));
-        g.drawFittedText (i18n::upper (proc.getVoiceDisplayName (row)), rr.withTrimmedLeft (10.0f).toNearestInt(),
-                          juce::Justification::centredLeft, 1, 0.8f);
-    }
+    // row names: RowNameButton
     // bottom bar captions
     g.setColour (colours::textDim);
     g.setFont (LooperLookAndFeel::font (11.0f, true));
@@ -776,5 +774,171 @@ void BeatsPage::Grid::mouseWheelMove (const juce::MouseEvent& e, const juce::Mou
         return;
     bank.setCell (owner.getEditSlot(), row, step, juce::jlimit (1, 127, v + (w.deltaY > 0 ? 6 : -6)));
     repaint();
+}
+//============================================================================== v1.6 own samples per row
+void BeatsPage::RowNameButton::paintButton (juce::Graphics& g, bool over, bool down)
+{
+    auto r = getLocalBounds().toFloat();
+    if (over || down)
+    {
+        g.setColour (colours::text.withAlpha (down ? 0.14f : 0.07f));
+        g.fillRoundedRectangle (r, 5.0f);
+    }
+    const bool own = owner.proc.hasRowSample (row);
+    g.setColour (brand ((float) row / 7.0f));
+    g.fillRoundedRectangle (r.getX(), r.getCentreY() - 7.0f, 4.0f, 14.0f, 2.0f);
+    auto text = r.withTrimmedLeft (10.0f).withTrimmedRight (14.0f);
+    g.setColour (colours::text);
+    g.setFont (LooperLookAndFeel::font (own ? 12.0f : 13.0f, true));
+    if (own)
+    {
+        g.drawFittedText (i18n::upper (owner.proc.getVoiceDisplayName (row)), text.removeFromTop (text.getHeight() * 0.5f).toNearestInt(),
+                          juce::Justification::bottomLeft, 1, 0.8f);
+        g.setColour (colours::cyan);
+        g.setFont (LooperLookAndFeel::font (11.0f));
+        g.drawFittedText (owner.proc.getRowSampleName (row), text.toNearestInt(), juce::Justification::topLeft, 1, 0.7f);
+    }
+    else
+        g.drawFittedText (i18n::upper (owner.proc.getVoiceDisplayName (row)), text.toNearestInt(),
+                          juce::Justification::centredLeft, 1, 0.8f);
+    // menu marker
+    juce::Path tri;
+    const float cx = r.getRight() - 7.0f, cy = r.getCentreY();
+    tri.addTriangle (cx - 3.5f, cy - 2.0f, cx + 3.5f, cy - 2.0f, cx, cy + 2.5f);
+    g.setColour ((own ? colours::cyan : colours::textDim).withAlpha (over ? 1.0f : 0.7f));
+    g.fillPath (tri);
+}
+
+juce::String BeatsPage::RowNameButton::getTooltip()
+{
+    if (owner.proc.hasRowSample (row))
+        return tr ("Own sample: %1 - click to load another one or to go back to the kit sample", owner.proc.getRowSampleName (row));
+    return tr ("Click: load your own sample for this row. Or drop an audio file (WAV, AIFF, FLAC, MP3 ...) on the row");
+}
+
+bool BeatsPage::loadRowSample (int row, const juce::File& file)
+{
+    juce::String error;
+    if (! proc.loadRowSample (row, file, error))
+    {
+        status (error);
+        return false;
+    }
+    status (tr ("%1: own sample %2", i18n::upper (proc.getVoiceDisplayName (row)), proc.getRowSampleName (row)));
+    lastRowSampleVersion = -1;
+    timerCallback();
+    if (auto* b = getRowSampleButton (row))
+        b->repaint();
+    return true;
+}
+
+void BeatsPage::resetRowSample (int row)
+{
+    proc.clearRowSample (row);
+    status (tr ("%1: kit sample again", i18n::upper (proc.getVoiceDisplayName (row))));
+    if (auto* b = getRowSampleButton (row))
+        b->repaint();
+}
+
+void BeatsPage::chooseRowSample (int row)
+{
+    auto start = proc.getRowSampleFile (row);
+    chooser = std::make_unique<juce::FileChooser> (tr ("Load sample for %1", i18n::upper (proc.getVoiceDisplayName (row))),
+                                                   start.existsAsFile() ? start.getParentDirectory()
+                                                                        : juce::File::getSpecialLocation (juce::File::userMusicDirectory),
+                                                   LiveLooperProcessor::getRowSampleWildcard());
+    juce::Component::SafePointer<BeatsPage> safe (this);
+    chooser->launchAsync (juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+                          [safe, row] (const juce::FileChooser& fc) {
+                              if (safe != nullptr && fc.getResult().existsAsFile())
+                                  safe->loadRowSample (row, fc.getResult());
+                          });
+}
+
+void BeatsPage::showRowSampleMenu (int row)
+{
+    juce::PopupMenu menu;
+    const bool own = proc.hasRowSample (row);
+    menu.addSectionHeader (i18n::upper (proc.getVoiceDisplayName (row)) + (own ? ": " + proc.getRowSampleName (row) : juce::String()));
+    menu.addItem (1, tr ("Load sample..."));
+    menu.addItem (2, tr ("Reset to kit sample"), own);
+    menu.addSeparator();
+    menu.addItem (3, tr ("Tip: drop an audio file on the row"), false);
+    juce::Component::SafePointer<BeatsPage> safe (this);
+    menu.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (getRowSampleButton (row)), [safe, row] (int result) {
+        if (safe == nullptr)
+            return;
+        if (result == 1)
+            safe->chooseRowSample (row);
+        else if (result == 2)
+            safe->resetRowSample (row);
+    });
+}
+
+int BeatsPage::rowAtY (int y) const
+{
+    if (rowHeader.getHeight() <= 0 || y < rowHeader.getY() || y >= rowHeader.getBottom())
+        return -1;
+    return juce::jlimit (0, BeatPattern::kRows - 1, (y - rowHeader.getY()) * BeatPattern::kRows / rowHeader.getHeight());
+}
+
+bool BeatsPage::isInterestedInFileDrag (const juce::StringArray& files)
+{
+    for (const auto& f : files)
+        if (LiveLooperProcessor::isRowSampleFile (juce::File (f)))
+            return true;
+    return false;
+}
+
+void BeatsPage::fileDragEnter (const juce::StringArray& files, int x, int y) { fileDragMove (files, x, y); }
+
+void BeatsPage::fileDragMove (const juce::StringArray&, int, int y)
+{
+    const int r = rowAtY (y);
+    if (r != dragRow)
+    {
+        dragRow = r;
+        repaint();
+    }
+}
+
+void BeatsPage::fileDragExit (const juce::StringArray&)
+{
+    dragRow = -1;
+    repaint();
+}
+
+void BeatsPage::filesDropped (const juce::StringArray& files, int, int y)
+{
+    dragRow = -1;
+    repaint();
+    const int r = rowAtY (y);
+    if (r < 0)
+    {
+        status (tr ("Drop the sample on one of the rows"));
+        return;
+    }
+    for (const auto& f : files)
+        if (LiveLooperProcessor::isRowSampleFile (juce::File (f)))
+        {
+            loadRowSample (r, juce::File (f));
+            return;
+        }
+}
+
+void BeatsPage::paintOverChildren (juce::Graphics& g)
+{
+    if (dragRow < 0)
+        return;
+    const float rowH = (float) rowHeader.getHeight() / (float) BeatPattern::kRows;
+    auto area = juce::Rectangle<float> ((float) rowHeader.getX(), (float) rowHeader.getY() + rowH * (float) dragRow,
+                                        (float) (grid.getRight() - rowHeader.getX()), rowH).reduced (1.0f);
+    g.setColour (colours::cyan.withAlpha (0.16f));
+    g.fillRoundedRectangle (area, 6.0f);
+    g.setColour (colours::cyan);
+    g.drawRoundedRectangle (area, 6.0f, 2.0f);
+    g.setFont (LooperLookAndFeel::font (14.0f, true));
+    g.drawText (tr ("Drop: own sample for %1", i18n::upper (proc.getVoiceDisplayName (dragRow))),
+                area.withTrimmedLeft (110.0f).toNearestInt(), juce::Justification::centred);
 }
 } // namespace livelooper

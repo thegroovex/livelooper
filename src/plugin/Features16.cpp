@@ -24,9 +24,10 @@ namespace
     {
         return "This is a livelooper set (https://github.com/thegroovex/livelooper).\n"
                "Open it in livelooper with SETUP > Open set... or drop it on the livelooper window.\n"
-               "set.xml holds the settings, audio/ the loops as FLAC files.\n\n"
+               "set.xml holds the settings, audio/ the loops (and the own samples of the BEATS rows) as FLAC files.\n\n"
                "Dies ist ein livelooper-Set. In livelooper mit SETUP > Set laden... oeffnen\n"
-               "oder auf das livelooper-Fenster ziehen. set.xml enthaelt die Einstellungen, audio/ die Loops (FLAC).\n";
+               "oder auf das livelooper-Fenster ziehen. set.xml enthaelt die Einstellungen, audio/ die Loops (und eigene\n"
+               "Samples der BEATS-Zeilen) als FLAC.\n";
     }
 }
 
@@ -51,6 +52,18 @@ bool LiveLooperProcessor::saveSetContainer (const juce::File& file)
             e->setAttribute ("file", path);
             zip.addEntry (new juce::MemoryInputStream (flac, true), 0, path, now);   // FLAC is compressed already
             tracks.append (e->getIntAttribute ("track") + 1);
+        }
+
+    if (auto* rows = xml->getChildByName ("ROWSAMPLES"))       // v1.6: own samples of the BEATS rows
+        for (auto* e : rows->getChildWithTagNameIterator ("ROWSAMPLE"))
+        {
+            juce::MemoryBlock flac;
+            if (! flac.fromBase64Encoding (e->getStringAttribute ("data")))
+                continue;
+            const auto path = "audio/row" + juce::String (e->getIntAttribute ("row") + 1) + ".flac";
+            e->removeAttribute ("data");
+            e->setAttribute ("file", path);
+            zip.addEntry (new juce::MemoryInputStream (flac, true), 0, path, now);
         }
 
     juce::DynamicObject::Ptr info = new juce::DynamicObject();
@@ -123,6 +136,16 @@ bool LiveLooperProcessor::loadSetContainer (const juce::File& file, juce::String
             }
             e->setAttribute ("data", audio.toBase64Encoding());
             e->removeAttribute ("file");
+        }
+    if (auto* rows = xml->getChildByName ("ROWSAMPLES"))
+        for (auto* e : rows->getChildWithTagNameIterator ("ROWSAMPLE"))
+        {
+            const auto path = e->getStringAttribute ("file");
+            juce::MemoryBlock audio;
+            const int idx = path.isEmpty() ? -1 : zip.getIndexOfFileName (path);
+            if (idx >= 0 && readEntry (idx, audio))
+                e->setAttribute ("data", audio.toBase64Encoding());
+            e->removeAttribute ("file");          // missing: the row falls back to the original path / kit sample
         }
     return loadSetXml (std::move (xml), error);
 }

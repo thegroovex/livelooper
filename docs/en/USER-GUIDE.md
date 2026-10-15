@@ -488,7 +488,7 @@ All tricks are host parameters (*T1 Half Speed*, *T1 Double Speed*, *T1 Reverse 
 
 ## 35. Performance recorder (new in 1.6)
 
-The **REC** button under the livelooper logo records **everything livelooper plays** – the master mix, exactly what you hear on the main output – as a WAV file (stereo, 24 bit, the current sample rate). While it records, the button shows the elapsed time (*REC 02:13*); click again to stop. The file is named after date and time (`livelooper-2026-10-14_21-30-05.wav`).
+The round red **record button** at the top right, directly below MIDI LEARN / MIDI MAP / SETUP / ?, records **everything livelooper plays** – the master mix, exactly what you hear on the main output – as a WAV file (stereo, 24 bit, the current sample rate). While it records, the red light **blinks in time with the beat** and the elapsed time shows next to it (*REC 02:13*); click again to stop. Right-click it for MIDI learn (parameter *Performance Recorder*). The file is named after date and time (`livelooper-2026-10-14_21-30-05.wav`).
 
 - Folder: **Music/livelooper/Recordings** – change it under **SETUP → Performance recorder → Choose recordings folder …**, open it with *Show recordings folder*.
 - Works in the standalone app and in the plug-in (in a DAW it records the looper's output on its track; the DAW's own recording is not needed).
@@ -580,6 +580,7 @@ Click **BEATS** in the rhythm panel. The page covers the looper until you click 
 - **Rows** = the eight voices of the current kit (kick, snare, clap, closed hat, open hat, rim, shaker, tom).
 - **Steps**: 16 (16th notes) or 32 (32nd notes) per bar, **1 – 4 bars**; buttons **1 – 4** show a bar.
 - **Mouse**: click = step on / off (drag along the row to paint), **SHIFT** + click = accent, **ALT** + click = ghost note, **right-click** = next velocity (ghost → normal → accent), **mouse wheel** over a step = fine velocity. Bar height and brightness show the velocity, a white line marks accents.
+- **Own samples per row**: drop an audio file (WAV, AIFF, FLAC, MP3, Ogg – whatever your system reads) onto a row, or click the row name → **Load sample …**. The row then plays your sample instead of the kit voice – in every kit – and shows its name under the voice name. **Reset to kit sample** in the same menu goes back. Level, pitch, mute and solo of the row still apply; the sample is played as one shot (at most 10 s, mono, normalised). Own samples are saved with the project / plug-in state and in sets (a `.livelooper` file carries them as FLAC in `audio/`, together with the original path); a saved beat remembers which rows played which file and loads them again when the files are still there.
 - **Per row**: **M** mute, **S** solo, **LVL** level (0 – 150 %), **PITCH** ±12 semitones. These work on every pattern (also the built-in grooves) and are host parameters (*Beat Row 1 … 8 Mute / Solo / Level / Pitch*), so you can automate and MIDI-map them.
 - **Slot**: 16 user patterns per set, listed as **User 1 … 16** in the pattern selector (with their names). Type a name next to the slot.
 - **PLAY** plays the slot. Editing a slot also makes it play. When you open BEATS while a built-in groove plays, an empty slot starts as a copy of that groove.

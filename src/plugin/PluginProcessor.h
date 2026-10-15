@@ -181,6 +181,24 @@ public:
         Returns the index in the library, -1 when it is empty. */
     int  browseLibraryBeat (int delta);
     int  takeBeatLibraryRequest() noexcept { return beatLibRequest.exchange (0); }
+    /** v1.6 BEATS: the user's own sample on a row (drag & drop or "Load sample..."). It replaces the row's
+        voice in every kit until the row is reset; level / pitch / mute / solo of the row still apply.
+        The audio (mono, at most kMaxRowSampleSeconds) is saved with the set and the plug-in state, the
+        original path too. Message thread. */
+    static constexpr double kMaxRowSampleSeconds = 10.0;
+    bool loadRowSample (int row, const juce::File& file, juce::String& error);
+    /** Same from audio already in memory (state / set restore, tests). */
+    bool setRowSampleAudio (int row, const juce::AudioBuffer<float>& audio, double sampleRate,
+                            const juce::String& name, const juce::File& file);
+    void clearRowSample (int row);
+    bool hasRowSample (int row) const noexcept;
+    juce::String getRowSampleName (int row) const;
+    juce::File getRowSampleFile (int row) const;
+    /** File types the rows accept (wildcard of the audio formats this build reads). */
+    static juce::String getRowSampleWildcard();
+    static bool isRowSampleFile (const juce::File& f);
+    int  getRowSampleVersion() const noexcept { return rowSampleVersion; }
+    const DrumBank* getCurrentDrumBank() const noexcept { return currentBank.get(); }
 
     //============================================================================== AudioProcessor
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
@@ -357,7 +375,19 @@ private:
     int browseSlot = -1, browseIndex = -1;       // v1.6: where library browsing loads to, and what it loaded
     BeatPattern browseLoaded;
     std::shared_ptr<const DrumBank> currentBank;
+    std::vector<std::shared_ptr<const DrumBank>> retiredBanks;   // kept alive while hits may still play
     int soundPackVersion = -1;
+    struct RowSample
+    {
+        juce::String name;
+        juce::File file;
+        juce::MemoryBlock flac;          // mono FLAC as saved with the set
+        DrumBank::Sample sample;
+    };
+    std::array<RowSample, params::kNumBeatRows> rowSamples;
+    int rowSampleVersion = 0;
+    void writeRowSamples (juce::XmlElement& root) const;
+    void readRowSamples (const juce::XmlElement& root);
     void writeBeatsState (juce::XmlElement& root) const;
     void readBeatsState (const juce::XmlElement& root);
     void updateDrumBank();

@@ -476,6 +476,12 @@ bool SoundPacks::BeatSettings::operator== (const BeatSettings& o) const noexcept
             if (rows[r].mute != o.rows[r].mute || rows[r].solo != o.rows[r].solo
                 || std::abs (rows[r].level - o.rows[r].level) > 0.001f || std::abs (rows[r].pitch - o.rows[r].pitch) > 0.01f)
                 return false;
+    if (hasSamples != o.hasSamples)
+        return false;
+    if (hasSamples)
+        for (size_t r = 0; r < rows.size(); ++r)
+            if (rows[r].sample != o.rows[r].sample)
+                return false;
     return true;
 }
 
@@ -497,6 +503,8 @@ void SoundPacks::settingsToVar (const BeatSettings& st, juce::var& v)
             ro->setProperty ("pitch", juce::roundToInt (row.pitch));
             ro->setProperty ("mute", row.mute);
             ro->setProperty ("solo", row.solo);
+            if (st.hasSamples)
+                ro->setProperty ("sample", row.sample);     // v1.6: "" = the kit's sample
             mixer->setProperty (voiceKey (r), juce::var (ro.release()));
         }
         o->setProperty ("mixer", juce::var (mixer.release()));
@@ -524,6 +532,11 @@ SoundPacks::BeatSettings SoundPacks::settingsFromVar (const juce::var& v)
             row.pitch = (float) juce::jlimit (-12, 12, (int) prop.value.getProperty ("pitch", 0));
             row.mute = (bool) prop.value.getProperty ("mute", false);
             row.solo = (bool) prop.value.getProperty ("solo", false);
+            if (prop.value.hasProperty ("sample"))
+            {
+                st.hasSamples = true;
+                row.sample = prop.value.getProperty ("sample", "").toString();
+            }
         }
     }
     return st;

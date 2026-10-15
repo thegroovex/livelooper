@@ -129,14 +129,14 @@ void GuidedTour::paint (juce::Graphics& g)
 void LiveLooperEditor::initFeatures16()
 {
     auto& st = proc.getState();
-    perfRecBtn.setClickingTogglesState (true);
     perfRecAtt = std::make_unique<APVTS::ButtonAttachment> (st, gPerfRec, perfRecBtn);
     setParamId (perfRecBtn, gPerfRec);
     perfRecBtn.tooltipFn = [this] {
         return proc.isPerformanceRecording()
                    ? tr ("Recording the livelooper output - click to stop. File: %1", proc.getRecorder().getCurrentFile().getFileName())
                    : tr ("Performance recorder: records everything livelooper plays (master mix) as a WAV file into %1",
-                         PerformanceRecorder::getFolder().getFullPathName());
+                         PerformanceRecorder::getFolder().getFullPathName())
+                     + "\n" + tr ("Blinks with the beat while recording. Right-click: MIDI learn.");
     };
     surface.addAndMakeVisible (perfRecBtn);
 
@@ -147,9 +147,10 @@ void LiveLooperEditor::initFeatures16()
     };
 }
 
-void LiveLooperEditor::layoutFeatures16 (int)
+void LiveLooperEditor::layoutFeatures16 (int dx)
 {
-    perfRecBtn.setBounds (204, 46, 88, 26);
+    // round record button: right-aligned under MIDI LEARN / MIDI MAP / SETUP / ? (they end at x 1168 + dx, y 64)
+    perfRecBtn.setBounds (1168 + dx - 112, 67, 112, 28);
     if (tour != nullptr)
         tour->setBounds (surface.getLocalBounds());
     if (welcome != nullptr)
@@ -158,15 +159,23 @@ void LiveLooperEditor::layoutFeatures16 (int)
 
 void LiveLooperEditor::timerFeatures16()
 {
-    if (proc.isPerformanceRecording())
     {
-        const int s = (int) proc.getPerformanceRecordingSeconds();
-        const auto text = juce::String::formatted ("REC %02d:%02d", s / 60, s % 60);
-        if (perfRecBtn.getButtonText() != text)
-            perfRecBtn.setButtonText (text);
+        // the record button blinks with the beat: timeline position while it runs, otherwise the tempo
+        const auto& eng = proc.getEngine();
+        const double nowMs = juce::Time::getMillisecondCounterHiRes();
+        double phase = 0.0;
+        if (eng.isTimelineRunning())
+        {
+            phase = eng.getTimelinePpq();
+            recBlinkStartMs = nowMs;
+            recBlinkBeat0 = phase;
+        }
+        else
+            phase = recBlinkBeat0 + (nowMs - recBlinkStartMs) / 60000.0 * juce::jmax (20.0, eng.getCurrentBpm());
+        perfRecBtn.setToggleState (proc.isPerformanceRecording(), juce::dontSendNotification);
+        perfRecBtn.setBeatPhase (phase);
+        perfRecBtn.setElapsedSeconds (proc.getPerformanceRecordingSeconds());
     }
-    else if (perfRecBtn.getButtonText() != "REC")
-        perfRecBtn.setButtonText ("REC");
 
     if (proc.takeClipExportRequest())
         exportClip (false);

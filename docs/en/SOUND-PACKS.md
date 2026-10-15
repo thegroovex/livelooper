@@ -130,7 +130,8 @@ Text: one character per step – `.` or `-` = off, `g` = ghost note (velocity 40
 `<name>.llpattern` into the beat library (user patterns folder); you can copy such files into the
 `patterns` list of a pack. Since 1.6 a saved beat may also carry `"format_version": 2`,
 `"swing"` (50 – 75 %) and a `"mixer"` object (`"kick": { "level": 1.0, "pitch": 0, "mute": false,
-"solo": false }`, …); both are optional, and packs ignore them.
+"solo": false }`, …); both are optional, and packs ignore them. A row that plays an own sample
+adds `"sample": "<absolute path of the audio file>"` to its mixer entry (`""` = the kit sample).
 
 ## Licences and selling packs
 

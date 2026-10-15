@@ -757,9 +757,10 @@ bool RhythmGenerator::fireSample (Voice v, float vel) noexcept
     if (v == Click)
         return false;
     const auto* kitData = currentKit();
-    if (kitData == nullptr)
+    const auto* bankData = bankPtr.load (std::memory_order_acquire);
+    if (kitData == nullptr || bankData == nullptr)
         return false;
-    const auto& list = kitData->voices[(size_t) v];
+    const auto& list = bankData->samplesFor (*kitData, (int) v);   // v1.6: the row's own sample
     if (list.empty())
         return false;
     const float var = variation;

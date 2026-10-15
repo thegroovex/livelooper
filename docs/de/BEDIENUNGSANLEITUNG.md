@@ -515,7 +515,7 @@ Alle Tricks sind Host-Parameter (*S1 Halbe Geschwindigkeit*, *S1 Doppelte Geschw
 
 ## 35. Performance-Recorder (neu in 1.6)
 
-Die Taste **REC** unter dem livelooper-Logo nimmt **alles auf, was livelooper spielt** – den Master-Mix, genau das, was am Hauptausgang zu hören ist – als WAV-Datei (Stereo, 24 Bit, aktuelle Samplerate). Während der Aufnahme zeigt die Taste die Zeit (*REC 02:13*); erneut klicken stoppt. Die Datei heißt nach Datum und Uhrzeit (`livelooper-2026-10-14_21-30-05.wav`).
+Die runde rote **Aufnahmetaste** oben rechts, direkt unter MIDI LEARN / MIDI MAP / SETUP / ?, nimmt **alles auf, was livelooper spielt** – den Master-Mix, genau das, was am Hauptausgang zu hören ist – als WAV-Datei (Stereo, 24 Bit, aktuelle Samplerate). Während der Aufnahme **blinkt das rote Licht im Takt** und daneben steht die Zeit (*REC 02:13*); erneut klicken stoppt. Rechtsklick: MIDI Learn (Parameter *Performance-Recorder*). Die Datei heißt nach Datum und Uhrzeit (`livelooper-2026-10-14_21-30-05.wav`).
 
 - Ordner: **Musik/livelooper/Recordings** – ändern unter **SETUP → Performance-Recorder → Ordner für Aufnahmen wählen …**, öffnen mit *Aufnahme-Ordner zeigen*.
 - Funktioniert in der Standalone-App und im Plug-in (in einer DAW nimmt er die Ausgabe des Loopers auf seiner Spur auf; die Aufnahme der DAW brauchst du dafür nicht).
@@ -607,6 +607,7 @@ Klick auf **BEATS** im Rhythmus-Feld. Die Seite liegt über dem Looper, bis du *
 - **Zeilen** = die acht Instrumente des aktuellen Kits (Kick, Snare, Clap, Hi-Hat zu, Hi-Hat offen, Rim, Shaker, Tom).
 - **Schritte**: 16 (16tel) oder 32 (32stel) pro Takt, **1 – 4 Takte**; die Tasten **1 – 4** zeigen einen Takt.
 - **Maus**: Klick = Schritt an / aus (die Zeile entlang ziehen zum Malen), **SHIFT** + Klick = Akzent, **ALT** + Klick = Ghost Note, **Rechtsklick** = nächste Dynamik (Ghost → normal → Akzent), **Mausrad** über einem Schritt = feine Dynamik. Höhe und Helligkeit des Balkens zeigen die Dynamik, eine weiße Linie markiert Akzente.
+- **Eigene Samples pro Zeile**: Zieh eine Audiodatei (WAV, AIFF, FLAC, MP3, Ogg – was dein System liest) auf eine Zeile oder klick auf den Zeilennamen → **Sample laden …**. Die Zeile spielt dann dein Sample statt des Kit-Instruments – in jedem Kit – und zeigt seinen Namen unter dem Instrument. **Zurück zum Kit-Sample** im selben Menü stellt es zurück. Pegel, Tonhöhe, stumm und solo der Zeile wirken weiter; das Sample wird als One-Shot gespielt (höchstens 10 s, mono, normalisiert). Eigene Samples werden im Projekt / Plug-in-Zustand und in Sets gespeichert (eine `.livelooper`-Datei enthält sie als FLAC in `audio/`, zusammen mit dem Originalpfad); ein gespeicherter Beat merkt sich, welche Zeile welche Datei spielte, und lädt sie wieder, wenn die Dateien noch da sind.
 - **Pro Zeile**: **M** stumm, **S** solo, **PEGEL** (0 – 150 %), **TONHÖHE** ±12 Halbtöne. Sie wirken auf jedes Pattern (auch die eingebauten Grooves) und sind Host-Parameter (*Beat Zeile 1 … 8 stumm / solo / Pegel / Tonhöhe*), also automatisierbar und per MIDI steuerbar.
 - **Platz**: 16 User-Patterns pro Set, in der Pattern-Auswahl als **User 1 … 16** (mit Namen). Den Namen tippst du neben dem Platz ein.
 - **PLAY** spielt den Platz. Auch Bearbeiten lässt ihn spielen. Öffnest du BEATS, während ein eingebauter Groove läuft, startet ein leerer Platz als Kopie dieses Grooves.

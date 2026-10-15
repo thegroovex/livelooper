@@ -36,6 +36,16 @@ struct DrumBank
     };
     /** Index = value of the kit parameter (built-in kits first, then the sound-pack slots). */
     std::vector<std::shared_ptr<const Kit>> kits;
+    /** v1.6 BEATS: the user's own sample for a row (empty = the kit's samples). Replaces the
+        voice in every kit until the row is reset. */
+    std::array<std::vector<Sample>, kNumVoices> rowSamples;
+
+    /** The samples a voice of a kit plays (the row's own sample, if there is one). */
+    const std::vector<Sample>& samplesFor (const Kit& kit, int voice) const noexcept
+    {
+        const auto v = (size_t) std::clamp (voice, 0, kNumVoices - 1);
+        return rowSamples[v].empty() ? kit.voices[v] : rowSamples[v];
+    }
 
     const Kit* getKit (int index) const noexcept
     {

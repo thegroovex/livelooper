@@ -677,6 +677,150 @@ public:
             appsettings::setStorageFolderForTests ({});
             tmp.deleteRecursively();
         }
+
+        beginTest ("Own sample per BEATS row: plays instead of the kit voice, mute / level / pitch still apply");
+        {
+            auto bank = std::make_shared<DrumBank>();
+            auto kit = std::make_shared<DrumBank::Kit>();
+            DrumBank::Sample quiet;
+            quiet.data.assign (2000, 0.001f);
+            for (int v = 0; v < DrumBank::kNumVoices; ++v)
+                kit->voices[(size_t) v].push_back (quiet);
+            kit->room = 0.0f;
+            bank->kits.push_back (kit);
+            DrumBank::Sample loud;
+            loud.data.assign (3000, 0.5f);
+            bank->rowSamples[(size_t) RhythmGenerator::Snare].push_back (loud);
+            expect (bank->samplesFor (*kit, RhythmGenerator::Snare).size() == 1 && bank->samplesFor (*kit, RhythmGenerator::Snare)[0].data[0] == 0.5f);
+            expect (bank->samplesFor (*kit, RhythmGenerator::Kick)[0].data[0] == 0.001f, "other rows keep the kit");
+
+            auto render = [&] (bool mute, float level, float pitch) {
+                BeatPatternBank patterns;
+                BeatPattern p;
+                p.set (RhythmGenerator::Snare, 0, 127);
+                patterns.store (0, p);
+                RhythmGenerator r;
+                makeGen (r, patterns);
+                r.setDrumBank (bank);
+                r.setPattern (RhythmGenerator::getNumPatterns());
+                r.setVoiceMix (RhythmGenerator::Snare, level, pitch, mute);
+                std::vector<float> out;
+                renderRange (r, out, kStep16 * 2);
+                float peak = 0.0f;
+                int len = 0;
+                for (size_t i = 0; i < out.size(); ++i)
+                {
+                    peak = std::max (peak, std::abs (out[i]));
+                    len += std::abs (out[i]) > 0.01f ? 1 : 0;
+                }
+                return std::make_pair (peak, len);
+            };
+            const auto normal = render (false, 1.0f, 0.0f);
+            expectGreaterThan (normal.first, 0.05f, "the row's own sample plays");
+            expectLessThan (render (true, 1.0f, 0.0f).first, 0.01f, "mute");
+            expectLessThan (render (false, 0.5f, 0.0f).first, normal.first * 0.7f, "level");
+            expectLessThan (render (false, 1.0f, 12.0f).second, (int) (normal.second * 0.7f), "pitch up = shorter");
+        }
+
+        beginTest ("Own sample per BEATS row: load, state, set container, beat file, reset, BEATS page");
+        {
+            const auto tmp = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("ll_rowsample_test");
+            tmp.deleteRecursively();
+            tmp.createDirectory();
+            const auto wav = tmp.getChildFile ("My Snare.wav");
+            writeWav (wav, 300.0f, 6000);
+            tmp.getChildFile ("notes.txt").replaceWithText ("x");
+
+            LiveLooperProcessor proc (false, false);
+            proc.prepareToPlay (48000.0, 512);
+            juce::String error;
+            expect (! proc.loadRowSample (1, tmp.getChildFile ("notes.txt"), error));
+            expect (error.isNotEmpty());
+            expect (! proc.hasRowSample (1));
+            expect (proc.loadRowSample (1, wav, error), error);
+            expect (proc.hasRowSample (1) && ! proc.hasRowSample (0));
+            expectEquals (proc.getRowSampleName (1), juce::String ("My Snare"));
+            expect (proc.getRowSampleFile (1) == wav);
+            expect (proc.getCurrentDrumBank() != nullptr && proc.getCurrentDrumBank()->rowSamples[1].size() == 1, "in the playing bank");
+            expectEquals ((int) proc.getCurrentDrumBank()->rowSamples[1][0].data.size(), 6001);
+            expect (LiveLooperProcessor::isRowSampleFile (wav) && ! LiveLooperProcessor::isRowSampleFile (tmp.getChildFile ("notes.txt")));
+            for (auto* ext : { "x.aiff", "x.flac", "x.WAV" })
+                expect (LiveLooperProcessor::isRowSampleFile (tmp.getChildFile (ext)), ext);
+
+            // plug-in state: audio embedded, path kept - works after the original is gone
+            juce::MemoryBlock state;
+            proc.getStateInformation (state);
+            wav.moveFileTo (tmp.getChildFile ("moved.wav"));
+            {
+                LiveLooperProcessor other (false, false);
+                other.setStateInformation (state.getData(), (int) state.getSize());
+                expect (other.hasRowSample (1), "restored from the embedded audio");
+                expectEquals (other.getRowSampleName (1), juce::String ("My Snare"));
+                expect (other.getRowSampleFile (1) == wav, "original path kept");
+                expect (! other.hasRowSample (2));
+            }
+            tmp.getChildFile ("moved.wav").moveFileTo (wav);
+
+            // .livelooper container: the sample is a FLAC file in audio/
+            const auto set = tmp.getChildFile ("shared.livelooper");
+            expect (proc.saveSetContainer (set));
+            {
+                juce::ZipFile zip (set);
+                expect (zip.getIndexOfFileName ("audio/row2.flac") >= 0, "row sample in the container");
+                LiveLooperProcessor other (false, false);
+                expect (other.loadSet (set, error), error);
+                expect (other.hasRowSample (1));
+                expectEquals (other.getRowSampleName (1), juce::String ("My Snare"));
+            }
+
+            // beat files remember which rows play own samples (by path)
+            const auto beat = proc.saveBeat (0, "With Sample", tmp.getChildFile ("with-sample.llpattern"));
+            expect (beat.existsAsFile());
+            expect (beat.loadFileAsString().contains ("My Snare"));
+            proc.clearRowSample (1);
+            expect (! proc.hasRowSample (1), "reset to the kit sample");
+            expect (proc.getCurrentDrumBank()->rowSamples[1].empty());
+            expect (proc.loadBeatFile (beat, 2, error), error);
+            expect (proc.hasRowSample (1), "the beat brings its sample back");
+            {
+                // an old beat without the information leaves the rows alone
+                SoundPacks::BeatSettings st;
+                st.hasMix = true;
+                proc.applyBeatSettings (st);
+                expect (proc.hasRowSample (1));
+                st.hasSamples = true;          // saved without own samples: back to the kit
+                proc.applyBeatSettings (st);
+                expect (! proc.hasRowSample (1));
+            }
+
+            // the BEATS page: load / drop / reset, name on the row
+            {
+                BeatsPage page (proc);
+                page.setSize (1100, 700);
+                auto* btn = page.getRowSampleButton (3);
+                expect (btn != nullptr && btn->isVisible() && btn->getWidth() > 60, "row name button");
+                expect (page.loadRowSample (3, wav));
+                expect (proc.hasRowSample (3));
+                expect (btn->getTooltip().contains ("My Snare"), "tooltip names the sample");
+                page.resetRowSample (3);
+                expect (! proc.hasRowSample (3));
+                juce::StringArray files { wav.getFullPathName() };
+                expect (page.isInterestedInFileDrag (files));
+                expect (! page.isInterestedInFileDrag ({ tmp.getChildFile ("notes.txt").getFullPathName() }));
+                auto* row5 = page.getRowSampleButton (5);
+                expectEquals (page.rowAtY (row5->getBounds().getCentreY()), 5);
+                expectEquals (page.rowAtY (2), -1, "above the rows");
+                page.filesDropped (files, 500, row5->getBounds().getCentreY());
+                expect (proc.hasRowSample (5), "dropped on row 6");
+                expect (! proc.hasRowSample (4) && ! proc.hasRowSample (6));
+                // the name button sits left of M / S / Lvl / Pitch without overlapping them
+                for (int r = 0; r < BeatPattern::kRows; ++r)
+                    for (auto* c : page.getChildren())
+                        if (c != page.getRowSampleButton (r) && c->isVisible())
+                            expect (! c->getBounds().intersects (page.getRowSampleButton (r)->getBounds()), "row " + juce::String (r + 1));
+            }
+            tmp.deleteRecursively();
+        }
     }
 };
 

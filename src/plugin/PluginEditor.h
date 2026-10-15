@@ -91,7 +91,7 @@ public:
     void saveSharedSet();
     void addFeatures16Menu (juce::PopupMenu& menu);
     bool handleFeatures16Menu (int result);
-    juce::Button& getPerfRecButton() noexcept { return perfRecBtn; }
+    RecordButton& getPerfRecButton() noexcept { return perfRecBtn; }
     // ---- end v1.6 features
     // ---- v1.6 rhythm (branch v1.6-rhythm): BEATS page
     void showBeatsPage (bool show);
@@ -104,7 +104,8 @@ private:
     void layoutFeatures16 (int dx);
     void timerFeatures16();
     void showHelpMenu();
-    LLButton perfRecBtn { "REC", colours::red };
+    RecordButton perfRecBtn;        // v1.6: round record button under MIDI LEARN / MIDI MAP / SETUP / ?
+    double recBlinkStartMs = 0.0, recBlinkBeat0 = 0.0;
     std::unique_ptr<APVTS::ButtonAttachment> perfRecAtt;
     std::unique_ptr<GuidedTour> tour;
     std::unique_ptr<WelcomeScreen> welcome;

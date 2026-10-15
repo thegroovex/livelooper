@@ -49,7 +49,8 @@ Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
 **New in 1.6 (in development)**
 - **Welcome screen, demo set and guided tour**: on the first start choose *demo set* (a groove and three loops – press ALL START / STOP and you hear music in seconds) or *empty set*; a 60-second tour shows record, overdub, groove, beat FX and scenes
 - **Loop tricks**: half speed, double speed and reversing the loop audio – quantized, undoable, MIDI-mappable, on Push 1 with SHIFT
-- **Performance recorder**: the whole livelooper output as WAV with one button, with the elapsed time
+- **Performance recorder**: the whole livelooper output as WAV with one round record button (top right, blinks with the beat), with the elapsed time
+- **Own samples on the BEATS rows**: drop any audio file on a row (or *Load sample …*), back to the kit sample with one click – saved with the set
 - **Clip export 9:16**: the last 20 seconds (or a recording) as a branded vertical video for Reels, TikTok and Shorts
 - **Share sets**: one `.livelooper` file with all audio, opened by drag and drop – the demo set is in [`presets`](presets/)
 - **Controller templates** for Launchpad Mini MK3 / X, APC mini mk2 and Launchkey MK3 / MK4 pads (auto-detected, with LED feedback) – *experimental – untested on hardware, feedback welcome*

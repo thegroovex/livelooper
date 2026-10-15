@@ -117,6 +117,21 @@ DE = [
     ("not a livelooper beat", "kein livelooper-Beat"),
     ("Beat Library", "Beat-Bibliothek"), ("Next Library Beat", "N\u00e4chster Bibliotheks-Beat"),
     ("Previous Library Beat", "Vorheriger Bibliotheks-Beat"),
+    # own samples per BEATS row
+    ("%1: not an audio file livelooper can read", "%1: keine Audiodatei, die livelooper lesen kann"),
+    ("Sample", "Sample"),
+    ("Own sample: %1 - click to load another one or to go back to the kit sample",
+     "Eigenes Sample: %1 - klicken, um ein anderes zu laden oder zum Kit-Sample zur\u00fcckzukehren"),
+    ("Click: load your own sample for this row. Or drop an audio file (WAV, AIFF, FLAC, MP3 ...) on the row",
+     "Klick: eigenes Sample f\u00fcr diese Zeile laden. Oder eine Audiodatei (WAV, AIFF, FLAC, MP3 ...) auf die Zeile ziehen"),
+    ("%1: own sample %2", "%1: eigenes Sample %2"),
+    ("%1: kit sample again", "%1: wieder das Kit-Sample"),
+    ("Load sample for %1", "Sample f\u00fcr %1 laden"),
+    ("Load sample...", "Sample laden..."),
+    ("Reset to kit sample", "Zur\u00fcck zum Kit-Sample"),
+    ("Tip: drop an audio file on the row", "Tipp: eine Audiodatei auf die Zeile ziehen"),
+    ("Drop the sample on one of the rows", "Lass das Sample auf einer der Zeilen los"),
+    ("Drop: own sample for %1", "Loslassen: eigenes Sample f\u00fcr %1"),
 ]
 
 def esc(s):

@@ -592,6 +592,62 @@ public:
             expect (! h.proc.takeClipExportRequest(), "only once");
         }
 
+        beginTest ("Record button: round, under the header buttons, bound to perf_rec, blinks with the beat");
+        {
+            TempFolder16 tmp;
+            PerformanceRecorder::setFolder (tmp.dir.getChildFile ("rec"));
+            Proc16 h;
+            std::unique_ptr<LiveLooperEditor> ed (dynamic_cast<LiveLooperEditor*> (h.proc.createEditor()));
+            expect (ed != nullptr);
+            for (int tracks : { kDefaultVisibleTracks, kNumTracks })
+            {
+                h.proc.setVisibleTracks (tracks);      // 6 - 8 tracks: the header buttons move right
+                h.pump();
+                auto& rec = ed->getPerfRecButton();
+                expectEquals (getParamId (rec), juce::String (gPerfRec), "MIDI-mappable via perf_rec");
+                expect (rec.isVisible());
+                auto* parent = rec.getParentComponent();
+                const auto rb = rec.getBounds();
+                const juce::Button* learn = nullptr;
+                const juce::Button* help = nullptr;
+                for (auto* c : parent->getChildren())
+                    if (auto* b = dynamic_cast<juce::Button*> (c))
+                    {
+                        if (b->getButtonText() == "MIDI LEARN") learn = b;
+                        if (b->getButtonText() == "?") help = b;
+                    }
+                expect (learn != nullptr && help != nullptr);
+                if (learn == nullptr || help == nullptr)
+                    continue;
+                expect (rb.getY() >= help->getBottom() && rb.getY() - help->getBottom() <= 8, "directly below the header buttons");
+                expectEquals (rb.getRight(), help->getRight(), "right-aligned with ?");
+                expect (rb.getX() >= learn->getX(), "within the header button block");
+                for (auto* c : parent->getChildren())
+                    if (c != &rec && c->isVisible() && c->getWidth() < parent->getWidth() - 10 && c->getHeight() < parent->getHeight() - 10)
+                        expect (! c->getBounds().intersects (rb), "no overlap: " + c->getName() + " " + c->getBounds().toString());
+            }
+            auto& rec = ed->getPerfRecButton();
+            expect (! rec.getToggleState());
+            rec.triggerClick();
+            h.pump();
+            expect (h.proc.isPerformanceRecording(), "click starts the recorder");
+            expectEquals (h.get (gPerfRec), 1.0f);
+            rec.setToggleState (true, juce::dontSendNotification);
+            rec.setBeatPhase (4.2);
+            expect (rec.isLit(), "first half of the beat: on");
+            rec.setBeatPhase (4.7);
+            expect (! rec.isLit(), "second half: off");
+            rec.setElapsedSeconds (75.4);
+            expectEquals (rec.getTimeText(), juce::String ("01:15"));
+            expectEquals (RecordButton::formatTime (3725.0), juce::String ("1:02:05"));
+            expectEquals (RecordButton::formatTime (std::numeric_limits<double>::infinity()), juce::String ("00:00"));
+            rec.triggerClick();
+            h.pump();
+            expect (! h.proc.isPerformanceRecording(), "click stops it");
+            ed.reset();
+            PerformanceRecorder::setFolder ({});
+        }
+
         beginTest ("Guided tour: five steps, next / back / close, first start loads the demo set");
         {
             TempFolder16 tmp;

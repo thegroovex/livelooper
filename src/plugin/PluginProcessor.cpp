@@ -14,11 +14,11 @@ using namespace params;
 namespace
 {
     std::unique_ptr<juce::AudioFormatWriter> makeWriter (juce::AudioFormat& format, std::unique_ptr<juce::OutputStream> stream,
-                                                         double sampleRate, int bits)
+                                                         double sampleRate, int bits, int channels = 2)
     {
         return format.createWriterFor (stream, juce::AudioFormatWriterOptions {}
                                                    .withSampleRate (sampleRate)
-                                                   .withNumChannels (2)
+                                                   .withNumChannels (channels)
                                                    .withBitsPerSample (bits));
     }
 }
@@ -1148,6 +1148,7 @@ void LiveLooperProcessor::getStateInformation (juce::MemoryBlock& destData)
     root.addChildElement (midiMap.toXml ([this] (int i) { return getParamIdForIndex (i); }).release());
     root.addChildElement (keyMap.toXml().release());
     writeBeatsState (root);     // v1.6
+    writeRowSamples (root);     // v1.6: own samples per BEATS row
 
     if (saveLoops)
     {
@@ -1215,6 +1216,7 @@ void LiveLooperProcessor::setStateInformation (const void* data, int sizeInBytes
     if (auto* km = root->getChildByName ("KEYMAP"))
         keyMap.fromXml (*km);
     readBeatsState (*root);     // v1.6
+    readRowSamples (*root);     // v1.6: own samples per BEATS row
 
     if (auto* loops = root->getChildByName ("LOOPS"))
     {
@@ -1478,9 +1480,191 @@ juce::AudioProcessorEditor* LiveLooperProcessor::createEditor()
 void LiveLooperProcessor::updateDrumBank()
 {
     auto& packs = SoundPacks::get();
-    currentBank = packs.getBank();
+    auto bank = packs.getBank();
     soundPackVersion = packs.getVersion();
+    bool own = false;
+    for (const auto& r : rowSamples)
+        own = own || ! r.sample.data.empty();
+    if (own && bank != nullptr)
+    {
+        // v1.6: the rows' own samples on top of the kits (the kits themselves are shared, not copied)
+        auto withRows = std::make_shared<DrumBank> (*bank);
+        for (size_t r = 0; r < rowSamples.size(); ++r)
+        {
+            withRows->rowSamples[r].clear();
+            if (! rowSamples[r].sample.data.empty())
+                withRows->rowSamples[r].push_back (rowSamples[r].sample);
+        }
+        bank = withRows;
+    }
+    if (currentBank != nullptr && currentBank != bank)
+    {
+        retiredBanks.push_back (currentBank);       // a hit may still play from it
+        if (retiredBanks.size() > 6)
+            retiredBanks.erase (retiredBanks.begin());
+    }
+    currentBank = bank;
     engine.setDrumBankPointer (currentBank.get());
+}
+
+//============================================================================== v1.6 BEATS: own samples per row
+juce::String LiveLooperProcessor::getRowSampleWildcard()
+{
+    juce::AudioFormatManager formats;
+    formats.registerBasicFormats();
+    return formats.getWildcardForAllFormats();
+}
+
+bool LiveLooperProcessor::isRowSampleFile (const juce::File& f)
+{
+    const auto wildcard = getRowSampleWildcard();
+    for (const auto& w : juce::StringArray::fromTokens (wildcard, ";", ""))
+        if (f.getFileName().matchesWildcard (w.trim(), true))
+            return true;
+    return false;
+}
+
+bool LiveLooperProcessor::loadRowSample (int row, const juce::File& file, juce::String& error)
+{
+    if (! juce::isPositiveAndBelow (row, params::kNumBeatRows))
+        return false;
+    juce::AudioFormatManager formats;
+    formats.registerBasicFormats();
+    std::unique_ptr<juce::AudioFormatReader> reader (file.existsAsFile() ? formats.createReaderFor (file) : nullptr);
+    if (reader == nullptr || reader->lengthInSamples <= 0 || reader->sampleRate <= 0.0)
+    {
+        error = i18n::tr ("%1: not an audio file livelooper can read", file.getFileName());
+        return false;
+    }
+    const auto len = (int) juce::jmin<juce::int64> (reader->lengthInSamples,
+                                                    (juce::int64) (kMaxRowSampleSeconds * reader->sampleRate));
+    juce::AudioBuffer<float> audio ((int) juce::jmax (1u, reader->numChannels), len);
+    reader->read (&audio, 0, len, 0, true, true);
+    if (! setRowSampleAudio (row, audio, reader->sampleRate, file.getFileNameWithoutExtension(), file))
+    {
+        error = i18n::tr ("%1: not an audio file livelooper can read", file.getFileName());
+        return false;
+    }
+    return true;
+}
+
+bool LiveLooperProcessor::setRowSampleAudio (int row, const juce::AudioBuffer<float>& audio, double sampleRate,
+                                             const juce::String& name, const juce::File& file)
+{
+    if (! juce::isPositiveAndBelow (row, params::kNumBeatRows) || audio.getNumSamples() <= 0 || sampleRate <= 0.0)
+        return false;
+    // mono, at most 192 kHz (FLAC), peak at -1 dBFS like the kit samples
+    juce::AudioBuffer<float> mono (1, audio.getNumSamples());
+    mono.clear();
+    for (int c = 0; c < audio.getNumChannels(); ++c)
+        mono.addFrom (0, 0, audio, c, 0, audio.getNumSamples(), 1.0f / (float) audio.getNumChannels());
+    if (sampleRate > 192000.0)
+    {
+        const double ratio = sampleRate / 48000.0;
+        juce::AudioBuffer<float> resampled (1, juce::jmax (1, (int) ((double) mono.getNumSamples() / ratio)));
+        juce::LagrangeInterpolator interp;
+        interp.process (ratio, mono.getReadPointer (0), resampled.getWritePointer (0), resampled.getNumSamples());
+        mono = std::move (resampled);
+        sampleRate = 48000.0;
+    }
+    const float peak = mono.getMagnitude (0, mono.getNumSamples());
+    if (peak > 1.0e-6f)
+        mono.applyGain (juce::Decibels::decibelsToGain (-1.0f) / peak);
+
+    RowSample rs;
+    rs.name = name.isNotEmpty() ? name : i18n::tr ("Sample");
+    rs.file = file;
+    {
+        juce::FlacAudioFormat format;
+        auto writer = makeWriter (format, std::make_unique<juce::MemoryOutputStream> (rs.flac, false), sampleRate, 24, 1);
+        if (writer == nullptr || ! writer->writeFromAudioSampleBuffer (mono, 0, mono.getNumSamples()))
+            return false;
+    }
+    rs.sample.sampleRate = sampleRate;
+    rs.sample.layer = 1.0f;
+    rs.sample.data.assign (mono.getReadPointer (0), mono.getReadPointer (0) + mono.getNumSamples());
+    rs.sample.data.push_back (0.0f);      // guard sample for the interpolation
+    rowSamples[(size_t) row] = std::move (rs);
+    ++rowSampleVersion;
+    updateDrumBank();
+    return true;
+}
+
+void LiveLooperProcessor::clearRowSample (int row)
+{
+    if (! juce::isPositiveAndBelow (row, params::kNumBeatRows) || ! hasRowSample (row))
+        return;
+    rowSamples[(size_t) row] = RowSample();
+    ++rowSampleVersion;
+    updateDrumBank();
+}
+
+bool LiveLooperProcessor::hasRowSample (int row) const noexcept
+{
+    return juce::isPositiveAndBelow (row, params::kNumBeatRows) && ! rowSamples[(size_t) row].sample.data.empty();
+}
+
+juce::String LiveLooperProcessor::getRowSampleName (int row) const
+{
+    return hasRowSample (row) ? rowSamples[(size_t) row].name : juce::String();
+}
+
+juce::File LiveLooperProcessor::getRowSampleFile (int row) const
+{
+    return hasRowSample (row) ? rowSamples[(size_t) row].file : juce::File();
+}
+
+void LiveLooperProcessor::writeRowSamples (juce::XmlElement& root) const
+{
+    juce::XmlElement* list = nullptr;
+    for (int r = 0; r < params::kNumBeatRows; ++r)
+    {
+        const auto& rs = rowSamples[(size_t) r];
+        if (rs.sample.data.empty())
+            continue;
+        if (list == nullptr)
+            list = root.createNewChildElement ("ROWSAMPLES");
+        auto* e = list->createNewChildElement ("ROWSAMPLE");
+        e->setAttribute ("row", r);
+        e->setAttribute ("name", rs.name);
+        e->setAttribute ("path", rs.file.getFullPathName());
+        e->setAttribute ("data", rs.flac.toBase64Encoding());
+    }
+}
+
+void LiveLooperProcessor::readRowSamples (const juce::XmlElement& root)
+{
+    for (auto& rs : rowSamples)
+        rs = RowSample();
+    if (auto* list = root.getChildByName ("ROWSAMPLES"))
+        for (auto* e : list->getChildWithTagNameIterator ("ROWSAMPLE"))
+        {
+            const int r = e->getIntAttribute ("row", -1);
+            if (! juce::isPositiveAndBelow (r, params::kNumBeatRows))
+                continue;
+            const auto path = e->getStringAttribute ("path");
+            const juce::File file (juce::File::isAbsolutePath (path) ? juce::File (path) : juce::File());
+            juce::MemoryBlock flac;
+            bool ok = false;
+            if (flac.fromBase64Encoding (e->getStringAttribute ("data")) && flac.getSize() > 0)
+            {
+                juce::FlacAudioFormat format;
+                std::unique_ptr<juce::AudioFormatReader> reader (format.createReaderFor (new juce::MemoryInputStream (flac, false), true));
+                if (reader != nullptr && reader->lengthInSamples > 0)
+                {
+                    juce::AudioBuffer<float> audio ((int) reader->numChannels, (int) reader->lengthInSamples);
+                    reader->read (&audio, 0, audio.getNumSamples(), 0, true, true);
+                    ok = setRowSampleAudio (r, audio, reader->sampleRate, e->getStringAttribute ("name"), file);
+                }
+            }
+            if (! ok && file.existsAsFile())       // no embedded audio: load the original again
+            {
+                juce::String error;
+                loadRowSample (r, file, error);
+            }
+        }
+    ++rowSampleVersion;
+    updateDrumBank();
 }
 
 void LiveLooperProcessor::refreshSoundPacks()
@@ -1575,7 +1759,10 @@ SoundPacks::BeatSettings LiveLooperProcessor::captureBeatSettings() const
         row.solo = plain (beatRowId (kBeatSolo, r), 0.0f) >= 0.5f;
         row.level = plain (beatRowId (kBeatVol, r), 1.0f);
         row.pitch = plain (beatRowId (kBeatPitch, r), 0.0f);
+        if (hasRowSample (r))
+            row.sample = getRowSampleFile (r).getFullPathName();
     }
+    st.hasSamples = true;
     return st;
 }
 
@@ -1600,6 +1787,24 @@ void LiveLooperProcessor::applyBeatSettings (const SoundPacks::BeatSettings& st)
             set (beatRowId (kBeatSolo, r), row.solo ? 1.0f : 0.0f);
             set (beatRowId (kBeatVol, r), row.level);
             set (beatRowId (kBeatPitch, r), row.pitch);
+        }
+    if (st.hasSamples)        // v1.6: a beat saved with own row samples brings them back (by path)
+        for (int r = 0; r < BeatPattern::kRows; ++r)
+        {
+            const auto& path = st.rows[(size_t) r].sample;
+            if (path.isEmpty())
+            {
+                clearRowSample (r);
+                continue;
+            }
+            if (! juce::File::isAbsolutePath (path))
+                continue;
+            const juce::File f (path);
+            if (hasRowSample (r) && getRowSampleFile (r) == f)
+                continue;
+            juce::String error;
+            if (f.existsAsFile())
+                loadRowSample (r, f, error);
         }
 }
 

@@ -133,6 +133,8 @@ Text: ein Zeichen pro Schritt – `.` oder `-` = aus, `g` = Ghost Note (Velocity
 `patterns`-Liste eines Packs übernehmen. Seit 1.6 kann ein gespeicherter Beat zusätzlich
 `"format_version": 2`, `"swing"` (50 – 75 %) und ein `"mixer"`-Objekt (`"kick": { "level": 1.0,
 "pitch": 0, "mute": false, "solo": false }`, …) enthalten; beides ist optional, Packs ignorieren es.
+Spielt eine Zeile ein eigenes Sample, steht in ihrem Mixer-Eintrag zusätzlich `"sample": "<absoluter Pfad
+der Audiodatei>"` (`""` = das Kit-Sample).
 
 ## Lizenzen und Packs verkaufen
 

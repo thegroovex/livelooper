@@ -35,8 +35,10 @@ public:
         Optional in the file (pack patterns and beats saved before have none). */
     struct BeatSettings
     {
-        struct Row { bool mute = false, solo = false; float level = 1.0f; float pitch = 0.0f; };
+        struct Row { bool mute = false, solo = false; float level = 1.0f; float pitch = 0.0f;
+                     juce::String sample; };   // v1.6: path of the row's own sample (empty = kit sample)
         bool  hasSwing = false;
+        bool  hasSamples = false;                // v1.6: the file says which rows play own samples
         float swing = 50.0f;                     // percent, 50 = straight .. 75
         bool  hasMix = false;
         std::array<Row, BeatPattern::kRows> rows {};

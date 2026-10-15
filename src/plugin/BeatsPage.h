@@ -17,8 +17,11 @@ namespace livelooper
     Mouse: click = step on / off (drag along the row to paint), SHIFT + click = accent,
     ALT + click = ghost note, right-click = next velocity (ghost > normal > accent), mouse wheel
     over a step = fine velocity.
+
+    Own samples: drop an audio file on a row, or click the row name > "Load sample...". The row
+    then plays that sample in every kit (name shown under the voice) until "Reset to kit sample".
 */
-class BeatsPage : public juce::Component, private juce::Timer, private i18n::Listener
+class BeatsPage : public juce::Component, public juce::FileDragAndDropTarget, private juce::Timer, private i18n::Listener
 {
 public:
     explicit BeatsPage (LiveLooperProcessor& p);
@@ -58,6 +61,21 @@ public:
     void showSaveAsChooser (const juce::String& name);
     int  getBarPage() const noexcept { return barPage; }
     void setBarPage (int b);
+    /** v1.6 own samples per row (public for tests). */
+    bool loadRowSample (int row, const juce::File& file);
+    void resetRowSample (int row);
+    void chooseRowSample (int row);
+    void showRowSampleMenu (int row);
+    int  rowAtY (int y) const;
+    juce::Button* getRowSampleButton (int row) noexcept { return juce::isPositiveAndBelow (row, BeatPattern::kRows) ? rowNameBtns[(size_t) row].get() : nullptr; }
+    // drag & drop of audio files onto a row
+    bool isInterestedInFileDrag (const juce::StringArray& files) override;
+    void fileDragEnter (const juce::StringArray& files, int x, int y) override;
+    void fileDragMove (const juce::StringArray& files, int x, int y) override;
+    void fileDragExit (const juce::StringArray& files) override;
+    void filesDropped (const juce::StringArray& files, int x, int y) override;
+    void paintOverChildren (juce::Graphics& g) override;
+
     /** Velocity steps of a click: 40 ghost, 96 normal, 127 accent. */
     static int nextVelocity (int v) noexcept { return v == 0 ? 40 : v < 96 ? 96 : v < 127 ? 127 : 40; }
 
@@ -76,6 +94,18 @@ private:
     private:
         BeatsPage& owner;
         int paintRow = -1, paintValue = 0, lastStep = -1;
+    };
+
+    /** Row name: voice name, the own sample under it, click = sample menu. */
+    class RowNameButton : public juce::Button
+    {
+    public:
+        RowNameButton (BeatsPage& o, int r) : juce::Button ("row"), owner (o), row (r) {}
+        void paintButton (juce::Graphics& g, bool over, bool down) override;
+        juce::String getTooltip() override;
+    private:
+        BeatsPage& owner;
+        int row;
     };
 
     void timerCallback() override;
@@ -108,6 +138,8 @@ private:
     std::array<std::unique_ptr<LLButton>, BeatPattern::kRows> muteBtns, soloBtns;
     std::array<std::unique_ptr<APVTS::ButtonAttachment>, BeatPattern::kRows> muteAtts, soloAtts;
     std::array<std::unique_ptr<Knob>, BeatPattern::kRows> volKnobs, pitchKnobs;
+    std::array<std::unique_ptr<RowNameButton>, BeatPattern::kRows> rowNameBtns;
+    int dragRow = -1, lastRowSampleVersion = -1;
     std::unique_ptr<Knob> swingKnob, feelKnob, variationKnob, levelKnob;
 
     juce::Rectangle<int> topBar, toolBar, rowHeader, bottomBar, captionArea;

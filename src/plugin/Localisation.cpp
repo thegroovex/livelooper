@@ -702,6 +702,7 @@ namespace
         { "Not enough audio for a clip yet.", "Noch nicht genug Audio f\xc3\xbc" "r einen Clip." },
         { "The video encoder of the system failed - writing PNG frames instead.", "Der Video-Encoder des Systems ist fehlgeschlagen - stattdessen werden PNG-Einzelbilder geschrieben." },
         { "Cancelled", "Abgebrochen" },
+        { "Blinks with the beat while recording. Right-click: MIDI learn.", "Blinkt beim Aufnehmen im Takt. Rechtsklick: MIDI-Learn." },
         // ---------------------------------------------------------------- end v1.6 features
     };
 

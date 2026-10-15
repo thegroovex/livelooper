@@ -50,6 +50,24 @@ public:
     std::function<juce::String()> tooltipFn;
 };
 
+/** v1.6: the round record button of the performance recorder (header, under MIDI LEARN ...).
+    A red circle; while recording it blinks with the beat (setBeatPhase) and shows the time. */
+class RecordButton : public LLButton
+{
+public:
+    RecordButton() : LLButton ("REC", colours::red) { setClickingTogglesState (true); }
+    void paintButton (juce::Graphics& g, bool over, bool down) override;
+    /** 0 .. 1 within the current beat (the light is on in the first half). */
+    void setBeatPhase (double phase);
+    void setElapsedSeconds (double seconds);
+    bool isLit() const noexcept { return lit; }
+    juce::String getTimeText() const { return timeText; }
+    static juce::String formatTime (double seconds);
+private:
+    bool lit = true;
+    juce::String timeText;
+};
+
 /** v1.5: a button that holds a (momentary) parameter on while it is pressed - beat FX hold,
     beat repeat / stutter hold. The button lights while the parameter is on (also via MIDI). */
 class MomentaryButton : public LLButton, private juce::Timer

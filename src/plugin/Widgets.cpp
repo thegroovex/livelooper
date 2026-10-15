@@ -73,6 +73,64 @@ void LLButton::mouseDown (const juce::MouseEvent& e)
         juce::TextButton::mouseDown (e);
 }
 
+//============================================================================== v1.6 record button
+juce::String RecordButton::formatTime (double seconds)
+{
+    const int s = (int) juce::jlimit (0.0, 359999.0, std::isfinite (seconds) ? seconds : 0.0);
+    return s >= 3600 ? juce::String::formatted ("%d:%02d:%02d", s / 3600, (s / 60) % 60, s % 60)
+                     : juce::String::formatted ("%02d:%02d", s / 60, s % 60);
+}
+
+void RecordButton::setBeatPhase (double phase)
+{
+    const bool on = ! getToggleState() || (phase - std::floor (phase)) < 0.5;
+    if (on != lit)
+    {
+        lit = on;
+        repaint();
+    }
+}
+
+void RecordButton::setElapsedSeconds (double seconds)
+{
+    const auto t = getToggleState() ? formatTime (seconds) : juce::String();
+    if (t != timeText)
+    {
+        timeText = t;
+        repaint();
+    }
+}
+
+void RecordButton::paintButton (juce::Graphics& g, bool over, bool down)
+{
+    const auto b = getLocalBounds().toFloat();
+    const float d = juce::jmin (b.getHeight(), 30.0f) - 2.0f;
+    const auto circle = juce::Rectangle<float> (b.getRight() - d - 1.0f, b.getCentreY() - d * 0.5f, d, d);
+    const bool on = getToggleState();
+    const juce::Colour red (0xffff3b3b);
+
+    // ring
+    g.setColour (juce::Colour (0xff2a2d33));
+    g.fillEllipse (circle);
+    g.setColour (on ? red.withAlpha (0.9f) : juce::Colour (0xff4a4e57).brighter (over ? 0.3f : 0.0f));
+    g.drawEllipse (circle.reduced (0.75f), 1.5f);
+    // the red dot: dim when idle, bright (with a glow) on the beat while recording
+    const auto dot = circle.reduced (d * 0.2f);
+    if (on && lit)
+    {
+        g.setColour (red.withAlpha (0.35f));
+        g.fillEllipse (dot.expanded (d * 0.12f));
+    }
+    g.setColour (on ? (lit ? red : red.darker (0.9f)) : red.darker (over ? 0.15f : 0.35f));
+    g.fillEllipse (down ? dot.reduced (1.0f) : dot);
+
+    // caption left of the circle: REC, while recording the elapsed time
+    auto text = b.withRight (circle.getX() - 6.0f);
+    g.setFont (LooperLookAndFeel::font (12.0f, true));
+    g.setColour (on ? red : colours::textDim.withAlpha (over ? 1.0f : 0.8f));
+    g.drawText (on ? tr ("REC") + " " + timeText : tr ("REC"), text, juce::Justification::centredRight);
+}
+
 MomentaryButton::MomentaryButton (APVTS& state, const juce::String& paramId, const juce::String& text, juce::Colour led)
     : LLButton (text, led), param (state.getParameter (paramId))
 {
