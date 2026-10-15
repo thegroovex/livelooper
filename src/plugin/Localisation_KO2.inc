@@ -200,3 +200,6 @@
         { "K.O. II: no other audio output found - metronome and loops are silent", "K.O. II: kein anderer Audioausgang gefunden \xe2" "\x80" "\x93" " Metronom und Loops sind stumm" },
         { "K.O. II: output to the K.O. II - metronome and loops are recorded again", "K.O. II: Ausgabe zum K.O. II \xe2" "\x80" "\x93" " Metronom und Loops werden mit aufgenommen" },
         { "K.O. II: input from the K.O. II, output on %1", "K.O. II: Eingang vom K.O. II, Ausgabe auf %1" },
+        { "Record K.O. II: the K.O. II is the input, the output stays on the computer - metronome and loops are not recorded again.", "K.O. II aufnehmen: der K.O. II ist der Eingang, der Ausgang bleibt am Computer \xe2" "\x80" "\x93" " Metronom und Loops werden nicht noch einmal aufgenommen." },
+        { "In the plug-in: the K.O. II as the track's audio input in the DAW, the DAW's output on the computer / interface, input monitoring off.", "Im Plug-in: der K.O. II als Audio-Eingang der Spur in der DAW, die DAW-Ausgabe auf Computer / Interface, Eingangs-Monitoring aus." },
+        { "The K.O. II sends no pad pressure: hold a punch pad (group C) and the amount rises to 100 % (SETUP > Controllers).", "Der K.O. II sendet keinen Pad-Druck: ein Punch-Pad (Gruppe C) halten, und die St\xc3" "\xa4" "rke steigt bis 100 % (SETUP > Controller)." },

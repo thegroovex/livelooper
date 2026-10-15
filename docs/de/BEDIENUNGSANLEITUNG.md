@@ -607,7 +607,9 @@ Bandpass). Jeder blendet in 5 ms ein und aus, damit nichts knackt.
 - **Pads 1 – 12**: halten = an, loslassen = aus. **LATCH**: ein Druck schaltet einen Effekt ein, der nächste aus.
 - **XY-Feld**: Maus halten spielt den zuletzt angeklickten Punch-FX, bewegen ändert X / Y.
 - **STÄRKE**: wie stark. Am Push 1 bestimmt sie der Pad-Druck (XY-Pad, SHIFT + obere Tasten 5 – 8); an einem
-  Pad-Controller mit Anschlagstärke die Anschlagstärke.
+  Pad-Controller mit Anschlagstärke die Anschlagstärke. Pads ohne Druck (K.O. II, siehe [KO2.md](KO2.md)): die
+  Stärke beginnt beim Anschlag und steigt bis 100 %, solange du das Pad hältst (*Punch-FX Halte-Rampe*: aus /
+  1 Schlag / 2 Schläge / 1 Takt); die Titelzeile zeigt die aktuelle Stärke (*HALTEN 83 %*).
 - **Ziel**: wo sie wirken – **Loops** (Standard), **Eingang**, **Master** (Loops + Eingangs-Mithören) oder **Drums**.
 
 **SEND-FX** (zweite FX-Reihe neben dem Metronom; den Typ wählst du in seiner Titelzeile): ein Send-Effekt auf den Loops – **Delay** (X Länge, Y Feedback),

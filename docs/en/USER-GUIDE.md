@@ -578,7 +578,9 @@ fades in and out in 5 ms, so nothing clicks.
 - **Pads 1 – 12**: hold = on, release = off. **LATCH**: a press switches an effect on, the next press off.
 - **XY field**: hold the mouse to play the punch FX you clicked last, move for X / Y.
 - **AMOUNT**: how strong. On Push 1 the pad pressure sets it (XY pad, SHIFT + top buttons 5 – 8); on a pad
-  controller with velocity, the velocity.
+  controller with velocity, the velocity. Pads without pressure (K.O. II, see [KO2.md](KO2.md)): the amount starts at
+  the hit and rises to 100 % while you hold the pad (*Punch FX Hold Ramp*: off / 1 beat / 2 beats / 1 bar); the
+  title row shows the live amount (*HOLD 83 %*).
 - **Target**: where they work – **Loops** (default), **Input**, **Master** (loops + input monitor) or **Drums**.
 
 **SEND FX** (second FX row, next to the metronome; the type is chosen in its title row): one send effect on the loops – **Delay** (X length, Y feedback),
