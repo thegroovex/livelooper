@@ -8,6 +8,7 @@
 #include "plugin/KeyMapEditor.h"
 #include "plugin/InfoWindows.h"
 #include "plugin/Parameters.h"
+#include "plugin/PerformanceRecorder.h"
 
 using namespace livelooper;
 using namespace livelooper::params;
@@ -130,12 +131,20 @@ int main (int argc, char* argv[])
             }
             set (beatRowId (kBeatMute, 6), 1.0f);
             set (gDrumsBfx, 1.0f);
+            {
+                // an own sample on the snare row (shows its name under the voice)
+                juce::AudioBuffer<float> hit (1, 8000);
+                for (int i = 0; i < hit.getNumSamples(); ++i)
+                    hit.setSample (0, i, 0.5f * std::sin ((float) i * 0.05f) * std::exp (-(float) i / 1500.0f));
+                proc.setRowSampleAudio (1, hit, 44100.0, "Vinyl Snare 03", {});
+            }
             for (int f = 0; f < 6; ++f)
             {
                 runBlocks (proc, 3, 0.0f);
                 juce::MessageManager::getInstance()->runDispatchLoopUntil (40);
             }
             save (*editor, outDir.getChildFile ("livelooper-beats" + sfx + ".png"));
+            proc.clearRowSample (1);
             ed->showBeatsPage (false);
             set (beatRowId (kBeatMute, 6), 0.0f);
             set (gDrumsBfx, 0.0f);
@@ -157,6 +166,26 @@ int main (int argc, char* argv[])
             juce::MessageManager::getInstance()->runDispatchLoopUntil (60);
         }
         save (*editor, outDir.getChildFile ("livelooper-performance" + sfx + ".png"));
+
+        // v1.6 performance recorder: the round record button while it records (light on the beat)
+        {
+            const auto recDir = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("livelooper-screenshot-rec");
+            PerformanceRecorder::setFolder (recDir);
+            proc.startPerformanceRecording();
+            for (int f = 0; f < 8; ++f)
+            {
+                runBlocks (proc, 40, 0.3f);
+                juce::MessageManager::getInstance()->runDispatchLoopUntil (40);
+            }
+            auto& rec = ed->getPerfRecButton();
+            rec.setBeatPhase (0.1);          // light on for the picture
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (40);
+            save (*editor, outDir.getChildFile ("livelooper-recording" + sfx + ".png"));
+            proc.stopPerformanceRecording();
+            PerformanceRecorder::setFolder ({});
+            recDir.deleteRecursively();
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (60);
+        }
         set (gBfxOn, 0.0f);
         set (gColorType, 0.0f);
         set (gRepeatLatch, 0.0f);
