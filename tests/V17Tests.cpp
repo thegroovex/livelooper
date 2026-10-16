@@ -186,7 +186,7 @@ public:
 
         beginTest ("Compensation: a first recording is moved by the round trip (heard on the beat)");
         {
-            constexpr int L = 600;
+            static constexpr int L = 600;
             Harness17 h;
             h.engine.setInputLatency (L);
             long long s0 = 0;
@@ -212,7 +212,7 @@ public:
 
         beginTest ("Compensation: overdubs write the input where it was heard");
         {
-            constexpr int L = 777;
+            static constexpr int L = 777;
             Harness17 h;
             h.press (Cmd17::RecPlay, 0);
             h.run (1);
@@ -250,7 +250,7 @@ public:
 
         beginTest ("Compensation: a capture plays the captured input earlier by the round trip");
         {
-            constexpr int L = 512;
+            static constexpr int L = 512;
             Harness17 a, b;
             b.engine.setInputLatency (L);
             for (auto* h : { &a, &b })
@@ -312,7 +312,7 @@ public:
             proc.pressTrigger (gLatMeasure);
             juce::AudioBuffer<float> buf (2, kBlock17);
             juce::MidiBuffer midi;
-            constexpr int D = 1100;
+            static constexpr int D = 1100;
             std::vector<float> line (96000, 0.0f);
             long long t = 0;
             bool started = false;
