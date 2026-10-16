@@ -102,6 +102,11 @@ public:
     /** v1.6 (K.O. II latency): plays the loop 'samples' earlier against the timeline, so audio that
         arrived late (USB input latency) sits on the beat. Lock the track first. */
     void nudgeAlignment (int samples) noexcept;
+    /** v1.7 latency compensation: round trip (output + input latency) in samples. A finished first
+        recording is moved by it (like nudgeAlignment), overdubs write the input that many samples
+        earlier into the loop, so everything played to the loop lands where it was heard. */
+    void setInputLatency (int samples) noexcept          { inputLatency = std::max (0, samples); }
+    int  getInputLatency() const noexcept                { return inputLatency; }
     void invalidateAnchor() noexcept                     { anchorValid = false; }
 
     //============================================================================== processing
@@ -219,6 +224,7 @@ private:
     int    recPos = 0;
     int    playPos = 0;
     int    autoFinish = 0;
+    int    inputLatency = 0;                  // v1.7: round-trip latency compensation (samples)
     int    savedLength = 0;                   // for redo of an undone first recording
     double sampleRate = 44100.0;
     double recSamplesPerPpq = 0.0;

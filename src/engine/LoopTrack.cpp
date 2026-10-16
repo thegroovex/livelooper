@@ -254,6 +254,11 @@ void LoopTrack::finishRecording (RecAction next, int trimSamples)
     gainRampLeft = 0;
     state = State::Playing;
 
+    // v1.7: the audio arrived 'inputLatency' samples after it was played against the heard loop /
+    // timeline - play the loop that much earlier so it sits where it was played
+    if (inputLatency > 0 && length > inputLatency)
+        nudgeAlignment (inputLatency);
+
     if (next == RecAction::RecDub)
         startOverdub();
     else
@@ -882,14 +887,33 @@ void LoopTrack::process (const float* inL, const float* inR,
         {
             float il, ir;
             routeInput (inL[i], inR[i], il, ir);
+            const float fb = settings.feedback;
+            if (inputLatency > 0 && inputLatency < length)
+            {
+                // v1.7 latency compensation: this input was played while the loop was heard
+                // 'inputLatency' samples ago - write it there (the sample there is already played)
+                int wl = logical - inputLatency;
+                if (wl < 0) wl += length;
+                const int w = reverse ? (length - 1 - wl) : wl;
+                touchChunkForWrite (w);
+                const auto owner = chunkOwner[(size_t) (w >> kChunkShift)];
+                const float ol = layers[owner][0][(size_t) w], orr = layers[owner][1][(size_t) w];
+                const float nl = settings.dubMode == DubMode::Replace ? il : ol * fb + il;
+                const float nr = settings.dubMode == DubMode::Replace ? ir : orr * fb + ir;
+                layers[owner][0][(size_t) w] = nl;
+                layers[owner][1][(size_t) w] = nr;
+                notePeak (owner, w, nl, nr);
+            }
+            else
+            {
             touchChunkForWrite (index);
             const auto owner = chunkOwner[(size_t) (index >> kChunkShift)];
-            const float fb = settings.feedback;
             const float nl = settings.dubMode == DubMode::Replace ? il : l * fb + il;
             const float nr = settings.dubMode == DubMode::Replace ? ir : r * fb + ir;
             layers[owner][0][(size_t) index] = nl;
             layers[owner][1][(size_t) index] = nr;
             notePeak (owner, index, nl, nr);
+            }
             inPeakL = std::max (inPeakL, std::abs (il));
             inPeakR = std::max (inPeakR, std::abs (ir));
         }

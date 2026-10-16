@@ -154,6 +154,8 @@ LiveLooperProcessor::LiveLooperProcessor (bool withCueOutput, bool withTrackOutp
     triggers.back()->special = 3;
     addTrigger (gKo2Resample,  C::Capture, -1);          // v1.6 K.O. II resample: message thread
     triggers.back()->special = 4;
+    addTrigger (gLatMeasure,   C::Capture, -1);          // v1.7 latency measurement: message thread
+    triggers.back()->special = 5;
     for (auto& c : trackColours)
         c.store (-1);
     perfRecParam = apvts.getRawParameterValue (gPerfRec);
@@ -249,6 +251,7 @@ LiveLooperProcessor::LiveLooperProcessor (bool withCueOutput, bool withTrackOutp
     pfxLatch  = apvts.getRawParameterValue (gPfxLatch);
     ctlAudioMode = apvts.getRawParameterValue (gCtlAudioMode);
     pfxHoldRamp = apvts.getRawParameterValue (gPfxHoldRamp);
+    initV17();          // v1.7 latency, velocity curves, MIDI feedback
 
     keyboardAvailable = wrapperType == wrapperType_Standalone;
     if (wrapperType != wrapperType_Undefined)      // a real host or the standalone app (not the unit tests)
@@ -322,6 +325,8 @@ void LiveLooperProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     currentBlockSize = samplesPerBlock;
     engine.prepare (sampleRate, samplesPerBlock, maxLoopSeconds);
     recorder.prepare (sampleRate);     // v1.6
+    measureScratch.setSize (2, juce::jmax (512, samplesPerBlock) * 2);   // v1.7 latency ping: copy of the input
+    compensationSamples.store (getLatencyCompensationSamples());
     prepared = true;
     applyPendingLoops();
 }
@@ -419,6 +424,7 @@ void LiveLooperProcessor::pushSettingsToEngine() noexcept
     g.duckSource    = (DuckSource) juce::jlimit (0, 1, juce::roundToInt (duckSource->load()));
     engine.setGlobalSettings (g);
     engine.setFollowHostTransport (follow->load() >= 0.5f);
+    engine.setInputLatency (compensationSamples.load());     // v1.7: every recording, overdub and capture
     engine.setRhythm (rhythmOn->load() >= 0.5f, juce::roundToInt (rhythmPattern->load()), rhythmLevel->load());
     engine.setClickSound (juce::roundToInt (clickSound->load()));
 
@@ -539,6 +545,8 @@ void LiveLooperProcessor::fireTrigger (Trigger& t) noexcept
         beatLibRequest.fetch_add (t.special == 2 ? 1 : -1);
     else if (t.special == 4)
         resampleRequested.store (true);
+    else if (t.special == 5)
+        latencyMeasureRequested.store (true);
     else if (t.octave != 0)
         pendingOctave[(size_t) t.track].fetch_add (t.octave);      // the message thread changes the pitch
     else
@@ -703,6 +711,14 @@ void LiveLooperProcessor::handleMidiMessage (const juce::MidiMessage& m)
 {
     if (m.isNoteOn() || m.isController())
         midiActivity.fetch_add (1);
+    if (m.isNoteOn())
+    {
+        // v1.7: velocity curve of learned MIDI notes (vel_midi)
+        auto v = m;
+        v.setVelocity ((float) velocity::apply (getVelocityCurve (VelocitySource::Midi), m.getVelocity()) / 127.0f);
+        applyMidiAction (midiMap.handle (v));
+        return;
+    }
     applyMidiAction (midiMap.handle (m));
 }
 
@@ -839,7 +855,16 @@ void LiveLooperProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::
             }
     }
 
+    // v1.7 latency ping: the engine writes its output over the input (same buffer) - keep a copy
+    const bool measuring = latencyMeasure.isRunning() && numSamples <= measureScratch.getNumSamples();
+    if (measuring)
+    {
+        measureScratch.copyFrom (0, 0, inL, numSamples);
+        measureScratch.copyFrom (1, 0, inR, numSamples);
+    }
     engine.process (inL, inR, buffer.getWritePointer (0), buffer.getWritePointer (1), extra, numSamples, time);
+    if (measuring)
+        processV17 (measureScratch.getReadPointer (0), measureScratch.getReadPointer (1), buffer, numSamples);
     recorder.push (buffer.getReadPointer (0), buffer.getReadPointer (1), numSamples);    // v1.6: master mix
     sampleCounter += numSamples;
 }
@@ -903,7 +928,8 @@ void LiveLooperProcessor::timerCallback()
         sendChangeMessage();
 
     updatePerformanceRecorder();      // v1.6
-    updateControllers();              // v1.6 K.O. II: resample, latency offset, audio role
+    updateControllers();              // v1.6 K.O. II: resample, audio role
+    timerV17();                       // v1.7 latency measurement / compensation, MIDI feedback
 }
 
 //============================================================================== v1.6 performance recorder
@@ -2242,16 +2268,8 @@ void LiveLooperProcessor::updateControllers()
         const int now = engine.getTrack (t).getState() == LoopTrack::State::Recording ? 1 : 0;
         if (lastTrackState[(size_t) t] == 1 && now == 0)
         {
-            if (record)
-            {
-                const int offset = getKo2EffectiveOffsetSamples();
-                if (offset > 0)
-                {
-                    engine.lockTrack (t);
-                    engine.getTrack (t).nudgeAlignment (offset);
-                    engine.unlockTrack (t);
-                }
-            }
+            // v1.7: the K.O. II latency offset is part of the general latency compensation now
+            // (getLatencySource() == 2 while recording the K.O. II), applied by the engine itself
             if (t == resampleTrack)
                 resampleTrack = -1;
         }

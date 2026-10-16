@@ -96,6 +96,15 @@ public:
         rhythm.setHumanize (humanize);
     }
     void setFollowHostTransport (bool f) noexcept               { followHostTransport = f; }
+    bool getFollowHostTransport() const noexcept                { return followHostTransport; }
+    /** v1.7: round-trip latency compensation for every recording, overdub and capture (samples). */
+    void setInputLatency (int samples) noexcept
+    {
+        inputLatency = samples < 0 ? 0 : samples;
+        for (auto& t : tracks)
+            t.setInputLatency (inputLatency);
+    }
+    int getInputLatency() const noexcept                         { return inputLatency; }
 
     // ---- v1.5 performance FX (audio thread, once per block)
     /** Beat FX + beat repeat / stutter on the target channel (FxTarget, Track1 + n = track n + 1).
@@ -271,7 +280,8 @@ private:
         beatRepeat.process (l, r, n, ppq, ppqPerSample);
         beatFx.process (l, r, n, ppq, ppqPerSample);
     }
-    bool followHostTransport = false;
+    bool followHostTransport = true;      // v1.7: on by default (a DAW stop stops the loops)
+    int inputLatency = 0;                 // v1.7
 
     std::array<PendingCut, kNumTracks> cutPending {};
     std::array<bool, kNumTracks> stutterWanted {};

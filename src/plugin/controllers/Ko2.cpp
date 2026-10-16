@@ -688,7 +688,9 @@ void Device::handle (const juce::MidiMessage& m)
     if (channel > 0 && m.getChannel() > 0 && m.getChannel() != channel)
         return;                                              // channel messages from other channels
     if (m.isNoteOnOrOff())
-        controller.handleNote (m.getNoteNumber(), m.isNoteOn() ? m.getVelocity() : 0, m.isNoteOn(), now, out);
+        controller.handleNote (m.getNoteNumber(),
+                               m.isNoteOn() ? velocity::apply (proc.getVelocityCurve (LiveLooperProcessor::VelocitySource::Ko2), m.getVelocity()) : 0,
+                               m.isNoteOn(), now, out);     // v1.7: velocity curve (vel_ko2)
     else if (m.isAftertouch())                              // poly pressure (0xA0): not sent by OS 2.x, handled anyway
         controller.handlePressure (m.getNoteNumber(), m.getAfterTouchValue(), now);
     else if (m.isChannelPressure())                         // channel pressure (0xD0): likewise

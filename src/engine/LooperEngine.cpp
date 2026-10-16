@@ -618,6 +618,8 @@ bool LooperEngine::captureInto (int t) noexcept
         ensureClockRunning();
     const double anchor = running ? prevBar - bars * measurePpq : 0.0;
     tr.loadLoopFromRing (ringL.data(), ringR.data(), ringSize, start, len, xfade, samplesPerPpq, anchor);
+    if (inputLatency > 0 && inputLatency < len)
+        tr.nudgeAlignment (inputLatency);      // v1.7: the captured input arrived late by the round trip
     tr.play (blockPpq, true);
     return true;
 }

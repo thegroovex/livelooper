@@ -7,6 +7,9 @@
 #include "LinkSync.h"
 #include "PerformanceRecorder.h"
 #include "SoundPacks.h"
+#include "MidiFeedback.h"
+#include "engine/LatencyMeasure.h"
+#include "engine/Velocity.h"
 
 #include <juce_audio_formats/juce_audio_formats.h>
 #include <juce_audio_processors/juce_audio_processors.h>
@@ -148,6 +151,51 @@ public:
     /** Called from the timer when the user switches perf_rec; also notifies listeners. */
     std::function<void (const juce::File&)> onRecordingFinished;
     // ---- end v1.6 features
+    //============================================================================== v1.7 latency compensation
+    /** Round-trip latency measurement (SETUP > Audio > Measure latency, host parameter lat_measure). */
+    LatencyMeasure& getLatencyMeasure() noexcept { return latencyMeasure; }
+    void startLatencyMeasurement();
+    /** Standalone app: the audio device in use (identifies the stored measurement) and its reported
+        round trip (input + output latency + two buffers) in samples. */
+    void setAudioDeviceInfo (const juce::String& deviceKey, int reportedRoundTripSamples);
+    /** Key of the current device ("standalone: ..." or "plugin: <host>"): measurements are stored per key. */
+    juce::String getAudioDeviceKey() const;
+    /** Stored measurement for the current device in ms (-1 = none). */
+    double getMeasuredLatencyMs() const;
+    void setMeasuredLatencyMs (double ms);
+    void clearMeasuredLatency();
+    /** What the device reports (standalone; 0 in a plug-in: the formats give plug-ins no device latency). */
+    int getReportedLatencySamples() const noexcept { return reportedLatency.load(); }
+    /** Base of the compensation before the manual offset: 0 measured, 1 reported, 2 K.O. II offset, 3 none. */
+    int getLatencySource() const;
+    /** Compensation used for every recording / overdub / capture (samples, 0 when switched off). */
+    int getLatencyCompensationSamples() const;
+    /** Manual offset (host parameter lat_offset) in ms. */
+    float getLatencyOffsetMs() const noexcept;
+    void setLatencyOffsetMs (float ms);
+    bool isLatencyCompensationOn() const noexcept;
+    /** Message thread (timer): finishes a measurement, stores it, updates the engine. Returns true when
+        a measurement finished in this call. Public for tests. */
+    bool updateLatency();
+    static juce::String latencySettingsKey (const juce::String& deviceKey);
+
+    //============================================================================== v1.7 controllers
+    enum class VelocitySource { Push = 0, Ko2, Midi };
+    velocity::Curve getVelocityCurve (VelocitySource s) const noexcept;
+    void setVelocityCurve (VelocitySource s, velocity::Curve c);
+    /** Generic MIDI feedback (experimental): output device (identifier, saved), profile values. */
+    bool isMidiFeedbackOn() const noexcept;
+    juce::String getMidiFeedbackOutput() const;
+    void setMidiFeedbackOutput (const juce::String& identifier);
+    MidiFeedback::Profile getMidiFeedbackProfile() const;
+    void setMidiFeedbackProfile (const MidiFeedback::Profile& p);
+    /** The feedback items for the current MIDI-learn table (state of every learned control). */
+    std::vector<MidiFeedback::Item> buildMidiFeedbackItems() const;
+    /** Renders the changed feedback messages (tests call it directly; the timer sends them). */
+    void renderMidiFeedback (std::vector<juce::MidiMessage>& out, bool full);
+    /** Push 1 display: loop progress bars instead of the state words (host parameter push_progress). */
+    bool isPushProgressShown() const noexcept;
+
     //============================================================================== v1.6 K.O. II + controller audio
     /** The K.O. II on its USB MIDI port (null in unit tests until createKo2Device()). */
     ko2::Device* getKo2Device() noexcept { return ko2Device.get(); }
@@ -486,6 +534,25 @@ private:
     void updateControllers();
     bool pushEnabledSetting = true;
 
+    // v1.7 latency + controllers
+    LatencyMeasure latencyMeasure;
+    juce::AudioBuffer<float> measureScratch;
+    std::atomic<bool> latencyMeasureRequested { false };
+    std::atomic<int> reportedLatency { 0 };
+    std::atomic<int> compensationSamples { 0 };
+    juce::String audioDeviceKey;
+    mutable juce::CriticalSection deviceKeyLock;
+    std::atomic<float>* latComp {}; std::atomic<float>* latOffset {};
+    std::atomic<float>* velPush {}; std::atomic<float>* velKo2 {}; std::atomic<float>* velMidi {};
+    std::atomic<float>* midiFb {}; std::atomic<float>* pushProgress {};
+    MidiFeedback midiFeedback;
+    std::unique_ptr<juce::MidiOutput> feedbackOut;
+    juce::String feedbackOutId;
+    int feedbackFullCounter = 0;
+    void initV17();
+    void processV17 (const float* inL, const float* inR, juce::AudioBuffer<float>& buffer, int numSamples) noexcept;
+    void timerV17();
+    double cachedMeasuredMs = -2.0;      // -2 = not read yet
     // v1.6 features
     PerformanceRecorder recorder;
     std::unique_ptr<controllers::GridControllerDevice> gridControllers;

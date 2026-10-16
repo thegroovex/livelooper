@@ -111,7 +111,8 @@ set(LIVELOOPER_ENGINE_SOURCES
     src/engine/MidiMap.cpp
     src/engine/Performance.cpp
     src/engine/BeatFx.cpp
-    src/engine/PunchFx.cpp)
+    src/engine/PunchFx.cpp
+    src/engine/LatencyMeasure.cpp)
 set(LIVELOOPER_PLUGIN_SOURCES
     src/plugin/Localisation.cpp
     src/plugin/AppSettings.cpp
@@ -126,6 +127,8 @@ set(LIVELOOPER_PLUGIN_SOURCES
     src/plugin/KeyMapEditor.cpp
     src/plugin/Parameters.cpp
     src/plugin/PluginProcessor.cpp
+    src/plugin/Processor17.cpp
+    src/plugin/MidiFeedback.cpp
     src/plugin/PluginEditor.cpp
     src/plugin/LooperLookAndFeel.cpp
     src/plugin/Widgets.cpp

@@ -150,6 +150,12 @@ private:
     juce::uint32 now() const { return clock ? clock() : juce::Time::getMillisecondCounter(); }
     bool isTrackMuted (int t) const;
     juce::String meterColumn (int t, int width) const;
+public:
+    /** v1.7: display column with the state letter and the loop progress as a bar (Push 1 bar characters). */
+    juce::String progressColumn (int t, int width) const;
+    /** v1.7: amount of the punch FX held / the XY pad played (0 .. 1) and its label; -1 when nothing plays. */
+    float activeAmount (juce::String& label) const;
+private:
 
     int trackPadColour (int track, int row, bool blinkOn) const;
     /** first encoder of the master section (master level, tempo), -1 when the encoders are all in use */

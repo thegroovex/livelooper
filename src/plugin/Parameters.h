@@ -159,7 +159,18 @@ juce::StringArray ctlAudioModeChoices();
 inline const juce::String gPfxHoldRamp  { "pfx_hold_ramp" };  // Off, 1 beat, 2 beats (default), 1 bar
 juce::StringArray holdRampChoices();
 // ---- end v1.6 punch FX
-inline constexpr int kNumParameters = 489;
+// ---- v1.7 (appended after pfx_hold_ramp, ids 490 - 497; ids never change)
+inline const juce::String gLatComp      { "lat_comp" };       // latency compensation on / off (default on)
+inline const juce::String gLatOffset    { "lat_offset" };     // manual offset -50 .. +50 ms (added to the measured value)
+inline const juce::String gLatMeasure   { "lat_measure" };    // trigger: measure the round trip (loopback ping)
+inline const juce::String gVelPush      { "vel_push" };       // velocity curve Push 1 pads: Soft, Normal, Hard, Fixed
+inline const juce::String gVelKo2       { "vel_ko2" };        // velocity curve K.O. II pads
+inline const juce::String gVelMidi      { "vel_midi" };       // velocity curve of learned MIDI notes
+inline const juce::String gMidiFeedback { "midi_fb" };        // generic MIDI feedback (experimental) on / off
+inline const juce::String gPushProgress { "push_progress" };  // Push 1 display: loop progress bars (default on)
+juce::StringArray velocityCurveChoices();
+// ---- end v1.7
+inline constexpr int kNumParameters = 497;
 
 inline constexpr int kNumScenes = 8;
 inline constexpr int kCaptureBars[] = { 1, 2, 4, 8, 16, 32 };   // 16 / 32 since 1.5 (appended)

@@ -35,7 +35,8 @@ juce::String sceneId (int scene)
 bool isTrigger (const juce::String& id)
 {
     static const juce::StringArray globalTriggers { gAllStartStop, gAllStart, gAllStop, gClearAll, gTap, gCapture,
-                                                    gClipExport /* v1.6 */, gBeatLibNext, gBeatLibPrev, gKo2Resample };
+                                                    gClipExport /* v1.6 */, gBeatLibNext, gBeatLibPrev, gKo2Resample,
+                                                    gLatMeasure /* v1.7 */ };
     if (globalTriggers.contains (id))
         return true;
     if (id.startsWith ("scene") && id.substring (5).containsOnly ("0123456789"))
@@ -87,6 +88,7 @@ juce::StringArray sendFxChoices()
 juce::StringArray punchTargetChoices() { return { "Loops", "Input", "Master", "Drums" }; }
 juce::StringArray ctlAudioModeChoices() { return { "Controller only", "Record controller audio" }; }
 juce::StringArray holdRampChoices()     { return { "Off", "1 beat", "2 beats", "1 bar" }; }
+juce::StringArray velocityCurveChoices() { return { "Soft", "Normal", "Hard", "Fixed" }; }   // v1.7
 
 juce::StringArray grooveChoices()
 {
@@ -212,7 +214,11 @@ namespace
         { "pfx_amount", "Punch FX Amount" }, { "pfx_x", "Punch FX X" }, { "pfx_y", "Punch FX Y" },
         { "pfx_target", "Punch FX Target" }, { "pfx_latch", "Punch FX Latch" },
         { "ctl_audio_mode", "Controller Audio" }, { "ko2_resample", "Resample Controller Pattern" },
-        { "pfx_hold_ramp", "Punch FX Hold Ramp" }
+        { "pfx_hold_ramp", "Punch FX Hold Ramp" },
+        // v1.7
+        { "lat_comp", "Latency Compensation" }, { "lat_offset", "Latency Offset" }, { "lat_measure", "Measure Latency" },
+        { "vel_push", "Push 1 Velocity Curve" }, { "vel_ko2", "K.O. II Velocity Curve" }, { "vel_midi", "MIDI Velocity Curve" },
+        { "midi_fb", "MIDI Feedback (experimental)" }, { "push_progress", "Push 1 Loop Progress Bars" }
     };
 
     template <size_t N>
@@ -354,7 +360,7 @@ APVTS::ParameterLayout createLayout()
         group->addChild (choiceParam (gQuantize, localisedName (gQuantize), translated (quantizeChoices()), 2));
         group->addChild (choiceParam (gRecAction, localisedName (gRecAction), translated (recActionChoices()), 0));
         group->addChild (boolParam (gSync, localisedName (gSync), true));
-        group->addChild (boolParam (gFollow, localisedName (gFollow), false));
+        group->addChild (boolParam (gFollow, localisedName (gFollow), true));
         group->addChild (std::make_unique<juce::AudioParameterFloat> (
             PID { gTempo, 1 }, localisedName (gTempo), juce::NormalisableRange<float> (40.0f, 300.0f, 0.1f), 120.0f,
             juce::AudioParameterFloatAttributes().withLabel ("BPM")));
@@ -527,6 +533,21 @@ APVTS::ParameterLayout createLayout()
         // v1.6 (appended): pads that send no pressure - holding one raises the punch FX amount to 100 %
         auto group = std::make_unique<juce::AudioProcessorParameterGroup> ("punchramp", i18n::tr ("Punch FX Hold Ramp"), "|");
         group->addChild (std::make_unique<juce::AudioParameterChoice> (PID { gPfxHoldRamp, 8 }, localisedName (gPfxHoldRamp), translated (holdRampChoices()), 2));
+        layout.add (std::move (group));
+    }
+    {
+        // v1.7 (appended): latency compensation, velocity curves, generic MIDI feedback, Push 1 display
+        auto group = std::make_unique<juce::AudioProcessorParameterGroup> ("v17", i18n::tr ("Latency & Controllers"), "|");
+        auto b = [] (const juce::String& id, bool def) { return std::make_unique<juce::AudioParameterBool> (PID { id, 9 }, localisedName (id), def); };
+        group->addChild (b (gLatComp, true));
+        group->addChild (std::make_unique<juce::AudioParameterFloat> (
+            PID { gLatOffset, 9 }, localisedName (gLatOffset), juce::NormalisableRange<float> (-50.0f, 50.0f, 0.1f), 0.0f,
+            juce::AudioParameterFloatAttributes().withLabel ("ms")));
+        group->addChild (b (gLatMeasure, false));
+        for (const auto& id : { gVelPush, gVelKo2, gVelMidi })
+            group->addChild (std::make_unique<juce::AudioParameterChoice> (PID { id, 9 }, localisedName (id), translated (velocityCurveChoices()), 1));
+        group->addChild (b (gMidiFeedback, false));
+        group->addChild (b (gPushProgress, true));
         layout.add (std::move (group));
     }
 

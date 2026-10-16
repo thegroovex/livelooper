@@ -124,7 +124,8 @@ void PushSurface::handleMidi (const juce::MidiMessage& m)
         const int note = m.getNoteNumber();
         const int vel = m.isNoteOn() ? m.getVelocity() : 0;
         if (isPadNote (note))
-            handlePad (padRow (note), padColumn (note), vel);
+            handlePad (padRow (note), padColumn (note),
+                       velocity::apply (proc.getVelocityCurve (LiveLooperProcessor::VelocitySource::Push), vel));   // v1.7 curve
         else if (note == kTouchStripNote)
             handleStrip (vel > 0, -1);
         else if (note >= kEncoderTouchFirst && note < kEncoderTouchFirst + 8)
@@ -1255,6 +1256,27 @@ std::array<juce::String, kDisplayLines> PushSurface::buildDisplay() const
     }
 
     juce::String line3 = columns (states);
+    if (! metersShown && encoderMode != EncoderMode::BeatFx && proc.isPushProgressShown())
+    {
+        // v1.7: loop progress bar under every track (selection mark, state letter, 6 / 7 cells)
+        line3.clear();
+        const int m = masterColumn();
+        for (int i = 0; i < 8; ++i)
+        {
+            const int width = (i % 2 == 0) ? 8 : 9;
+            juce::String col;
+            if (m >= 0 && i >= m)
+            {
+                const auto t = states[i];
+                const int pad = juce::jmax (0, width - t.length());
+                col = juce::String::repeatedString (" ", pad / 2) + t;
+            }
+            else if (i < visible)
+                col = progressColumn (i, width);
+            col = (col + juce::String::repeatedString (" ", width)).substring (0, width);
+            line3 << col;
+        }
+    }
     if (metersShown)
     {
         // level meters: selection mark, state letter and a 6-cell bar under every track
@@ -1298,9 +1320,74 @@ std::array<juce::String, kDisplayLines> PushSurface::buildDisplay() const
         status << "  SET REC";
     if (mode == Mode::FxPad)
         status << "  XY: " << xySelectionText();
+    // v1.7: while a punch FX / the XY pad is played, its amount as a bar on the status line
+    {
+        juce::String label;
+        const float amount = activeAmount (label);
+        if (amount >= 0.0f)
+        {
+            label = label.substring (0, 30);
+            status = label + " " + levelBar (amount, 20) + " " + percent (amount);
+        }
+    }
     if (const auto n = getNotice(); n.isNotEmpty())
         status = n;
     return { columns (names), columns (values), line3, status };
+}
+
+juce::String PushSurface::progressColumn (int t, int width) const
+{
+    const auto& ts = proc.getEngine().getTrackStatus (t);
+    const auto state = (LoopTrack::State) ts.state.load();
+    const auto pending = (LooperEngine::Pending) ts.pending.load();
+    juce::juce_wchar letter = '-';
+    switch (state)
+    {
+        case LoopTrack::State::Empty:       letter = '-'; break;
+        case LoopTrack::State::Recording:   letter = 'R'; break;
+        case LoopTrack::State::Overdubbing: letter = 'D'; break;
+        case LoopTrack::State::Playing:     letter = ts.stopping.load() ? 's' : 'P'; break;
+        case LoopTrack::State::Stopped:     letter = 'S'; break;
+    }
+    if (pending == LooperEngine::Pending::Record || pending == LooperEngine::Pending::AutoRecord) letter = 'r';
+    else if (pending == LooperEngine::Pending::Play) letter = 'p';
+    if ((state == LoopTrack::State::Playing || state == LoopTrack::State::Overdubbing) && isTrackMuted (t))
+        letter = 'M';
+    float progress = 0.0f;
+    if (state == LoopTrack::State::Playing || state == LoopTrack::State::Overdubbing
+        || (state == LoopTrack::State::Recording && ts.recordingSpan.load()))
+        progress = juce::jlimit (0.0f, 1.0f, ts.progress.load());
+    else if (state == LoopTrack::State::Stopped && ts.ghostProgress.load() >= 0.0f)
+        progress = 0.0f;
+    return juce::String::charToString (t == selectedTrack ? '>' : ' ') + juce::String::charToString (letter)
+         + levelBar (progress, width - 2);
+}
+
+float PushSurface::activeAmount (juce::String& label) const
+{
+    auto& st = proc.getState();
+    auto raw = [&st] (const juce::String& id) { auto* v = st.getRawParameterValue (id); return v != nullptr ? v->load() : 0.0f; };
+    for (int i = 0; i < kNumPunchHolds; ++i)
+        if (raw (punchHoldId (i)) >= 0.5f)
+        {
+            label = i18n::tr (getPunchFxName (i)).toUpperCase();
+            const float live = proc.getKo2LivePunchAmount();
+            return live >= 0.0f ? live : raw (gPfxAmount);
+        }
+    if (mode == Mode::FxPad && fxTouches > 0)
+    {
+        label = "XY " + xySelectionText();
+        switch (xyKind)
+        {
+            case XyKind::Slot:    return raw (fxParamId (kFxMix));
+            case XyKind::BeatFx:  return raw (gBfxDepth);
+            case XyKind::Punch:   return raw (gPfxAmount);
+            case XyKind::ColorFx:
+            case XyKind::Repeat:
+            case XyKind::Stutter: break;
+        }
+    }
+    return -1.0f;
 }
 
 juce::String PushSurface::meterColumn (int t, int width) const
