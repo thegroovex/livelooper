@@ -345,7 +345,7 @@ public:
                 expectEquals (p->getParameterID(), juce::String ("pfx_hold_ramp"), "the last v1.6 parameter stays in place");
             expect (isTrigger (gLatMeasure));
             expectEquals (englishName (gLatOffset), juce::String ("Latency Offset"));
-            expectEquals (englishName (gVelKo2), juce::String ("K.O. II Velocity Curve"));
+            expectEquals (englishName (gVelKo2), juce::String ("Sampler Pad Velocity Curve"));
         }
     }
 };

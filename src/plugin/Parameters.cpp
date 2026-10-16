@@ -217,7 +217,7 @@ namespace
         { "pfx_hold_ramp", "Punch FX Hold Ramp" },
         // v1.7
         { "lat_comp", "Latency Compensation" }, { "lat_offset", "Latency Offset" }, { "lat_measure", "Measure Latency" },
-        { "vel_push", "Push 1 Velocity Curve" }, { "vel_ko2", "K.O. II Velocity Curve" }, { "vel_midi", "MIDI Velocity Curve" },
+        { "vel_push", "Push 1 Velocity Curve" }, { "vel_ko2", "Sampler Pad Velocity Curve" }, { "vel_midi", "MIDI Velocity Curve" },
         { "midi_fb", "MIDI Feedback (experimental)" }, { "push_progress", "Push 1 Loop Progress Bars" }
     };
 

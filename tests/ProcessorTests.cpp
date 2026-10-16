@@ -80,7 +80,8 @@ public:
                                       + 5 + 4 * params::kNumBeatRows
                                       + 2 /* v1.6 beat library: next / previous */
                                       + 23 /* v1.6 punch FX (4 send + 12 holds + 5), controller audio mode, resample */
-                                      + 1 /* v1.6 punch FX hold ramp */);   // v1.6 rhythm: variation, fill, switch, drum FX routing x 2, BEATS row mute / solo / level / pitch   // v1.5: beat FX + colour type, colour per track, repeat / stutter, metronome, Link   // 8 tracks x (22 + 15 since 1.4), global (+3 rhythm feel since 1.3, +2 tape stop / filter since 1.4), FX
+                                      + 1 /* v1.6 punch FX hold ramp */
+                                      + 8 /* v1.7: latency comp / offset / measure, velocity curves x 3, MIDI feedback, Push 1 progress */);   // v1.6 rhythm: variation, fill, switch, drum FX routing x 2, BEATS row mute / solo / level / pitch   // v1.5: beat FX + colour type, colour per track, repeat / stutter, metronome, Link   // 8 tracks x (22 + 15 since 1.4), global (+3 rhythm feel since 1.3, +2 tape stop / filter since 1.4), FX
             expectEquals (proc.getMidiMap().getNumParams(), ids.size(), "every parameter can be MIDI mapped");
             expect (ids.contains ("t3_recplay") && ids.contains ("allstartstop") && ids.contains ("trD_mix"));
         }
@@ -105,7 +106,7 @@ public:
             expectEquals (ids.indexOf (params::gKo2Resample), 487);
             expectEquals (ids.indexOf (params::gPfxHoldRamp), 488, "v1.6 punch FX hold ramp appended (parameter 489)");
             expectEquals (ids.size(), params::kNumParameters);
-            expectEquals (ids.size(), 489);
+            expectEquals (ids.size(), 497, "v1.7 appends 8 parameters (490..497)");
         }
 
         beginTest ("Trigger parameters drive the looper and reset themselves");

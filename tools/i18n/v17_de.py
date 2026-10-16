@@ -9,7 +9,7 @@ T = [
     # ---- parameters, choices, group
     ("Latency & Controllers", "Latenz & Controller"),
     ("Latency Compensation", "Latenzausgleich"), ("Latency Offset", "Latenz-Versatz"), ("Measure Latency", "Latenz messen"),
-    ("Push 1 Velocity Curve", "Push-1-Anschlagkurve"), ("K.O. II Velocity Curve", "K.O.-II-Anschlagkurve"),
+    ("Push 1 Velocity Curve", "Push-1-Anschlagkurve"), ("Sampler Pad Velocity Curve", "Sampler-Pad-Anschlagkurve"),
     ("MIDI Velocity Curve", "MIDI-Anschlagkurve"), ("MIDI Feedback (experimental)", "MIDI-Feedback (experimentell)"),
     ("Push 1 Loop Progress Bars", "Push 1 Loop-Fortschrittsbalken"),
     ("Soft", "Weich"), ("Normal", "Normal"), ("Hard", "Hart"), ("Fixed", "Fest"),
