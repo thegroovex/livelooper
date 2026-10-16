@@ -62,8 +62,8 @@ void LiveLooperEditor::addLatencyMenu (juce::PopupMenu& menu, juce::Array<int>& 
     lat.addItem (1702, tr ("Forget the measurement for this audio device"), ms >= 0.0);
     lat.addSeparator();
     const int used = proc.getLatencyCompensationSamples();
-    lat.addItem (1792, tr ("In use: %1 ms (%2 samples) - %3", juce::String (used * 1000.0 / sr, 1), juce::String (used),
-                           sourceName (proc.getLatencySource())), false);
+    lat.addItem (1792, tr ("In use: %1 ms (%2 samples) - %3", juce::String (used * 1000.0 / sr, 1), juce::String (used))
+                           .replace ("%3", sourceName (proc.getLatencySource())), false);
     if (proc.wrapperType != juce::AudioProcessor::wrapperType_Standalone)
         lat.addItem (1793, tr ("Plug-in: hosts give plug-ins no audio device latency - measure inside the DAW (cable from an output to the track's input, input monitoring on, nothing else playing)"), false);
     lat.addItem (1794, tr ("Fine-tune with the manual offset or the host parameter \"Latency Offset\" (-50 .. +50 ms)"), false);
