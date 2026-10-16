@@ -265,7 +265,7 @@ int main (int argc, char* argv[])
                     save (*sp, outDir.getChildFile ("livelooper-setup-controllers" + sfx + ".png"));
                     // the whole page (K.O. II audio output, hold to intensify, notes)
                     const auto size = sp->getBounds();
-                    sp->setSize (size.getWidth(), 1100);
+                    sp->setSize (size.getWidth(), 1900);   // 1.7: velocity curves, Push 1 display, MIDI feedback below K.O. II
                     juce::MessageManager::getInstance()->runDispatchLoopUntil (80);
                     save (*sp, outDir.getChildFile ("livelooper-setup-controllers-full" + sfx + ".png"));
                     sp->setBounds (size);
@@ -317,12 +317,23 @@ int main (int argc, char* argv[])
             }
             appsettings::setValue ("gui.controller", "push");
             ed->updateKo2Ui();
+            // v1.7: two loops playing (progress bars on display line 3), a held punch FX (amount bar on line 4)
+            const bool p1 = proc.getEngine().getTrack (0).isRunning(), p2 = proc.getEngine().getTrack (1).isRunning();
+            if (! p1) press (proc, "t1_recplay");
+            if (! p2) press (proc, "t2_recplay");
+            runBlocks (proc, 40, 0.0f);
+            set ("pfx_amount", 0.6f);
+            proc.getState().getParameter (punchHoldId (4))->setValueNotifyingHost (1.0f);
             for (int f = 0; f < 4; ++f)
             {
                 runBlocks (proc, 3, 0.3f);
                 juce::MessageManager::getInstance()->runDispatchLoopUntil (60);
             }
             save (*editor, outDir.getChildFile ("livelooper-controller-push" + sfx + ".png"));
+            proc.getState().getParameter (punchHoldId (4))->setValueNotifyingHost (0.0f);
+            if (! p1) press (proc, "t1_stop");
+            if (! p2) press (proc, "t2_stop");
+            runBlocks (proc, 2, 0.0f);
             appsettings::setValue ("gui.layout", "standard");
             appsettings::setValue ("gui.controller", "ko2");
             if (auto* cv = ed->getControllerView())
