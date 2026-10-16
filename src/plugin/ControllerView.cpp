@@ -676,7 +676,7 @@ void ControllerView::paintPush (juce::Graphics& g, juce::Rectangle<float>)
     {
         juce::String text;
         for (auto ch : lines[(size_t) l])
-            text += (ch < 32 ? juce::String::charToString ((juce::juce_wchar) (ch == push::glyph::block || ch == push::glyph::fullBlock ? 0x2588 : 0x00b7))
+            text += (ch < 32 ? juce::String::charToString ((juce::juce_wchar) (ch == push::glyph::block || ch == push::glyph::fullBlock ? 0x2588 : ch == push::glyph::barLeft ? 0x258c : 0x00b7))
                              : juce::String::charToString (ch));
         g.drawFittedText (text.substring (0, kPushDisplayChars), txt.withY (txt.getY() + l * lh).withHeight (lh).toNearestInt(),
                           juce::Justification::centredLeft, 1, 0.5f);

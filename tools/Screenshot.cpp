@@ -130,7 +130,8 @@ int main (int argc, char* argv[])
         }
         // v1.6: the SETUP window (System Settings style), two pages
         {
-            for (const auto& [page, name] : { std::pair<const char*, const char*> { "Looper", "setup" }, std::pair<const char*, const char*> { "App", "setup-app" } })
+            for (const auto& [page, name] : { std::pair<const char*, const char*> { "Looper", "setup" }, std::pair<const char*, const char*> { "App", "setup-app" },
+                                                     std::pair<const char*, const char*> { "Audio", "setup-audio" } /* v1.7: latency */ })
             {
                 auto panel = ed->createSettingsPanel();
                 if (auto* sp = dynamic_cast<SettingsPanel*> (panel.get()))
