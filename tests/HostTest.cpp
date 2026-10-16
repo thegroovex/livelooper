@@ -99,7 +99,8 @@ int main (int argc, char* argv[])
                                   + 37    // v1.6 rhythm
                                   + 2     // v1.6 beat library
                                   + 23    // v1.6 punch FX, send FX, controller
-                                  + 1;    // v1.6 punch FX hold ramp
+                                  + 1     // v1.6 punch FX hold ramp
+                                  + 8;    // v1.7 latency (3), velocity curves (3), MIDI feedback, Push 1 progress bars
     check (looperParams == kExpectedParams, juce::String (kExpectedParams) + " looper parameters exposed (" + juce::String (looperParams) + ")");
 
     plugin->enableAllBuses();
