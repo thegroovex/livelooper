@@ -116,6 +116,14 @@ private:
                 const double sr = dev->getCurrentSampleRate();
                 if (sr > 0.0)
                     p->setOutputLatencySeconds ((dev->getOutputLatencyInSamples() + dev->getCurrentBufferSizeSamples()) / sr);
+                // v1.7 latency compensation: measurements are stored per device (type, input, output, rate,
+                // buffer); the reported round trip is the fallback before a measurement
+                const auto setup = getDeviceManager().getAudioDeviceSetup();
+                const juce::String key = "standalone: " + dev->getTypeName() + " | " + setup.inputDeviceName + " | "
+                                       + setup.outputDeviceName + " | " + juce::String (juce::roundToInt (sr)) + " | "
+                                       + juce::String (dev->getCurrentBufferSizeSamples());
+                p->setAudioDeviceInfo (key, dev->getInputLatencyInSamples() + dev->getOutputLatencyInSamples()
+                                                + 2 * dev->getCurrentBufferSizeSamples());
             }
         if (settingsButton.getButtonText() != tr ("Audio/MIDI Settings"))
         {

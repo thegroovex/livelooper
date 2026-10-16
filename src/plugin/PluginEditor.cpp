@@ -868,6 +868,7 @@ void LiveLooperEditor::updateFxEditorLabels()
 void LiveLooperEditor::timerCallback()
 {
     timerFeatures16();     // v1.6
+    timer17();             // v1.7
     updateKo2Ui();         // v1.6 K.O. II chip / toast / controller view / track colours
     refreshPatternNames();      // v1.6
     blinkCounter = (blinkCounter + 1) % 16;
@@ -1545,10 +1546,11 @@ juce::PopupMenu LiveLooperEditor::buildSetupMenu (juce::Array<int>& toggles)
     // ---- Recording
     menu.addSectionHeader (tr ("Recording"));
     addFeatures16Menu (menu, 1);      // v1.6: performance recorder, clip export
-    // ---- Audio
+    // ---- Audio (v1.7: always - latency measurement / compensation)
+    menu.addSectionHeader (tr ("Audio"));
+    addLatencyMenu (menu, toggles);
     if (proc.hasCueOutput())
     {
-        menu.addSectionHeader (tr ("Audio"));
         menu.addSubMenu (tr ("Cue output (click / rhythm)"), cue);
         menu.addSubMenu (tr ("Direct track outputs"), directMenu);
     }
@@ -1562,6 +1564,7 @@ juce::PopupMenu LiveLooperEditor::buildSetupMenu (juce::Array<int>& toggles)
         menu.addItem (6, tr ("Keyboard mapping ..."));
     }
     addControllerMenu (menu, toggles);  // v1.6: K.O. II, Controller GUI
+    addController17Menu (menu, toggles);  // v1.7: velocity curves, Push 1 display, MIDI feedback
     addFeatures16Menu (menu, 2);      // v1.6: controller templates
     // ---- Sync
     menu.addSectionHeader (tr ("Sync"));
@@ -1587,6 +1590,8 @@ void LiveLooperEditor::handleSetupResult (int r)
     if (handleFeatures16Menu (r))      // v1.6
         return;
     if (handleControllerMenu (r))      // v1.6 K.O. II / Controller GUI
+        return;
+    if (handle17Menu (r))              // v1.7 latency, velocity curves, MIDI feedback
         return;
     auto& st = proc.getState();
     auto* recAction = dynamic_cast<juce::AudioParameterChoice*> (st.getParameter (gRecAction));

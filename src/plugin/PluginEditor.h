@@ -133,7 +133,15 @@ public:
     bool isBeatsPageVisible() const noexcept { return beatsPage != nullptr && beatsPage->isVisible(); }
     BeatsPage* getBeatsPage() noexcept { return beatsPage.get(); }
 
+    // ---- v1.7 (Editor17.cpp): SETUP > Audio > Latency, SETUP > Controllers additions (ids 1700 - 1899)
+    void addLatencyMenu (juce::PopupMenu& menu, juce::Array<int>& toggles);
+    void addController17Menu (juce::PopupMenu& menu, juce::Array<int>& toggles);
+    bool handle17Menu (int result);
+
 private:
+    void timer17();
+    int shownLatencyStatus = -1;
+    juce::Array<juce::MidiDeviceInfo> fbDevices;
     // ---- v1.6 features
     void initFeatures16();
     void layoutFeatures16 (int dx);
