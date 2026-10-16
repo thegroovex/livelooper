@@ -436,12 +436,9 @@ public:
             surface.handleMidi (juce::MidiMessage::controllerEvent (1, push::cc::scales, 0));
             expect (surface.getMode() == push::PushSurface::Mode::Step);
             proc.setVelocityCurve (LiveLooperProcessor::VelocitySource::Push, Curve::Fixed);
-            juce::Array<int> before;
             surface.handleMidi (juce::MidiMessage::noteOn (1, push::padNote (0, 2), (juce::uint8) 30));
             surface.handleMidi (juce::MidiMessage::noteOff (1, push::padNote (0, 2)));
             // the kick row (row 0), step 3 was set with velocity 127 (fixed), not 30
-            const auto view = proc.getUserPatterns();
-            juce::ignoreUnused (view, before);
             bool found127 = false;
             for (int slot = 0; slot < BeatPatternBank::kNumSlots && ! found127; ++slot)
                 found127 = proc.getUserPatterns().getCell (slot, 0, 2) == 127;
