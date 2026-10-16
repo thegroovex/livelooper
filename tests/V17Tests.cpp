@@ -565,7 +565,7 @@ public:
             LiveLooperProcessor proc { false, false };
             auto* follow = dynamic_cast<juce::AudioParameterBool*> (proc.getState().getParameter (gFollow));
             expect (follow != nullptr && follow->get(), "default on");
-            expectEquals (follow->getDefaultValue(), 1.0f);
+            expectEquals (static_cast<juce::AudioProcessorParameter*> (follow)->getDefaultValue(), 1.0f);
             LooperEngine engine;
             expect (engine.getFollowHostTransport(), "engine default on");
 
