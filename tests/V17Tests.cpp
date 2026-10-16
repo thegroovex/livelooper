@@ -21,6 +21,15 @@ namespace
 constexpr double kRate17 = 48000.0;
 constexpr int kBlock17 = 480;
 
+/** Hosts send a trigger parameter back to 0 after a press (a trigger fires on the rising edge). */
+void releaseTriggers17 (LiveLooperProcessor& proc)
+{
+    for (auto* p : proc.getParameters())
+        if (auto* r = dynamic_cast<juce::RangedAudioParameter*> (p))
+            if (isTrigger (r->getParameterID()) && r->getValue() >= 0.5f)
+                r->setValueNotifyingHost (0.0f);
+}
+
 struct Harness17
 {
     LooperEngine engine;
@@ -503,7 +512,7 @@ public:
             };
             expect (stateOf (36, false).led == MidiFeedback::Led::Off, "empty track: off");
             juce::AudioBuffer<float> buf (2, kBlock17); juce::MidiBuffer midi;
-            auto run = [&] (int n) { for (int i = 0; i < n; ++i) { buf.clear(); proc.processBlock (buf, midi); } };
+            auto run = [&] (int n) { for (int i = 0; i < n; ++i) { buf.clear(); proc.processBlock (buf, midi); releaseTriggers17 (proc); } };
             proc.pressTrigger (trackId (0, kRecPlay)); run (2);
             expect (stateOf (36, false).led == MidiFeedback::Led::Blink, "recording: blink");
             run (100);
@@ -533,7 +542,7 @@ public:
             proc.getState().getParameter (gMonitor)->setValueNotifyingHost (0.0f);
             push::PushSurface surface (proc);
             juce::AudioBuffer<float> buf (2, kBlock17); juce::MidiBuffer midi;
-            auto run = [&] (int n) { for (int i = 0; i < n; ++i) { buf.clear(); proc.processBlock (buf, midi); } };
+            auto run = [&] (int n) { for (int i = 0; i < n; ++i) { buf.clear(); proc.processBlock (buf, midi); releaseTriggers17 (proc); } };
             proc.pressTrigger (trackId (0, kRecPlay)); run (100);
             juce::MessageManager::getInstance()->runDispatchLoopUntil (30);
             proc.pressTrigger (trackId (0, kRecPlay)); run (50);    // playing, half way
@@ -584,7 +593,7 @@ public:
             proc.getState().getParameter (gQuantize)->setValueNotifyingHost (0.0f);
             proc.getState().getParameter (gRecAction)->setValueNotifyingHost (1.0f);
             juce::AudioBuffer<float> buf (2, kBlock17); juce::MidiBuffer midi;
-            auto run = [&] (int n) { for (int i = 0; i < n; ++i) { buf.clear(); proc.processBlock (buf, midi); if (head.playing) head.ppq += kBlock17 / 24000.0; } };
+            auto run = [&] (int n) { for (int i = 0; i < n; ++i) { buf.clear(); proc.processBlock (buf, midi); releaseTriggers17 (proc); if (head.playing) head.ppq += kBlock17 / 24000.0; } };
             proc.pressTrigger (trackId (0, kRecPlay)); run (100);
             juce::MessageManager::getInstance()->runDispatchLoopUntil (30);
             proc.pressTrigger (trackId (0, kRecPlay)); run (5);

@@ -299,6 +299,7 @@ public:
         beginTest ("Display shows encoder names, values, track states and tempo");
         {
             PushRig r;
+            r.set ("push_progress", 0.0f);           // 1.7: progress bars are the default; this checks the state words
             auto out = r.render (true);
             expectEquals (countSysex (out), 4, "four display lines on a full refresh");
             expect (r.surface.getDisplayLine (0).contains ("Lvl 1"));
