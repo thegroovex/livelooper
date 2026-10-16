@@ -629,9 +629,9 @@ How it works: a finished first recording or capture plays the loop that much ear
 
 | State | sent value (default) |
 |---|---|
-| on – track plays, switch on, scene active | *Value: on* (127; also 100, 64, 1) |
-| off – empty / stopped, switch off | *Value: off* (0; also 1, 7) |
-| blink – recording, overdub, waiting for the bar, measuring | *Value: blink*: livelooper blinks in time (default) or sends 2 / 3 / 64 |
+| on – track plays, switch on, scene active | *On value* (127; also 100, 64, 1) |
+| off – empty / stopped, switch off | *Off value* (0; also 1, 7) |
+| blink – recording, overdub, waiting for the bar, measuring | *Blink value*: livelooper blinks in time (default) or sends 2 / 3 / 64 |
 
 REC / PLAY learned on a pad: blinks while recording / overdubbing / waiting, lights while playing. STOP lights on a stopped track, UNDO / REDO when there is something to undo / redo, scene buttons on the last recalled scene. Knobs and faders learned on a CC get their current value (LED rings, motor faders). On / off with the host parameter *MIDI Feedback (experimental)* (`midi_fb`, off by default). Everything is sent again every few seconds, so a controller plugged in later catches up. On Windows the output must not be open in another program.
 

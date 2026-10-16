@@ -658,9 +658,9 @@ So funktioniert es: Eine fertige erste Aufnahme oder ein Capture spielt den Loop
 
 | Zustand | gesendeter Wert (Standard) |
 |---|---|
-| an – Spur spielt, Schalter an, Szene aktiv | *Wert: an* (127; auch 100, 64, 1) |
-| aus – leer / gestoppt, Schalter aus | *Wert: aus* (0; auch 1, 7) |
-| blinken – Aufnahme, Overdub, wartet auf den Takt, Messung | *Wert: blinken*: livelooper blinkt im Takt (Standard) oder sendet 2 / 3 / 64 |
+| an – Spur spielt, Schalter an, Szene aktiv | *Wert für an* (127; auch 100, 64, 1) |
+| aus – leer / gestoppt, Schalter aus | *Wert für aus* (0; auch 1, 7) |
+| blinken – Aufnahme, Overdub, wartet auf den Takt, Messung | *Wert für blinken*: livelooper blinkt im Takt (Standard) oder sendet 2 / 3 / 64 |
 
 REC / PLAY auf einem Pad: blinkt bei Aufnahme / Overdub / Warten, leuchtet beim Abspielen. STOP leuchtet bei gestoppter Spur, UNDO / REDO, wenn es etwas rückgängig zu machen / wiederherzustellen gibt, Szenen-Tasten bei der zuletzt abgerufenen Szene. Auf einen CC gelernte Regler und Fader bekommen ihren aktuellen Wert (LED-Kränze, Motorfader). An / aus mit dem Host-Parameter *MIDI-Feedback (experimentell)* (`midi_fb`, standardmäßig aus). Alle paar Sekunden wird alles neu gesendet, damit ein später angeschlossener Controller nachzieht. Unter Windows darf der Ausgang in keinem anderen Programm geöffnet sein.
 

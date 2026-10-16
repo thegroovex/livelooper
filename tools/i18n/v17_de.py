@@ -48,7 +48,7 @@ T = [
     ("MIDI feedback (experimental)", "MIDI-Feedback (experimentell)"),
     ("Send LED feedback for learned controls", "LED-Feedback f\u00fcr gelernte Bedienelemente senden"),
     ("MIDI output", "MIDI-Ausgang"), ("None", "Keiner"),
-    ("Value: on", "Wert: an"), ("Value: off", "Wert: aus"), ("Value: blink", "Wert: blinken"),
+    ("On value", "Wert für an"), ("Off value", "Wert für aus"), ("Blink value", "Wert für blinken"),
     ("Blink in time (livelooper switches on / off)", "Im Takt blinken (livelooper schaltet an / aus)"),
     ("Sends a note-on / CC with the learned channel and number: on = playing / switched on, blink = recording / waiting, off. Knobs learned on a CC get their value.",
      "Sendet Note-on / CC mit gelerntem Kanal und Nummer: an = spielt / eingeschaltet, blinken = nimmt auf / wartet, aus. Auf einen CC gelernte Regler bekommen ihren Wert."),

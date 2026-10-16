@@ -125,9 +125,9 @@ void LiveLooperEditor::addController17Menu (juce::PopupMenu& menu, juce::Array<i
             blink.addItem (1820 + i, v < 0 ? tr ("Blink in time (livelooper switches on / off)") : juce::String (v),
                            true, v < 0 ? prof.softBlink : (! prof.softBlink && prof.blinkValue == v));
         }
-        fb.addSubMenu (tr ("Value: on"), on);
-        fb.addSubMenu (tr ("Value: off"), offm);
-        fb.addSubMenu (tr ("Value: blink"), blink);
+        fb.addSubMenu (tr ("On value"), on);
+        fb.addSubMenu (tr ("Off value"), offm);
+        fb.addSubMenu (tr ("Blink value"), blink);
         fb.addSeparator();
         fb.addItem (1797, tr ("Sends a note-on / CC with the learned channel and number: on = playing / switched on, blink = recording / waiting, off. Knobs learned on a CC get their value."), false);
         fb.addItem (1798, tr (juce::String::fromUTF8 ("Experimental \xe2\x80\x93 please test with your controller")), false);
