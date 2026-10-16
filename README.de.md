@@ -11,7 +11,7 @@
 - **Live-Performance zuerst.** Jede Funktion reagiert sofort, landet auf dem Schlag und hält die Musik nie an. Beim Spielen braucht nichts ein Menü.
 - **Spaß am Spielen.** Beat-FX, Beat Repeat und Stutter, Color-FX und ein Groove, der sich wie ein Drummer anfühlt, machen aus einem Loop eine Performance – drücken, halten, loslassen, und du bist wieder auf dem Schlag.
 - **Erforschen und spielen.** Halte fest, was du gerade improvisiert hast, leg mit dem XY-Pad einen Effekt darauf, verstimm es, dreh es um, lass es ausklingen wie ein Band – und behalte, was funktioniert.
-- **Hände an die Hardware.** Schließ einen Ableton Push an und livelooper übernimmt ihn – ohne Mapping. Jeder andere Controller funktioniert per MIDI Learn, alle 489 Funktionen sind zuweisbar.
+- **Hände an die Hardware.** Schließ einen Ableton Push an und livelooper übernimmt ihn – ohne Mapping. Jeder andere Controller funktioniert per MIDI Learn, alle 497 Funktionen sind zuweisbar.
 - **Deine Loops gehören in deinen Song.** Zieh einen Loop direkt aus livelooper auf eine Spur in deiner DAW, exportiere Stems oder behalte alles im Projekt gespeichert.
 
 ## Spielen mit Ableton Push
@@ -83,14 +83,15 @@ Einrichtung und komplette Belegung: **[PUSH.md](docs/de/PUSH.md)**.
 - **Rhythmus** mit aufgenommenen Drum-Samples (CC0 / gemeinfrei): 4 Kits (Studio, 808, 909 Style, Lo-Fi), 21 Patterns von Rock bis Trap, Dembow, UK Garage und Afro House, 6 Groove-Feels (gerade, natürlich, laid back, treibend, drunk, drive), automatische Fills alle 4 oder 8 Takte, Swing und Feel; Metronom mit 4 Klängen
 
 **Arbeiten mit deiner DAW**
-- **Synchron zur DAW**: Host-Tempo, Taktart und Transport – oder interne Clock mit Tap-Tempo / eingetipptem Tempo
+- **Synchron zur DAW**: Host-Tempo, Taktart und Transport (ein DAW-Stopp stoppt die Loops – abschaltbar) – oder interne Clock mit Tap-Tempo / eingetipptem Tempo
+- **Latenz messen und ausgleichen** (1.7): ein Klick misst die Roundtrip-Latenz deines Interfaces (Loopback-Ping), gespeichert pro Audiogerät; jede Aufnahme, jeder Overdub und jedes Capture landet auf dem Beat
 - **Loops in die DAW ziehen**: Zieh die Wellenform einer Spur auf eine Audiospur oder in den Browser der DAW – eine WAV mit Tempo-Infos (ACID-Metadaten), die die meisten DAWs direkt ins Raster legen
 - **Stem-Export** mit Tempo-Metadaten, WAV-Export pro Spur, Audiodateien per Drag & Drop auf eine Spur importieren
 - **Direkte Spurausgänge** (Plug-in Multi-Out – jede Spur als eigener Ausgang in deiner DAW – oder Interface-Ausgänge in der Standalone-App), **Cue-Ausgang** für das Metronom
 - **Mit dem Projekt gespeichert**: Loops verlustfrei (FLAC, 24 Bit) im DAW-Projekt; komplette **Looper-Sets** als `.llset`-Datei
 - **Pegel und Wellenformen**: Stereo-Pegel pro Spur, Master-VU in dB im Display (grün / gelb / rot), Wellenform mit Abspielposition, Clip-LED
 - **Komfort**: Hilfe in der App (durchsuchbare Bedienungsanleitung), Info-Fenster mit Update-Prüfung, Start mit den zuletzt verwendeten oder den Standard-Einstellungen, Liste der zuletzt verwendeten Sets
-- **Alle 489 Funktionen** sind Host-Parameter für MIDI-Mapping und Automation deiner DAW
+- **Alle 497 Funktionen** sind Host-Parameter für MIDI-Mapping und Automation deiner DAW
 - **Deutsche und englische** Oberfläche (*SETUP → Language / Sprache*)
 
 ## Download

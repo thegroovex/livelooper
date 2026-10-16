@@ -67,7 +67,7 @@ Automation works too (in Live, e.g., in Arrangement view), for example to start 
 
 ## Parameter list
 
-489 parameters, names as shown in your DAW with the English interface (with the German interface they are localised, e.g. "S1 Pegel" instead of "T1 Level"; the internal IDs and your saved assignments stay the same):
+497 parameters, names as shown in your DAW with the English interface (with the German interface they are localised, e.g. "S1 Pegel" instead of "T1 Level"; the internal IDs and your saved assignments stay the same):
 
 **Per track (T1 … T5)** – 16 each:
 `Rec/Play`, `Stop`, `Clear`, `Undo`, `Redo` (buttons) · `Level`, `Pan` · `Reverse`, `One Shot`, `Loop Sync`, `Track FX` (switches) · `Input`, `Start Mode`, `Stop Mode`, `Dub Mode`, `Measures` (selectors)
@@ -104,6 +104,13 @@ Automation works too (in Live, e.g., in Arrangement view), for example to start 
 **Since 1.6 (punch FX, send FX, controller)** – 23 more, appended (parameters 466 – 488): `Send FX Type`, `Send FX X`, `Send FX Y`, `Send FX Amount` (IDs `sfx_type`, `sfx_x`, `sfx_y`, `sfx_level`), `Punch FX 1 … 12 (Hold)` (`pfx_hold1` … `pfx_hold12`, momentary: note on / off), `Punch FX Amount`, `Punch FX X`, `Punch FX Y`, `Punch FX Target`, `Punch FX Latch` (`pfx_amount`, `pfx_x`, `pfx_y`, `pfx_target`, `pfx_latch`), `Controller Audio` (`ctl_audio_mode`: controller only / record controller audio) and `Resample Controller Pattern` (`ko2_resample`, button). The names are generic; see KO2.md for the K.O. II. Note: the default MIDI map (channel 1, notes 36 – 67) overlaps the K.O. II's note range – the K.O. II does not need it (livelooper opens its port directly).
 
 **Since 1.6 (punch FX hold ramp)** – 1 more, appended (parameter 489): `Punch FX Hold Ramp` (`pfx_hold_ramp`: off / 1 beat / 2 beats (default) / 1 bar) – for pads that send no pressure (K.O. II): holding a punch pad raises the amount from the hit to 100 % over that time. MIDI-mappable like every parameter.
+
+**Since 1.7 (latency, velocity curves, MIDI feedback, Push 1 display)** – 8 more, appended (parameters 490 – 497): `Latency Compensation` (`lat_comp`, switch, on), `Latency Offset` (`lat_offset`, −50 … +50 ms), `Measure Latency` (`lat_measure`, button), `Push 1 Velocity Curve`, `K.O. II Velocity Curve`, `MIDI Velocity Curve` (`vel_push`, `vel_ko2`, `vel_midi`: Soft / Normal (default) / Hard / Fixed), `MIDI Feedback (experimental)` (`midi_fb`, switch, off) and `Push 1 Loop Progress Bars` (`push_progress`, switch, on). The default of `Follow Transport` (`follow`) is **on** since 1.7 (the ID is unchanged; saved projects keep their value).
+
+### Velocity curve and LED feedback for learned controls (1.7)
+
+- A note learned on a continuous parameter sets it to the note's velocity – through the **MIDI velocity curve** (*SETUP → Controllers → Velocity curves → MIDI (learned notes)*): Soft, Normal, Hard, Fixed.
+- **MIDI feedback (experimental)**: *SETUP → Controllers → MIDI feedback* sends the state of every learned control back to a chosen MIDI output (same channel and note / CC number; values for on / off / blink selectable, blink in time by default). Track REC / PLAY blinks while recording, lights while playing; switches light when on; knobs learned on a CC get their value. See the [user guide, section 42](USER-GUIDE.md#42-velocity-curves-and-midi-feedback-new-in-17).
 
 The internal parameter IDs (for developers and saved assignments) are e.g. `t1_recplay`, `t3_level`, `allstartstop`, `inB_type`, `trD_mix`, `bfx_type`, `brep_hold`, `t2_color`, `link_on`.
 

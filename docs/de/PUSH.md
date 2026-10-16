@@ -162,7 +162,7 @@ Swing-Encoder = **Swing** des Rhythmus, **SHIFT** + Swing-Encoder = Rhythmus-Peg
 
 ### Display
 
-Zeile 1: was die Encoder steuern · Zeile 2: ihre Werte · Zeile 3: Status der Spuren (`>` = ausgewählte Spur) · Zeile 4: Tempo, letzte Szene, Auto-Aufnahme, Link (mit Anzahl der Teilnehmer), XY-Effekt. Kurze Meldungen (Loop-Länge, Kopie, Oktave …) erscheinen kurz in Zeile 4 (auf Deutsch, wenn livelooper auf Deutsch eingestellt ist).
+Zeile 1: was die Encoder steuern · Zeile 2: ihre Werte · Zeile 3: Status der Spuren (`>` = ausgewählte Spur) – **seit 1.7 ein Loop-Fortschrittsbalken pro Spur** (Statusbuchstabe wie in der Tabelle unten, dann die Loop-Position in Balkenzeichen; *SETUP → Controller → Push-1-Display*, Host-Parameter `push_progress`, standardmäßig an; aus = die Statuswörter) · Zeile 4: Tempo, letzte Szene, Auto-Aufnahme, Link (mit Anzahl der Teilnehmer), XY-Effekt. Kurze Meldungen (Loop-Länge, Kopie, Oktave …) erscheinen kurz in Zeile 4 (auf Deutsch, wenn livelooper auf Deutsch eingestellt ist).
 
 **Pegelanzeige** (Taste MASTER): Zeile 3 zeigt unter jeder Spur einen Pegelbalken aus den eigenen Balkenzeichen des Displays (wie Lives Push-Skript), 0 bis −48 dB, 25-mal pro Sekunde aktualisiert. Vor jedem Balken: `>` für die ausgewählte Spur und ein Statusbuchstabe:
 
@@ -178,6 +178,11 @@ Zeile 1: was die Encoder steuern · Zeile 2: ihre Werte · Zeile 3: Status der S
 | `M` | stumm (MUTE, oder eine andere Spur ist solo) |
 
 Ein voller Block am Ende eines Balkens = die Spur hat 0 dBFS erreicht. Bei bis zu 6 Spuren steht der Master-Pegel in der Master-Sektion (*M*), bei 8 Spuren am Anfang von Zeile 4 (*Out*).
+
+
+**Stärke-Balken (1.7):** Solange ein Punch-FX gehalten wird (Pad, K.O. II, MIDI) oder das XY-Pad gespielt wird, zeigt Zeile 4 seinen Namen und die Stärke als Balken aus 20 Zeichen mit Prozentwert (z. B. `BANDSTOPP ▮▮▮▮▮▮▮▮▮▮▮▮------- 62%`).
+
+**Anschlagkurve (1.7):** *SETUP → Controller → Anschlagkurven → Push 1* (Host-Parameter `vel_push`): Weich / Normal / Hart / Fest für die Pads (Punch-FX-Stärke, Step-Anschlag).
 
 ### Performance-FX (seit 1.5)
 

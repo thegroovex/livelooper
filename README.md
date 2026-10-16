@@ -11,7 +11,7 @@
 - **Live performance comes first.** Every function reacts instantly, lands on the beat and never stops the music. Nothing needs a menu while you play.
 - **Fun to play.** Beat FX, beat repeat and stutter, colour FX and a groove that feels like a drummer turn a loop into a performance – press, hold, let go, and you are back on the beat.
 - **Explore and play.** Capture what you just improvised, throw an effect on it with the XY pad, pitch it, reverse it, let it decay like tape – and keep what works.
-- **Hands on hardware.** Plug in an Ableton Push and livelooper takes it over – no mapping. Any other controller works through MIDI learn, every one of the 489 functions is mappable.
+- **Hands on hardware.** Plug in an Ableton Push and livelooper takes it over – no mapping. Any other controller works through MIDI learn, every one of the 497 functions is mappable.
 - **Your loops belong in your song.** Drag a loop straight from livelooper onto a track in your DAW, export stems, or keep everything saved with your project.
 
 ## Play it with Ableton Push
@@ -83,14 +83,15 @@ Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
 - **Rhythm** with recorded drum samples (CC0 / public domain): 4 kits (Studio, 808, 909 Style, Lo-Fi), 21 patterns from rock to trap, dembow, UK garage and Afro house, 6 groove feels (straight, natural, laid back, pushed, drunk, drive), automatic fills every 4 or 8 bars, swing and feel; metronome with 4 sounds
 
 **Work with your DAW**
-- **In sync with your DAW**: host tempo, time signature and transport, or an internal clock with tap tempo / typed-in tempo
+- **In sync with your DAW**: host tempo, time signature and transport (a DAW stop stops the loops – switchable), or an internal clock with tap tempo / typed-in tempo
+- **Latency measurement and compensation** (1.7): one click measures your interface's round trip (loopback ping), stored per audio device; every recording, overdub and capture lands on the beat
 - **Drag loops into your DAW**: drag a track's waveform onto an audio track or into the DAW's browser – a tempo-tagged WAV (ACID metadata), which most DAWs place right on the grid
 - **Stem export** with tempo metadata, WAV export per track, drag & drop audio files onto a track to import
 - **Direct track outputs** (plug-in multi-out – each track on its own output in your DAW – or interface outputs in the standalone app), **cue output** for the metronome
 - **Saved with your project**: loops stored losslessly (FLAC, 24 bit) in your DAW project; whole **looper sets** as `.llset` files
 - **Meters and waveforms**: stereo meter per track, master VU in dB on the display (green / yellow / red), waveform with play position, clip LED
 - **Comfort**: in-app help (searchable user guide), about window with update check, start with the last used or the default settings, list of the last used sets
-- **All 489 functions** are host parameters for your DAW's MIDI mapping and automation
+- **All 497 functions** are host parameters for your DAW's MIDI mapping and automation
 - **English and German** interface (*SETUP → Language / Sprache*)
 
 ## Download

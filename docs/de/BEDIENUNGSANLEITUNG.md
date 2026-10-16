@@ -92,7 +92,7 @@ Der LED-Ring zeigt den Zustand und die Position im Loop:
 
 **HOST-SYNC** (Standard an): Tempo, Taktart und Position kommen von deiner DAW. Läuft der Host-Transport nicht, läuft eine interne Clock im aktuellen Host-Tempo weiter, sobald eine Spur aufnimmt oder spielt. Ohne Host-Sync gilt das interne Tempo (Regler **TEMPO**, **TAP** mehrfach im Takt antippen, oder auf das Tempo im Display klicken und eintippen – siehe Abschnitt 11).
 
-**Host-Transport folgen** (SETUP-Menü): Loops starten mit der Play-Taste deiner DAW und stoppen mit ihrer Stop-Taste.
+**Host-Transport folgen** (SETUP → Looper, **seit 1.7 standardmäßig an**): Loops starten mit der Play-Taste deiner DAW und **stoppen mit ihrer Stop-Taste** – stoppt die DAW, stoppt livelooper. Schalte es aus, wenn livelooper bei stehender DAW mit seiner internen Clock weiterloopen soll. Die Standalone-App hat keinen Host-Transport und ist nicht betroffen; mit einer älteren Version gespeicherte Projekte behalten ihre gespeicherte Einstellung.
 
 Hinweis: Ändert sich das Tempo, nachdem ein Loop aufgenommen wurde, wird der Loop nicht zeitgedehnt – er spielt in seiner Originalgeschwindigkeit weiter.
 
@@ -181,7 +181,7 @@ Seit 1.6 öffnet **SETUP** ein Einstellungsfenster im Stil der macOS-Systemeinst
 | Eintrag | Bedeutung |
 |---|---|
 | Aufnahme-Aktion (Record action) | „Rec > Dub > Play" (Standard) oder „Rec > Play > Dub". Die Beschriftung der REC-Taste („DUB / PLAY" bzw. „PLAY / DUB") und die unterste Displayzeile zeigen den aktiven Modus. |
-| Host-Transport folgen | Loops starten/stoppen mit dem Host-Transport |
+| Host-Transport folgen | Loops starten/stoppen mit dem Host-Transport (seit 1.7 standardmäßig an) |
 | Maximale Loop-Länge | 30 · 60 · 120 · 240 · 480 Sekunden pro Spur (bestimmt den Speicherbedarf; vorhandene Loops bleiben erhalten) |
 | Loops im Projekt speichern | Loops im DAW-Projekt speichern (Standard an). Aus = kleinere Projekte, die Loops sind nach dem Laden weg |
 | Steuerung mit der Computertastatur | nur Standalone-App: Tasten an/aus (Abschnitt 10) |
@@ -631,6 +631,38 @@ gezeichnetes Pad oder eine Taste drückt es. *◀ Standard* führt zurück; beim
 automatisch zur Standard-Oberfläche. Push 1: siehe [PUSH.md](PUSH.md); K.O. II: siehe [KO2.md](KO2.md).
 
 ![SETUP > Controller](../images/livelooper-setup-controllers-de.png)
+
+## 41. Latenz messen und ausgleichen (neu in 1.7)
+
+Jedes Audio-Interface verzögert den Klang zweimal: auf dem Weg hinaus (du hörst den Loop etwas später) und auf dem Weg zurück (was du spielst, kommt etwas später an). Ohne Ausgleich landet jeder Overdub ein paar Millisekunden hinter dem Beat – und das summiert sich Schicht für Schicht. livelooper misst diese **Roundtrip-Latenz** und verschiebt **jede** Aufnahme darum: erste Aufnahmen, Overdubs, Captures (und Resampling) – nicht mehr nur erste Aufnahmen.
+
+**Messen** – *SETUP → Audio → Latenz → Latenz messen …* (oder der Host-Parameter *Latenz messen*, `lat_measure`, z. B. auf einem Fußschalter):
+
+1. Verbinde einen Ausgang deines Interfaces per **Kabel** mit einem Eingang (am besten) oder halte ein **Mikrofon** dicht an den Lautsprecher. Dreh den Eingang auf.
+2. Klick *Latenz messen …*. livelooper schaltet alles stumm, spielt sieben kurze Klicks auf dem Hauptausgang und hört auf den Eingang. Das dauert etwa 4 Sekunden.
+3. Das Ergebnis erscheint in ms und Samples (*Gemessen: 11,6 ms (557 Samples)*) und wird **für dieses Audiogerät gespeichert** (Gerätetyp, Eingang, Ausgang, Samplerate und Puffergröße) – wechselst du Gerät oder Puffer, nimmt livelooper die Messung dieses Geräts.
+
+Kommt nichts zurück, sagt livelooper das (*kein Ping erkannt – einen Ausgang per Kabel mit einem Eingang verbinden oder ein Mikrofon an die Lautsprecher halten*). Weichen die Durchläufe um mehr als 1 ms ab (lauter Raum, Mikrofon zu weit weg, andere Audio-Apps), wird nichts gespeichert (*unsicher*). Der Wert ist der Median der Durchläufe – ein gestörter Klick ändert nichts.
+
+**Ausgleich** – *Latenzausgleich* (Host-Parameter `lat_comp`, standardmäßig an) nimmt in dieser Reihenfolge: die Messung des aktuellen Geräts; ohne Messung, was das Audiogerät meldet (Eingangs- + Ausgangslatenz + zwei Puffer – meist ein guter erster Wert, selten exakt); im Modus *K.O. II aufnehmen* den Latenz-Ausgleich des K.O. II (siehe [KO2.md](KO2.md)). Dazu kommt der **manuelle Versatz** (*SETUP → Audio → Latenz → Manueller Versatz* oder der Host-Parameter *Latenz-Versatz*, `lat_offset`, −50 … +50 ms, in der DAW als Regler und per MIDI zuweisbar) – positive Werte schieben Aufnahmen nach vorn. *Aktiv* zeigt, was gerade gilt.
+
+So funktioniert es: Eine fertige erste Aufnahme oder ein Capture spielt den Loop um diesen Wert früher gegen den Beat; ein Overdub schreibt das Gespielte um so viele Samples früher in den Loop – genau dorthin, wo du den Loop beim Spielen gehört hast.
+
+**In einer DAW (Plug-in):** Plug-in-Formate geben einem Plug-in keine Information über die Latenz des Audiogeräts, livelooper kann sie also nicht vom Host lesen. Miss stattdessen **in der DAW**: ein Kabel von einem Interface-Ausgang zum Eingang der Looper-Spur, Eingangsmonitor an, sonst nichts abspielen – die Messung enthält dann auch die Puffer der DAW. Gespeichert pro Host. Der Aufnahme-Latenzausgleich deiner DAW gilt nur für Clips, die die DAW selbst aufnimmt, nicht für den Live-Eingang durch ein Plug-in – beides addiert sich also nie.
+
+## 42. Anschlagkurven und MIDI-Feedback (neu in 1.7)
+
+**Anschlagkurven** – *SETUP → Controller → Anschlagkurven*, getrennt für **Push 1**, **K.O. II** und **MIDI (gelernte Noten)** (Host-Parameter `vel_push`, `vel_ko2`, `vel_midi`): *Weich* (leichte Schläge kommen lauter an), *Normal*, *Hart* (für vollen Pegel fester schlagen), *Fest* (jeder Schlag mit voller Anschlagstärke). Sie wirken auf alles, was die Anschlagstärke nutzt: Punch-FX-Stärke, Step-Anschlag im STEP-Modus und Parameter, die du auf eine Note gelernt hast (eine Note setzt einen Regler auf ihre Anschlagstärke).
+
+**MIDI-Feedback (experimentell)** – *SETUP → Controller → MIDI-Feedback*: Für jedes per MIDI Learn zugewiesene Bedienelement sendet livelooper den Zustand an einen **MIDI-Ausgang** deiner Wahl zurück – ein Note-on (oder CC) mit demselben Kanal und derselben Nummer. Die meisten Controller lassen ihre Pad-/Tasten-LED je nach Wert leuchten, gedimmt leuchten oder blinken:
+
+| Zustand | gesendeter Wert (Standard) |
+|---|---|
+| an – Spur spielt, Schalter an, Szene aktiv | *Wert: an* (127; auch 100, 64, 1) |
+| aus – leer / gestoppt, Schalter aus | *Wert: aus* (0; auch 1, 7) |
+| blinken – Aufnahme, Overdub, wartet auf den Takt, Messung | *Wert: blinken*: livelooper blinkt im Takt (Standard) oder sendet 2 / 3 / 64 |
+
+REC / PLAY auf einem Pad: blinkt bei Aufnahme / Overdub / Warten, leuchtet beim Abspielen. STOP leuchtet bei gestoppter Spur, UNDO / REDO, wenn es etwas rückgängig zu machen / wiederherzustellen gibt, Szenen-Tasten bei der zuletzt abgerufenen Szene. Auf einen CC gelernte Regler und Fader bekommen ihren aktuellen Wert (LED-Kränze, Motorfader). An / aus mit dem Host-Parameter *MIDI-Feedback (experimentell)* (`midi_fb`, standardmäßig aus). Alle paar Sekunden wird alles neu gesendet, damit ein später angeschlossener Controller nachzieht. Unter Windows darf der Ausgang in keinem anderen Programm geöffnet sein.
 
 ## Drums, BEATS und Sound-Packs (1.6)
 

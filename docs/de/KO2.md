@@ -176,10 +176,15 @@ livelooper, und livelooper folgt Link.
 
 ![SETUP > Controller: K.O.-II-Audioausgang, Halten = stärker](../images/livelooper-setup-controllers-full-de.png)
 
-- **Latenz:** USB-Audio kommt verspätet an. Endet im Modus *K.O. II aufnehmen* eine erste Aufnahme, schiebt
-  livelooper den Loop um den **Latenz-Ausgleich** nach vorn (*SETUP → Controller → K.O. II →
-  Latenz-Ausgleich*: automatisch = gemeldete Latenz des Geräts + ein Block, oder 0 – 200 ms). Eine
-  automatische Mess-Taste gibt es noch nicht.
+- **Latenz:** USB-Audio kommt verspätet an. Im Modus *K.O. II aufnehmen* gleicht livelooper um den
+  **Latenz-Ausgleich** aus (*SETUP → Controller → K.O. II → Latenz-Ausgleich*: automatisch = gemeldete Latenz
+  des Geräts + ein Block, oder 0 – 200 ms) – seit 1.7 bei **jeder** Aufnahme, jedem Overdub und jedem Capture,
+  nicht nur bei ersten Aufnahmen, plus dem manuellen Versatz aus *SETUP → Audio → Latenz*. Liegt der
+  K.O.-II-Ausgang auf dem Computer, kann eine Loopback-Messung den K.O. II nicht hören – dann den Versatz nutzen
+  (oder mit *K.O.-II-Audioausgang: K.O. II* messen, siehe Bedienungsanleitung, Abschnitt 41).
+- **Anschlagkurve (1.7):** *SETUP → Controller → Anschlagkurven → K.O. II* (Host-Parameter `vel_ko2`):
+  Weich / Normal / Hart / Fest – z. B. *Fest* bei eingeschalteter Pad-Velocity gibt jedem Punch-Schlag die
+  volle Stärke.
 - **K.O.-Pattern resamplen** (Gruppe D ENTER im Aufnahme-Modus, der Chip, SETUP oder der Host-Parameter
   *Controller-Pattern resamplen* `ko2_resample`): nimmt **Capture-Länge Takte** (SETUP → Looper →
   Capture-Länge, Standard 4) vom K.O. II in die **erste leere Spur** auf, beginnend auf dem nächsten Takt (mit

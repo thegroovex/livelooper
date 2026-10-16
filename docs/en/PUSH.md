@@ -162,7 +162,7 @@ Swing encoder = rhythm **swing**, **SHIFT** + swing encoder = rhythm level.
 
 ### Display
 
-Line 1: what the encoders control · line 2: their values · line 3: track states (`>` = selected track) · line 4: tempo, last scene, auto record, Link (with the number of peers), XY effect. Short messages (loop length, copy, octave …) appear on line 4 for a moment.
+Line 1: what the encoders control · line 2: their values · line 3: track states (`>` = selected track) – **since 1.7 a loop progress bar per track** (state letter as in the table below, then the loop position in bar characters; *SETUP → Controllers → Push 1 display*, host parameter `push_progress`, on by default; off = the state words) · line 4: tempo, last scene, auto record, Link (with the number of peers), XY effect. Short messages (loop length, copy, octave …) appear on line 4 for a moment.
 
 **Level meters** (MASTER button): line 3 shows a level bar under every track, made of the display's own bar characters (like Live's Push script), 0 to −48 dB, refreshed 25 times per second. In front of each bar: `>` for the selected track and a state letter:
 
@@ -178,6 +178,10 @@ Line 1: what the encoders control · line 2: their values · line 3: track state
 | `M` | muted (MUTE, or another track is soloed) |
 
 A solid block at the end of a bar = the track reached 0 dBFS. With up to 6 tracks the master meter sits in the master section (*M*), with 8 tracks at the start of line 4 (*Out*).
+
+**Amount bar (1.7):** while a punch FX is held (pad, K.O. II, MIDI) or the XY pad is played, line 4 shows its name and the amount as a 20-cell bar with the percentage (e.g. `TAPE STOP ▮▮▮▮▮▮▮▮▮▮▮▮------- 62%`).
+
+**Velocity curve (1.7):** *SETUP → Controllers → Velocity curves → Push 1* (host parameter `vel_push`): Soft / Normal / Hard / Fixed for the pads (punch FX amount, step velocity).
 
 ### Performance FX (since 1.5)
 

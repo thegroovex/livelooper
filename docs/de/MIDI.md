@@ -67,7 +67,7 @@ Auch Automation ist möglich (in Live z. B. in der Arrangement-Ansicht), etwa um
 
 ## Parameterliste
 
-489 Parameter. Mit deutscher Oberfläche zeigt deine DAW die deutschen Namen, mit englischer die englischen (in Klammern). Die internen IDs und gespeicherte Zuweisungen bleiben in beiden Sprachen gleich – ein Sprachwechsel zerstört also keine MIDI-Map und keine Automation.
+497 Parameter. Mit deutscher Oberfläche zeigt deine DAW die deutschen Namen, mit englischer die englischen (in Klammern). Die internen IDs und gespeicherte Zuweisungen bleiben in beiden Sprachen gleich – ein Sprachwechsel zerstört also keine MIDI-Map und keine Automation.
 
 **Pro Spur (S1 … S5 / T1 … T5)** – je 16:
 `Rec/Play`, `Stop`, `Löschen` (Clear), `Rückgängig` (Undo), `Wiederherstellen` (Redo) – Taster · `Pegel` (Level), `Panorama` (Pan) · `Rückwärts` (Reverse), `One Shot`, `Loop-Sync` (Loop Sync), `Spur-FX` (Track FX) – Schalter · `Eingang` (Input), `Startmodus` (Start Mode), `Stoppmodus` (Stop Mode), `Dub-Modus` (Dub Mode), `Takte` (Measures) – Auswahl
@@ -106,3 +106,10 @@ Die internen Parameter-IDs (für Entwickler und gespeicherte Zuweisungen) lauten
 **Seit 1.6 (Punch-FX, Send-FX, Controller)** – 23 weitere, angehängt (Parameter 466 – 488): `Send-FX-Typ`, `Send-FX X`, `Send-FX Y`, `Send-FX-Anteil` (IDs `sfx_type`, `sfx_x`, `sfx_y`, `sfx_level`), `Punch-FX 1 … 12 (halten)` (`pfx_hold1` … `pfx_hold12`, Momentan: Note an / aus), `Punch-FX-Stärke`, `Punch-FX X`, `Punch-FX Y`, `Punch-FX-Ziel`, `Punch-FX halten` (`pfx_amount`, `pfx_x`, `pfx_y`, `pfx_target`, `pfx_latch`), `Controller-Audio` (`ctl_audio_mode`: nur Controller / Controller-Audio aufnehmen) und `Controller-Pattern resamplen` (`ko2_resample`, Taste). Die Namen sind allgemein; zum K.O. II siehe KO2.md. Hinweis: die Standard-MIDI-Map (Kanal 1, Noten 36 – 67) überschneidet sich mit dem Notenbereich des K.O. II – der K.O. II braucht sie nicht (livelooper öffnet seinen Port direkt).
 
 **Seit 1.6 (Punch-FX Halte-Rampe)** – 1 weiterer, angehängt (Parameter 489): `Punch-FX Halte-Rampe` (`pfx_hold_ramp`: aus / 1 Schlag / 2 Schläge (Standard) / 1 Takt) – für Pads ohne Druck (K.O. II): ein gehaltenes Punch-Pad hebt die Stärke in dieser Zeit vom Anschlag bis 100 %. Wie jeder Parameter per MIDI zuweisbar.
+
+**Seit 1.7 (Latenz, Anschlagkurven, MIDI-Feedback, Push-1-Display)** – 8 weitere, angehängt (Parameter 490 – 497): `Latenzausgleich` (Latency Compensation, `lat_comp`, Schalter, an), `Latenz-Versatz` (Latency Offset, `lat_offset`, −50 … +50 ms), `Latenz messen` (Measure Latency, `lat_measure`, Taster), `Push-1-Anschlagkurve`, `K.O.-II-Anschlagkurve`, `MIDI-Anschlagkurve` (`vel_push`, `vel_ko2`, `vel_midi`: Weich / Normal (Standard) / Hart / Fest), `MIDI-Feedback (experimentell)` (`midi_fb`, Schalter, aus) und `Push 1 Loop-Fortschrittsbalken` (`push_progress`, Schalter, an). `Transport folgen` (`follow`) ist seit 1.7 standardmäßig **an** (die ID bleibt; gespeicherte Projekte behalten ihren Wert).
+
+### Anschlagkurve und LED-Feedback für gelernte Bedienelemente (1.7)
+
+- Eine auf einen stufenlosen Parameter gelernte Note setzt ihn auf ihre Anschlagstärke – über die **MIDI-Anschlagkurve** (*SETUP → Controller → Anschlagkurven → MIDI (gelernte Noten)*): Weich, Normal, Hart, Fest.
+- **MIDI-Feedback (experimentell)**: *SETUP → Controller → MIDI-Feedback* sendet den Zustand jedes gelernten Bedienelements an einen gewählten MIDI-Ausgang zurück (gleicher Kanal und gleiche Noten-/CC-Nummer; Werte für an / aus / blinken wählbar, standardmäßig blinkt es im Takt). REC / PLAY einer Spur blinkt bei Aufnahme, leuchtet beim Abspielen; Schalter leuchten, wenn sie an sind; auf einen CC gelernte Regler bekommen ihren Wert. Siehe [Bedienungsanleitung, Abschnitt 42](BEDIENUNGSANLEITUNG.md#42-anschlagkurven-und-midi-feedback-neu-in-17).

@@ -171,9 +171,14 @@ Link.
 
 ![SETUP > Controllers: K.O. II audio output, hold to intensify](../images/livelooper-setup-controllers-full.png)
 
-- **Latency:** USB audio arrives late. When a first recording ends in *Record K.O. II*, livelooper moves the
-  loop earlier by the **latency offset** (*SETUP → Controllers → K.O. II → Latency offset*: automatic = the
-  latency the device reports + one block, or 0 – 200 ms). An automatic measuring button is not there yet.
+- **Latency:** USB audio arrives late. In *Record K.O. II* livelooper compensates by the **latency offset**
+  (*SETUP → Controllers → K.O. II → Latency offset*: automatic = the latency the device reports + one block,
+  or 0 – 200 ms) – since 1.7 for **every** recording, overdub and capture, not only first recordings, plus the
+  manual offset of *SETUP → Audio → Latency*. With the K.O. II output on the computer a loopback measurement
+  cannot hear the K.O. II, so use the offset (or measure with *K.O. II audio output: K.O. II*, see the user
+  guide, section 41).
+- **Velocity curve (1.7):** *SETUP → Controllers → Velocity curves → K.O. II* (host parameter `vel_ko2`):
+  Soft / Normal / Hard / Fixed – e.g. *Fixed* with pad velocity on gives every punch hit the full amount.
 - **Resample K.O. pattern** (group D ENTER in Record mode, the chip, SETUP or the host parameter *Resample
   Controller Pattern* `ko2_resample`): records **capture-length bars** (SETUP → Looper → Capture length,
   default 4) of the K.O. II into the **first empty track**, starting on the next bar (with quantize =

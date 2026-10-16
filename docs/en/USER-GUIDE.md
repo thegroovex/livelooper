@@ -90,7 +90,7 @@ The LED ring shows the state and the position in the loop:
 
 **HOST SYNC** (on by default): tempo, time signature and position come from your DAW. When the host transport is stopped, an internal clock continues at the current host tempo as soon as a track records or plays. Without host sync the internal tempo applies (knob **TEMPO**, tap **TAP** several times in time, or click the tempo on the display and type it in – see section 11).
 
-**Follow host transport** (SETUP menu): loops start with your DAW's play button and stop with its stop button.
+**Follow host transport** (SETUP → Looper, **on by default since 1.7**): loops start with your DAW's play button and **stop with its stop button** – stopping the DAW stops livelooper. Switch it off if livelooper should keep looping on its internal clock while the DAW stands still. The standalone app has no host transport and is not affected; projects saved with an older version keep the setting they were saved with.
 
 Note: if the tempo changes after a loop was recorded, the loop is not time-stretched – it keeps playing at its original speed.
 
@@ -172,14 +172,14 @@ The kit names describe a sound style; "909 Style" and "808" are not the original
 
 ## 6. SETUP menu
 
-Since 1.6 **SETUP** opens a settings window in the style of the macOS System Settings: the pages on the left (**Sets**, **Looper**, **Rhythm**, **Recording**, **Audio**, **Controllers**, **Sync**, **App**), grouped rows on the right – switches, pop-up menus and actions, with short notes underneath. Every entry below is on one of these pages.
+Since 1.6 **SETUP** opens a settings window in the style of the macOS System Settings: the pages on the left (**Sets**, **Looper**, **Rhythm**, **Recording**, **Audio**, **Controllers**, **Sync**, **App**; since 1.7 the **Audio** page is always there – it holds the latency measurement), grouped rows on the right – switches, pop-up menus and actions, with short notes underneath. Every entry below is on one of these pages.
 
 ![SETUP](../images/livelooper-setup.png)
 
 | Entry | Meaning |
 |---|---|
 | Record action | "Rec > Dub > Play" (default) or "Rec > Play > Dub". The REC button legend ("DUB / PLAY" or "PLAY / DUB") and the bottom display line show the active mode. |
-| Follow host transport | loops start/stop with the host transport |
+| Follow host transport | loops start/stop with the host transport (on by default since 1.7) |
 | Maximum loop length | 30 · 60 · 120 · 240 · 480 seconds per track (determines memory use; existing loops are kept) |
 | Save loops with the project | store loops in the DAW project (on by default). Off = smaller projects, loops are gone after loading |
 | Computer keyboard control | standalone app only: keys on/off (section 10) |
@@ -602,6 +602,38 @@ the live looper state on its pads, buttons and display. Click a drawn pad or but
 see [PUSH.md](PUSH.md); K.O. II: see [KO2.md](KO2.md).
 
 ![SETUP > Controllers](../images/livelooper-setup-controllers.png)
+
+## 41. Latency measurement and compensation (new in 1.7)
+
+Every audio interface delays the sound twice: on the way out (you hear the loop a little late) and on the way back in (what you play arrives a little late). Without compensation every overdub lands a few milliseconds behind the beat – and it adds up layer by layer. livelooper measures this **round trip** and moves **every** recording by it: first recordings, overdubs, captures (and resampling) – not only first recordings as before.
+
+**Measure** – *SETUP → Audio → Latency → Measure latency …* (or the host parameter *Measure Latency*, `lat_measure`, e.g. on a footswitch):
+
+1. Connect an output of your interface to an input with a **cable** (best), or hold a **microphone** close to the speaker. Turn the input up.
+2. Click *Measure latency …*. livelooper mutes everything, plays seven short clicks on the main output and listens on the input. It takes about 4 seconds.
+3. The result appears in ms and samples (*Measured: 11.6 ms (557 samples)*) and is **stored for this audio device** (device type, input, output, sample rate and buffer size) – change the device or the buffer and livelooper uses that device's own measurement.
+
+If nothing comes back, livelooper says so (*no ping detected – connect an output to an input with a cable, or hold a microphone to the speakers*). If the runs disagree by more than 1 ms (noisy room, microphone far away, other audio apps), the result is not stored (*unstable*). The value is the median of the runs, so one disturbed click does not matter.
+
+**Compensation** – *Latency compensation* (host parameter `lat_comp`, on by default) uses, in this order: the measurement of the current device; without one, what the audio device reports (input + output latency + two buffers – usually a good first guess, rarely exact); in *Record K.O. II* the K.O. II latency offset (see [KO2.md](KO2.md)). On top comes the **manual offset** (*SETUP → Audio → Latency → Manual offset*, or the host parameter *Latency Offset*, `lat_offset`, −50 … +50 ms, as a slider in your DAW and MIDI-mappable) – positive values move recordings earlier. *In use* shows what is applied right now.
+
+How it works: a finished first recording or capture plays the loop that much earlier against the beat; an overdub writes what you play that many samples earlier into the loop – exactly where you heard the loop when you played it.
+
+**In a DAW (plug-in):** plug-in formats give a plug-in no information about the audio device's latency, so livelooper cannot read it from the host. Measure **inside the DAW** instead: a cable from an interface output to the input of the looper track, input monitoring on, nothing else playing – the measurement then includes the DAW's own buffers. Stored per host. Your DAW's own *record latency compensation* only applies to clips the DAW records, not to the live input going through a plug-in, so the two never add up.
+
+## 42. Velocity curves and MIDI feedback (new in 1.7)
+
+**Velocity curves** – *SETUP → Controllers → Velocity curves*, separately for **Push 1**, **K.O. II** and **MIDI (learned notes)** (host parameters `vel_push`, `vel_ko2`, `vel_midi`): *Soft* (light hits come out louder), *Normal*, *Hard* (you have to hit harder for full level), *Fixed* (every hit is full velocity). They change everything that uses the hit velocity: punch FX amount, step velocity in STEP mode, and parameters you learned on a note (a note sets a knob to its velocity).
+
+**MIDI feedback (experimental)** – *SETUP → Controllers → MIDI feedback*: for every control you MIDI-learned, livelooper sends the state back to a **MIDI output** you choose – a note-on (or CC) with the same channel and number. Most controllers light, dim or flash their pad / button LED depending on that value:
+
+| State | sent value (default) |
+|---|---|
+| on – track plays, switch on, scene active | *Value: on* (127; also 100, 64, 1) |
+| off – empty / stopped, switch off | *Value: off* (0; also 1, 7) |
+| blink – recording, overdub, waiting for the bar, measuring | *Value: blink*: livelooper blinks in time (default) or sends 2 / 3 / 64 |
+
+REC / PLAY learned on a pad: blinks while recording / overdubbing / waiting, lights while playing. STOP lights on a stopped track, UNDO / REDO when there is something to undo / redo, scene buttons on the last recalled scene. Knobs and faders learned on a CC get their current value (LED rings, motor faders). On / off with the host parameter *MIDI Feedback (experimental)* (`midi_fb`, off by default). Everything is sent again every few seconds, so a controller plugged in later catches up. On Windows the output must not be open in another program.
 
 ## Drums, BEATS and sound packs (1.6)
 
