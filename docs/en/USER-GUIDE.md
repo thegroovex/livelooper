@@ -605,6 +605,8 @@ see [PUSH.md](PUSH.md); K.O. II: see [KO2.md](KO2.md).
 
 ## 41. Latency measurement and compensation (new in 1.7)
 
+![SETUP > Audio > Latency](../images/livelooper-setup-audio.png)
+
 Every audio interface delays the sound twice: on the way out (you hear the loop a little late) and on the way back in (what you play arrives a little late). Without compensation every overdub lands a few milliseconds behind the beat – and it adds up layer by layer. livelooper measures this **round trip** and moves **every** recording by it: first recordings, overdubs, captures (and resampling) – not only first recordings as before.
 
 **Measure** – *SETUP → Audio → Latency → Measure latency …* (or the host parameter *Measure Latency*, `lat_measure`, e.g. on a footswitch):
@@ -622,6 +624,8 @@ How it works: a finished first recording or capture plays the loop that much ear
 **In a DAW (plug-in):** plug-in formats give a plug-in no information about the audio device's latency, so livelooper cannot read it from the host. Measure **inside the DAW** instead: a cable from an interface output to the input of the looper track, input monitoring on, nothing else playing – the measurement then includes the DAW's own buffers. Stored per host. Your DAW's own *record latency compensation* only applies to clips the DAW records, not to the live input going through a plug-in, so the two never add up.
 
 ## 42. Velocity curves and MIDI feedback (new in 1.7)
+
+![SETUP > Controllers: velocity curves, Push 1 display, MIDI feedback](../images/livelooper-setup-controllers-17.png)
 
 **Velocity curves** – *SETUP → Controllers → Velocity curves*, separately for **Push 1**, **K.O. II** and **MIDI (learned notes)** (host parameters `vel_push`, `vel_ko2`, `vel_midi`): *Soft* (light hits come out louder), *Normal*, *Hard* (you have to hit harder for full level), *Fixed* (every hit is full velocity). They change everything that uses the hit velocity: punch FX amount, step velocity in STEP mode, and parameters you learned on a note (a note sets a knob to its velocity).
 

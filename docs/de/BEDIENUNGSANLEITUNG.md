@@ -634,6 +634,8 @@ automatisch zur Standard-Oberfläche. Push 1: siehe [PUSH.md](PUSH.md); K.O. II:
 
 ## 41. Latenz messen und ausgleichen (neu in 1.7)
 
+![SETUP > Audio > Latenz](../images/livelooper-setup-audio-de.png)
+
 Jedes Audio-Interface verzögert den Klang zweimal: auf dem Weg hinaus (du hörst den Loop etwas später) und auf dem Weg zurück (was du spielst, kommt etwas später an). Ohne Ausgleich landet jeder Overdub ein paar Millisekunden hinter dem Beat – und das summiert sich Schicht für Schicht. livelooper misst diese **Roundtrip-Latenz** und verschiebt **jede** Aufnahme darum: erste Aufnahmen, Overdubs, Captures (und Resampling) – nicht mehr nur erste Aufnahmen.
 
 **Messen** – *SETUP → Audio → Latenz → Latenz messen …* (oder der Host-Parameter *Latenz messen*, `lat_measure`, z. B. auf einem Fußschalter):
@@ -651,6 +653,8 @@ So funktioniert es: Eine fertige erste Aufnahme oder ein Capture spielt den Loop
 **In einer DAW (Plug-in):** Plug-in-Formate geben einem Plug-in keine Information über die Latenz des Audiogeräts, livelooper kann sie also nicht vom Host lesen. Miss stattdessen **in der DAW**: ein Kabel von einem Interface-Ausgang zum Eingang der Looper-Spur, Eingangsmonitor an, sonst nichts abspielen – die Messung enthält dann auch die Puffer der DAW. Gespeichert pro Host. Der Aufnahme-Latenzausgleich deiner DAW gilt nur für Clips, die die DAW selbst aufnimmt, nicht für den Live-Eingang durch ein Plug-in – beides addiert sich also nie.
 
 ## 42. Anschlagkurven und MIDI-Feedback (neu in 1.7)
+
+![SETUP > Controller: Anschlagkurven, Push-1-Display, MIDI-Feedback](../images/livelooper-setup-controllers-17-de.png)
 
 **Anschlagkurven** – *SETUP → Controller → Anschlagkurven*, getrennt für **Push 1**, **K.O. II** und **MIDI (gelernte Noten)** (Host-Parameter `vel_push`, `vel_ko2`, `vel_midi`): *Weich* (leichte Schläge kommen lauter an), *Normal*, *Hart* (für vollen Pegel fester schlagen), *Fest* (jeder Schlag mit voller Anschlagstärke). Sie wirken auf alles, was die Anschlagstärke nutzt: Punch-FX-Stärke, Step-Anschlag im STEP-Modus und Parameter, die du auf eine Note gelernt hast (eine Note setzt einen Regler auf ihre Anschlagstärke).
 
