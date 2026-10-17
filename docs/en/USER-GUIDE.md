@@ -13,7 +13,7 @@ The interface keeps the classic arrangement: all effects at the top in two rows 
 | Header | **LIVE** next to the logo (Live view, section 43), display (tempo, bar/beat, quantization, Link, master VU in dB, messages), **MIDI LEARN**, **MIDI MAP**, **SETUP**, **?** (help), the round **REC** button (performance recorder) |
 | FX row 1 | **INPUT FX** A–D, **INPUT FX … EDIT** (type, two parameters, mix of the selected slot), **TRACK FX** A–D, **PUNCH FX** (sections 3, 39) |
 | FX row 2 | **BEAT FX**, **REPEAT / STUTTER**, **COLOR FX**, **SEND FX**, **METRONOME** (sections 25–28, 39) |
-| TRACK 1–5 (or 1–8) | the loop tracks (SETUP → Looper → Tracks), top to bottom: display with state and waveform, REV / 1SHOT / FX, level fader with IN/OUT meter, PAN / COLOR, UNDO / REDO / SETUP, the big REC/PLAY pad, STOP |
+| TRACK 1–5 (or 1–8) | the loop tracks (SETUP → Looper → Tracks), top to bottom: title row with the **loop length** pill (AUTO / 1–16 bars, section 45), display with state and waveform, REV / 1SHOT / FX, level fader with IN/OUT meter, PAN / COLOR, UNDO / REDO / SETUP, the big REC/PLAY pad, STOP |
 | RHYTHM | drum machine, tempo, tap, FILL, BEATS |
 | MASTER | quantization, host sync, levels, fade time, ALL START/STOP, CAPTURE, CLEAR ALL |
 | Footer | 8 scene buttons, STORE |
@@ -173,7 +173,7 @@ The kit names describe a sound style; "909 Style" and "808" are not the original
 
 ## 6. SETUP menu
 
-Since 1.6 **SETUP** opens a settings window in the style of the macOS System Settings: the pages on the left (**Sets**, **Looper**, **Rhythm**, **Recording**, **Audio**, **Controllers**, **Sync**, **App**; since 1.7 the **Audio** page is always there – it holds the latency measurement), grouped rows on the right – switches, pop-up menus and actions, with short notes underneath. Every entry below is on one of these pages.
+Since 1.6 **SETUP** opens a settings window in the style of the macOS System Settings: the pages on the left (**Sets**, **Looper**, **Rhythm**, **Recording**, **Audio**, **Controllers**, **Display**, **Sync**, **App**; since 1.7 the **Audio** page is always there – it holds the latency measurement – and **Display** holds theme, interface size, stage mode, waveforms and the Live view), grouped rows on the right – switches, pop-up menus and actions, with short notes underneath. Every entry below is on one of these pages.
 
 ![SETUP](../images/livelooper-setup.png)
 
@@ -189,6 +189,9 @@ Since 1.6 **SETUP** opens a settings window in the style of the macOS System Set
 | Language / Sprache | Automatic (system language) · English · Deutsch |
 | Last used sets | the last 10 sets you saved or loaded, one click to load (section 13) |
 | Capture length | 1 · 2 · 4 · 8 · 16 · 32 bars (section 16) |
+| Audio → Latency | measure latency, latency compensation (on), manual offset (section 41) |
+| Controllers → Velocity curves / Push 1 display / MIDI feedback | velocity curves per controller, loop progress bars on the Push 1 display, LED feedback for learned controls (section 42) |
+| Display | colour theme, interface size 75 – 200 %, stage mode, waveforms in the loop tracks, Live view (sections 43, 44) |
 | Rhythm groove / Rhythm fills | feel and fills of the drum machine (section 4) |
 | Ableton Link | Link on / off, sync start / stop, number of peers (section 29) |
 | Settings on start | start with the last used or the default settings, reset now (section 31) |
@@ -437,7 +440,7 @@ Joining a session never changes its tempo – livelooper takes over the tempo of
 
 ## 30. Help
 
-The **?** button (top right) or **SETUP → App → Help …** opens the help. It starts with illustrated pages (since 1.6): **Welcome**, **Loops**, **FX**, **BEATS**, **Recording**, **Link**, **Push 1** (the whole controller with numbered buttons and what they do) and **Push 1: STEP**. Below them follow this user guide, the Push guide and the MIDI guide in your language, split into sections, with a search field (e.g. *stutter*, *Link*, *capture*). Hover over any control for a short tooltip.
+The **?** button (top right) or **SETUP → App → Help …** opens the help. It starts with illustrated pages (since 1.6): **Welcome**, **Loops**, **FX**, **BEATS**, **Recording**, **Link**, since 1.7 **Loop length**, **Live view**, **Display**, **Latency** and **Controllers** (pictures of the real interface), **Push 1** (the whole controller with numbered buttons and what they do – with the 1.7 gestures SHIFT + MASTER and FIXED LENGTH held), **Push 1: STEP** and **K.O. II**. Below them follow this user guide, the Push guide, the MIDI guide and the installation guide in your language, split into sections, with a search field (e.g. *stutter*, *Link*, *capture*). Hover over any control for a short tooltip.
 
 ![Help](../images/livelooper-help.png)
 
@@ -652,7 +655,7 @@ The **Live view** is the surface for the stage: one large card per loop track an
 | Track cards (5 or 8) | state word (PLAY, DUB, REC, STOP, EMPTY, REC WAIT …), length in bars, loop position in %, the **waveform** with the play head, the big **REC / PLAY / DUB** pad with its LED ring, **LEVEL** (drag the bar; the meter runs behind the white level mark), **STOP** (hold 1.5 s = clear) |
 | PERFORMANCE FX | knobs **FILTER** (performance filter), **BEAT FX** (beat FX level), **PUNCH** (punch FX amount), **MASTER**; **ECHO …** (beat FX on / off, shows the beat FX type and beat fraction), **REPEAT** and **STUTTER** (while held), **FILL** (while held); the punch FX amount bar (the held punch FX with its live amount, otherwise the selected one); **ALL START / STOP**, **CAPTURE** |
 
-Every control in the Live view is the same function as on the full surface (right-click = MIDI learn). *SETUP → Display → Live view* switches the **waveforms in the track displays** (on by default; off = a loop position bar) and the **performance FX strip** (on; off = taller cards). *Open Live view (fullscreen)* opens it in its own window covering the whole screen (Esc closes it) – handy on a second monitor or a laptop on stage.
+Every control in the Live view is the same function as on the full surface (right-click = MIDI learn). *SETUP → Display → Live view* switches the **waveforms in the track displays** (on by default; off = a loop position bar) and the **performance FX strip** (on; off = taller cards). *Open Live view (fullscreen)* opens it in its own borderless window that covers the whole screen and stays on top of other windows (Esc closes it) – handy on a second monitor or a laptop on stage. It is not a locked kiosk mode: the operating system's own shortcuts (switching apps, the taskbar / Dock) keep working.
 
 Stage mode and the light theme apply to the Live view too:
 

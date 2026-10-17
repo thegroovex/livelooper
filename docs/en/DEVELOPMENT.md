@@ -46,7 +46,7 @@ Single group: `livelooper_tests engine`, or `midi`, `plugin`. `livelooper_tests 
 
 The CI also runs [pluginval](https://github.com/Tracktion/pluginval) at strictness 5 on Linux, macOS and Windows.
 
-Documentation screenshots: `livelooper_screenshot docs/images` (on Linux with `xvfb-run -a`). It writes every picture in English (`livelooper*.png`) and German (`livelooper*-de.png`): main view, live performance (beat FX, colour FX, repeat latch, metronome and Link on), MIDI learn, tempo entry, keyboard mapping, track setup, 8 tracks, help and about window.
+Documentation screenshots: `livelooper_screenshot docs/images` (on Linux with `xvfb-run -a`). It writes every picture in English (`livelooper*.png`) and German (`livelooper*-de.png`): main view, live performance (beat FX, colour FX, repeat latch, metronome and Link on), MIDI learn, tempo entry, keyboard mapping, track setup, 8 tracks, help and about window, welcome screen, punch FX, SETUP pages (Audio / latency, Controllers, Display), Controller view (Push 1, K.O. II, FIXED LENGTH held) and the 1.7 pictures: light theme, stage mode, waveforms, Live view (also stage / light), loop length pills. Drawn pictures (in-app help pages, Push 1 / K.O. II layouts): `python3 tools/illustrations/make_illustrations.py`. The 1.7 in-app help pages use real screenshots: after regenerating `docs/images` run `python3 tools/illustrations/make_help17.py` (writes `resources/help/help-{looplen,live,display,latency,controllers}[-de].png`; a German picture is used automatically when it exists as `name-de.png`).
 
 ## Architecture
 
@@ -107,6 +107,8 @@ Momentary functions are bool parameters. The processor reacts to the rising edge
 - Parameter names are built from the parameter ID (`params::englishName`, `params::localisedName`) and fixed when the plug-in is created. IDs never change, so projects and MIDI maps keep working in both languages.
 - The language setting is stored in the user settings file `livelooper.settings` (macOS `~/Library/Application Support/livelooper/`, Windows `%APPDATA%\livelooper\`, Linux `~/.config/livelooper/`). The environment variable `LIVELOOPER_LANGUAGE=en|de` overrides it (used by the host test).
 - New text: write it in English in the code with `tr()`, add the German translation to the table in `Localisation.cpp`; the test "Every choice, effect and effect parameter has a German text" catches missing choices and effects.
+- Since 1.6 the German texts of each feature live in generated tables: edit the script in `tools/i18n/` and run it – `rhythm16_de.py` → `Localisation_Rhythm16.inc`, `ui16b_de.py` → `Localisation_UI16b.inc`, `ko2_de.py` → `Localisation_KO2.inc`, `v17_de.py` → `Localisation_V17.inc` (latency, velocity curves, MIDI feedback, Push 1 display, Live view, display), `looplen_de.py` → `Localisation_LoopLen.inc` (loop length), `help17_de.py` → `Localisation_Help17.inc` (1.7 in-app help pages). All are included by `Localisation.cpp`.
+- The in-app help shows the user guide, PUSH, MIDI and INSTALLATION (EN / DE) compiled in as BinaryData, so a documentation change there is a code change for CI; the illustrated guide pages are defined in `src/plugin/HelpGuide.cpp`.
 
 ## Rhythm 1.6: samples, texts, packs
 
@@ -129,6 +131,7 @@ Momentary functions are bool parameters. The processor reacts to the rising edge
 - tag `v*` or manual start: additionally macOS (universal, VST3 + AU + app) and Windows (VST3 + app), tests, pluginval, and (installers on tags, on manual runs unless the input **build_installers** is switched off, and on pull requests with the label `installer`; label `plugins` = macOS + Windows ZIPs only):
   - **macOS**: ad-hoc code signature with a stable identifier (`codesign --sign - --identifier com.groovex.livelooper --entitlements resources/macos/livelooper.entitlements`, hardened runtime off), ZIP (with `install.command`, made with `ditto`) and **`livelooper-macOS.pkg`** (`pkgbuild` per component + `productbuild` with `installer/macos/distribution.xml`)
   - **Windows**: ZIP and **`livelooper-Windows-Setup.exe`** (Inno Setup, installed with Chocolatey when `iscc` is missing)
+- manual test build: *Actions → CI → Run workflow* on a branch (or `POST /repos/thegroovex/livelooper/actions/workflows/ci.yml/dispatches` with `{"ref":"v1.7-wip"}`) builds Linux, macOS and Windows with LTO and uploads four artifacts: **livelooper-Windows** (the ZIP), **livelooper-Windows-Setup** (installer), **livelooper-macOS** (the ZIP) and **livelooper-macOS-pkg** (installer); with *build_installers* off only the two ZIP artifacts
 - tag `v*`: GitHub release with the ZIPs (still the primary / manual way) plus `livelooper-macOS.pkg` and `livelooper-Windows-Setup.exe`
 
 Signing: there is no Apple Developer ID / notarisation and no Windows certificate yet, so Gatekeeper and SmartScreen warn once (INSTALLATION.md). With a Developer ID, replace the ad-hoc `codesign` step (hardened runtime + entitlements), sign the pkg with `productsign` and notarise with `notarytool`.

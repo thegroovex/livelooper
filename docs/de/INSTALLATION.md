@@ -138,7 +138,7 @@ livelooper funktioniert in jedem VST3-/AU-Host gleich. Unten die Kurzfassung; Sc
 
 Mehr dazu in [MIDI.md](MIDI.md).
 
-**Tempo**: Mit **HOST-SYNC** (Standard) folgt livelooper dem Tempo, der Taktart und der Position von Live. Läuft der Transport nicht, zählt eine interne Clock im Host-Tempo weiter – in Live wie in jeder anderen DAW.
+**Tempo**: Mit **HOST-SYNC** (Standard) folgt livelooper dem Tempo, der Taktart und der Position von Live. **Host-Transport folgen** ist seit 1.7 standardmäßig an: Stopp in Live stoppt auch die Loops, Play startet sie wieder synchron (unter **SETUP → Looper** abschaltbar, wenn livelooper bei stehendem Transport mit einer internen Clock im Host-Tempo weiterloopen soll) – in Live wie in jeder anderen DAW.
 
 ## Standalone-App
 
@@ -155,6 +155,14 @@ Die Standalone-App lässt sich mit der Computertastatur spielen (1–5 REC/PLAY,
 ## Erster Start: Einstellungen und Updates
 
 Beim ersten Start fragt livelooper einmal, ob es mit den **zuletzt verwendeten Einstellungen** oder den **Standard-Einstellungen** starten soll (jederzeit änderbar unter **SETUP → Einstellungen beim Start**). Updates: **SETUP → Updates** oder das Info-Fenster (**SETUP → Über livelooper …**) prüfen auf GitHub, ob es eine neue Version gibt; die App kann sie laden und beim Beenden installieren, Plug-ins werden vorbereitet und bei geschlossener DAW installiert. Geprüft wird nur, wenn du es einschaltest.
+
+## Erster Start: Latenz messen (1.7)
+
+Damit Overdubs genau auf dem Schlag landen, miss dein Audio-Interface einmal: **SETUP → Audio → Latenz → Latenz messen …** – einen Ausgang des Interfaces mit einem Kabel an einen Eingang anschließen (oder ein Mikrofon nah an den Lautsprecher halten) und klicken. Das dauert etwa 4 Sekunden; das Ergebnis wird pro Audiogerät gespeichert, der *Latenzausgleich* ist standardmäßig an. In einer DAW in der DAW messen, auf der Looper-Spur mit eingeschaltetem Input-Monitoring. Details: Bedienungsanleitung, Abschnitt 41.
+
+## Anzeige: Größe, Farbschema, Bühnenmodus (1.7)
+
+Zu klein oder zu groß auf deinem Bildschirm? **SETUP → Anzeige → Oberflächengröße** (75 – 200 %, auch Strg/Cmd + / −). Dort findest du auch das helle Farbschema, den kontrastreichen Bühnenmodus, große Wellenformen (anfangs aus) und die Live-Ansicht für die Bühne (Bedienungsanleitung, Abschnitte 43 und 44).
 
 ## Sprache
 

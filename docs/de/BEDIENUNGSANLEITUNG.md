@@ -6,7 +6,7 @@ livelooper ist als **Instrument zum Erforschen und Live-Spielen** gebaut: Jedes 
 
 ![Oberfläche](../images/livelooper-de.png)
 
-Die Oberfläche ist wie ein Hardware-Looper aufgebaut. Die Bezeichnungen in dieser Anleitung entsprechen der deutschen Oberfläche; bei englischer Oberfläche steht die englische Bezeichnung in Klammern (siehe auch [Kapitel 7](#7-sprache) und die [Übersicht am Ende](#16-bezeichnungen-deutsch--englisch)).
+Die Oberfläche ist wie ein Hardware-Looper aufgebaut. Die Bezeichnungen in dieser Anleitung entsprechen der deutschen Oberfläche; bei englischer Oberfläche steht die englische Bezeichnung in Klammern (siehe auch [Kapitel 7](#7-sprache) und die [Übersicht nach Abschnitt 15](#bezeichnungen-deutsch--englisch)).
 
 Die Oberfläche hat die klassische Anordnung: alle Effekte oben in zwei Reihen (alles gleichzeitig sichtbar, keine Reiter), darunter die Loop-Spuren – der größte Teil, jede mit eigener Farbe, großem leuchtendem Pad und eigener Pegelanzeige – und rechts in einer schmalen Spalte Rhythmus und Master:
 
@@ -15,7 +15,7 @@ Die Oberfläche hat die klassische Anordnung: alle Effekte oben in zwei Reihen (
 | Kopfzeile | **LIVE** neben dem Logo (Live-Ansicht, Abschnitt 43), Display (Tempo, Takt/Schlag, Quantisierung, Link, Master-VU in dB, Meldungen), **MIDI LEARN**, **MIDI MAP**, **SETUP**, **?** (Hilfe), der runde **REC**-Knopf (Performance-Recorder) |
 | FX-Reihe 1 | **EINGANGS-FX** A–D, **EINGANGS-FX … BEARBEITEN** (Typ, zwei Parameter, Mix des gewählten Slots), **SPUR-FX** A–D, **PUNCH-FX** (Abschnitte 3, 39) |
 | FX-Reihe 2 | **BEAT-FX**, **REPEAT / STUTTER**, **COLOR-FX**, **SEND-FX**, **METRONOM** (Abschnitte 25–28, 39) |
-| SPUR 1–5 (oder 1–8) | die Loop-Spuren (SETUP → Looper → Spuren), von oben nach unten: Display mit Status und Wellenform, RÜCKW. / 1SHOT / FX, Pegel-Fader mit IN/OUT-Anzeige, PAN / COLOR, ZURÜCK / VOR / SETUP, das große REC/PLAY-Pad, STOP |
+| SPUR 1–5 (oder 1–8) | die Loop-Spuren (SETUP → Looper → Spuren), von oben nach unten: Titelzeile mit der **Loop-Länge**-Pille (AUTO / 1–16 Takte, Abschnitt 45), Display mit Status und Wellenform, RÜCKW. / 1SHOT / FX, Pegel-Fader mit IN/OUT-Anzeige, PAN / COLOR, ZURÜCK / VOR / SETUP, das große REC/PLAY-Pad, STOP |
 | RHYTHMUS | Drumcomputer, Tempo, Tap, FILL, BEATS |
 | MASTER | Quantisierung, Host-Sync, Pegel, Fade-Zeit, ALLE START / STOP, CAPTURE, ALLE LÖSCHEN |
 | Fußleiste | 8 Szenen-Knöpfe, SPEICHERN |
@@ -175,7 +175,7 @@ Die Kit-Namen beschreiben einen Klangstil; „909 Style“ und „808“ sind ni
 
 ## 6. SETUP-Menü
 
-Seit 1.6 öffnet **SETUP** ein Einstellungsfenster im Stil der macOS-Systemeinstellungen: links die Seiten (**Sets**, **Looper**, **Rhythmus**, **Aufnahme**, **Audio**, **Controller**, **Sync**, **App**), rechts gruppierte Zeilen – Schalter, Aufklappmenüs und Aktionen, darunter kurze Hinweise. Jeder Eintrag unten steht auf einer dieser Seiten.
+Seit 1.6 öffnet **SETUP** ein Einstellungsfenster im Stil der macOS-Systemeinstellungen: links die Seiten (**Sets**, **Looper**, **Rhythmus**, **Aufnahme**, **Audio**, **Controller**, **Anzeige**, **Sync**, **App**; seit 1.7 gibt es die Seite **Audio** immer – sie enthält die Latenzmessung – und **Anzeige** enthält Farbschema, Oberflächengröße, Bühnenmodus, Wellenformen und die Live-Ansicht), rechts gruppierte Zeilen – Schalter, Aufklappmenüs und Aktionen, darunter kurze Hinweise. Jeder Eintrag unten steht auf einer dieser Seiten.
 
 ![SETUP](../images/livelooper-setup-de.png)
 
@@ -191,6 +191,9 @@ Seit 1.6 öffnet **SETUP** ein Einstellungsfenster im Stil der macOS-Systemeinst
 | Language / Sprache | Automatisch (Systemsprache) · English · Deutsch |
 | Zuletzt verwendete Sets | die letzten 10 gespeicherten oder geladenen Sets, ein Klick lädt (Abschnitt 13) |
 | Capture-Länge | 1 · 2 · 4 · 8 · 16 · 32 Takte (Abschnitt 16) |
+| Audio → Latenz | Latenz messen, Latenzausgleich (an), manueller Versatz (Abschnitt 41) |
+| Controller → Anschlagkurven / Push-1-Display / MIDI-Feedback | Anschlagkurven pro Controller, Loop-Fortschrittsbalken im Push-1-Display, LED-Feedback für gelernte Bedienelemente (Abschnitt 42) |
+| Anzeige | Farbschema, Oberflächengröße 75 – 200 %, Bühnenmodus, Wellenformen in den Loop-Spuren, Live-Ansicht (Abschnitte 43, 44) |
 | Rhythmus-Groove / Rhythmus-Fills | Gefühl und Fills des Drumcomputers (Abschnitt 4) |
 | Ableton Link | Link an / aus, Start / Stopp synchronisieren, Anzahl Teilnehmer (Abschnitt 29) |
 | Einstellungen beim Start | mit den zuletzt verwendeten oder den Standard-Einstellungen starten, jetzt zurücksetzen (Abschnitt 31) |
@@ -314,6 +317,13 @@ Ohne Cue-Paar (und im Plug-in) spielt der Rhythmus immer auf dem Hauptausgang �
 | COLOR-FX | COLOR FX |
 | METRONOM · BETONUNG | METRONOME · ACCENT |
 | Einstellungen beim Start | Settings on start |
+| Loop-Länge einmalig (vor 1.7 Aufnahmelänge) | Loop Length Once (before 1.7 Rec Length) |
+| Live-Ansicht · LIVE BEENDEN | Live view · EXIT LIVE |
+| Anzeige · Farbschema: Dunkel · Hell | Display · Colour theme: Dark · Light |
+| Oberflächengröße · Bühnenmodus · Wellenformen zeigen | Interface size · Stage mode · Show waveforms |
+| Latenz messen · Latenzausgleich · Manueller Versatz | Measure latency · Latency compensation · Manual offset |
+| Anschlagkurven: Weich · Normal · Hart · Fest | Velocity curves: Soft · Normal · Hard · Fixed |
+| Host-Transport folgen | Follow host transport |
 | Zuletzt verwendete Sets | Last used sets |
 
 ## 16. Capture (rückwirkende Aufnahme)
@@ -466,7 +476,7 @@ Das Beitreten ändert nie das Tempo einer Session – livelooper übernimmt das 
 
 ## 30. Hilfe
 
-Der Knopf **?** (oben rechts) oder **SETUP → App → Hilfe …** öffnet die Hilfe. Sie beginnt mit bebilderten Seiten (seit 1.6): **Willkommen**, **Loops**, **FX**, **BEATS**, **Aufnahme**, **Link**, **Push 1** (der ganze Controller mit nummerierten Tasten und ihrer Funktion) und **Push 1: STEP**. Danach folgen diese Bedienungsanleitung, die Push-Anleitung und die MIDI-Anleitung in deiner Sprache, in Abschnitte aufgeteilt, mit Suchfeld (z. B. *Stutter*, *Link*, *Capture*). Fährt man mit der Maus über ein Element, erscheint ein kurzer Hinweis.
+Der Knopf **?** (oben rechts) oder **SETUP → App → Hilfe …** öffnet die Hilfe. Sie beginnt mit bebilderten Seiten (seit 1.6): **Willkommen**, **Loops**, **FX**, **BEATS**, **Aufnahme**, **Link**, seit 1.7 **Loop-Länge**, **Live-Ansicht**, **Anzeige**, **Latenz** und **Controller** (Bilder der echten Oberfläche), **Push 1** (der ganze Controller mit nummerierten Tasten und ihrer Funktion – mit den 1.7-Gesten SHIFT + MASTER und gehaltenem FIXED LENGTH), **Push 1: STEP** und **K.O. II**. Danach folgen diese Bedienungsanleitung, die Push-Anleitung, die MIDI-Anleitung und die Installationsanleitung in deiner Sprache, in Abschnitte aufgeteilt, mit Suchfeld (z. B. *Stutter*, *Link*, *Capture*). Fährt man mit der Maus über ein Element, erscheint ein kurzer Hinweis.
 
 ![Hilfe](../images/livelooper-help-de.png)
 
@@ -681,7 +691,7 @@ Die **Live-Ansicht** ist die Oberfläche für die Bühne: eine große Karte pro 
 | Spur-Karten (5 oder 8) | Zustand (PLAY, DUB, REC, STOP, LEER, REC WAIT …), Länge in Takten, Loop-Position in %, die **Wellenform** mit Abspielmarke, das große **REC / PLAY / DUB**-Pad mit LED-Ring, **PEGEL** (Balken ziehen; die Pegelanzeige läuft hinter der weißen Pegelmarke), **STOP** (1,5 s halten = löschen) |
 | PERFORMANCE-FX | Regler **FILTER** (Performance-Filter), **BEAT-FX** (Beat-FX-Pegel), **PUNCH** (Punch-FX-Stärke), **MASTER**; **ECHO …** (Beat-FX an / aus, zeigt Beat-FX-Typ und Notenwert), **REPEAT** und **STUTTER** (solange gehalten), **FILL** (solange gehalten); der Punch-FX-Balken (der gehaltene Punch-FX mit seiner aktuellen Stärke, sonst der ausgewählte); **ALLE START / STOP**, **CAPTURE** |
 
-Jedes Bedienelement der Live-Ansicht ist dieselbe Funktion wie auf der vollen Oberfläche (Rechtsklick = MIDI Learn). *SETUP → Anzeige → Live-Ansicht* schaltet die **Wellenformen in den Spur-Displays** (standardmäßig an; aus = ein Positionsbalken) und die **Performance-FX-Leiste** (an; aus = höhere Karten). *Live-Ansicht öffnen (Vollbild)* öffnet sie in einem eigenen Fenster über den ganzen Bildschirm (Esc schließt es) – praktisch auf einem zweiten Monitor oder dem Laptop auf der Bühne.
+Jedes Bedienelement der Live-Ansicht ist dieselbe Funktion wie auf der vollen Oberfläche (Rechtsklick = MIDI Learn). *SETUP → Anzeige → Live-Ansicht* schaltet die **Wellenformen in den Spur-Displays** (standardmäßig an; aus = ein Positionsbalken) und die **Performance-FX-Leiste** (an; aus = höhere Karten). *Live-Ansicht öffnen (Vollbild)* öffnet sie in einem eigenen randlosen Fenster, das den ganzen Bildschirm bedeckt und über anderen Fenstern bleibt (Esc schließt es) – praktisch auf einem zweiten Monitor oder dem Laptop auf der Bühne. Es ist kein gesperrter Kiosk-Modus: die Tastenkürzel des Betriebssystems (App wechseln, Taskleiste / Dock) funktionieren weiter.
 
 Bühnenmodus und helles Farbschema gelten auch für die Live-Ansicht:
 

@@ -29,7 +29,7 @@ T = [
     ("The performance FX strip: filter, beat FX, punch, master, echo, repeat, stutter, fill, ALL START / STOP and capture.",
      "Die Performance-FX-Leiste: Filter, Beat-FX, Punch, Master, Echo, Repeat, Stutter, Fill, ALLE START / STOP und Capture."),
     ("Also with SHIFT + MASTER on Push 1 or any MIDI control (host parameter Live View). Esc or EXIT LIVE returns.",
-     "Auch mit SHIFT + MASTER am Push 1 oder jedem MIDI-Regler (Host-Parameter Live-Ansicht). Esc oder EXIT LIVE führt zurück."),
+     "Auch mit SHIFT + MASTER am Push 1 oder jedem MIDI-Regler (Host-Parameter Live-Ansicht). Esc oder LIVE BEENDEN führt zurück."),
     ("SETUP > Display > Open Live view (fullscreen): a borderless window kept on top over the whole screen - handy on a second monitor.",
      "SETUP > Anzeige > Live-Ansicht öffnen (Vollbild): ein randloses Fenster, immer im Vordergrund, über den ganzen Bildschirm – praktisch auf einem zweiten Monitor."),
     # ---- Display
