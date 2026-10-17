@@ -519,7 +519,7 @@ void SettingsPanel::act (int id)
 
 void SettingsPanel::paint (juce::Graphics& g)
 {
-    g.fillAll (juce::Colour (0xff131318));
+    g.fillAll (theme::pick (0xff131318, 0xfff2f3f6));
     const auto side = sidebar->getBounds().toFloat().reduced (6.0f);
     g.setColour (juce::Colours::white.withAlpha (0.04f));
     g.fillRoundedRectangle (side, 14.0f);

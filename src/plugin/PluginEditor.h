@@ -3,6 +3,7 @@
 #include "Widgets.h"
 #include "KeyMapEditor.h"
 #include "BeatsPage.h"
+#include "LiveView.h"
 
 namespace livelooper { class GuidedTour;
 class WelcomeScreen;
@@ -138,7 +139,35 @@ public:
     void addController17Menu (juce::PopupMenu& menu, juce::Array<int>& toggles);
     bool handle17Menu (int result);
 
+    // ---- v1.7 display (EditorDisplay.cpp): theme, stage mode, interface size, waveforms, Live view (menu ids 1900 - 1949)
+    static constexpr int kGuiScales[5] = { 75, 100, 125, 150, 200 };
+    /** Interface size in percent of the base size (remembered on this computer). */
+    void setGuiScale (int percent);
+    int getGuiScale() const noexcept { return guiScale; }
+    /** Next / previous size of kGuiScales (Ctrl / Cmd + and -). */
+    void stepGuiScale (int direction);
+    /** Live view on / off (sets the host parameter "Live View"); fullscreen: in its own window covering the screen. */
+    void setLiveView (bool on, bool fullscreen = false);
+    bool isLiveViewShown() const noexcept;
+    bool isLiveFullscreen() const noexcept { return liveWindow != nullptr; }
+    LiveView* getLiveView() noexcept { return liveView.get(); }
+    juce::Button& getLiveButton() noexcept { return *liveBtn; }
+    void addDisplayMenu (juce::PopupMenu& menu, juce::Array<int>& toggles);
+    bool handleDisplayMenu (int result);
+    /** Applies theme / stage mode / waveforms / Live view from the parameters (timer; public for tests). */
+    void applyDisplaySettings (bool force = false);
+
 private:
+    void initDisplay();
+    void layoutDisplay (int dx);
+    void timerDisplay();
+    std::unique_ptr<LiveView> liveView;
+    std::unique_ptr<LiveButton> liveBtn;
+    std::unique_ptr<juce::Component> liveWindow;      // fullscreen Live view
+    LiveView* fullscreenLive = nullptr;
+    int guiScale = 100;
+    int shownDisplayState = -1;
+    bool shownLive = false;
     void timer17();
     int shownLatencyStatus = -1;
     juce::Array<juce::MidiDeviceInfo> fbDevices;

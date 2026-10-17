@@ -303,6 +303,7 @@ LiveLooperEditor::LiveLooperEditor (LiveLooperProcessor& p)
 
     initFeatures16();      // v1.6
     initKo2();             // v1.6 K.O. II / punch FX / Controller GUI
+    initDisplay();         // v1.7 theme, stage mode, waveforms, Live view
     // v1.6 rhythm: BEATS page, FILL, drums through the performance FX
     beatsBtn.onClick = [this] { showBeatsPage (! isBeatsPageVisible()); };
     beatsBtn.setTooltip ("BEATS: step sequencer for the drums - build your own patterns");
@@ -336,6 +337,8 @@ LiveLooperEditor::LiveLooperEditor (LiveLooperProcessor& p)
 
     setResizable (true, true);
     applyVisibleTracks();
+    if (guiScale != 100)   // v1.7: the remembered interface size
+        setSize (juce::roundToInt ((float) surfaceWidth() * (float) guiScale / 100.0f), juce::roundToInt ((float) kBaseHeight * (float) guiScale / 100.0f));
     updatePerformanceLabels();
     startTimerHz (30);
 
@@ -413,6 +416,7 @@ void LiveLooperEditor::layoutSurface()
     layoutFeatures16 (dx);      // v1.6
     layoutKo2 (dx);             // v1.6 K.O. II chip, toast, controller view
     layoutRhythm16 (dx);
+    layoutDisplay (dx);         // v1.7 LIVE button, Live view
 
     auto tracks = layout::tracks.withWidth (layout::tracks.getWidth() + dx);
     const int visible = proc.getVisibleTracks();
@@ -488,7 +492,9 @@ void LiveLooperEditor::renderSurfaceCache()
     const int dx = w - kBaseWidth;
 
     // deep background with a faint brand glow behind the glass
-    juce::ColourGradient bg (juce::Colour (0xff1b1b21), 0.0f, 0.0f, juce::Colour (0xff0c0c10), 0.0f, (float) h, false);
+    const bool stageDark = theme::isStage() && ! theme::isLight();     // v1.7 themes
+    juce::ColourGradient bg (stageDark ? juce::Colour (0xff050506) : theme::pick (0xff1b1b21, 0xfff1f2f6), 0.0f, 0.0f,
+                             stageDark ? juce::Colour (0xff000000) : theme::pick (0xff0c0c10, 0xffdfe2e9), 0.0f, (float) h, false);
     g.setGradientFill (bg);
     g.fillAll();
     auto glow = [&g] (float cx, float cy, float r, juce::Colour c, float a) {
@@ -496,9 +502,12 @@ void LiveLooperEditor::renderSurfaceCache()
         g.setGradientFill (rg);
         g.fillEllipse (cx - r, cy - r, r * 2.0f, r * 2.0f);
     };
-    glow (120.0f, 40.0f, 520.0f, colours::brand0, 0.10f);
-    glow ((float) w * 0.45f, (float) h + 80.0f, 620.0f, colours::brand1, 0.08f);
-    glow ((float) w - 80.0f, 160.0f, 560.0f, colours::brand2, 0.10f);
+    if (! stageDark)
+    {
+        glow (120.0f, 40.0f, 520.0f, colours::brand0, 0.10f);
+        glow ((float) w * 0.45f, (float) h + 80.0f, 620.0f, colours::brand1, 0.08f);
+        glow ((float) w - 80.0f, 160.0f, 560.0f, colours::brand2, 0.10f);
+    }
 
     // logo: the classic "livelooper" wordmark with the coloured dots, quiet subtitle
     {
@@ -587,7 +596,7 @@ void LiveLooperEditor::paintSurface (juce::Graphics& g)
         colourKey << proc.getTrackColour (t) << ",";
     const auto key = colourKey + juce::String (surfaceWidth()) + "/" + juce::String (proc.getVisibleTracks()) + "/" + (i18n::isGerman() ? "de" : "en")
                      + "/" + juce::String (fxTab) + "/" + juce::String ((int) selectedInput) + juce::String (selectedSlot)
-                     + "/" + fxType.getBounds().toString() + strips[0]->getBounds().toString();
+                     + "/" + fxType.getBounds().toString() + strips[0]->getBounds().toString() + "/t" + juce::String (theme::version());
     if (key != surfaceCacheKey || surfaceCache.isNull())
     {
         surfaceCacheKey = key;
@@ -625,7 +634,7 @@ void LiveLooperEditor::paintSurface (juce::Graphics& g)
     {
         const auto b = sceneBtns[(size_t) i]->getBounds();
         const bool stored = proc.sceneIsStored (i);
-        const auto c = stored ? (i == last ? colours::yellow : colours::yellow.withAlpha (0.35f)) : juce::Colour (0xff2b2d33);
+        const auto c = stored ? (i == last ? colours::yellow : colours::yellow.withAlpha (0.35f)) : theme::pick (0xff2b2d33, 0xffc4c8d0);
         if (stored && i == last)
         {
             g.setColour (colours::yellow.withAlpha (0.25f));
@@ -869,6 +878,7 @@ void LiveLooperEditor::timerCallback()
 {
     timerFeatures16();     // v1.6
     timer17();             // v1.7
+    timerDisplay();        // v1.7 theme / Live view
     updateKo2Ui();         // v1.6 K.O. II chip / toast / controller view / track colours
     refreshPatternNames();      // v1.6
     blinkCounter = (blinkCounter + 1) % 16;
@@ -1045,6 +1055,19 @@ void LiveLooperEditor::updateKeyboardFocusPolicy()
 
 bool LiveLooperEditor::keyPressed (const juce::KeyPress& key)
 {
+    // v1.7: Esc leaves the Live view; Ctrl / Cmd + and - change the interface size (Ctrl / Cmd 0 = 100 %)
+    if (key == juce::KeyPress::escapeKey && isLiveViewShown() && ! tempoEntry.isVisible())
+    {
+        setLiveView (false);
+        return true;
+    }
+    if (key.getModifiers().isCommandDown() && ! key.getModifiers().isAltDown())
+    {
+        const int code = key.getKeyCode();
+        if (code == '+' || code == '=' || code == juce::KeyPress::numberPadAdd)  { stepGuiScale (1); return true; }
+        if (code == '-' || code == '_' || code == juce::KeyPress::numberPadSubtract) { stepGuiScale (-1); return true; }
+        if (code == '0' || code == juce::KeyPress::numberPad0) { setGuiScale (100); return true; }
+    }
     if (! proc.isKeyboardControlActive() || tempoEntry.isVisible())
         return false;
     const auto action = proc.getKeyMap().getActionFor (key);
@@ -1368,7 +1391,7 @@ void LiveLooperEditor::showSettingsWindow()
     }
     juce::DialogWindow::LaunchOptions o;
     o.dialogTitle = tr ("livelooper setup");
-    o.dialogBackgroundColour = juce::Colour (0xff131318);
+    o.dialogBackgroundColour = theme::pick (0xff131318, 0xfff2f3f6);
     o.content.setOwned (createSettingsPanel().release());
     o.componentToCentreAround = this;
     o.escapeKeyTriggersCloseButton = true;
@@ -1567,6 +1590,8 @@ juce::PopupMenu LiveLooperEditor::buildSetupMenu (juce::Array<int>& toggles)
     addController17Menu (menu, toggles);  // v1.7: velocity curves, Push 1 display, MIDI feedback
     addFeatures16Menu (menu, 2);      // v1.6: controller templates
     // ---- Sync
+    menu.addSectionHeader (tr ("Display"));      // v1.7
+    addDisplayMenu (menu, toggles);
     menu.addSectionHeader (tr ("Sync"));
     menu.addSubMenu (tr ("Ableton Link"), linkMenu);
     // ---- App
@@ -1590,6 +1615,8 @@ void LiveLooperEditor::handleSetupResult (int r)
     if (handleFeatures16Menu (r))      // v1.6
         return;
     if (handleControllerMenu (r))      // v1.6 K.O. II / Controller GUI
+        return;
+    if (handleDisplayMenu (r))         // v1.7 display
         return;
     if (handle17Menu (r))              // v1.7 latency, velocity curves, MIDI feedback
         return;

@@ -131,6 +131,8 @@ set(LIVELOOPER_PLUGIN_SOURCES
     src/plugin/MidiFeedback.cpp
     src/plugin/PluginEditor.cpp
     src/plugin/Editor17.cpp
+    src/plugin/EditorDisplay.cpp
+    src/plugin/LiveView.cpp
     src/plugin/LooperLookAndFeel.cpp
     src/plugin/Widgets.cpp
     src/plugin/BeatsPage.cpp

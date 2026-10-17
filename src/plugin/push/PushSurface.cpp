@@ -681,6 +681,13 @@ void PushSurface::handleButton (int number, bool pressed)
         case cc::undo:       proc.pressTrigger (trackId (selectedTrack, shift ? kRedo : kUndo)); break;
         case cc::automation: toggleParam (gAutoRec); break;
         case cc::master:
+            if (shift)
+            {
+                // v1.7: SHIFT + MASTER = Live view on / off
+                toggleParam (gLiveView);
+                showNotice (i18n::tr (getParam (gLiveView) >= 0.5f ? "Live view on" : "Live view off"));
+                break;
+            }
             metersShown = ! metersShown;
             showNotice (metersShown ? i18n::tr ("Meters on") : i18n::tr ("Meters off"));
             break;
