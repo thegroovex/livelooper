@@ -1,23 +1,142 @@
 name: CI
 
-# Linux runs on every push (cheap). macOS and Windows builds - which produce the
-# VST3/AU plug-ins for every DAW - run on version tags (v*) and on manual start, because
-# macOS minutes count 10x on private repositories.
+# What runs when
+#   push (main, v*-wip), pull request   Linux: build once, then unit tests in 3 parallel shards +
+#                                       VST3 host test + pluginval (parallel jobs on the build artefact)
+#   manual run (Actions -> CI -> Run)   Linux + macOS + Windows plug-ins; installers (macOS .pkg,
+#                                       Windows setup) unless "build_installers" is switched off
+#   tag v*                              everything + GitHub release with all 4 downloads
+#   pull request with label "plugins"   adds the macOS + Windows builds (ZIP only)
+#   pull request with label "installer" adds the macOS + Windows builds incl. installers
+# macOS minutes count 10x on private repositories, so macOS/Windows do not run on every push.
+#
+# Speed: ccache on every OS (key: OS + compiler + branch, restores the newest cache of the branch,
+# then v1.7-wip / main), cached FetchContent deps (JUCE incl. juceaide), concurrency (a new push
+# cancels the running CI of the same branch / PR; tag runs are never cancelled).
+# Docs-only changes (docs/**, *.md, docs/marketing) skip the builds - except the help files that are
+# compiled into the plug-in. Force a full run anyway: "[ci full]" in the commit message, the label
+# "force-ci" on a pull request, or a manual run.
+# "CI result" is the single status to check / require.
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, 'v*-wip' ]
     tags: [ 'v*' ]
   pull_request:
   workflow_dispatch:
+    inputs:
+      build_installers:
+        description: 'Build the installers (macOS .pkg, Windows setup) in addition to the ZIPs'
+        type: boolean
+        default: true
+
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 permissions:
-  contents: write
+  contents: read
+  pull-requests: read
+
+env:
+  CCACHE_DIR: ${{ github.workspace }}/.ccache
+  CCACHE_BASEDIR: ${{ github.workspace }}
+  CCACHE_NOHASHDIR: "true"
+  CCACHE_COMPRESS: "true"
+  CCACHE_MAXSIZE: 1500M
+  CCACHE_SLOPPINESS: time_macros,include_file_mtime,include_file_ctime
+  # CMake reads these as defaults, so the nested juceaide build is cached as well
+  CMAKE_C_COMPILER_LAUNCHER: ccache
+  CMAKE_CXX_COMPILER_LAUNCHER: ccache
+  DEPS_DIR: ${{ github.workspace }}/.deps
+  CCACHE_VERSION: 4.14.1
+  NINJA_VERSION: 1.13.2
+  # branch used in the cache keys (pull requests: the head branch)
+  CACHE_BRANCH: ${{ github.head_ref || github.ref_name }}
 
 jobs:
-  linux:
-    name: Linux - build, unit tests, host test, pluginval
-    runs-on: ubuntu-latest
+  # ------------------------------------------------------------------------------ what to run
+  changes:
+    name: Changes
+    runs-on: ubuntu-24.04
+    outputs:
+      code: ${{ steps.result.outputs.code }}
+      plugins: ${{ steps.result.outputs.plugins }}
+      installers: ${{ steps.result.outputs.installers }}
+    steps:
+      - uses: actions/checkout@v7
+        if: github.event_name == 'push'
+        with:
+          fetch-depth: 0
+
+      - uses: dorny/paths-filter@v4
+        id: filter
+        if: (github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/')) || github.event_name == 'pull_request'
+        with:
+          # pushes: compare with the commit before the push (not with main)
+          base: ${{ github.event_name == 'push' && github.ref_name || '' }}
+          predicate-quantifier: every
+          filters: |
+            code:
+              - '**'
+              - '!docs/**'
+              - '!**/*.md'
+            embedded:
+              - 'docs/en/USER-GUIDE.md'
+              - 'docs/de/BEDIENUNGSANLEITUNG.md'
+              - 'docs/*/PUSH.md'
+              - 'docs/*/MIDI.md'
+              - 'docs/*/INSTALLATION.md'
+              - 'docs/brand/**'
+              - 'THIRD-PARTY.md'
+
+      - id: result
+        env:
+          EVENT: ${{ github.event_name }}
+          IS_TAG: ${{ startsWith(github.ref, 'refs/tags/v') }}
+          FILTER_CODE: ${{ steps.filter.outputs.code }}
+          FILTER_EMBEDDED: ${{ steps.filter.outputs.embedded }}
+          FORCE_MSG: ${{ contains(github.event.head_commit.message, '[ci full]') }}
+          LABEL_FORCE: ${{ contains(github.event.pull_request.labels.*.name, 'force-ci') }}
+          LABEL_PLUGINS: ${{ contains(github.event.pull_request.labels.*.name, 'plugins') }}
+          LABEL_INSTALLER: ${{ contains(github.event.pull_request.labels.*.name, 'installer') }}
+          INPUT_INSTALLERS: ${{ github.event.inputs.build_installers }}
+        run: |
+          code=true; plugins=false; installers=false
+          if [ "$IS_TAG" = true ]; then
+            plugins=true; installers=true
+          else
+            case "$EVENT" in
+              push|pull_request)
+                if [ "$FILTER_CODE" != true ] && [ "$FILTER_EMBEDDED" != true ] \
+                   && [ "$FORCE_MSG" != true ] && [ "$LABEL_FORCE" != true ]; then code=false; fi
+                if [ "$EVENT" = pull_request ]; then
+                  [ "$LABEL_PLUGINS" = true ] && plugins=true
+                  [ "$LABEL_INSTALLER" = true ] && { plugins=true; installers=true; }
+                fi ;;
+              workflow_dispatch)
+                plugins=true
+                [ "$INPUT_INSTALLERS" = false ] || installers=true ;;
+            esac
+          fi
+          [ "$code" = true ] || { plugins=false; installers=false; }
+          { echo "code=$code"; echo "plugins=$plugins"; echo "installers=$installers"; } >> "$GITHUB_OUTPUT"
+          echo "code changes: $code | macOS + Windows: $plugins | installers: $installers"
+
+  docs-only:
+    name: Docs only (builds skipped)
+    needs: changes
+    if: needs.changes.outputs.code != 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo "Only docs/** or *.md changed - builds and tests skipped. Force with '[ci full]' in the commit message, label 'force-ci' or a manual run."
+
+  # ------------------------------------------------------------------------------ Linux
+  linux-build:
+    name: Linux build
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
         with:
@@ -26,17 +145,114 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build libasound2-dev libfreetype-dev libfontconfig1-dev \
-            libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxext-dev libgl1-mesa-dev xvfb
+          sudo apt-get install -y ninja-build ccache libasound2-dev libfreetype-dev libfontconfig1-dev \
+            libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxext-dev libgl1-mesa-dev
+
+      - name: Cache keys
+        id: keys
+        run: |
+          echo "cc=gcc$(gcc -dumpfullversion)" >> "$GITHUB_OUTPUT"
+          echo "juce=$(grep -A3 'FetchContent_Declare(JUCE' CMakeLists.txt | grep -oE 'GIT_TAG +[^ )]+' | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+
+      - name: Compiler cache
+        uses: actions/cache@v6
+        with:
+          path: .ccache
+          key: ccache-${{ runner.os }}-${{ runner.arch }}-${{ steps.keys.outputs.cc }}-${{ env.CACHE_BRANCH }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ccache-${{ runner.os }}-${{ runner.arch }}-${{ steps.keys.outputs.cc }}-${{ env.CACHE_BRANCH }}-
+            ccache-${{ runner.os }}-${{ runner.arch }}-${{ steps.keys.outputs.cc }}-v1.7-wip-
+            ccache-${{ runner.os }}-${{ runner.arch }}-${{ steps.keys.outputs.cc }}-main-
+            ccache-${{ runner.os }}-${{ runner.arch }}-${{ steps.keys.outputs.cc }}-
+
+      - name: Dependency cache (JUCE + juceaide)
+        uses: actions/cache@v6
+        with:
+          path: .deps
+          key: deps-${{ runner.os }}-${{ runner.arch }}-${{ steps.keys.outputs.cc }}-juce${{ steps.keys.outputs.juce }}-ninja-v1
 
       - name: Configure
-        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            "-DFETCHCONTENT_BASE_DIR=$DEPS_DIR" -DFETCHCONTENT_UPDATES_DISCONNECTED=ON
 
       - name: Build
-        run: cmake --build build --target livelooper_VST3 livelooper_tests livelooper_hosttest
+        run: |
+          ccache -z
+          cmake --build build --target livelooper_VST3 livelooper_tests livelooper_hosttest
+          ccache -s
 
-      - name: Unit tests + VST3 host test
-        run: xvfb-run -a ctest --test-dir build --output-on-failure
+      - name: Pack binaries (tests, host test, VST3)
+        run: |
+          tar -cf build-linux.tar build/livelooper_artefacts/Release/VST3 \
+            build/livelooper_tests_artefacts/Release/livelooper_tests \
+            build/livelooper_hosttest_artefacts/Release/livelooper_hosttest
+          ls -l build-linux.tar
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: build-linux
+          path: build-linux.tar
+          retention-days: 3
+          compression-level: 1
+
+  linux-unit-tests:
+    name: Linux unit tests (${{ matrix.shard }}/3)
+    needs: linux-build
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: build-linux
+
+      - name: Unpack
+        run: tar -xf build-linux.tar && rm build-linux.tar
+
+      - name: Runtime dependencies (only if missing on the image)
+        run: |
+          B=build/livelooper_tests_artefacts/Release/livelooper_tests
+          if ! command -v xvfb-run >/dev/null || ldd "$B" | grep -q 'not found'; then
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends xvfb xauth libasound2t64 libfreetype6 libfontconfig1 \
+              libx11-6 libxrandr2 libxinerama1 libxcursor1 libxext6 libgl1
+          fi
+
+      - name: Unit tests (shard ${{ matrix.shard }}/3)
+        run: |
+          set -o pipefail
+          xvfb-run -a build/livelooper_tests_artefacts/Release/livelooper_tests --shard ${{ matrix.shard }}/3 2>&1 | tee ctest.log || {
+            grep -E '!!!|FAILED|failed' ctest.log | head -n 40 | while IFS= read -r line; do echo "::error title=Unit test::$line"; done
+            exit 1
+          }
+
+  linux-host-test:
+    name: Linux VST3 host test + pluginval
+    needs: linux-build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: build-linux
+
+      - name: Unpack
+        run: tar -xf build-linux.tar && rm build-linux.tar
+
+      - name: Runtime dependencies (only if missing on the image)
+        run: |
+          B=build/livelooper_hosttest_artefacts/Release/livelooper_hosttest
+          if ! command -v xvfb-run >/dev/null || ldd "$B" | grep -q 'not found' \
+             || ldd build/livelooper_artefacts/Release/VST3/livelooper.vst3/Contents/x86_64-linux/livelooper.so | grep -q 'not found'; then
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends xvfb xauth libasound2t64 libfreetype6 libfontconfig1 \
+              libx11-6 libxrandr2 libxinerama1 libxcursor1 libxext6 libgl1
+          fi
+
+      - name: VST3 host test
+        run: LIVELOOPER_LANGUAGE=en xvfb-run -a build/livelooper_hosttest_artefacts/Release/livelooper_hosttest build/livelooper_artefacts/Release/VST3/livelooper.vst3
 
       - name: pluginval (strictness 5)
         run: |
@@ -45,10 +261,11 @@ jobs:
           xvfb-run -a ./pluginval --strictness-level 5 --skip-gui-tests --validate-in-process \
             --validate build/livelooper_artefacts/Release/VST3/livelooper.vst3
 
+  # ------------------------------------------------------------------------------ macOS + Windows
   plugins:
     name: ${{ matrix.name }} - plug-in build
-    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
-    needs: linux
+    needs: changes
+    if: needs.changes.outputs.plugins == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -62,24 +279,85 @@ jobs:
             pluginval: pluginval_Windows.zip
             pluginvalBin: ./pluginval.exe
     runs-on: ${{ matrix.os }}
+    env:
+      INSTALLERS: ${{ needs.changes.outputs.installers }}
     steps:
       - uses: actions/checkout@v7
         with:
           submodules: recursive
 
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows'
+        with:
+          arch: x64
+
+      - name: Install Ninja + ccache
+        shell: bash
+        run: |
+          T="$RUNNER_TEMP/tools"; mkdir -p "$T"; cd "$T"
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            curl -sSL -o ccache.tgz "https://github.com/ccache/ccache/releases/download/v$CCACHE_VERSION/ccache-$CCACHE_VERSION-darwin.tar.gz"
+            tar -xzf ccache.tgz && cp "ccache-$CCACHE_VERSION-darwin/ccache" .
+            curl -sSL -o ninja.zip "https://github.com/ninja-build/ninja/releases/download/v$NINJA_VERSION/ninja-mac.zip"
+          else
+            curl -sSL -o ccache.zip "https://github.com/ccache/ccache/releases/download/v$CCACHE_VERSION/ccache-$CCACHE_VERSION-windows-x86_64.zip"
+            unzip -q ccache.zip && cp "ccache-$CCACHE_VERSION-windows-x86_64/ccache.exe" .
+            curl -sSL -o ninja.zip "https://github.com/ninja-build/ninja/releases/download/v$NINJA_VERSION/ninja-win.zip"
+          fi
+          unzip -q -o ninja.zip
+          echo "$T" >> "$GITHUB_PATH"
+
+      - name: Cache keys
+        id: keys
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            cc="appleclang$(clang --version | head -n1 | grep -oE '[0-9]+(\.[0-9]+)+' | head -n1)-universal"
+          else
+            cc="msvc$(cl 2>&1 | head -n1 | grep -oE '[0-9]+(\.[0-9]+)+' | head -n1)"
+          fi
+          echo "cc=$cc" >> "$GITHUB_OUTPUT"
+          echo "juce=$(grep -A3 'FetchContent_Declare(JUCE' CMakeLists.txt | grep -oE 'GIT_TAG +[^ )]+' | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+          echo "compiler: $cc"; which ninja ccache cmake
+
+      - name: Compiler cache
+        uses: actions/cache@v6
+        with:
+          path: .ccache
+          key: ccache-${{ runner.os }}-${{ runner.arch }}-${{ steps.keys.outputs.cc }}-${{ env.CACHE_BRANCH }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ccache-${{ runner.os }}-${{ runner.arch }}-${{ steps.keys.outputs.cc }}-${{ env.CACHE_BRANCH }}-
+            ccache-${{ runner.os }}-${{ runner.arch }}-${{ steps.keys.outputs.cc }}-v1.7-wip-
+            ccache-${{ runner.os }}-${{ runner.arch }}-${{ steps.keys.outputs.cc }}-main-
+            ccache-${{ runner.os }}-${{ runner.arch }}-${{ steps.keys.outputs.cc }}-
+
+      - name: Dependency cache (JUCE + juceaide)
+        uses: actions/cache@v6
+        with:
+          path: .deps
+          key: deps-${{ runner.os }}-${{ runner.arch }}-${{ steps.keys.outputs.cc }}-juce${{ steps.keys.outputs.juce }}-ninja-v1
+
       - name: Configure
         shell: bash
         run: |
           if [ "${{ runner.os }}" = "macOS" ]; then
-            cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+            cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release "-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64" \
+              "-DFETCHCONTENT_BASE_DIR=$DEPS_DIR" -DFETCHCONTENT_UPDATES_DISCONNECTED=ON
           else
-            cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+            cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl \
+              "-DFETCHCONTENT_BASE_DIR=$DEPS_DIR" -DFETCHCONTENT_UPDATES_DISCONNECTED=ON
           fi
 
-      - name: Build
-        run: cmake --build build --config Release --parallel 4
+      - name: Build (plug-ins, app, tests - no screenshot tool)
+        shell: bash
+        run: |
+          ccache -z
+          T="livelooper_VST3 livelooper_Standalone livelooper_tests livelooper_hosttest"
+          [ "${{ runner.os }}" = "macOS" ] && T="$T livelooper_AU"
+          cmake --build build --target $T
+          ccache -s
 
-      - name: Unit tests
+      - name: Unit tests + VST3 host test
         shell: bash
         run: |
           set -o pipefail
@@ -138,7 +416,7 @@ jobs:
           ls -l ../livelooper-${{ matrix.name }}.zip livelooper-${{ matrix.name }}.zip 2>/dev/null || true
 
       - name: Installer (macOS .pkg)
-        if: runner.os == 'macOS'
+        if: runner.os == 'macOS' && env.INSTALLERS == 'true'
         shell: bash
         run: |
           set -e
@@ -172,7 +450,7 @@ jobs:
           ls -l livelooper-macOS.pkg
 
       - name: Installer (Windows setup)
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && env.INSTALLERS == 'true'
         shell: bash
         run: |
           set -e
@@ -190,33 +468,63 @@ jobs:
         with:
           name: livelooper-${{ matrix.name }}
           path: livelooper-${{ matrix.name }}.zip
+          if-no-files-found: error
 
       - uses: actions/upload-artifact@v7
-        if: runner.os == 'macOS'
+        if: runner.os == 'macOS' && env.INSTALLERS == 'true'
         with:
           name: livelooper-macOS-pkg
           path: livelooper-macOS.pkg
+          if-no-files-found: error
 
       - uses: actions/upload-artifact@v7
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && env.INSTALLERS == 'true'
         with:
           name: livelooper-Windows-Setup
           path: livelooper-Windows-Setup.exe
+          if-no-files-found: error
 
+  # ------------------------------------------------------------------------------ release + result
   release:
     name: GitHub release
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: plugins
-    runs-on: ubuntu-latest
+    needs: [ plugins, linux-unit-tests, linux-host-test ]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
     steps:
       - uses: actions/download-artifact@v8
         with:
+          pattern: livelooper-*
           path: artifacts
+
+      - name: All 4 downloads present
+        run: |
+          for f in livelooper-Windows/livelooper-Windows.zip livelooper-Windows-Setup/livelooper-Windows-Setup.exe \
+                   livelooper-macOS/livelooper-macOS.zip livelooper-macOS-pkg/livelooper-macOS.pkg; do
+            test -s "artifacts/$f" || { echo "::error::missing artifacts/$f"; exit 1; }
+          done
+
       - uses: softprops/action-gh-release@v3
         with:
           # ZIPs stay the primary / manual way; the installers are the comfortable alternative
           files: |
-            artifacts/**/*.zip
-            artifacts/**/livelooper-macOS.pkg
-            artifacts/**/livelooper-Windows-Setup.exe
+            artifacts/livelooper-Windows/livelooper-Windows.zip
+            artifacts/livelooper-macOS/livelooper-macOS.zip
+            artifacts/livelooper-macOS-pkg/livelooper-macOS.pkg
+            artifacts/livelooper-Windows-Setup/livelooper-Windows-Setup.exe
           generate_release_notes: true
+
+  result:
+    name: CI result
+    if: always()
+    needs: [ changes, docs-only, linux-build, linux-unit-tests, linux-host-test, plugins, release ]
+    runs-on: ubuntu-24.04
+    steps:
+      - env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "job results: $RESULTS"
+          for r in $RESULTS; do
+            case "$r" in success|skipped) ;; *) echo "::error::a CI job ended with '$r'"; exit 1 ;; esac
+          done
