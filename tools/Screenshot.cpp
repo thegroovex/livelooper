@@ -400,6 +400,85 @@ int main (int argc, char* argv[])
         panel.setLookAndFeel (nullptr);
     }
 
+    // v1.7 display: light theme, stage mode, waveforms, Live view, SETUP > Display (EN + DE)
+    {
+        auto setParam = [&proc] (const juce::String& id, float normalised) {
+            proc.getState().getParameter (id)->setValueNotifyingHost (normalised);
+        };
+        auto frames = [&proc] (int n) {
+            for (int f = 0; f < n; ++f)
+            {
+                runBlocks (proc, 3, 0.4f);
+                juce::MessageManager::getInstance()->runDispatchLoopUntil (40);
+            }
+        };
+        // an overdub layer on track 1 for the waveform pictures (track 2 keeps overdubbing)
+        press (proc, "t1_recplay"); runBlocks (proc, 120, 0.25f);
+        press (proc, "t1_recplay"); runBlocks (proc, 30, 0.0f);
+        for (const auto& [language, suffix] : { std::pair<i18n::Language, const char*> { i18n::Language::English, "" },
+                                                std::pair<i18n::Language, const char*> { i18n::Language::German, "-de" } })
+        {
+            i18n::setSetting (language, false);
+            const juce::String sfx (suffix);
+            ed->showStatus ({});
+            setParam (gUiTheme, 1.0f);
+            frames (6);
+            save (*editor, outDir.getChildFile ("livelooper-light" + sfx + ".png"));
+            {
+                auto panel = ed->createSettingsPanel();
+                if (auto* sp = dynamic_cast<SettingsPanel*> (panel.get()))
+                {
+                    sp->showPage (i18n::tr ("Display"));
+                    juce::MessageManager::getInstance()->runDispatchLoopUntil (80);
+                    save (*sp, outDir.getChildFile ("livelooper-setup-display-light" + sfx + ".png"));
+                }
+            }
+            setParam (gUiTheme, 0.0f);
+            setParam (gStageMode, 1.0f);
+            frames (6);
+            save (*editor, outDir.getChildFile ("livelooper-stage" + sfx + ".png"));
+            setParam (gStageMode, 0.0f);
+            setParam (gWaveforms, 1.0f);
+            frames (6);
+            save (*editor, outDir.getChildFile ("livelooper-waveforms" + sfx + ".png"));
+            save (*editor, outDir.getChildFile ("livelooper-waveforms-2x" + sfx + ".png"), 2.0f);
+            setParam (gWaveforms, 0.0f);
+            setParam (gPfxAmount, 0.62f);
+            setParam (gLiveView, 1.0f);
+            frames (6);
+            save (*editor, outDir.getChildFile ("livelooper-live" + sfx + ".png"));
+            setParam (gStageMode, 1.0f);
+            frames (6);
+            save (*editor, outDir.getChildFile ("livelooper-live-stage" + sfx + ".png"));
+            setParam (gStageMode, 0.0f);
+            setParam (gUiTheme, 1.0f);
+            frames (6);
+            save (*editor, outDir.getChildFile ("livelooper-live-light" + sfx + ".png"));
+            setParam (gUiTheme, 0.0f);
+            setParam (gLiveView, 0.0f);
+            frames (4);
+            {
+                auto panel = ed->createSettingsPanel();
+                if (auto* sp = dynamic_cast<SettingsPanel*> (panel.get()))
+                {
+                    sp->showPage (i18n::tr ("Display"));
+                    juce::MessageManager::getInstance()->runDispatchLoopUntil (80);
+                    save (*sp, outDir.getChildFile ("livelooper-setup-display" + sfx + ".png"));
+                }
+            }
+        }
+        // interface size 75 % (rendered at its real size)
+        ed->setGuiScale (75);
+        frames (3);
+        ed->showStatus ({});
+        frames (2);
+        save (*editor, outDir.getChildFile ("livelooper-size-75.png"));
+        ed->setGuiScale (100);
+        ed->showStatus ({});
+        frames (2);
+        i18n::setSetting (i18n::Language::English, false);
+    }
+
     // optional 8 tracks
     editor.reset();
     proc.setVisibleTracks (8);
