@@ -75,6 +75,7 @@ Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
 - **Clip export 9:16**: the last 20 seconds (or a recording) as a branded vertical video for Reels, TikTok and Shorts
 - **Share sets**: one `.livelooper` file with all audio, opened by drag and drop – the demo set is in [`presets`](presets/)
 - **Controller templates** for Launchpad Mini MK3 / X, APC mini mk2 and Launchkey MK3 / MK4 pads (auto-detected, with LED feedback) – *experimental – untested on hardware, feedback welcome*
+- **Supported controllers**: Ableton Push 1 (full integration, no mapping) and the K.O. II sampler (*experimental – please test*): plug and play as controller (4 pad pages) or record it, livelooper as clock master, resample its pattern; Controller GUI for both
 
 *Drums and BEATS*
 
@@ -87,7 +88,6 @@ Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
 - **Push 1 STEP mode**: the pads as a step sequencer, FILL on IN
 - **Punch FX and Send FX**: 12 quick effects you hold (tape stop, beat repeat, filters, grains …), pressure or velocity = amount, plus a send effect on the loops
 - **Push 1 additions**: pad pressure chops a loop (1/4 – 1/32), every FX on the XY pad, beat flash and set-recording pads, encoder double touch, track colours
-- **EP-133 K.O. II (experimental – please test)**: plug and play as controller (4 pad pages) or record it, livelooper as clock master, resample its pattern; Controller GUI for Push 1 and K.O. II
 - **Beat library**: SAVE stores a beat by name (steps, velocities, length, swing, row mixer), LOAD lists your saved beats or opens a file; step through them with the host parameters *Next / Previous Library Beat*
 <!-- end v1.6 features -->
 
@@ -153,7 +153,7 @@ Everything else is in the **[User Guide](docs/en/USER-GUIDE.md)**, MIDI control 
 | [USER-GUIDE.md](docs/en/USER-GUIDE.md) | Interface, all functions, beat FX, beat repeat / stutter, colour FX, rhythm, Link, setup, language, latency, Live view, display, loop length (1.7) |
 | [MIDI.md](docs/en/MIDI.md) | MIDI learn, your DAW's MIDI mapping, default mapping, parameter list |
 | [PUSH.md](docs/en/PUSH.md) | Ableton Push control (in any DAW and standalone): setup, pad layout, encoders, FX XY pad, performance FX, STEP mode |
-| [KO2.md](docs/en/KO2.md) | EP-133 K.O. II control (experimental – please test): pages, roles, clock, recording, test list |
+| [KO2.md](docs/en/KO2.md) | K.O. II control (experimental – please test): pages, roles, clock, recording, test list |
 | [SOUND-PACKS.md](docs/en/SOUND-PACKS.md) | Sound packs: installing, folder layout, the pack and pattern format (for making and selling packs) |
 | [DEVELOPMENT.md](docs/en/DEVELOPMENT.md) | Building from source, architecture, tests, CI, translations |
 

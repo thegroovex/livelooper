@@ -75,6 +75,7 @@ Einrichtung und komplette Belegung: **[PUSH.md](docs/de/PUSH.md)**.
 - **Clip-Export 9:16**: die letzten 20 Sekunden (oder eine Aufnahme) als gebrandetes Hochformat-Video für Reels, TikTok und Shorts
 - **Sets teilen**: eine `.livelooper`-Datei mit allem Audio, per Drag & Drop geöffnet – das Demo-Set liegt in [`presets`](presets/)
 - **Controller-Vorlagen** für Launchpad Mini MK3 / X, APC mini mk2 und die Pads von Launchkey MK3 / MK4 (automatisch erkannt, mit LED-Rückmeldung) – *experimentell – nicht auf Hardware getestet, Feedback willkommen*
+- **Unterstützte Controller**: Ableton Push 1 (volle Integration, ohne Mapping) und der Sampler K.O. II (*experimentell – bitte testen*): anschließen und loslegen als Controller (4 Pad-Seiten) oder aufnehmen, livelooper als Clock-Master, Pattern resamplen; Controller-Oberfläche für beide
 
 *Drums und BEATS*
 
@@ -87,7 +88,6 @@ Einrichtung und komplette Belegung: **[PUSH.md](docs/de/PUSH.md)**.
 - **Push-1-STEP-Modus**: die Pads als Step-Sequencer, FILL auf IN
 - **Punch-FX und Send-FX**: 12 schnelle Effekte zum Halten (Bandstopp, Beat-Repeat, Filter, Granular …), Druck oder Anschlagstärke = Stärke, dazu ein Send-Effekt auf den Loops
 - **Push-1-Ergänzungen**: Pad-Druck zerhackt einen Loop (1/4 – 1/32), alle FX auf dem XY-Pad, Beat-Blinker und Set-Aufnahme-Pad, Encoder doppelt berühren, Spurfarben
-- **EP-133 K.O. II (experimentell – bitte testen)**: anschließen und loslegen als Controller (4 Pad-Seiten) oder aufnehmen, livelooper als Clock-Master, Pattern resamplen; Controller-Oberfläche für Push 1 und K.O. II
 - **Beat-Bibliothek**: SPEICHERN legt einen Beat unter seinem Namen ab (Schritte, Dynamik, Länge, Swing, Zeilen-Mixer), LADEN listet deine gespeicherten Beats oder öffnet eine Datei; mit den Host-Parametern *Nächster / Vorheriger Bibliotheks-Beat* blätterst du durch
 <!-- end v1.6 features -->
 
@@ -153,7 +153,7 @@ Alles Weitere steht in der **[Bedienungsanleitung](docs/de/BEDIENUNGSANLEITUNG.m
 | [BEDIENUNGSANLEITUNG.md](docs/de/BEDIENUNGSANLEITUNG.md) | Oberfläche, alle Funktionen, Beat-FX, Beat Repeat / Stutter, Color-FX, Rhythmus, Link, Setup, Sprache, Latenz, Live-Ansicht, Anzeige, Loop-Länge (1.7) |
 | [MIDI.md](docs/de/MIDI.md) | MIDI-Learn, MIDI-Mapping deiner DAW, Standard-Belegung, Parameterliste |
 | [PUSH.md](docs/de/PUSH.md) | Steuerung mit Ableton Push (in jeder DAW und standalone): Einrichtung, Pad-Belegung, Encoder, FX-XY-Pad, Performance-FX, STEP-Modus |
-| [KO2.md](docs/de/KO2.md) | EP-133 K.O. II steuern (experimentell – bitte testen): Seiten, Rollen, Clock, Aufnahme, Testliste |
+| [KO2.md](docs/de/KO2.md) | K.O. II steuern (experimentell – bitte testen): Seiten, Rollen, Clock, Aufnahme, Testliste |
 | [SOUND-PACKS.md](docs/de/SOUND-PACKS.md) | Sound-Packs: Installation, Ordner-Aufbau, Pack- und Pattern-Format (zum Bauen und Verkaufen von Packs) |
 | [ENTWICKLUNG.md](docs/de/ENTWICKLUNG.md) | Bauen aus dem Quellcode, Architektur, Tests, CI, Übersetzungen |
 

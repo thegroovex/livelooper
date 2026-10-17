@@ -635,7 +635,7 @@ halten*, *Send-FX-Typ / X / Y / -Anteil*.
 
 ![Controller-Ansicht: Push 1](../images/livelooper-controller-push-de.png)
 
-Ist ein unterstützter Controller verbunden (Ableton Push 1, EP-133 K.O. II – experimentell), bietet *SETUP →
+Ist ein unterstützter Controller verbunden (Ableton Push 1, K.O. II – experimentell), bietet *SETUP →
 Controller → Oberfläche* die Wahl **Controller**: statt der Standard-Oberfläche zeigt livelooper eine
 Zeichnung des Controllers mit dem Live-Zustand des Loopers auf Pads, Tasten und Display. Klick auf ein
 gezeichnetes Pad oder eine Taste drückt es. *◀ Standard* führt zurück; beim Abziehen springt livelooper

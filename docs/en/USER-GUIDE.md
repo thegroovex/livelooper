@@ -599,7 +599,7 @@ Target / Latch*, *Send FX Type / X / Y / Amount*.
 
 ![Controller view: Push 1](../images/livelooper-controller-push.png)
 
-With a supported controller connected (Ableton Push 1, EP-133 K.O. II – experimental), *SETUP → Controllers →
+With a supported controller connected (Ableton Push 1, K.O. II – experimental), *SETUP → Controllers →
 GUI* offers **Controller**: instead of the standard surface livelooper shows a drawing of the controller with
 the live looper state on its pads, buttons and display. Click a drawn pad or button to press it.
 *◀ Standard* goes back; unplugging the controller falls back to the standard surface automatically. Push 1:
