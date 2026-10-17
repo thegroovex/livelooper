@@ -157,6 +157,8 @@ void LiveLooperEditor::applyDisplaySettings (bool force)
         TrackStrip::showWaveforms = waves;
         lookAndFeel.applyTheme();
         sendLookAndFeelChange();
+        if (! force)
+            layoutSurface();        // stage mode type changes the logo width (LIVE button position)
         surfaceCacheKey = {};
         repaint();
         surface.repaint();

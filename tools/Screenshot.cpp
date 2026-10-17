@@ -408,13 +408,22 @@ int main (int argc, char* argv[])
         auto frames = [&proc] (int n) {
             for (int f = 0; f < n; ++f)
             {
-                runBlocks (proc, 3, 0.4f);
+                runBlocks (proc, 1, 0.4f);
                 juce::MessageManager::getInstance()->runDispatchLoopUntil (40);
             }
         };
-        // an overdub layer on track 1 for the waveform pictures (track 2 keeps overdubbing)
-        press (proc, "t1_recplay"); runBlocks (proc, 120, 0.25f);
-        press (proc, "t1_recplay"); runBlocks (proc, 30, 0.0f);
+        // the same set as the main picture (earlier pictures changed the track states):
+        // track 1 plays, track 2 overdubs (its overdub layer shows), track 3 stopped, track 4 records, track 5 empty
+        press (proc, gClearAll); runBlocks (proc, 40, 0.0f);
+        press (proc, "t1_recplay"); runBlocks (proc, 300, 0.4f);
+        press (proc, "t1_recplay"); runBlocks (proc, 60, 0.0f);
+        press (proc, "t2_recplay"); runBlocks (proc, 200, 0.3f);
+        press (proc, "t2_recplay"); runBlocks (proc, 20, 0.0f);
+        press (proc, "t2_recplay"); runBlocks (proc, 70, 0.2f);
+        press (proc, "t3_recplay"); runBlocks (proc, 150, 0.3f);
+        press (proc, "t3_recplay"); runBlocks (proc, 2, 0.0f);
+        press (proc, "t3_stop");    runBlocks (proc, 2, 0.0f);
+        press (proc, "t4_recplay"); runBlocks (proc, 40, 0.5f);
         for (const auto& [language, suffix] : { std::pair<i18n::Language, const char*> { i18n::Language::English, "" },
                                                 std::pair<i18n::Language, const char*> { i18n::Language::German, "-de" } })
         {
