@@ -2,6 +2,12 @@
 
 [English](README.md) | **Deutsch**
 
+<p align="center">
+  <a href="https://github.com/thegroovex/livelooper/releases/latest"><img src="https://img.shields.io/github/v/release/thegroovex/livelooper?style=for-the-badge&label=%E2%AC%87%20Neueste%20Version%20herunterladen&color=FF2D6F&labelColor=B14BFF" alt="⬇ Neueste Version herunterladen" height="40"></a>
+</p>
+
+<p align="center"><b><a href="https://github.com/thegroovex/livelooper/releases/latest">⬇ Neueste Version herunterladen</a></b> – Installer für <b>Windows</b> (<code>livelooper-Windows-Setup.exe</code>) und <b>macOS</b> (<code>livelooper-macOS.pkg</code>), dazu ZIPs · <a href="docs/de/INSTALLATION.md">Installation</a></p>
+
 **livelooper ist ein Instrument, kein Rekorder.** Eine Loop-Station mit fünf oder acht Spuren für deine DAW – ein VST3- und Audio-Unit-Plug-in für alle kompatiblen Hosts (Ableton Live, Bitwig Studio, Cubase, Studio One, Reaper, FL Studio, Logic Pro, GarageBand …), zusätzlich als Standalone-App –, gebaut zum *Spielen*: eine Idee erforschen, schichten, verbiegen und live aufführen – mit den Händen auf einem **Ableton Push**, einem MIDI-Controller oder der Computertastatur und dem Blick beim Publikum statt auf dem Bildschirm.
 
 ![livelooper](docs/images/livelooper-de.png)
