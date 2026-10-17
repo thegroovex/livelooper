@@ -1083,6 +1083,14 @@ void LooperEngine::updateStatus() noexcept
         st.canRedo.store (tr.canRedo());
         st.stopping.store (tr.isStopping());
         st.recordingSpan.store (tr.getRecordingSpan() > 0);
+        {
+            // v1.7 loop length shown in the GUI / on Push
+            int rb = recLengthBars[(size_t) t];
+            const double barSamples = measurePpq * samplesPerPpq;
+            if (tr.getState() == LoopTrack::State::Recording && tr.getRecordingSpan() > 0 && barSamples > 0.0)
+                rb = std::max (1, (int) std::lround (tr.getRecordingSpan() / barSamples));
+            st.recBars.store (rb);
+        }
         st.cut.store (tr.isCut() || cutPending[(size_t) t].active);
         st.pendingTrick.store (trickPending[(size_t) t].active ? trickPending[(size_t) t].kind : -1);   // v1.6
         float ghost = -1.0f;

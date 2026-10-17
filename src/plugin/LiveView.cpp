@@ -43,6 +43,9 @@ LiveView::LiveView (LiveLooperProcessor& p, std::function<TrackStrip*(int)> stri
         c.level->setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
         c.levelAtt = std::make_unique<APVTS::SliderAttachment> (st, trackId (t, kLevel), *c.level);
         setParamId (*c.level, trackId (t, kLevel));
+        c.length = std::make_unique<LoopLengthPill> (proc, t);
+        c.length->setLarge (true);
+        addChildComponent (*c.length);
         addChildComponent (*c.pad);
         addChildComponent (*c.stop);
         addChildComponent (*c.level);
@@ -174,6 +177,8 @@ void LiveView::resized()
         c.stop->setVisible (shown);
         c.level->setVisible (shown);
         if (! shown)
+            c.length->setVisible (false);
+        if (! shown)
         {
             cards[(size_t) t] = {};
             continue;
@@ -181,7 +186,13 @@ void LiveView::resized()
         const auto card = juce::Rectangle<int> (b.getX() + t * (w + kGap), b.getY(), w, b.getHeight());
         cards[(size_t) t] = card;
         auto inner = card.reduced (14, 12);
-        inner.removeFromTop (30);                                           // title
+        {
+            // title; v1.7: the loop length pill on its right while the track is empty / recording
+            auto title = inner.removeFromTop (30);
+            const int ph = 24;
+            const int pw = juce::jmin (c.length->getPreferredWidth (ph), title.getWidth() - 96);
+            c.length->setBounds (title.removeFromRight (pw).withSizeKeepingCentre (pw, ph));
+        }
         c.display = inner.removeFromTop (juce::jlimit (120, 205, inner.getHeight() * 205 / 560));
         inner.removeFromTop (8);
         c.stop->setBounds (inner.removeFromBottom (48));
@@ -211,6 +222,16 @@ void LiveView::refresh (bool blinkPhase)
         }
         repaint (c.display);
         repaint (c.levelCaption);
+        {
+            // v1.7: the loop length matters until the first loop exists
+            const auto& ts = proc.getEngine().getTrackStatus (t);
+            const auto state = (LoopTrack::State) ts.state.load();
+            const bool want = state == LoopTrack::State::Empty || state == LoopTrack::State::Recording;
+            if (c.length->isVisible() != want)
+                c.length->setVisible (want);
+            if (want)
+                c.length->refresh();
+        }
     }
     if (proc.getVisibleTracks() != numCards)
         resized();

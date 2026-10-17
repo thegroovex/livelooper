@@ -169,6 +169,22 @@ void PushSurface::handleMidi (const juce::MidiMessage& m)
 
 void PushSurface::handlePad (int row, int column, int velocity)
 {
+    {
+        // v1.7 loop length gesture: while FIXED LENGTH is held the pads choose lengths in every mode
+        const auto bit = (juce::uint64) 1 << (juce::uint64) juce::jlimit (0, 63, row * kGridSize + column);
+        if (velocity > 0 && lengthHeld)
+        {
+            lengthPads |= bit;
+            lengthUsed = true;
+            handleLengthPad (row, column);
+            return;
+        }
+        if (velocity == 0 && (lengthPads & bit) != 0)
+        {
+            lengthPads &= ~bit;
+            return;
+        }
+    }
     if (mode == Mode::Step)
     {
         handleStepPad (row, column, velocity);
@@ -517,6 +533,26 @@ void PushSurface::handleButton (int number, bool pressed)
             if (pressed)
                 showNotice (i18n::tr ("FILL"));
             return;
+        case cc::fixedLength:
+            // v1.7: held = loop length gesture (pads / encoders); released on its own = capture length as before
+            if (pressed)
+            {
+                lengthHeld = true;
+                lengthUsed = false;
+                lengthShift = shift;
+            }
+            else if (lengthHeld)
+            {
+                lengthHeld = false;
+                if (! lengthUsed)
+                {
+                    stepChoice (gCaptureBars, (shift || lengthShift) ? -1 : 1, true);
+                    const int bars = kCaptureBars[juce::jlimit (0, kNumCaptureChoices - 1,
+                                                                juce::roundToInt (getParam (gCaptureBars) * (float) (kNumCaptureChoices - 1)))];
+                    showNotice (bars == 1 ? i18n::tr ("Capture: 1 bar") : i18n::tr ("Capture: %1 bars", juce::String (bars)));
+                }
+            }
+            return;
         case cc::duplicate:
             if (pressed)
             {
@@ -670,14 +706,6 @@ void PushSurface::handleButton (int number, bool pressed)
             stepChoice (gBfxBeat, number == cc::right ? 1 : -1, false);
             showNotice (i18n::tr ("Beat FX beat %1", proc.getState().getParameter (gBfxBeat)->getCurrentValueAsText()));
             break;
-        case cc::fixedLength:
-        {
-            stepChoice (gCaptureBars, shift ? -1 : 1, true);
-            const int bars = kCaptureBars[juce::jlimit (0, kNumCaptureChoices - 1,
-                                                        juce::roundToInt (getParam (gCaptureBars) * (float) (kNumCaptureChoices - 1)))];
-            showNotice (bars == 1 ? i18n::tr ("Capture: 1 bar") : i18n::tr ("Capture: %1 bars", juce::String (bars)));
-            break;
-        }
         case cc::undo:       proc.pressTrigger (trackId (selectedTrack, shift ? kRedo : kUndo)); break;
         case cc::automation: toggleParam (gAutoRec); break;
         case cc::master:
@@ -766,6 +794,25 @@ int PushSurface::masterColumn() const
 
 void PushSurface::handleEncoder (int number, int delta)
 {
+    if (lengthHeld && number >= kEncoderFirst && number < kEncoderFirst + 8)
+    {
+        // v1.7: FIXED LENGTH held + track encoder = that track's loop length (three ticks per step)
+        const int t = number - kEncoderFirst;
+        if (t < proc.getVisibleTracks())
+        {
+            lengthUsed = true;
+            selectedTrack = t;
+            auto& rem = encoderRemainder[(size_t) t];
+            rem += (float) delta / 3.0f;
+            const int move = (int) rem;
+            if (move != 0)
+            {
+                rem -= (float) move;
+                setTrackLengthChoice (t, getTrackLengthChoice (t) + move);
+            }
+        }
+        return;
+    }
     const float fine = shift ? 0.1f : 1.0f;
     if (number == kMasterEncoder)
     {
@@ -1051,6 +1098,56 @@ void PushSurface::xyRelease()
 }
 
 //============================================================================== output
+//============================================================================== v1.7 loop length
+namespace
+{
+    juce::String lengthText (int choice)
+    {
+        const int bars = kMeasureChoices[(size_t) juce::jlimit (0, (int) kMeasureChoices.size() - 1, choice)];
+        if (bars <= 0)
+            return i18n::tr ("AUTO");
+        return i18n::tr (bars == 1 ? "%1 BAR" : "%1 BARS", juce::String (bars));
+    }
+}
+
+int PushSurface::getTrackLengthChoice (int t) const
+{
+    auto* p = proc.getState().getParameter (trackId (t, kMeasure));
+    return p != nullptr ? juce::jlimit (0, (int) kMeasureChoices.size() - 1, juce::roundToInt (p->convertFrom0to1 (p->getValue()))) : 0;
+}
+
+void PushSurface::setTrackLengthChoice (int t, int choice)
+{
+    choice = juce::jlimit (0, (int) kMeasureChoices.size() - 1, choice);
+    if (auto* p = proc.getState().getParameter (trackId (t, kMeasure)))
+        setParam (trackId (t, kMeasure), p->convertTo0to1 ((float) choice));
+    showNotice (i18n::tr ("T%1 loop length: %2", juce::String (t + 1), lengthText (choice)));
+}
+
+void PushSurface::handleLengthPad (int row, int column)
+{
+    if (column >= proc.getVisibleTracks())
+        return;
+    selectTrack (column);
+    if (row >= 2)
+        setTrackLengthChoice (column, row - 2);          // rows 3 - 8 from the bottom: AUTO, 1, 2, 4, 8, 16 bars
+    else
+        showNotice (i18n::tr ("T%1 loop length: %2", juce::String (column + 1), lengthText (getTrackLengthChoice (column))));
+}
+
+int PushSurface::lengthPadColour (int row, int column, bool blinkOn) const
+{
+    if (column >= proc.getVisibleTracks())
+        return pad::off;
+    if (row < 2)
+        return mode == Mode::Loop ? trackPadColour (column, row, blinkOn) : (row == 0 && column == selectedTrack ? pad::grey : pad::off);
+    const int seg = row - 2;
+    const int cur = getTrackLengthChoice (column);
+    if (seg == cur)
+        return seg == 0 ? pad::white : pad::orange;
+    return seg == 0 ? pad::grey : pad::orangeDim;
+}
+
 int PushSurface::trackPadColour (int t, int row, bool blinkOn) const
 {
     const auto& st = proc.getEngine().getTrackStatus (t);
@@ -1149,7 +1246,7 @@ int PushSurface::fxPadColour (int row, int column) const
 
 std::array<juce::String, kDisplayLines> PushSurface::buildDisplay() const
 {
-    if (mode == Mode::Step)
+    if (mode == Mode::Step && ! lengthHeld)
         return buildStepDisplay();
     auto& st = proc.getState();
     auto text = [&st] (const juce::String& id) {
@@ -1337,6 +1434,20 @@ std::array<juce::String, kDisplayLines> PushSurface::buildDisplay() const
             status = label + " " + levelBar (amount, 20) + " " + percent (amount);
         }
     }
+    if (lengthHeld)
+    {
+        // v1.7 loop length gesture: the eight lengths on the display
+        names.clear();
+        values.clear();
+        for (int i = 0; i < 8; ++i)
+        {
+            // 7 characters per column: the unit in the name line ("T3 Bars"), the number below ("AUTO", "4")
+            const int bars = kMeasureChoices[(size_t) getTrackLengthChoice (i)];
+            names.add (i < visible ? i18n::tr ("T%1 Bars", juce::String (i + 1)) : juce::String());
+            values.add (i < visible ? (i == selectedTrack ? ">" : "") + (bars <= 0 ? i18n::tr ("AUTO") : juce::String (bars)) : juce::String());
+        }
+        status = i18n::tr ("LOOP LENGTH  pads: AUTO/1/2/4/8/16  encoder: step  alone: capture");
+    }
     if (const auto n = getNotice(); n.isNotEmpty())
         status = n;
     return { columns (names), columns (values), line3, status };
@@ -1447,7 +1558,9 @@ void PushSurface::render (std::vector<juce::MidiMessage>& out, bool full)
         for (int col = 0; col < kGridSize; ++col)
         {
             int c = pad::off;
-            if (mode == Mode::FxPad)
+            if (lengthHeld)
+                c = lengthPadColour (row, col, blinkOn);        // v1.7 loop length gesture
+            else if (mode == Mode::FxPad)
                 c = fxPadColour (row, col);
             else if (mode == Mode::Step)
                 c = stepPadColour (row, col, blinkOn);
@@ -1543,7 +1656,7 @@ void PushSurface::render (std::vector<juce::MidiMessage>& out, bool full)
     setCC (cc::addTrack, isOn (gBfxHold) ? button::on : button::dim);
     setCC (cc::repeat, isOn (gRepeatHold) || isOn (gRepeatLatch) ? button::on : button::dim);
     setCC (cc::accent, isOn (gStutterHold) || isOn (gStutterLatch) ? button::on : button::dim);
-    setCC (cc::fixedLength, button::dim);
+    setCC (cc::fixedLength, lengthHeld || getTrackLengthChoice (selectedTrack) > 0 ? button::on : button::dim);   // v1.7
     setCC (cc::left, button::dim);
     setCC (cc::right, button::dim);
     // v1.6

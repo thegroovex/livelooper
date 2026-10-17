@@ -64,6 +64,9 @@ public:
         mutable std::atomic<float> displayMeter { 0.0f };   // peak for the Push display (taken with exchange)
         // v1.6
         std::atomic<int>   pendingTrick { -1 };       // loop trick waiting for the quantize boundary (-1 = none)
+        // v1.7 loop length: bars of the running fixed-length first recording, or the one-shot length
+        // ("Loop Length Once", Push REC pad + pad) waiting for the next recording; 0 = none
+        std::atomic<int>   recBars { 0 };
     };
 
     /** Extra outputs (all optional): cue pair for the rhythm, direct output pair per track. */

@@ -171,13 +171,13 @@ namespace
         { kRecPlay, "Rec/Play" }, { kStop, "Stop" }, { kClear, "Clear" }, { kUndo, "Undo" }, { kRedo, "Redo" },
         { kLevel, "Level" }, { kPan, "Pan" }, { kReverse, "Reverse" }, { kOneShot, "One Shot" },
         { kLoopSync, "Loop Sync" }, { kTrackFx, "Track FX" }, { kInput, "Input" }, { kStartMode, "Start Mode" },
-        { kStopMode, "Stop Mode" }, { kDubMode, "Dub Mode" }, { kMeasure, "Measures" },
+        { kStopMode, "Stop Mode" }, { kDubMode, "Dub Mode" }, { kMeasure, "Loop Length" },
         { kCapture, "Capture" }, { kFeedback, "Feedback" }, { kDuck, "Ducking" }, { kOutput, "Output" },
         { kPitch, "Pitch" }, { kStretch, "Follow Tempo" },
         { "slice1", "Slice 1" }, { "slice2", "Slice 2" }, { "slice3", "Slice 3" }, { "slice4", "Slice 4" },
         { "slice5", "Slice 5" }, { "slice6", "Slice 6" }, { kCutSync, "Back in Sync" }, { kMute, "Mute" },
         { kSolo, "Solo" }, { kDouble, "Double Loop" }, { kHalve, "Halve Loop" }, { kOctUp, "Octave Up" },
-        { kOctDown, "Octave Down" }, { kCopy, "Copy to Empty Track" }, { kRecLen, "Rec Length" },
+        { kOctDown, "Octave Down" }, { kCopy, "Copy to Empty Track" }, { kRecLen, "Loop Length Once" },
         { kColor, "Color FX" },
         // v1.6 features
         { kHalfSpeed, "Half Speed" }, { kDblSpeed, "Double Speed" }, { kRevLoop, "Reverse Loop Audio" }

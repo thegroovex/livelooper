@@ -46,6 +46,8 @@ public:
     juce::Rectangle<int> getFxStripArea() const noexcept { return footArea; }
     int getNumCards() const noexcept { return numCards; }
     LLButton& getExitButton() noexcept { return exitBtn; }
+    /** v1.7 the loop length pill of a card (shown while the track is empty or recording its first loop). */
+    LoopLengthPill* getLengthPill (int track) const { return juce::isPositiveAndBelow (track, kNumTracks) ? cardParts[(size_t) track].length.get() : nullptr; }
     juce::String getBeatFxButtonText() const { return bfxBtn.getButtonText(); }
 
 private:
@@ -64,6 +66,7 @@ private:
         std::unique_ptr<StopButton> stop;
         std::unique_ptr<LevelBar> level;
         std::unique_ptr<APVTS::SliderAttachment> levelAtt;
+        std::unique_ptr<LoopLengthPill> length;     // v1.7: shown while the track is empty / recording
         juce::Rectangle<int> display, levelCaption;
     };
 

@@ -764,8 +764,225 @@ void FxSlot::mouseDown (const juce::MouseEvent&)
 }
 
 //============================================================================== TrackStrip
+//============================================================================== v1.7 loop length pill
+LoopLengthPill::LoopLengthPill (LiveLooperProcessor& p, int t) : proc (p), track (t)
+{
+    setParamId (*this, trackId (track, kMeasure));
+    setRepaintsOnMouseActivity (true);
+    setMouseCursor (juce::MouseCursor::PointingHandCursor);
+}
+
+int LoopLengthPill::getChoice() const
+{
+    auto* v = proc.getState().getRawParameterValue (trackId (track, kMeasure));
+    return v != nullptr ? juce::jlimit (0, (int) kMeasureChoices.size() - 1, juce::roundToInt (v->load())) : 0;
+}
+
+void LoopLengthPill::setChoice (int index)
+{
+    index = juce::jlimit (0, (int) kMeasureChoices.size() - 1, index);
+    if (auto* p = proc.getState().getParameter (trackId (track, kMeasure)))
+    {
+        p->beginChangeGesture();
+        p->setValueNotifyingHost (p->convertTo0to1 ((float) index));
+        p->endChangeGesture();
+    }
+    repaint();
+}
+
+juce::String LoopLengthPill::choiceText (int index)
+{
+    const int bars = kMeasureChoices[(size_t) juce::jlimit (0, (int) kMeasureChoices.size() - 1, index)];
+    if (bars <= 0)
+        return tr ("AUTO");
+    return tr (bars == 1 ? "%1 BAR" : "%1 BARS", juce::String (bars));
+}
+
+bool LoopLengthPill::isInactive() const
+{
+    const auto state = (LoopTrack::State) proc.getEngine().getTrackStatus (track).state.load();
+    return state != LoopTrack::State::Empty && state != LoopTrack::State::Recording;
+}
+
+juce::String LoopLengthPill::getText() const
+{
+    const auto& st = proc.getEngine().getTrackStatus (track);
+    const auto state = (LoopTrack::State) st.state.load();
+    const int rb = st.recBars.load();
+    if (rb > 0 && (state == LoopTrack::State::Empty || state == LoopTrack::State::Recording))
+        return tr (rb == 1 ? "%1 BAR" : "%1 BARS", juce::String (rb));
+    return choiceText (getChoice());
+}
+
+int LoopLengthPill::getPreferredWidth (int height) const
+{
+    const auto f = LooperLookAndFeel::font (large ? 12.5f : 10.0f, true);
+    float w = 0.0f;
+    // the widest text of both UI languages, so the layout stays put when the language changes
+    for (const auto& t : { juce::String ("16 BARS"), juce::String ("16 TAKTE"), juce::String ("AUTO"), choiceText ((int) kMeasureChoices.size() - 1) })
+        w = juce::jmax (w, juce::GlyphArrangement::getStringWidth (f, t));
+    return juce::roundToInt (w) + height + 6;      // text + loop symbol + padding
+}
+
+void LoopLengthPill::paint (juce::Graphics& g)
+{
+    const auto& st = proc.getEngine().getTrackStatus (track);
+    const auto state = (LoopTrack::State) st.state.load();
+    const int rb = st.recBars.load();
+    const bool recording = state == LoopTrack::State::Recording;
+    const bool fixedRec = recording && rb > 0;
+    const bool once = state == LoopTrack::State::Empty && rb > 0;
+    const bool inactive = isInactive();
+    const int choice = getChoice();
+    const bool fixed = choice > 0 || rb > 0;
+
+    auto r = getLocalBounds().toFloat().reduced (0.5f);
+    const float rad = r.getHeight() * 0.5f;
+    const float alpha = inactive ? 0.45f : 1.0f;
+    const auto accent = once ? colours::orange : (fixedRec ? colours::red : (fixed ? colours::orange : colours::textDim));
+
+    g.setColour (theme::pick (0xff0d0e11, 0xffdfe2e8).withAlpha (0.85f * alpha));
+    g.fillRoundedRectangle (r, rad);
+    if (fixedRec)
+    {
+        // progress of the fixed-length recording
+        const float prog = juce::jlimit (0.0f, 1.0f, st.progress.load());
+        juce::Graphics::ScopedSaveState ss (g);
+        juce::Path clip;
+        clip.addRoundedRectangle (r, rad);
+        g.reduceClipRegion (clip);
+        g.setColour (colours::red.withAlpha (0.35f));
+        g.fillRect (r.withWidth (r.getWidth() * prog));
+    }
+    else if (fixed && ! inactive)
+    {
+        g.setColour (accent.withAlpha (0.16f));
+        g.fillRoundedRectangle (r, rad);
+    }
+    const bool over = isMouseOver (true) && ! isMouseButtonDown();
+    g.setColour (accent.withAlpha ((fixed ? 0.85f : 0.45f) * alpha * (over ? 1.0f : 0.8f) + (over ? 0.1f : 0.0f)));
+    if (once)
+    {
+        // one-shot length: dashed outline
+        juce::Path outline;
+        outline.addRoundedRectangle (r, rad);
+        const float dash[] = { 3.0f, 2.0f };
+        juce::PathStrokeType (1.2f).createDashedStroke (outline, outline, dash, 2);
+        g.fillPath (outline);
+    }
+    else
+        g.drawRoundedRectangle (r, rad, over ? 1.4f : 1.0f);
+
+    // loop symbol: an open circle with an arrow head
+    const float d = r.getHeight() * 0.48f;
+    const auto icon = juce::Rectangle<float> (r.getX() + rad * 0.55f, r.getCentreY() - d * 0.5f, d, d);
+    const auto ink = (fixed ? accent : colours::text).withAlpha ((fixed ? 1.0f : 0.75f) * alpha);
+    {
+        juce::Path arc;
+        arc.addCentredArc (icon.getCentreX(), icon.getCentreY(), d * 0.5f, d * 0.5f, 0.0f,
+                           juce::MathConstants<float>::pi * 0.35f, juce::MathConstants<float>::pi * 2.0f, true);
+        g.setColour (ink);
+        g.strokePath (arc, juce::PathStrokeType (juce::jmax (1.1f, d * 0.14f), juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+        juce::Path head;
+        const float hx = icon.getCentreX(), hy = icon.getY(), a = d * 0.3f;
+        head.addTriangle (hx + a * 0.9f, hy, hx - a * 0.3f, hy - a * 0.75f, hx - a * 0.3f, hy + a * 0.75f);
+        g.fillPath (head);
+    }
+
+    g.setColour ((fixed ? colours::text : colours::text.withAlpha (0.8f)).withAlpha (alpha));
+    g.setFont (LooperLookAndFeel::font (large ? 12.5f : 10.0f, true));
+    auto text = r.withTrimmedLeft (icon.getRight() - r.getX() + 3.0f).withTrimmedRight (rad * 0.6f);
+    g.drawFittedText (getText(), text.toNearestInt(), juce::Justification::centred, 1, 0.75f);
+}
+
+void LoopLengthPill::refresh()
+{
+    const auto& st = proc.getEngine().getTrackStatus (track);
+    const auto state = st.state.load();
+    juce::String key;
+    key << getChoice() << '/' << state << '/' << st.recBars.load() << '/' << (i18n::isGerman() ? 1 : 0);
+    if (state == (int) LoopTrack::State::Recording && st.recBars.load() > 0)
+        key << '/' << juce::roundToInt (st.progress.load() * 100.0f);
+    if (key != shownKey)
+    {
+        shownKey = key;
+        repaint();
+    }
+}
+
+void LoopLengthPill::mouseDown (const juce::MouseEvent& e)
+{
+    dragged = false;
+    if (handleMidiRightClick (*this, e))
+    {
+        dragged = true;           // no menu on the release of a right-click
+        return;
+    }
+    dragStartChoice = getChoice();
+    dragStartY = e.getPosition().y;
+}
+
+void LoopLengthPill::mouseDrag (const juce::MouseEvent& e)
+{
+    if (e.mods.isPopupMenu())
+        return;
+    const int dy = dragStartY - e.getPosition().y;
+    if (! dragged && std::abs (dy) < 5)
+        return;
+    dragged = true;
+    const int c = juce::jlimit (0, (int) kMeasureChoices.size() - 1, dragStartChoice + dy / 14);
+    if (c != getChoice())
+        setChoice (c);
+}
+
+void LoopLengthPill::mouseUp (const juce::MouseEvent& e)
+{
+    if (dragged || e.mods.isPopupMenu() || ! getLocalBounds().contains (e.getPosition()))
+        return;
+    juce::PopupMenu m;
+    m.addSectionHeader (tr ("Loop length - track %1", juce::String (track + 1)));
+    const int cur = getChoice();
+    for (int i = 0; i < (int) kMeasureChoices.size(); ++i)
+    {
+        const int bars = kMeasureChoices[(size_t) i];
+        m.addItem (i + 1, bars <= 0 ? tr ("Auto (ends with the next press)") : (bars == 1 ? tr ("1 bar") : tr ("%1 bars", juce::String (bars))),
+                   true, i == cur);
+    }
+    if (isInactive())
+    {
+        m.addSeparator();
+        m.addItem (-1, tr ("Applies to the next new recording (after CLEAR)"), false, false);
+    }
+    juce::Component::SafePointer<LoopLengthPill> safe (this);
+    m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (this), [safe] (int r) {
+        if (safe != nullptr && r > 0)
+            safe->setChoice (r - 1);
+    });
+}
+
+void LoopLengthPill::mouseWheelMove (const juce::MouseEvent&, const juce::MouseWheelDetails& w)
+{
+    wheelAcc += (std::abs (w.deltaY) > std::abs (w.deltaX) ? w.deltaY : -w.deltaX) * (w.isReversed ? -1.0f : 1.0f);
+    if (std::abs (wheelAcc) < 0.12f)
+        return;
+    setChoice (getChoice() + (wheelAcc > 0.0f ? 1 : -1));
+    wheelAcc = 0.0f;
+}
+
+juce::String LoopLengthPill::getTooltip()
+{
+    juce::String t = tr ("Loop length: the first recording ends by itself after this many bars (AUTO = ends with your next press). Click: choose, scroll / drag: change, right-click: MIDI learn");
+    const auto& st = proc.getEngine().getTrackStatus (track);
+    const auto state = (LoopTrack::State) st.state.load();
+    if (st.recBars.load() > 0 && state == LoopTrack::State::Empty)
+        t << "\n" << tr ("Next recording only: %1 (set on the controller); the setting stays %2", getText(), choiceText (getChoice()));
+    else if (isInactive())
+        t << "\n" << tr ("The track holds a loop: the length applies to the next new recording (after CLEAR)");
+    return t;
+}
+
 TrackStrip::TrackStrip (LiveLooperProcessor& p, int t)
-    : proc (p), track (t), recPlay (p, t), stop (p, t)
+    : proc (p), track (t), recPlay (p, t), stop (p, t), lengthPill (p, t)
 {
     auto& st = proc.getState();
     for (auto* b : { &reverse, &oneShot, &fx })
@@ -815,6 +1032,7 @@ TrackStrip::TrackStrip (LiveLooperProcessor& p, int t)
 
     addAndMakeVisible (recPlay);
     addAndMakeVisible (stop);
+    addAndMakeVisible (lengthPill);     // v1.7
 }
 
 bool TrackStrip::showWaveforms = false;    // v1.7: SETUP > Display > Show waveforms (default off)
@@ -828,6 +1046,13 @@ void TrackStrip::resized()
     auto b = getLocalBounds().reduced (10, 8);
     auto title = b.removeFromTop (26);
     ledArea = title.removeFromRight (16).withSizeKeepingCentre (10, 10);
+    {
+        // v1.7 loop length pill between the track name and the LED
+        title.removeFromRight (4);
+        const int ph = 20;
+        const int pw = juce::jmin (lengthPill.getPreferredWidth (ph), title.getWidth() - 70);
+        lengthPill.setBounds (title.removeFromRight (pw).withSizeKeepingCentre (pw, ph));
+    }
     lcdArea = b.removeFromTop (60);
     b.removeFromTop (8);
 
@@ -879,7 +1104,7 @@ void TrackStrip::paint (juce::Graphics& g)
         g.fillRoundedRectangle (t.getX() + 1.0f, t.getCentreY() - 6.0f, 4.0f, 12.0f, 2.0f);
         g.setColour (colours::text);
         g.setFont (LooperLookAndFeel::font (15.0f, true));
-        g.drawText (tr ("TRACK %1", juce::String (track + 1)), t.withTrimmedLeft (12.0f).withTrimmedRight (18.0f), juce::Justification::centredLeft);
+        g.drawText (tr ("TRACK %1", juce::String (track + 1)), t.withTrimmedLeft (12.0f).withRight ((float) lengthPill.getX() - 3.0f), juce::Justification::centredLeft);
     }
 
     // mini LCD
@@ -1107,6 +1332,7 @@ void TrackStrip::refresh (bool blinkPhase)
 
     repaint (lcdArea);
     repaint (ledArea.expanded (4));
+    lengthPill.refresh();
     if (showMeters && ! meterArea.isEmpty())
         repaint (meterArea.expanded (8, 0).withBottom (meterArea.getBottom() + 14));
 }
@@ -1171,7 +1397,7 @@ TrackSettingsPanel::TrackSettingsPanel (LiveLooperProcessor& p, MidiMenuHost& ho
     const Def defs[] = {
         { kInput, "Input", inputChoices() }, { kStartMode, "Start", startModeChoices() },
         { kStopMode, "Stop", stopModeChoices() }, { kDubMode, "Dub mode", dubModeChoices() },
-        { kMeasure, "Measures", measureChoices() }, { kOutput, "Output", outputChoices() }
+        { kMeasure, "Loop length", measureChoices() }, { kOutput, "Output", outputChoices() }
     };
     for (const auto& [id, caption, choices] : defs)
     {

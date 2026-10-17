@@ -47,7 +47,7 @@ namespace push
     ADD TRACK = beat FX while held, LEFT / RIGHT = beat fraction, REPEAT = beat repeat while
     held (SHIFT: latch), ACCENT = stutter while held (SHIFT: latch), REPEAT or ACCENT held +
     touch strip = repeat / stutter rate 1/2 (bottom) .. 1/32 (top), FIXED LENGTH = capture
-    length 1 .. 32 bars (SHIFT: shorter), SHIFT + METRONOME = Ableton Link on / off,
+    length 1 .. 32 bars (SHIFT: shorter; on release, when nothing else was pressed), SHIFT + METRONOME = Ableton Link on / off,
     SHIFT + TAP TEMPO = metronome click on / off.
 
     v1.6 rhythm: SCALES = STEP mode (step sequencer for the drums): the pad rows are the eight
@@ -55,7 +55,13 @@ namespace push
     steps, UP / DOWN = previous / next pattern (switches quantised), pad = step on / off (pad
     velocity = step velocity, SHIFT + pad = accent), DELETE + pad = clear the row, MUTE / SOLO +
     pad or the top / lower button row = row mute / solo, encoders = row level (SHIFT: pitch).
-    Editing a built-in groove copies it into a free user slot first. In every mode: IN = FILL
+    Editing a built-in groove copies it into a free user slot first.
+
+    v1.7 loop length (every mode): hold FIXED LENGTH + pad in a track's column = that track's loop
+    length (rows 3 - 8 from the bottom = AUTO, 1, 2, 4, 8, 16 bars; rows 1 - 2 = select the track),
+    hold FIXED LENGTH + track encoder = step it. The display shows the eight lengths while the button is
+    held; its LED is lit when the selected track has a length other than AUTO. Released on its own,
+    FIXED LENGTH still steps the capture length. In every mode: IN = FILL
     while held (back to the groove on the next downbeat), OUT = drums through the beat FX on / off
     (SHIFT + OUT: drums through beat repeat / stutter).
 */
@@ -114,6 +120,10 @@ public:
     int getPadColour (int row, int column) const noexcept { return padState[(size_t) (row * kGridSize + column)]; }
     juce::String getDisplayLine (int line) const { return displayState[(size_t) juce::jlimit (0, kDisplayLines - 1, line)]; }
     juce::String getNotice() const;
+    /** v1.7: FIXED LENGTH is held (loop length gesture). */
+    bool isLengthHeld() const noexcept          { return lengthHeld; }
+    /** v1.7: loop length choice of a track (index into kMeasureChoices, 0 = AUTO). */
+    int getTrackLengthChoice (int track) const;
     /** v1.6 STEP mode: first step shown on the pads (multiple of 8). */
     int getStepPage() const noexcept { return stepPage; }
 
@@ -158,6 +168,10 @@ public:
 private:
 
     int trackPadColour (int track, int row, bool blinkOn) const;
+    // v1.7 loop length gesture (FIXED LENGTH held)
+    void setTrackLengthChoice (int track, int choice);
+    void handleLengthPad (int row, int column);
+    int lengthPadColour (int row, int column, bool blinkOn) const;
     /** first encoder of the master section (master level, tempo), -1 when the encoders are all in use */
     int masterColumn() const;
     int fxPadColour (int row, int column) const;
@@ -185,6 +199,8 @@ private:
     bool shift = false, deleteHeld = false, muteHeld = false;
     bool selectHeld = false, soloHeld = false, duplicateHeld = false;
     bool repeatHeld = false, accentHeld = false;     // v1.5: REPEAT / ACCENT buttons held
+    bool lengthHeld = false, lengthUsed = false, lengthShift = false;   // v1.7 FIXED LENGTH held / used for a length
+    juce::uint64 lengthPads = 0;                     // v1.7 pads pressed during the length gesture (releases swallowed)
 
     struct FxSnapshot { bool active = false; float on = 0, p1 = 0, p2 = 0, mix = 0; };
     FxSnapshot fxSnapshot;

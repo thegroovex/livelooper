@@ -246,6 +246,49 @@ struct LoopWaveform
 };
 
 //==============================================================================
+/** v1.7 loop length: a compact pill bound to the track's "Loop Length" parameter (kMeasure: AUTO, 1, 2,
+    4, 8, 16 bars - the first recording ends by itself after that many bars). Click = menu, mouse wheel /
+    vertical drag = step, right-click = MIDI learn. Dimmed while the track holds a loop (the length only
+    applies to the next new recording); while a fixed-length recording runs it fills with its progress,
+    and a one-shot length (Push REC pad + pad, "Loop Length Once") is shown in orange. */
+class LoopLengthPill : public juce::Component, public juce::SettableTooltipClient
+{
+public:
+    LoopLengthPill (LiveLooperProcessor& p, int track);
+    void paint (juce::Graphics& g) override;
+    void mouseDown (const juce::MouseEvent& e) override;
+    void mouseDrag (const juce::MouseEvent& e) override;
+    void mouseUp (const juce::MouseEvent& e) override;
+    void mouseWheelMove (const juce::MouseEvent& e, const juce::MouseWheelDetails& w) override;
+    juce::String getTooltip() override;
+    /** Polled by the owner's timer: repaints when something it shows changed. */
+    void refresh();
+    /** Larger type (Live view cards). */
+    void setLarge (bool l) { large = l; repaint(); }
+
+    /** Index into kMeasureChoices (0 = AUTO). */
+    int getChoice() const;
+    void setChoice (int index);
+    /** What the pill shows now ("AUTO", "4 BARS" ...), in the UI language. */
+    juce::String getText() const;
+    /** True while the track holds a loop (the setting waits for the next new recording). */
+    bool isInactive() const;
+    /** Text for a choice index (0 = AUTO). */
+    static juce::String choiceText (int index);
+    /** Preferred width for the current language at the given height. */
+    int getPreferredWidth (int height) const;
+
+private:
+    LiveLooperProcessor& proc;
+    int track;
+    bool large = false;
+    int dragStartChoice = 0, dragStartY = 0;
+    bool dragged = false;
+    juce::String shownKey;
+    float wheelAcc = 0.0f;
+};
+
+//==============================================================================
 /** One of the five track strips. */
 class TrackStrip : public juce::Component,
                    public juce::SettableTooltipClient
@@ -263,6 +306,7 @@ public:
     void refresh (bool blinkPhase);
     int getTrackIndex() const noexcept { return track; }
     StopButton& getStopButton() noexcept { return stop; }
+    LoopLengthPill& getLengthPill() noexcept { return lengthPill; }     // v1.7
     static constexpr int kWaveBins = 96;
     const std::array<float, kWaveBins>& getWaveform() const noexcept { return wave; }
     bool hasWaveform() const noexcept { return waveValid; }
@@ -290,6 +334,7 @@ private:
     LLSlider color { juce::Slider::RotaryHorizontalVerticalDrag, colours::blue };
     RecPlayButton recPlay;
     StopButton stop;
+    LoopLengthPill lengthPill;          // v1.7 loop length in the title row
 
     std::unique_ptr<APVTS::ButtonAttachment> reverseAtt, oneShotAtt, fxAtt;
     std::unique_ptr<APVTS::SliderAttachment> levelAtt, panAtt, colorAtt;
