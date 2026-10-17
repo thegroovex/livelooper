@@ -206,17 +206,37 @@ public:
             {
                 LangScope l (lang);
                 const auto pages = HelpComponent::guidePages();
-                expectEquals (pages.size(), 9);            // v1.6: + K.O. II
+                expectEquals (pages.size(), 14);           // v1.6: + K.O. II, v1.7: + loop length, Live view, display, latency, controllers
                 for (const auto& p : pages)
                 {
                     expect (getEmbeddedImage (p.image).isValid(), "picture " + p.image);
                     expect (p.text.isNotEmpty() && p.level == 0);
                 }
-                expectEquals (pages[6].legend.size(), 22, "Push 1: 22 numbered controls (v1.6: beat flash, set recording)");
-                expectEquals (pages[8].legend.size(), 8, "K.O. II: 8 numbered controls");
-                expectEquals (pages[7].legend.size(), 10, "Push 1 STEP: 10 numbered controls");
+                expectEquals (pages[10].legend.size(), 22, "Push 1: 22 numbered controls (v1.6: beat flash, set recording)");
+                expectEquals (pages[12].legend.size(), 8, "K.O. II: 8 numbered controls");
+                expectEquals (pages[11].legend.size(), 10, "Push 1 STEP: 10 numbered controls");
+                // v1.7 pages, in order after Link, each with its own picture (German variant when German)
+                const char* v17[][2] = { { "Loop length", "help-looplen.png" }, { "Live view", "help-live.png" },
+                                         { "Display", "help-display.png" }, { "Latency", "help-latency.png" },
+                                         { "Controllers", "help-controllers.png" } };
+                for (int i = 0; i < 5; ++i)
+                {
+                    expectEquals (pages[6 + i].title, i18n::tr (v17[i][0]));
+                    expectEquals (pages[6 + i].image, juce::String (v17[i][1]));
+                    expect (getEmbeddedImage (juce::String (v17[i][1]).replace (".png", "-de.png")).isValid(), "German picture");
+                }
+                expect (pages[6].text.contains ("FIXED LENGTH"), "loop length page: Push FIXED LENGTH gesture");
+                expect (pages[10].text.contains ("SHIFT + MASTER"), "Push 1 page: SHIFT + MASTER = Live view");
                 if (lang == i18n::Language::German)
+                {
                     expectEquals (pages[0].title, juce::String ("Willkommen"));
+                    expectEquals (pages[6].title, juce::String::fromUTF8 ("Loop-L\xc3\xa4nge"));
+                    expectEquals (pages[7].title, juce::String ("Live-Ansicht"));
+                    for (const auto& p : pages)          // every line of every page is translated
+                        expect (! p.text.contains ("Every track has") && ! p.text.contains ("SETUP > Display")
+                                    && ! p.text.contains ("Velocity curves") && ! p.text.contains ("Hold FIXED LENGTH"),
+                                "German help page: " + p.title);
+                }
                 HelpComponent help;
                 help.showSectionForTests (6);
                 expectEquals (help.getShownSection(), 6);
