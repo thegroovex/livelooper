@@ -12,7 +12,7 @@ Die Oberfläche hat die klassische Anordnung: alle Effekte oben in zwei Reihen (
 
 | Bereich | Inhalt |
 |---|---|
-| Kopfzeile | Display (Tempo, Takt/Schlag, Quantisierung, Link, Master-VU in dB, Meldungen), **MIDI LEARN**, **MIDI MAP**, **SETUP**, **?** (Hilfe), der runde **REC**-Knopf (Performance-Recorder) |
+| Kopfzeile | **LIVE** neben dem Logo (Live-Ansicht, Abschnitt 43), Display (Tempo, Takt/Schlag, Quantisierung, Link, Master-VU in dB, Meldungen), **MIDI LEARN**, **MIDI MAP**, **SETUP**, **?** (Hilfe), der runde **REC**-Knopf (Performance-Recorder) |
 | FX-Reihe 1 | **EINGANGS-FX** A–D, **EINGANGS-FX … BEARBEITEN** (Typ, zwei Parameter, Mix des gewählten Slots), **SPUR-FX** A–D, **PUNCH-FX** (Abschnitte 3, 39) |
 | FX-Reihe 2 | **BEAT-FX**, **REPEAT / STUTTER**, **COLOR-FX**, **SEND-FX**, **METRONOM** (Abschnitte 25–28, 39) |
 | SPUR 1–5 (oder 1–8) | die Loop-Spuren (SETUP → Looper → Spuren), von oben nach unten: Display mit Status und Wellenform, RÜCKW. / 1SHOT / FX, Pegel-Fader mit IN/OUT-Anzeige, PAN / COLOR, ZURÜCK / VOR / SETUP, das große REC/PLAY-Pad, STOP |
@@ -20,7 +20,7 @@ Die Oberfläche hat die klassische Anordnung: alle Effekte oben in zwei Reihen (
 | MASTER | Quantisierung, Host-Sync, Pegel, Fade-Zeit, ALLE START / STOP, CAPTURE, ALLE LÖSCHEN |
 | Fußleiste | 8 Szenen-Knöpfe, SPEICHERN |
 
-Das Fenster lässt sich an der rechten unteren Ecke größer und kleiner ziehen; die Oberfläche skaliert mit. Fährt man mit der Maus über ein Element, erscheint ein Hinweis.
+Das Fenster lässt sich an der rechten unteren Ecke größer und kleiner ziehen; die Oberfläche skaliert mit. Feste Größen (75 – 200 %), helles Farbschema, Bühnenmodus und große Wellenformen: *SETUP → Anzeige* (Abschnitt 44). Fährt man mit der Maus über ein Element, erscheint ein Hinweis.
 
 ---
 
@@ -667,6 +667,45 @@ So funktioniert es: Eine fertige erste Aufnahme oder ein Capture spielt den Loop
 | blinken – Aufnahme, Overdub, wartet auf den Takt, Messung | *Wert für blinken*: livelooper blinkt im Takt (Standard) oder sendet 2 / 3 / 64 |
 
 REC / PLAY auf einem Pad: blinkt bei Aufnahme / Overdub / Warten, leuchtet beim Abspielen. STOP leuchtet bei gestoppter Spur, UNDO / REDO, wenn es etwas rückgängig zu machen / wiederherzustellen gibt, Szenen-Tasten bei der zuletzt abgerufenen Szene. Auf einen CC gelernte Regler und Fader bekommen ihren aktuellen Wert (LED-Kränze, Motorfader). An / aus mit dem Host-Parameter *MIDI-Feedback (experimentell)* (`midi_fb`, standardmäßig aus). Alle paar Sekunden wird alles neu gesendet, damit ein später angeschlossener Controller nachzieht. Unter Windows darf der Ausgang in keinem anderen Programm geöffnet sein.
+
+## 43. Live-Ansicht (neu in 1.7)
+
+![Live-Ansicht](../images/livelooper-live-de.png)
+
+Die **Live-Ansicht** ist die Oberfläche für die Bühne: eine große Karte pro Loop-Spur und sonst nichts, was man aus Versehen trifft. Öffnen mit der **LIVE**-Taste neben dem Logo, dem Host-Parameter *Live-Ansicht* (`live_view`, wie jede Funktion per MIDI zuweisbar), **SHIFT + MASTER** am Push 1 oder *SETUP → Anzeige → Live-Ansicht → Live-Ansicht öffnen (Vollbild)*. **Esc**, **LIVE BEENDEN** oder noch einmal LIVE führen zur vollen Oberfläche zurück.
+
+| Bereich | Inhalt |
+|---|---|
+| Kopfzeile | Logo mit LIVE-Plakette, **TAP**, **LIVE BEENDEN**, ein großes Display: Tempo (BPM), **Takt . Schlag** und die Schlag-Punkte (der erste Schlag im Takt orange) |
+| Spur-Karten (5 oder 8) | Zustand (PLAY, DUB, REC, STOP, LEER, REC WAIT …), Länge in Takten, Loop-Position in %, die **Wellenform** mit Abspielmarke, das große **REC / PLAY / DUB**-Pad mit LED-Ring, **PEGEL** (Balken ziehen; die Pegelanzeige läuft hinter der weißen Pegelmarke), **STOP** (1,5 s halten = löschen) |
+| PERFORMANCE-FX | Regler **FILTER** (Performance-Filter), **BEAT-FX** (Beat-FX-Pegel), **PUNCH** (Punch-FX-Stärke), **MASTER**; **ECHO …** (Beat-FX an / aus, zeigt Beat-FX-Typ und Notenwert), **REPEAT** und **STUTTER** (solange gehalten), **FILL** (solange gehalten); der Punch-FX-Balken (der gehaltene Punch-FX mit seiner aktuellen Stärke, sonst der ausgewählte); **ALLE START / STOP**, **CAPTURE** |
+
+Jedes Bedienelement der Live-Ansicht ist dieselbe Funktion wie auf der vollen Oberfläche (Rechtsklick = MIDI Learn). *SETUP → Anzeige → Live-Ansicht* schaltet die **Wellenformen in den Spur-Displays** (standardmäßig an; aus = ein Positionsbalken) und die **Performance-FX-Leiste** (an; aus = höhere Karten). *Live-Ansicht öffnen (Vollbild)* öffnet sie in einem eigenen Fenster über den ganzen Bildschirm (Esc schließt es) – praktisch auf einem zweiten Monitor oder dem Laptop auf der Bühne.
+
+Bühnenmodus und helles Farbschema gelten auch für die Live-Ansicht:
+
+![Live-Ansicht im Bühnenmodus](../images/livelooper-live-stage-de.png)
+
+## 44. Anzeige: Farbschema, Größe, Bühnenmodus, Wellenformen (neu in 1.7)
+
+![SETUP > Anzeige](../images/livelooper-setup-display-de.png)
+
+*SETUP → Anzeige*:
+
+- **Farbschema** – *Dunkel* (Standard) oder *Hell*: derselbe Glas-Look auf hellen Flächen mit dunkler Schrift. Displays und VU-Meter bleiben dunkel wie echte LCDs. Host-Parameter *Farbschema* (`ui_theme`).
+
+![Helles Farbschema](../images/livelooper-light-de.png)
+
+- **Oberflächengröße** – 75 %, 100 %, 125 %, 150 % oder 200 %, auch mit **Strg + / Strg −** (Mac: **Cmd + / Cmd −**, Strg / Cmd 0 = 100 %). Am Fenstereck ziehen skaliert weiterhin frei.
+- **Bühnenmodus** – hoher Kontrast und größere Schrift für dunkle Bühnen und einen weiter entfernten Bildschirm: fast schwarze Flächen mit klaren Rändern, weiße Schrift, größere Beschriftungen (was nicht passt, behält seine normale Größe). Host-Parameter *Bühnenmodus* (`stage_mode`).
+
+![Bühnenmodus](../images/livelooper-stage-de.png)
+
+- **Wellenformen in den Loop-Spuren zeigen** – standardmäßig aus (die Spur-Displays zeigen den Zustand in großer Schrift mit einer kleinen Wellenform). An: eine kompakte Kopfzeile (Zustand, Takte, Pegel) und eine große Wellenform in der Spurfarbe – der gespielte Teil heller, die letzte **Overdub-Schicht** als hellere Tönung im Loop (bis du sie rückgängig machst; ältere Overdubs gehören zum Loop), eine weiße Abspielmarke (gestrichelt bei einer gestoppten Spur: wo der Loop jetzt wäre, beim Aufnehmen am rechten Rand), *KEIN LOOP* bei einer leeren Spur. Host-Parameter *Wellenformen zeigen* (`waveforms`).
+
+![Wellenformen in den Spur-Displays](../images/livelooper-waveforms-de.png)
+
+Größe, Farbschema, Bühnenmodus und die Wellenform-Einstellung merkt sich livelooper auf diesem Computer (ein neues livelooper startet damit; ein geladenes Projekt oder Set kann eigene Werte für die Parameter mitbringen). Die Wellenformen werden im Oberflächen-Thread aus dem Loop-Speicher gelesen – die Audioverarbeitung macht dafür keine zusätzliche Arbeit und reserviert keinen Speicher.
 
 ## Drums, BEATS und Sound-Packs (1.6)
 

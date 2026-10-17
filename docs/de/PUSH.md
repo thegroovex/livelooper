@@ -87,7 +87,7 @@ Die Anfänge der Stücke liegen auf 16tel-Noten des Loops, ein Schnitt bleibt al
 | OCTAVE UP / DOWN | Tonhöhe der ausgewählten Spur +12 / −12 Halbtöne |
 | SHIFT + OCTAVE DOWN / UP | *(neu in 1.6)* Loop-Trick der ausgewählten Spur: **halbe Geschwindigkeit** (doppelt so lang, eine Oktave tiefer) / **doppelte Geschwindigkeit** (zweimal hintereinander, eine Oktave höher) – auf den nächsten Schlag oder Takt, ZURÜCK (Undo) stellt den Loop wieder her |
 | SHIFT + zweite Reihe 1 – 8 | *(neu in 1.6)* **Loop-Audio umdrehen** dieser Spur (quantisiert, Undo stellt ihn wieder her). SCALES (mit oder ohne SHIFT) öffnet den STEP-Modus |
-| MASTER | Pegelanzeige ein / aus (Display-Zeile 3) |
+| MASTER | Pegelanzeige ein / aus (Display-Zeile 3) · *(neu in 1.7)* **SHIFT + MASTER** = **Live-Ansicht** am Computer an / aus (große Spur-Karten für die Bühne, siehe Bedienungsanleitung, Abschnitt 43) |
 | SELECT + Pad | Spur auswählen, ohne etwas anderes auszulösen |
 | SHIFT + Reihe 1 / Reihe 2 | Undo / Redo dieser Spur |
 | AUTOMATION | Auto-Aufnahme ein / aus |

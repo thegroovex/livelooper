@@ -11,7 +11,7 @@
 - **Live performance comes first.** Every function reacts instantly, lands on the beat and never stops the music. Nothing needs a menu while you play.
 - **Fun to play.** Beat FX, beat repeat and stutter, colour FX and a groove that feels like a drummer turn a loop into a performance – press, hold, let go, and you are back on the beat.
 - **Explore and play.** Capture what you just improvised, throw an effect on it with the XY pad, pitch it, reverse it, let it decay like tape – and keep what works.
-- **Hands on hardware.** Plug in an Ableton Push and livelooper takes it over – no mapping. Any other controller works through MIDI learn, every one of the 497 functions is mappable.
+- **Hands on hardware.** Plug in an Ableton Push and livelooper takes it over – no mapping. Any other controller works through MIDI learn, every one of the 501 functions is mappable.
 - **Your loops belong in your song.** Drag a loop straight from livelooper onto a track in your DAW, export stems, or keep everything saved with your project.
 
 ## Play it with Ableton Push
@@ -89,9 +89,10 @@ Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
 - **Stem export** with tempo metadata, WAV export per track, drag & drop audio files onto a track to import
 - **Direct track outputs** (plug-in multi-out – each track on its own output in your DAW – or interface outputs in the standalone app), **cue output** for the metronome
 - **Saved with your project**: loops stored losslessly (FLAC, 24 bit) in your DAW project; whole **looper sets** as `.llset` files
+- **Live view, themes, stage mode** (1.7): a fullscreen-capable stage view with large track cards and a performance FX strip, light and dark theme, high-contrast stage mode, interface size 75 – 200 %, large waveforms with the overdub layer
 - **Meters and waveforms**: stereo meter per track, master VU in dB on the display (green / yellow / red), waveform with play position, clip LED
 - **Comfort**: in-app help (searchable user guide), about window with update check, start with the last used or the default settings, list of the last used sets
-- **All 497 functions** are host parameters for your DAW's MIDI mapping and automation
+- **All 501 functions** are host parameters for your DAW's MIDI mapping and automation
 - **English and German** interface (*SETUP → Language / Sprache*)
 
 ## Download

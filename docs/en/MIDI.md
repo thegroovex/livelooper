@@ -67,7 +67,7 @@ Automation works too (in Live, e.g., in Arrangement view), for example to start 
 
 ## Parameter list
 
-497 parameters, names as shown in your DAW with the English interface (with the German interface they are localised, e.g. "S1 Pegel" instead of "T1 Level"; the internal IDs and your saved assignments stay the same):
+501 parameters, names as shown in your DAW with the English interface (with the German interface they are localised, e.g. "S1 Pegel" instead of "T1 Level"; the internal IDs and your saved assignments stay the same):
 
 **Per track (T1 … T5)** – 16 each:
 `Rec/Play`, `Stop`, `Clear`, `Undo`, `Redo` (buttons) · `Level`, `Pan` · `Reverse`, `One Shot`, `Loop Sync`, `Track FX` (switches) · `Input`, `Start Mode`, `Stop Mode`, `Dub Mode`, `Measures` (selectors)
@@ -106,6 +106,8 @@ Automation works too (in Live, e.g., in Arrangement view), for example to start 
 **Since 1.6 (punch FX hold ramp)** – 1 more, appended (parameter 489): `Punch FX Hold Ramp` (`pfx_hold_ramp`: off / 1 beat / 2 beats (default) / 1 bar) – for pads that send no pressure (K.O. II): holding a punch pad raises the amount from the hit to 100 % over that time. MIDI-mappable like every parameter.
 
 **Since 1.7 (latency, velocity curves, MIDI feedback, Push 1 display)** – 8 more, appended (parameters 490 – 497): `Latency Compensation` (`lat_comp`, switch, on), `Latency Offset` (`lat_offset`, −50 … +50 ms), `Measure Latency` (`lat_measure`, button), `Push 1 Velocity Curve`, `Sampler Pad Velocity Curve` (the K.O. II curve; hosts see no device names), `MIDI Velocity Curve` (`vel_push`, `vel_ko2`, `vel_midi`: Soft / Normal (default) / Hard / Fixed), `MIDI Feedback (experimental)` (`midi_fb`, switch, off) and `Push 1 Loop Progress Bars` (`push_progress`, switch, on). The default of `Follow Transport` (`follow`) is **on** since 1.7 (the ID is unchanged; saved projects keep their value).
+
+**Since 1.7 (display)** – 4 more, appended (parameters 498 – 501): `Live View` (`live_view`, switch, off – the Live view with large track cards), `Stage Mode` (`stage_mode`, switch, off – high contrast, larger text), `Colour Theme` (`ui_theme`, Dark (default) / Light) and `Show Waveforms` (`waveforms`, switch, off – large waveforms in the track displays). Theme, stage mode and waveforms are also remembered on the computer (*SETUP → Display*).
 
 ### Velocity curve and LED feedback for learned controls (1.7)
 

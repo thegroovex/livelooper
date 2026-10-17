@@ -10,7 +10,7 @@ The interface keeps the classic arrangement: all effects at the top in two rows 
 
 | Area | Contents |
 |---|---|
-| Header | display (tempo, bar/beat, quantization, Link, master VU in dB, messages), **MIDI LEARN**, **MIDI MAP**, **SETUP**, **?** (help), the round **REC** button (performance recorder) |
+| Header | **LIVE** next to the logo (Live view, section 43), display (tempo, bar/beat, quantization, Link, master VU in dB, messages), **MIDI LEARN**, **MIDI MAP**, **SETUP**, **?** (help), the round **REC** button (performance recorder) |
 | FX row 1 | **INPUT FX** A–D, **INPUT FX … EDIT** (type, two parameters, mix of the selected slot), **TRACK FX** A–D, **PUNCH FX** (sections 3, 39) |
 | FX row 2 | **BEAT FX**, **REPEAT / STUTTER**, **COLOR FX**, **SEND FX**, **METRONOME** (sections 25–28, 39) |
 | TRACK 1–5 (or 1–8) | the loop tracks (SETUP → Looper → Tracks), top to bottom: display with state and waveform, REV / 1SHOT / FX, level fader with IN/OUT meter, PAN / COLOR, UNDO / REDO / SETUP, the big REC/PLAY pad, STOP |
@@ -18,7 +18,7 @@ The interface keeps the classic arrangement: all effects at the top in two rows 
 | MASTER | quantization, host sync, levels, fade time, ALL START/STOP, CAPTURE, CLEAR ALL |
 | Footer | 8 scene buttons, STORE |
 
-Drag the bottom right corner to resize the window; the interface scales with it. Hover over any control to see a tooltip.
+Drag the bottom right corner to resize the window; the interface scales with it. Fixed sizes (75 – 200 %), a light theme, stage mode and large waveforms: *SETUP → Display* (section 44). Hover over any control to see a tooltip.
 
 ---
 
@@ -638,6 +638,45 @@ How it works: a finished first recording or capture plays the loop that much ear
 | blink – recording, overdub, waiting for the bar, measuring | *Blink value*: livelooper blinks in time (default) or sends 2 / 3 / 64 |
 
 REC / PLAY learned on a pad: blinks while recording / overdubbing / waiting, lights while playing. STOP lights on a stopped track, UNDO / REDO when there is something to undo / redo, scene buttons on the last recalled scene. Knobs and faders learned on a CC get their current value (LED rings, motor faders). On / off with the host parameter *MIDI Feedback (experimental)* (`midi_fb`, off by default). Everything is sent again every few seconds, so a controller plugged in later catches up. On Windows the output must not be open in another program.
+
+## 43. Live view (new in 1.7)
+
+![Live view](../images/livelooper-live.png)
+
+The **Live view** is the surface for the stage: one large card per loop track and nothing else that could be hit by mistake. Open it with the **LIVE** button next to the logo, the host parameter *Live View* (`live_view`, MIDI-mappable like every function), **SHIFT + MASTER** on Push 1 or *SETUP → Display → Live view → Open Live view (fullscreen)*. **Esc**, **EXIT LIVE** or LIVE again return to the full surface.
+
+| Area | Contents |
+|---|---|
+| Header | logo with the LIVE badge, **TAP**, **EXIT LIVE**, a large display: tempo (BPM), **bar . beat** and the beat dots (the first beat of the bar orange) |
+| Track cards (5 or 8) | state word (PLAY, DUB, REC, STOP, EMPTY, REC WAIT …), length in bars, loop position in %, the **waveform** with the play head, the big **REC / PLAY / DUB** pad with its LED ring, **LEVEL** (drag the bar; the meter runs behind the white level mark), **STOP** (hold 1.5 s = clear) |
+| PERFORMANCE FX | knobs **FILTER** (performance filter), **BEAT FX** (beat FX level), **PUNCH** (punch FX amount), **MASTER**; **ECHO …** (beat FX on / off, shows the beat FX type and beat fraction), **REPEAT** and **STUTTER** (while held), **FILL** (while held); the punch FX amount bar (the held punch FX with its live amount, otherwise the selected one); **ALL START / STOP**, **CAPTURE** |
+
+Every control in the Live view is the same function as on the full surface (right-click = MIDI learn). *SETUP → Display → Live view* switches the **waveforms in the track displays** (on by default; off = a loop position bar) and the **performance FX strip** (on; off = taller cards). *Open Live view (fullscreen)* opens it in its own window covering the whole screen (Esc closes it) – handy on a second monitor or a laptop on stage.
+
+Stage mode and the light theme apply to the Live view too:
+
+![Live view in stage mode](../images/livelooper-live-stage.png)
+
+## 44. Display: theme, interface size, stage mode, waveforms (new in 1.7)
+
+![SETUP > Display](../images/livelooper-setup-display.png)
+
+*SETUP → Display*:
+
+- **Colour theme** – *Dark* (default) or *Light*: the same glass look on light surfaces with dark text. The displays and the VU meters stay dark like real LCDs. Host parameter *Colour Theme* (`ui_theme`).
+
+![Light theme](../images/livelooper-light.png)
+
+- **Interface size** – 75 %, 100 %, 125 %, 150 % or 200 %, also with **Ctrl + / Ctrl −** (Mac: **Cmd + / Cmd −**, Ctrl / Cmd 0 = 100 %). Dragging the window corner still scales freely.
+- **Stage mode** – high contrast and larger text for dark stages and a screen further away: near-black panels with clear outlines, white text, larger captions (labels that would not fit keep their normal size). Host parameter *Stage Mode* (`stage_mode`).
+
+![Stage mode](../images/livelooper-stage.png)
+
+- **Show waveforms in the loop tracks** – off by default (the track displays show the state in large letters with a small waveform). On: a compact header (state, bars, level) and a large waveform in the track colour – the played part brighter, the last **overdub layer** as a lighter tint inside the loop (until you undo it; older overdubs are part of the loop), a white play head (dashed on a stopped track: where the loop would be now, at the right edge while recording), *NO LOOP* on an empty track. Host parameter *Show Waveforms* (`waveforms`).
+
+![Waveforms in the track displays](../images/livelooper-waveforms.png)
+
+Interface size, theme, stage mode and the waveform setting are remembered on this computer (a new livelooper starts with them; a project or set you load can bring its own values for the parameters). The waveforms are read on the user interface thread from the loop memory – the audio processing does no extra work and allocates nothing.
 
 ## Drums, BEATS and sound packs (1.6)
 

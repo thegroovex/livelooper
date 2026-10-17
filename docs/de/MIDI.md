@@ -67,7 +67,7 @@ Auch Automation ist möglich (in Live z. B. in der Arrangement-Ansicht), etwa um
 
 ## Parameterliste
 
-497 Parameter. Mit deutscher Oberfläche zeigt deine DAW die deutschen Namen, mit englischer die englischen (in Klammern). Die internen IDs und gespeicherte Zuweisungen bleiben in beiden Sprachen gleich – ein Sprachwechsel zerstört also keine MIDI-Map und keine Automation.
+501 Parameter. Mit deutscher Oberfläche zeigt deine DAW die deutschen Namen, mit englischer die englischen (in Klammern). Die internen IDs und gespeicherte Zuweisungen bleiben in beiden Sprachen gleich – ein Sprachwechsel zerstört also keine MIDI-Map und keine Automation.
 
 **Pro Spur (S1 … S5 / T1 … T5)** – je 16:
 `Rec/Play`, `Stop`, `Löschen` (Clear), `Rückgängig` (Undo), `Wiederherstellen` (Redo) – Taster · `Pegel` (Level), `Panorama` (Pan) · `Rückwärts` (Reverse), `One Shot`, `Loop-Sync` (Loop Sync), `Spur-FX` (Track FX) – Schalter · `Eingang` (Input), `Startmodus` (Start Mode), `Stoppmodus` (Stop Mode), `Dub-Modus` (Dub Mode), `Takte` (Measures) – Auswahl
@@ -108,6 +108,8 @@ Die internen Parameter-IDs (für Entwickler und gespeicherte Zuweisungen) lauten
 **Seit 1.6 (Punch-FX Halte-Rampe)** – 1 weiterer, angehängt (Parameter 489): `Punch-FX Halte-Rampe` (`pfx_hold_ramp`: aus / 1 Schlag / 2 Schläge (Standard) / 1 Takt) – für Pads ohne Druck (K.O. II): ein gehaltenes Punch-Pad hebt die Stärke in dieser Zeit vom Anschlag bis 100 %. Wie jeder Parameter per MIDI zuweisbar.
 
 **Seit 1.7 (Latenz, Anschlagkurven, MIDI-Feedback, Push-1-Display)** – 8 weitere, angehängt (Parameter 490 – 497): `Latenzausgleich` (Latency Compensation, `lat_comp`, Schalter, an), `Latenz-Versatz` (Latency Offset, `lat_offset`, −50 … +50 ms), `Latenz messen` (Measure Latency, `lat_measure`, Taster), `Push-1-Anschlagkurve`, `Sampler-Pad-Anschlagkurve` (die K.O.-II-Kurve; Hosts sehen keine Gerätenamen), `MIDI-Anschlagkurve` (`vel_push`, `vel_ko2`, `vel_midi`: Weich / Normal (Standard) / Hart / Fest), `MIDI-Feedback (experimentell)` (`midi_fb`, Schalter, aus) und `Push 1 Loop-Fortschrittsbalken` (`push_progress`, Schalter, an). `Transport folgen` (`follow`) ist seit 1.7 standardmäßig **an** (die ID bleibt; gespeicherte Projekte behalten ihren Wert).
+
+**Seit 1.7 (Anzeige)** – 4 weitere, angehängt (Parameter 498 – 501): `Live-Ansicht` (Live View, `live_view`, Schalter, aus – die Live-Ansicht mit großen Spur-Karten), `Bühnenmodus` (Stage Mode, `stage_mode`, Schalter, aus – hoher Kontrast, größere Schrift), `Farbschema` (Colour Theme, `ui_theme`, Dunkel (Standard) / Hell) und `Wellenformen zeigen` (Show Waveforms, `waveforms`, Schalter, aus – große Wellenformen in den Spur-Displays). Farbschema, Bühnenmodus und Wellenformen merkt sich livelooper außerdem auf dem Computer (*SETUP → Anzeige*).
 
 ### Anschlagkurve und LED-Feedback für gelernte Bedienelemente (1.7)
 
