@@ -152,10 +152,14 @@ public:
                 expectEquals (e->getGuiScale(), 200);
                 e->keyPressed (juce::KeyPress ('=', juce::ModifierKeys::commandModifier, 0));
                 expectEquals (e->getGuiScale(), 200, "200 % is the largest");
-                e->keyPressed (juce::KeyPress ('-', juce::ModifierKeys::commandModifier, 0));
-                e->keyPressed (juce::KeyPress ('-', juce::ModifierKeys::commandModifier, 0));
-                e->keyPressed (juce::KeyPress ('-', juce::ModifierKeys::commandModifier, 0));
+                for (int i = 0; i < 4; ++i)         // 150, 125, 100, 75
+                    e->keyPressed (juce::KeyPress ('-', juce::ModifierKeys::commandModifier, 0));
                 expectEquals (e->getGuiScale(), 75);
+                e->keyPressed (juce::KeyPress ('-', juce::ModifierKeys::commandModifier, 0));
+                expectEquals (e->getGuiScale(), 75, "75 % is the smallest");
+                e->keyPressed (juce::KeyPress ('0', juce::ModifierKeys::commandModifier, 0));
+                expectEquals (e->getGuiScale(), 100, "Ctrl / Cmd 0 = 100 %");
+                e->setGuiScale (75);
                 expectEquals (ed->getWidth(), juce::roundToInt (LiveLooperEditor::kBaseWidth * 0.75f));
                 e->setGuiScale (125);
             }
