@@ -89,6 +89,7 @@ Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
 - **Stem export** with tempo metadata, WAV export per track, drag & drop audio files onto a track to import
 - **Direct track outputs** (plug-in multi-out – each track on its own output in your DAW – or interface outputs in the standalone app), **cue output** for the metronome
 - **Saved with your project**: loops stored losslessly (FLAC, 24 bit) in your DAW project; whole **looper sets** as `.llset` files
+- **Loop length on every track** (1.7): AUTO or 1 – 16 bars right in the track strip and the Live view (click, scroll, MIDI learn); on Push 1 hold FIXED LENGTH + pad or encoder
 - **Live view, themes, stage mode** (1.7): a fullscreen-capable stage view with large track cards and a performance FX strip, light and dark theme, high-contrast stage mode, interface size 75 – 200 %, large waveforms with the overdub layer
 - **Meters and waveforms**: stereo meter per track, master VU in dB on the display (green / yellow / red), waveform with play position, clip LED
 - **Comfort**: in-app help (searchable user guide), about window with update check, start with the last used or the default settings, list of the last used sets

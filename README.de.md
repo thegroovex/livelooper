@@ -85,6 +85,7 @@ Einrichtung und komplette Belegung: **[PUSH.md](docs/de/PUSH.md)**.
 **Arbeiten mit deiner DAW**
 - **Synchron zur DAW**: Host-Tempo, Taktart und Transport (ein DAW-Stopp stoppt die Loops – abschaltbar) – oder interne Clock mit Tap-Tempo / eingetipptem Tempo
 - **Latenz messen und ausgleichen** (1.7): ein Klick misst die Roundtrip-Latenz deines Interfaces (Loopback-Ping), gespeichert pro Audiogerät; jede Aufnahme, jeder Overdub und jedes Capture landet auf dem Beat
+- **Loop-Länge an jeder Spur** (1.7): AUTO oder 1 – 16 Takte direkt in der Spur und in der Live-Ansicht (Klick, Scrollen, MIDI-Learn); am Push 1 FIXED LENGTH halten + Pad oder Encoder
 - **Live-Ansicht, Farbschemas, Bühnenmodus** (1.7): eine (auch bildschirmfüllende) Bühnenansicht mit großen Spur-Karten und Performance-FX-Leiste, helles und dunkles Farbschema, kontrastreicher Bühnenmodus, Oberflächengröße 75 – 200 %, große Wellenformen mit Overdub-Schicht
 - **Loops in die DAW ziehen**: Zieh die Wellenform einer Spur auf eine Audiospur oder in den Browser der DAW – eine WAV mit Tempo-Infos (ACID-Metadaten), die die meisten DAWs direkt ins Raster legen
 - **Stem-Export** mit Tempo-Metadaten, WAV-Export pro Spur, Audiodateien per Drag & Drop auf eine Spur importieren
