@@ -10,5 +10,5 @@
         { "Next recording only: %1 (set on the controller); the setting stays %2", "Nur die n\xc3" "\xa4" "chste Aufnahme: %1 (am Controller gew\xc3" "\xa4" "hlt); die Einstellung bleibt %2" },
         { "The track holds a loop: the length applies to the next new recording (after CLEAR)", "Die Spur enth\xc3" "\xa4" "lt einen Loop: die L\xc3" "\xa4" "nge gilt f\xc3" "\xbc" "r die n\xc3" "\xa4" "chste neue Aufnahme (nach L\xc3" "\x96" "SCHEN)" },
         { "T%1 loop length: %2", "S%1 Loop-L\xc3" "\xa4" "nge: %2" },
-        { "T%1 Bars", "S%1 Takte" },
+        { "T%1 Bars", "S%1 Takt" },
         { "LOOP LENGTH  pads: AUTO/1/2/4/8/16  encoder: step  alone: capture", "LOOP-L\xc3" "\x84" "NGE  Pads: AUTO/1/2/4/8/16  Encoder: \xc3" "\xa4" "ndern  allein: Capture" },

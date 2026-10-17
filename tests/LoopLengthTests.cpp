@@ -106,6 +106,8 @@ public:
                              "Next recording only: %1 (set on the controller); the setting stays %2",
                              "The track holds a loop: the length applies to the next new recording (after CLEAR)" })
                 expect (i18n::germanFor (s).isNotEmpty(), juce::String ("German text for ") + s);
+            for (int t = 1; t <= 8; ++t)
+                expect (i18n::germanFor ("T%1 Bars").replace ("%1", juce::String (t)).length() <= 7, "Push column (7 characters)");
             expect (i18n::germanFor ("LOOP LENGTH  pads: AUTO/1/2/4/8/16  encoder: step  alone: capture").length() <= push::kDisplayChars,
                     "Push status line fits 68 characters");
         }

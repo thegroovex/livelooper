@@ -23,7 +23,7 @@ T = [
      "Die Spur enth\u00e4lt einen Loop: die L\u00e4nge gilt f\u00fcr die n\u00e4chste neue Aufnahme (nach L\u00d6SCHEN)"),
     # ---- Push 1 (FIXED LENGTH held)
     ("T%1 loop length: %2", "S%1 Loop-L\u00e4nge: %2"),
-    ("T%1 Bars", "S%1 Takte"),
+    ("T%1 Bars", "S%1 Takt"),       # 7 characters per Push display column
     ("LOOP LENGTH  pads: AUTO/1/2/4/8/16  encoder: step  alone: capture",
      "LOOP-L\u00c4NGE  Pads: AUTO/1/2/4/8/16  Encoder: \u00e4ndern  allein: Capture"),
 ]

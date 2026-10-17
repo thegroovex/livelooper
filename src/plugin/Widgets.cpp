@@ -891,7 +891,7 @@ void LoopLengthPill::paint (juce::Graphics& g)
 
     g.setColour ((fixed ? colours::text : colours::text.withAlpha (0.8f)).withAlpha (alpha));
     g.setFont (LooperLookAndFeel::font (large ? 12.5f : 10.0f, true));
-    auto text = r.withTrimmedLeft (icon.getRight() - r.getX() + 3.0f).withTrimmedRight (rad * 0.6f);
+    auto text = r.withTrimmedLeft (icon.getRight() - r.getX() + 4.0f).withTrimmedRight (rad * 0.6f);
     g.drawFittedText (getText(), text.toNearestInt(), juce::Justification::centred, 1, 0.75f);
 }
 

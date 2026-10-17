@@ -14,6 +14,8 @@
 #include "plugin/ControllerView.h"
 #include "plugin/controllers/Ko2.h"
 #include "plugin/AppSettings.h"
+#include "plugin/push/PushDevice.h"
+#include "plugin/push/PushSurface.h"
 
 using namespace livelooper;
 using namespace livelooper::params;
@@ -94,6 +96,7 @@ int main (int argc, char* argv[])
     set ("rhythm_on", 1.0f);
     set ("t3_level", 0.8f);
     set ("t2_pan", -0.3f);
+    set ("t5_measure", 3.0f);   // v1.7 loop length: track 5 (empty) records 4 bars
     press (proc, "scene1");     // store a scene: shows its LED in the footer
     runBlocks (proc, 1, 0.0f);
     proc.loadDefaultMidiMap();
@@ -331,6 +334,19 @@ int main (int argc, char* argv[])
             }
             save (*editor, outDir.getChildFile ("livelooper-controller-push" + sfx + ".png"));
             proc.getState().getParameter (punchHoldId (4))->setValueNotifyingHost (0.0f);
+            if (auto* pd = proc.getPushDevice())
+            {
+                // v1.7 loop length: FIXED LENGTH held (pads / display show the eight lengths)
+                auto& surf = pd->getSurface();
+                surf.handleMidi (juce::MidiMessage::controllerEvent (1, push::cc::fixedLength, 127));
+                std::vector<juce::MidiMessage> discard;
+                surf.render (discard, false);
+                editor->repaint();
+                juce::MessageManager::getInstance()->runDispatchLoopUntil (80);
+                save (*editor, outDir.getChildFile ("livelooper-controller-push-length" + sfx + ".png"));
+                surf.handleMidi (juce::MidiMessage::controllerEvent (1, push::cc::fixedLength, 0));
+                surf.render (discard, false);
+            }
             if (! p1) press (proc, "t1_stop");
             if (! p2) press (proc, "t2_stop");
             runBlocks (proc, 2, 0.0f);
