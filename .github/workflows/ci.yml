@@ -137,6 +137,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
         with:
@@ -200,6 +201,7 @@ jobs:
     name: Linux unit tests (${{ matrix.shard }}/3)
     needs: linux-build
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -233,6 +235,7 @@ jobs:
     name: Linux VST3 host test + pluginval
     needs: linux-build
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - uses: actions/download-artifact@v8
         with:
@@ -279,6 +282,7 @@ jobs:
             pluginval: pluginval_Windows.zip
             pluginvalBin: ./pluginval.exe
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 75
     env:
       INSTALLERS: ${{ needs.changes.outputs.installers }}
     steps:
