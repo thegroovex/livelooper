@@ -34,6 +34,7 @@ Connect a Push (1 and up), press **User**, and livelooper turns it into a dedica
 - **Touch strip** = tape stop that springs back in sync (SHIFT = filter sweep), **footswitch** = REC/PLAY, double tap STOP, hold CLEAR
 - **FX XY pad**: the 8×8 grid becomes a performance pad – touch, slide, press harder for more, let go and it snaps back
 - **Performance FX (1.5)**: ADD EFFECT = beat FX on / off, ADD TRACK = beat FX while held, LEFT / RIGHT = beat, BROWSE = encoders for type, beat, level, channel, colour FX, repeat / stutter timing; REPEAT / ACCENT = beat repeat / stutter while held (SHIFT = latch), hold them and slide on the touch strip for 1/2 … 1/32; FIXED LENGTH = capture 1–32 bars; SHIFT + METRONOME = Ableton Link
+- **New in 1.7**: hold **FIXED LENGTH** + pad (rows 3 – 8 = AUTO … 16 bars) or encoder = loop length of a track, **SHIFT + MASTER** = Live view, loop progress bars and the punch FX amount bar on the display, velocity curve for the pads
 - **Display** with names, values, track states, tempo and level meters
 
 Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
@@ -50,6 +51,20 @@ Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
 - **Ghost play head**: stopped tracks show where they would be now, so you drop them back in exactly
 - **Loop cutting and stutter**, **momentary mute / solo**, **loop × 2 / half**, **copy to another track**, **tape stop** and a **performance filter** – everything quantized musically, nothing ever stops the music
 - **Ableton Push**, **MIDI learn** for any controller (right-click any control), and **computer keyboard** control in the standalone app
+
+<!-- v1.7 features -->
+**New in 1.7 (in development)**
+
+![Live view](docs/images/livelooper-live.png)
+
+- **Live view** for the stage: one large card per track (state, length, waveform, the big REC / PLAY / DUB pad, level, STOP) and a performance FX strip – open it with **LIVE** next to the logo, **SHIFT + MASTER** on Push 1 or any MIDI control; *Open Live view (fullscreen)* puts it in a borderless window kept on top over the whole screen (handy on a second monitor – not a locked kiosk mode)
+- **Loop length on every track**: a pill next to the track name – **AUTO** (your next press ends the recording) or **1 · 2 · 4 · 8 · 16 bars** (ends by itself on the bar line); click, scroll or MIDI-learn it, also in the Live view. Host parameters *Loop Length* and *Loop Length Once* (one-shot, up to 32 bars). On Push 1: hold **FIXED LENGTH** + a pad in rows 3 – 8 or the track encoder; FIXED LENGTH alone still sets the capture length (on release)
+- **Latency measurement and compensation**: one click measures your interface's round trip (loopback ping), stored per audio device; every recording, overdub and capture lands on the beat; manual offset −50 … +50 ms
+- **Display** (*SETUP → Display*): light and dark theme, high-contrast **stage mode**, interface size **75 – 200 %** (Ctrl/Cmd + / −), large waveforms with the overdub layer (off by default)
+- **Velocity curves** (soft / normal / hard / fixed) for Push 1, the sampler pads and learned MIDI notes, **MIDI feedback** to light up learned controls (experimental), **Push 1 display bars** for loop progress and the punch FX amount
+- **Follow host transport is on by default**: stopping your DAW stops the loops (switchable in *SETUP → Looper*)
+- 12 new host parameters – **501** in total, all MIDI-mappable
+<!-- end v1.7 features -->
 
 <!-- v1.6 features -->
 **New in 1.6 (in development)**
@@ -89,14 +104,14 @@ Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
 - **Rhythm** with recorded drum samples (CC0 / public domain): 4 kits (Studio, 808, 909 Style, Lo-Fi), 21 patterns from rock to trap, dembow, UK garage and Afro house, 6 groove feels (straight, natural, laid back, pushed, drunk, drive), automatic fills every 4 or 8 bars, swing and feel; metronome with 4 sounds
 
 **Work with your DAW**
-- **In sync with your DAW**: host tempo, time signature and transport (a DAW stop stops the loops – switchable), or an internal clock with tap tempo / typed-in tempo
+- **In sync with your DAW**: host tempo, time signature and transport (a DAW stop stops the loops – on by default since 1.7, switchable), or an internal clock with tap tempo / typed-in tempo
 - **Latency measurement and compensation** (1.7): one click measures your interface's round trip (loopback ping), stored per audio device; every recording, overdub and capture lands on the beat
 - **Drag loops into your DAW**: drag a track's waveform onto an audio track or into the DAW's browser – a tempo-tagged WAV (ACID metadata), which most DAWs place right on the grid
 - **Stem export** with tempo metadata, WAV export per track, drag & drop audio files onto a track to import
 - **Direct track outputs** (plug-in multi-out – each track on its own output in your DAW – or interface outputs in the standalone app), **cue output** for the metronome
 - **Saved with your project**: loops stored losslessly (FLAC, 24 bit) in your DAW project; whole **looper sets** as `.llset` files
 - **Loop length on every track** (1.7): AUTO or 1 – 16 bars right in the track strip and the Live view (click, scroll, MIDI learn); on Push 1 hold FIXED LENGTH + pad or encoder
-- **Live view, themes, stage mode** (1.7): a fullscreen-capable stage view with large track cards and a performance FX strip, light and dark theme, high-contrast stage mode, interface size 75 – 200 %, large waveforms with the overdub layer
+- **Live view, themes, stage mode** (1.7): a stage view (also as a borderless full-screen window) with large track cards and a performance FX strip, light and dark theme, high-contrast stage mode, interface size 75 – 200 %, large waveforms with the overdub layer
 - **Meters and waveforms**: stereo meter per track, master VU in dB on the display (green / yellow / red), waveform with play position, clip LED
 - **Comfort**: in-app help (searchable user guide), about window with update check, start with the last used or the default settings, list of the last used sets
 - **All 501 functions** are host parameters for your DAW's MIDI mapping and automation
@@ -135,7 +150,7 @@ Everything else is in the **[User Guide](docs/en/USER-GUIDE.md)**, MIDI control 
 |---|---|
 | [INSTALLATION.md](docs/en/INSTALLATION.md) | Download, installers and manual installation on macOS and Windows, Gatekeeper / SmartScreen, microphone permission, setup in your DAW |
 | [DAW-SETUP.md](docs/en/DAW-SETUP.md) | Using the plug-in in your DAW: looper track, monitoring, looping mic/guitar and software instruments, switching sources live, getting audio out, MIDI routing (Live, Bitwig, Cubase, Logic, Reaper, Studio One) |
-| [USER-GUIDE.md](docs/en/USER-GUIDE.md) | Interface, all functions, beat FX, beat repeat / stutter, colour FX, rhythm, Link, setup, language |
+| [USER-GUIDE.md](docs/en/USER-GUIDE.md) | Interface, all functions, beat FX, beat repeat / stutter, colour FX, rhythm, Link, setup, language, latency, Live view, display, loop length (1.7) |
 | [MIDI.md](docs/en/MIDI.md) | MIDI learn, your DAW's MIDI mapping, default mapping, parameter list |
 | [PUSH.md](docs/en/PUSH.md) | Ableton Push control (in any DAW and standalone): setup, pad layout, encoders, FX XY pad, performance FX, STEP mode |
 | [KO2.md](docs/en/KO2.md) | EP-133 K.O. II control (experimental – please test): pages, roles, clock, recording, test list |
