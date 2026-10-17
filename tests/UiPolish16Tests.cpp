@@ -212,9 +212,9 @@ public:
                     expect (getEmbeddedImage (p.image).isValid(), "picture " + p.image);
                     expect (p.text.isNotEmpty() && p.level == 0);
                 }
-                expectEquals (pages[10].legend.size(), 22, "Push 1: 22 numbered controls (v1.6: beat flash, set recording)");
-                expectEquals (pages[12].legend.size(), 8, "K.O. II: 8 numbered controls");
-                expectEquals (pages[11].legend.size(), 10, "Push 1 STEP: 10 numbered controls");
+                expectEquals (pages[11].legend.size(), 22, "Push 1: 22 numbered controls (v1.6: beat flash, set recording)");
+                expectEquals (pages[13].legend.size(), 8, "K.O. II: 8 numbered controls");
+                expectEquals (pages[12].legend.size(), 10, "Push 1 STEP: 10 numbered controls");
                 // v1.7 pages, in order after Link, each with its own picture (German variant when German)
                 const char* v17[][2] = { { "Loop length", "help-looplen.png" }, { "Live view", "help-live.png" },
                                          { "Display", "help-display.png" }, { "Latency", "help-latency.png" },
@@ -226,7 +226,7 @@ public:
                     expect (getEmbeddedImage (juce::String (v17[i][1]).replace (".png", "-de.png")).isValid(), "German picture");
                 }
                 expect (pages[6].text.contains ("FIXED LENGTH"), "loop length page: Push FIXED LENGTH gesture");
-                expect (pages[10].text.contains ("SHIFT + MASTER"), "Push 1 page: SHIFT + MASTER = Live view");
+                expect (pages[11].text.contains ("SHIFT + MASTER"), "Push 1 page: SHIFT + MASTER = Live view");
                 if (lang == i18n::Language::German)
                 {
                     expectEquals (pages[0].title, juce::String ("Willkommen"));
