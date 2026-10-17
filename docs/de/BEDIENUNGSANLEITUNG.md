@@ -56,6 +56,7 @@ Der LED-Ring zeigt den Zustand und die Position im Loop:
 | Element | Funktion |
 |---|---|
 | Display | Zustand (LEER, REC, DUB, PLAY, STOP, … WARTET), Länge in Takten, Pegel (PEG), Fortschrittsbalken |
+| **Loop-Länge** (Pille neben *SPUR n*, neu in 1.7) | **AUTO** oder **1 · 2 · 4 · 8 · 16 TAKTE**: die erste Aufnahme endet nach so vielen Takten von selbst. Klick = Menü, Mausrad / nach oben oder unten ziehen = ändern, Rechtsklick = MIDI-Learn. Abgedunkelt, solange die Spur einen Loop enthält (gilt dann für die nächste neue Aufnahme). Siehe [Abschnitt 45](#45-loop-länge-neu-in-17) |
 | **RÜCKW.** (REV) | Loop rückwärts abspielen (auch beim Overdub) |
 | **1SHOT** | Loop einmal abspielen, dann stoppen |
 | **FX** | Spur durch die Spur-FX schicken |
@@ -72,7 +73,7 @@ Der LED-Ring zeigt den Zustand und die Position im Loop:
 | Start | Sofort · Einblenden | Wiedergabestart sofort oder mit Einblendung (Fade-Zeit im MASTER) |
 | Stop | Sofort · Ausblenden · Loop-Ende | Stopp sofort, mit Ausblendung oder am Ende des Loops |
 | Dub-Modus (Dub mode) | Overdub · Ersetzen | beim Overdub hinzufügen oder ersetzen |
-| Takte (Measures) | Auto · 1 · 2 · 4 · 8 · 16 | Auto = Länge durch zweiten Druck; feste Zahl = Aufnahme endet automatisch nach so vielen Takten |
+| Loop-Länge (Loop length) | Auto · 1 · 2 · 4 · 8 · 16 | Auto = Länge durch zweiten Druck; feste Zahl = Aufnahme endet automatisch nach so vielen Takten. Dieselbe Einstellung wie die Loop-Länge-Pille in der Spur (vor 1.7 *Takte*) |
 | LOOP-SYNC | an/aus | Loop bleibt fest am Taktraster: nach dem Spulen in der DAW oder beim Neustart läuft er an der passenden Stelle weiter |
 | LÖSCHEN (CLEAR) | | Spur löschen |
 | WAV EXPORT | | Loop als 24-Bit-WAV speichern |
@@ -307,7 +308,7 @@ Ohne Cue-Paar (und im Plug-in) spielt der Rhythmus immer auf dem Hauptausgang �
 | Quantisierung: Aus · Schlag · Takt | Quantize: Off · Beat · Measure |
 | Sofort · Einblenden · Ausblenden · Loop-Ende | Immediate · Fade In · Fade Out · Loop End |
 | Dub-Modus: Overdub · Ersetzen | Dub mode: Overdub · Replace |
-| Takte | Measures |
+| Loop-Länge (vor 1.7 Takte) | Loop length (before 1.7 Measures) |
 | LEER · STOPPT · WARTET · ENDE · GELÖSCHT | EMPTY · STOPPING · WAIT · END · CLEARED |
 | BEAT-FX · Kanal · PEGEL | BEAT FX · Channel · LEVEL |
 | COLOR-FX | COLOR FX |
@@ -385,7 +386,7 @@ Neue Funktionen fürs Live-Spielen. Sie sind Host-Parameter (MIDI Learn, MIDI-Ma
 - **Loop verdoppeln**: Der Loop wird verdoppelt (doppelt so lang) – overdubbe eine Variation über die zweite Hälfte. **Loop halbieren** behält die erste Hälfte. Beides geht bei spielenden oder gestoppten Spuren und lässt sich mit UNDO zurücknehmen.
 - **Oktave hoch / runter**: Tonhöhe +12 / −12 Halbtöne.
 - **In leere Spur kopieren**: kopiert den Loop in die nächste leere Spur (gestoppt; gestartet läuft sie synchron mit dem Original).
-- **Aufnahmelänge**: eine feste Länge (1 – 32 Takte) für die nächste oder die laufende erste Aufnahme, ohne die Takte-Einstellung der Spur zu ändern.
+- **Loop-Länge einmalig** (vor 1.7 *Aufnahmelänge*): eine feste Länge (1 – 32 Takte) nur für die nächste oder die laufende erste Aufnahme, ohne die Loop-Länge-Einstellung der Spur zu ändern (siehe Abschnitt 45).
 - **Tape-Stopp**: Die Loops werden langsamer wie ein anhaltendes Tonband; zurück auf 0 % laufen sie wieder an und spielen synchron weiter – die Zeitachse hält nie an.
 - **Performance-Filter**: ein DJ-Filter auf den Loops (links Tiefpass, rechts Hochpass, in der Mitte aus).
 
@@ -706,6 +707,22 @@ Bühnenmodus und helles Farbschema gelten auch für die Live-Ansicht:
 ![Wellenformen in den Spur-Displays](../images/livelooper-waveforms-de.png)
 
 Größe, Farbschema, Bühnenmodus und die Wellenform-Einstellung merkt sich livelooper auf diesem Computer (ein neues livelooper startet damit; ein geladenes Projekt oder Set kann eigene Werte für die Parameter mitbringen). Die Wellenformen werden im Oberflächen-Thread aus dem Loop-Speicher gelesen – die Audioverarbeitung macht dafür keine zusätzliche Arbeit und reserviert keinen Speicher.
+
+## 45. Loop-Länge (neu in 1.7)
+
+![Loop-Länge-Pille in den Spuren](../images/livelooper-loop-length-de.png)
+
+Jede Spur hat **eine** Loop-Länge: *wie viele Takte die erste Aufnahme dauert*. Sie sitzt als kleine Pille in der Titelzeile jeder Spur (neben *SPUR n*) und in den Karten der Live-Ansicht, solange die Spur leer ist oder aufnimmt.
+
+- **AUTO** (Standard): du beendest die erste Aufnahme selbst mit dem nächsten Druck (gerundet durch die Quantisierung).
+- **1 · 2 · 4 · 8 · 16 TAKTE** (orange): die Aufnahme endet nach so vielen Takten von selbst – REC drücken und spielen, livelooper schließt den Loop auf dem Taktstrich. Während der Aufnahme füllt sich die Pille mit dem Fortschritt.
+- **Ändern**: Pille anklicken und wählen oder darüber das Mausrad drehen / nach oben oder unten ziehen. Rechtsklick = MIDI-Learn (wie bei jedem Bedienelement). Es ist dieselbe Einstellung wie *Loop-Länge* im Spur-SETUP und der Host-Parameter **Loop-Länge** (Loop Length, `t1_measure` … `t8_measure`, IDs unverändert; vor 1.7 *Takte*) – DAW-Automation, MIDI-Zuweisung und Controller ändern sie also alle.
+- **Solange die Spur einen Loop enthält**, ist die Pille abgedunkelt: die Länge zählt erst für die nächste neue Aufnahme (nach LÖSCHEN). Vorab einstellen geht trotzdem.
+- **Nur dieses eine Mal**: *Loop-Länge einmalig* (Host-Parameter `t1_reclen` …, vor 1.7 *Aufnahmelänge*; am Push: REC-Pad halten + Positions-Pad) setzt eine Länge (1 – 32 Takte) nur für die nächste oder laufende Aufnahme. Die Pille zeigt diese Länge dann mit gestricheltem orangefarbenem Rand; die Einstellung selbst bleibt, wie sie war.
+
+**Push 1:** **FIXED LENGTH** halten und ein Pad in der Spalte einer Spur drücken (Reihen 3 – 8 von unten = AUTO, 1, 2, 4, 8, 16 Takte) oder den Encoder dieser Spur drehen. Solange die Taste gehalten wird, zeigt das Display die acht Längen; die FIXED-LENGTH-LED leuchtet, wenn die ausgewählte Spur eine andere Länge als AUTO hat. FIXED LENGTH allein gedrückt und losgelassen stellt weiterhin die Capture-Länge um. Details: [Push](PUSH.md#loop-länge-neu-in-17).
+
+![Push 1: FIXED LENGTH gehalten](../images/livelooper-controller-push-length-de.png)
 
 ## Drums, BEATS und Sound-Packs (1.6)
 

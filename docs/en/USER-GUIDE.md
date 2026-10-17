@@ -54,6 +54,7 @@ The LED ring shows the state and the position in the loop:
 | Control | Function |
 |---|---|
 | Display | state, length in bars, level, progress bar |
+| **Loop length** (pill next to *TRACK n*, new in 1.7) | **AUTO** or **1 · 2 · 4 · 8 · 16 BARS**: the first recording ends by itself after that many bars. Click = menu, mouse wheel / drag up or down = change, right-click = MIDI learn. Dimmed while the track holds a loop (it applies to the next new recording). See [section 45](#45-loop-length-new-in-17) |
 | **REV** | play the loop backwards (also while overdubbing) |
 | **1SHOT** | play the loop once, then stop |
 | **FX** | send the track through the track FX |
@@ -70,7 +71,7 @@ The LED ring shows the state and the position in the loop:
 | Start | Immediate · Fade In | playback starts immediately or fades in (fade time in MASTER) |
 | Stop | Immediate · Fade Out · Loop End | stop immediately, fade out, or stop at the end of the loop |
 | Dub mode | Overdub · Replace | add to or replace the loop while overdubbing |
-| Measures | Auto · 1 · 2 · 4 · 8 · 16 | Auto = length set by the second press; a fixed number = recording ends automatically after that many bars |
+| Loop length | Auto · 1 · 2 · 4 · 8 · 16 | Auto = length set by the second press; a fixed number = recording ends automatically after that many bars. The same setting as the loop length pill on the strip (called *Measures* before 1.7) |
 | LOOP SYNC | on/off | the loop stays locked to the bar grid: after jumping in the DAW's timeline or restarting it continues at the right spot |
 | CLEAR | | clear the track |
 | EXPORT WAV | | save the loop as a 24-bit WAV |
@@ -356,7 +357,7 @@ New functions for playing live. They are host parameters (MIDI learn, your DAW's
 - **Double Loop**: the loop is duplicated (twice as long) – overdub a variation over the second half. **Halve Loop** keeps the first half. Both work on playing or stopped tracks and can be undone with UNDO.
 - **Octave Up / Down**: pitch +12 / −12 semitones.
 - **Copy to Empty Track**: copies the loop into the next empty track (stopped; when started it plays in sync with the original).
-- **Rec Length**: a fixed length (1 – 32 bars) for the next or the running first recording, without changing the track's Measures setting.
+- **Loop Length Once** (*Rec Length* before 1.7): a fixed length (1 – 32 bars) for the next or the running first recording only, without changing the track's loop length setting (see section 45).
 - **Tape Stop**: the loops slow down like a stopping tape machine; back at 0 % they spin up and continue in sync – the timeline never stops.
 - **Performance Filter**: a DJ-style filter on the loops (low-pass to the left, high-pass to the right, off in the middle).
 
@@ -677,6 +678,22 @@ Stage mode and the light theme apply to the Live view too:
 ![Waveforms in the track displays](../images/livelooper-waveforms.png)
 
 Interface size, theme, stage mode and the waveform setting are remembered on this computer (a new livelooper starts with them; a project or set you load can bring its own values for the parameters). The waveforms are read on the user interface thread from the loop memory – the audio processing does no extra work and allocates nothing.
+
+## 45. Loop length (new in 1.7)
+
+![Loop length pill on the track strips](../images/livelooper-loop-length.png)
+
+Every track has **one** loop length: *how many bars the first recording lasts*. It sits as a small pill in the title row of each track strip (next to *TRACK n*) and on the cards of the Live view while the track is empty or recording.
+
+- **AUTO** (default): you end the first recording yourself with the next press (rounded by quantize).
+- **1 · 2 · 4 · 8 · 16 BARS** (orange): the recording ends by itself after that many bars – press REC and play, livelooper closes the loop on the bar line. While it records, the pill fills with the progress.
+- **Change it**: click the pill and choose, or turn the mouse wheel / drag up or down over it. Right-click = MIDI learn (like every control). It is the same setting as *Loop length* in the track SETUP and the host parameter **Loop Length** (`t1_measure` … `t8_measure`, unchanged IDs; *Measures* before 1.7), so DAW automation, MIDI mapping and controllers all change it.
+- **While the track holds a loop** the pill is dimmed: the length only matters for the next new recording (after CLEAR). You can still set it in advance.
+- **Just this once**: *Loop Length Once* (host parameter `t1_reclen` …, *Rec Length* before 1.7; on Push: hold the REC pad + a position pad) sets a length (1 – 32 bars) for the next or running recording only. The pill then shows that length with a dashed orange outline; the setting itself stays as it was.
+
+**Push 1:** hold **FIXED LENGTH** and press a pad in a track's column (rows 3 – 8 from the bottom = AUTO, 1, 2, 4, 8, 16 bars) or turn that track's encoder. The display shows the eight lengths while you hold the button; the FIXED LENGTH LED is lit when the selected track has a length other than AUTO. FIXED LENGTH pressed and released on its own still steps the capture length. Details: [Push](PUSH.md#loop-length-new-in-17).
+
+![Push 1: FIXED LENGTH held](../images/livelooper-controller-push-length.png)
 
 ## Drums, BEATS and sound packs (1.6)
 

@@ -121,6 +121,15 @@ int main (int argc, char* argv[])
         ed->showStatus ({});
         juce::MessageManager::getInstance()->runDispatchLoopUntil (200);
         save (*editor, outDir.getChildFile ("livelooper" + sfx + ".png"));
+        {
+            // v1.7 loop length: the top of the track strips (title row with the loop length pills, displays), 2x
+            auto img = editor->createComponentSnapshot ({ 12, 326, 904, 118 }, true, 2.0f);
+            const auto f = outDir.getChildFile ("livelooper-loop-length" + sfx + ".png");
+            f.deleteFile();
+            juce::FileOutputStream out (f);
+            juce::PNGImageFormat().writeImageToStream (img, out);
+            std::cout << "wrote " << f.getFullPathName() << std::endl;
+        }
 
         // v1.6: the welcome screen (demo set / empty set)
         {

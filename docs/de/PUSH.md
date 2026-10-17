@@ -93,7 +93,8 @@ Die Anfänge der Stücke liegen auf 16tel-Noten des Loops, ein Schnitt bleibt al
 | AUTOMATION | Auto-Aufnahme ein / aus |
 | NEW | Speichermodus für Szenen |
 | QUANTIZE | nächster Quantisierungswert |
-| FIXED LENGTH | **Capture-Länge**: 1 → 2 → 4 → 8 → 16 → 32 Takte und wieder von vorn (**SHIFT** = kürzer); RECORD macht den Capture |
+| FIXED LENGTH (allein drücken und loslassen) | **Capture-Länge**: 1 → 2 → 4 → 8 → 16 → 32 Takte und wieder von vorn (**SHIFT** = kürzer); RECORD macht den Capture |
+| FIXED LENGTH **halten** + Pad / Encoder | *(neu in 1.7)* **Loop-Länge** einer Spur, siehe [unten](#loop-länge-neu-in-17) |
 | ADD EFFECT · ADD TRACK · LEFT / RIGHT · BROWSE · REPEAT · ACCENT | Performance-FX, siehe [unten](#performance-fx-seit-15) |
 
 ### Touchstrip
@@ -197,15 +198,31 @@ Beat-FX, Beat Repeat / Stutter, Color-FX und Metronom der Performance-Reihe (Bed
 | REPEAT | **Beat Repeat solange gehalten** mit dem Repeat-Timing · **SHIFT** + REPEAT = Latch ein / aus |
 | ACCENT | **Stutter solange gehalten** mit dem Stutter-Timing · **SHIFT** + ACCENT = Latch ein / aus |
 | REPEAT / ACCENT gehalten + Touchstrip | Timing mit dem Finger wählen: 1/2 (unten) … 1/32 (oben) |
-| FIXED LENGTH | Capture-Länge 1 – 32 Takte (**SHIFT** = kürzer) |
+| FIXED LENGTH | Capture-Länge 1 – 32 Takte (**SHIFT** = kürzer) – beim Loslassen, wenn währenddessen nichts anderes gedrückt wurde (1.7: gehalten = Loop-Länge) |
 | SHIFT + METRONOME | Ableton Link ein / aus (Zeile 4 zeigt *Link* und die Teilnehmer) |
 | SHIFT + TAP TEMPO | Metronom-Klick ein / aus |
 
 Die Tasten leuchten, solange ihre Funktion an ist. Alles beginnt auf dem Raster des gewählten Timings und kehrt beim Loslassen synchron zurück.
 
+### Loop-Länge (neu in 1.7)
+
+![Push 1: FIXED LENGTH gehalten](../images/livelooper-controller-push-length-de.png)
+
+Die Loop-Länge einer Spur (AUTO oder 1 – 16 Takte: die erste Aufnahme endet nach so vielen Takten von selbst – die Pille in den Spuren, Host-Parameter *Loop-Länge* `t1_measure` …) ist eine Taste entfernt, in **jedem** Pad-Modus (LOOP, FX PAD, STEP):
+
+| Geste | Funktion |
+|---|---|
+| **FIXED LENGTH** halten | das Display zeigt die Länge jeder Spur (Zeile 1 `S1 Takt` …, Zeile 2 `AUTO` / `4` …, `>` = ausgewählte Spur), die Pads zeigen die Auswahl: Reihen 3 – 8 von unten = **AUTO, 1, 2, 4, 8, 16 Takte** (weiß / orange = aktuell, grau / gedimmt orange = die anderen) |
+| FIXED LENGTH gehalten + Pad in Reihe 3 – 8 | setzt die Loop-Länge dieser Spur und wählt sie aus (Zeile 4: `S3 Loop-Länge: 4 TAKTE`). Reihe 1 – 2 wählt nur die Spur aus (es startet keine Aufnahme) |
+| FIXED LENGTH gehalten + Spur-Encoder 1 – 8 | ändert die Länge dieser Spur schrittweise (drei Rasten pro Schritt) |
+| FIXED LENGTH allein gedrückt und losgelassen | Capture-Länge wie bisher (**SHIFT** = kürzer) |
+| LED von FIXED LENGTH | leuchtet, solange gehalten, und wenn die **ausgewählte** Spur eine andere Länge als AUTO hat, sonst gedimmt |
+
+Die Länge gilt für die erste Aufnahme; bei einer Spur mit Loop gilt sie für die nächste neue Aufnahme (nach DELETE). **REC-Pad halten + Positions-Pad** setzt weiterhin eine Länge nur für *diese* Aufnahme (1 – 32 Takte, Host-Parameter *Loop-Länge einmalig*), ohne die Einstellung zu ändern. Andere MIDI-Controller: *Loop-Länge* (Auswahl) oder *Loop-Länge einmalig* zuweisen (siehe [MIDI](MIDI.md)). Die K.O. II hat dafür keine freie Tastenkombination – GUI oder MIDI-Zuweisung verwenden.
+
 ### MIDI und Host-Parameter
 
-Jede Push-Geste nutzt Funktionen, die auch Host-Parameter sind – jeder MIDI-Controller kann sie also spielen (siehe [MIDI](MIDI.md)): *Slice 1 – 6* (pro Spur; gehalten = Note an, losgelassen = Note aus), *Zurück in Sync*, *Stumm*, *Solo*, *Loop verdoppeln*, *Loop halbieren*, *Oktave hoch / runter*, *In leere Spur kopieren*, *Aufnahmelänge*, *Tape-Stopp* und *Performance-Filter* – und seit 1.5 *Beat-FX an / Halten / Typ / Schlag / Pegel/Tiefe / Kanal*, *Color-FX-Typ*, *Color 1 – 8*, *Beat Repeat Halten / Latch / Timing*, *Stutter Halten / Latch / Timing*, *Metronom an / Pegel / Betonung*, *Link*, *Capture-Takte*.
+Jede Push-Geste nutzt Funktionen, die auch Host-Parameter sind – jeder MIDI-Controller kann sie also spielen (siehe [MIDI](MIDI.md)): *Slice 1 – 6* (pro Spur; gehalten = Note an, losgelassen = Note aus), *Zurück in Sync*, *Stumm*, *Solo*, *Loop verdoppeln*, *Loop halbieren*, *Oktave hoch / runter*, *In leere Spur kopieren*, *Loop-Länge einmalig* (vor 1.7 *Aufnahmelänge*), *Loop-Länge* (1.7, FIXED LENGTH gehalten), *Tape-Stopp* und *Performance-Filter* – und seit 1.5 *Beat-FX an / Halten / Typ / Schlag / Pegel/Tiefe / Kanal*, *Color-FX-Typ*, *Color 1 – 8*, *Beat Repeat Halten / Latch / Timing*, *Stutter Halten / Latch / Timing*, *Metronom an / Pegel / Betonung*, *Link*, *Capture-Takte*.
 
 
 ### STEP-Modus und FILL (1.6)

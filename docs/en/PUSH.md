@@ -93,7 +93,8 @@ The slice starts are snapped to 16th notes of the loop, so a cut keeps the groov
 | AUTOMATION | auto record on / off |
 | NEW | store mode for scenes |
 | QUANTIZE | next quantize value |
-| FIXED LENGTH | **capture length**: 1 → 2 → 4 → 8 → 16 → 32 bars and around (**SHIFT** = shorter); RECORD captures |
+| FIXED LENGTH (press and release on its own) | **capture length**: 1 → 2 → 4 → 8 → 16 → 32 bars and around (**SHIFT** = shorter); RECORD captures |
+| FIXED LENGTH **held** + pad / encoder | *(new in 1.7)* **loop length** of a track, see [below](#loop-length-new-in-17) |
 | ADD EFFECT · ADD TRACK · LEFT / RIGHT · BROWSE · REPEAT · ACCENT | performance FX, see [below](#performance-fx-since-15) |
 
 ### Touch strip
@@ -196,15 +197,31 @@ The beat FX, beat repeat / stutter, colour FX and metronome of the performance r
 | REPEAT | **beat repeat while held** with the repeat timing · **SHIFT** + REPEAT = latch on / off |
 | ACCENT | **stutter while held** with the stutter timing · **SHIFT** + ACCENT = latch on / off |
 | REPEAT / ACCENT held + touch strip | choose the timing with your finger: 1/2 (bottom) … 1/32 (top) |
-| FIXED LENGTH | capture length 1 – 32 bars (**SHIFT** = shorter) |
+| FIXED LENGTH | capture length 1 – 32 bars (**SHIFT** = shorter) – on release, when nothing else was pressed while holding it (1.7: held = loop length) |
 | SHIFT + METRONOME | Ableton Link on / off (line 4 shows *Link* and the peers) |
 | SHIFT + TAP TEMPO | metronome click on / off |
 
 The buttons light up while their function is on. Everything starts on the grid of the chosen timing and returns in sync when you let go.
 
+### Loop length (new in 1.7)
+
+![Push 1: FIXED LENGTH held](../images/livelooper-controller-push-length.png)
+
+The loop length of a track (AUTO or 1 – 16 bars: the first recording ends by itself after that many bars – the pill on the track strips, host parameter *Loop Length* `t1_measure` …) is one button away, in **every** pad mode (LOOP, FX PAD, STEP):
+
+| Gesture | Function |
+|---|---|
+| hold **FIXED LENGTH** | the display shows the length of every track (line 1 `T1 Bars` …, line 2 `AUTO` / `4` …, `>` = selected track), the pads show the choices: rows 3 – 8 from the bottom = **AUTO, 1, 2, 4, 8, 16 bars** (white / orange = current, grey / dim orange = the others) |
+| FIXED LENGTH held + pad in rows 3 – 8 | sets that track's loop length and selects the track (line 4: `T3 loop length: 4 BARS`). Rows 1 – 2 only select the track (no recording starts) |
+| FIXED LENGTH held + track encoder 1 – 8 | steps that track's length (three ticks per step) |
+| FIXED LENGTH pressed and released alone | capture length as before (**SHIFT** = shorter) |
+| LED of FIXED LENGTH | lit while held and when the **selected** track has a length other than AUTO, dim otherwise |
+
+The length counts for the first recording; on a track that holds a loop it applies to the next new recording (after DELETE). **REC pad held + position pad** still sets a length for *this* recording only (1 – 32 bars, host parameter *Loop Length Once*), without changing the setting. Other MIDI controllers: map *Loop Length* (selector) or *Loop Length Once* (see [MIDI](MIDI.md)). The K.O. II has no free button combination for it – use the GUI or a MIDI mapping.
+
 ### MIDI and host parameters
 
-Every Push gesture uses functions that are also host parameters, so any MIDI controller can play them (see [MIDI](MIDI.md)): *Slice 1 – 6* (per track; held = note on, released = note off), *Back in Sync*, *Mute*, *Solo*, *Double Loop*, *Halve Loop*, *Octave Up / Down*, *Copy to Empty Track*, *Rec Length*, *Tape Stop* and *Performance Filter* – and since 1.5 *Beat FX On / Hold / Type / Beat / Level/Depth / Channel*, *Color FX Type*, *Color 1 – 8*, *Beat Repeat Hold / Latch / Timing*, *Stutter Hold / Latch / Timing*, *Metronome On / Level / Accent*, *Link*, *Capture Bars*.
+Every Push gesture uses functions that are also host parameters, so any MIDI controller can play them (see [MIDI](MIDI.md)): *Slice 1 – 6* (per track; held = note on, released = note off), *Back in Sync*, *Mute*, *Solo*, *Double Loop*, *Halve Loop*, *Octave Up / Down*, *Copy to Empty Track*, *Loop Length Once* (*Rec Length* before 1.7), *Loop Length* (1.7, FIXED LENGTH held), *Tape Stop* and *Performance Filter* – and since 1.5 *Beat FX On / Hold / Type / Beat / Level/Depth / Channel*, *Color FX Type*, *Color 1 – 8*, *Beat Repeat Hold / Latch / Timing*, *Stutter Hold / Latch / Timing*, *Metronome On / Level / Accent*, *Link*, *Capture Bars*.
 
 
 ### STEP mode and FILL (1.6)
