@@ -174,7 +174,11 @@ jobs:
 
       - name: Configure
         run: |
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+          # LTO off only for push (not tags) / PR test builds; dispatch + tags test the shipped (LTO) binaries
+          LTO=ON
+          if { [ "${{ github.event_name }}" = push ] && [[ "${{ github.ref }}" != refs/tags/* ]]; } || [ "${{ github.event_name }}" = pull_request ]; then LTO=OFF; fi
+          echo "LIVELOOPER_LTO=$LTO"
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DLIVELOOPER_LTO=$LTO \
             "-DFETCHCONTENT_BASE_DIR=$DEPS_DIR" -DFETCHCONTENT_UPDATES_DISCONNECTED=ON
 
       - name: Build

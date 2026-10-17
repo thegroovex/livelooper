@@ -205,8 +205,12 @@ target_link_libraries(livelooper
         ${LIVELOOPER_MODULES}
     PUBLIC
         juce::juce_recommended_config_flags
-        juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags)
+# LTO on by default (shipped builds); CI turns it off only for Linux push/PR test builds.
+option(LIVELOOPER_LTO "Link-time optimisation" ON)
+if(LIVELOOPER_LTO)
+    target_link_libraries(livelooper PUBLIC juce::juce_recommended_lto_flags)
+endif()
 
 # ---------------------------------------------------------------- tests
 if(LIVELOOPER_BUILD_TESTS)
