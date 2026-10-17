@@ -145,6 +145,11 @@ public:
         audio thread). Fills numBins peak values 0..1 over the loop (or the recording so far,
         spread over maxSpanSamples when > 0). Returns false when there is nothing to show. */
     bool getWaveform (float* bins, int numBins, int maxSpanSamples = 0) const noexcept;
+    /** v1.7: the last overdub layer for the display (message thread, never the audio thread): per bin the
+        peak of what the current / last overdub changed (new minus previous layer, read from the two
+        preallocated layers in strides; nothing is stored or allocated). Older overdubs are merged into the
+        loop (the track keeps one undo level). Returns false when there is no undoable overdub layer. */
+    bool getOverdubLayer (float* bins, int numBins) const noexcept;
 
     /** Normalised playback/record position 0..1 (recording: grows with recorded length). */
     float getProgress() const noexcept;

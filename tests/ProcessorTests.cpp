@@ -106,7 +106,7 @@ public:
             expectEquals (ids.indexOf (params::gKo2Resample), 487);
             expectEquals (ids.indexOf (params::gPfxHoldRamp), 488, "v1.6 punch FX hold ramp appended (parameter 489)");
             expectEquals (ids.size(), params::kNumParameters);
-            expectEquals (ids.size(), 497, "v1.7 appends 8 parameters (490..497)");
+            expectEquals (ids.size(), 501, "v1.7 appends 8 parameters (490..497) + 4 display parameters (498..501)");
         }
 
         beginTest ("Trigger parameters drive the looper and reset themselves");

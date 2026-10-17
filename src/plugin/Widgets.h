@@ -227,6 +227,25 @@ private:
 };
 
 //==============================================================================
+/** v1.7: a loop waveform in the track colour - played part brighter, the last overdub layer as a lighter
+    tint inside, white play head (dashed when stopped, at the right edge while recording), "NO LOOP" when
+    empty. Shared by the track displays and the Live view; the peaks come from the message thread. */
+struct LoopWaveform
+{
+    const float* peaks = nullptr;       // merged loop, 0..1 per bin (nullptr / valid = false: no loop)
+    const float* layer = nullptr;       // last overdub layer per bin, or nullptr
+    int numBins = 0;
+    bool valid = false;
+    float progress = 0.0f;              // play position 0..1
+    float ghost = -1.0f;                // stopped: where the loop would be now (-1 = none)
+    LoopTrack::State state = LoopTrack::State::Empty;
+    juce::Colour colour;
+    float headWidth = 2.0f;
+
+    void draw (juce::Graphics& g, juce::Rectangle<float> area) const;
+};
+
+//==============================================================================
 /** One of the five track strips. */
 class TrackStrip : public juce::Component,
                    public juce::SettableTooltipClient
@@ -247,6 +266,13 @@ public:
     static constexpr int kWaveBins = 96;
     const std::array<float, kWaveBins>& getWaveform() const noexcept { return wave; }
     bool hasWaveform() const noexcept { return waveValid; }
+    /** v1.7: the last overdub layer (bins of the same size as the waveform), valid while undoable. */
+    const std::array<float, kWaveBins>& getOverdubLayer() const noexcept { return layer; }
+    bool hasOverdubLayer() const noexcept { return layerValid; }
+    /** v1.7: SETUP > Display > Show waveforms - large waveforms in the track displays (default off). */
+    static bool showWaveforms;
+    /** v1.7: the overdub layer is read only while some view shows it (track displays or the Live view). */
+    static bool layersWanted;
     const MeterBallistics& getMeter (int ch) const noexcept { return meter[(size_t) (ch & 1)]; }
     bool isMeteringInput() const noexcept { return meterInput; }
     /** v1.6: level meters per track (SETUP > Looper > Track meters), on by default. */
@@ -270,6 +296,8 @@ private:
 
     std::array<float, kWaveBins> wave {};
     bool waveValid = false;
+    std::array<float, kWaveBins> layer {};     // v1.7
+    bool layerValid = false;
     bool dragOutStarted = false;
     int waveCounter = 0;
     std::array<MeterBallistics, 2> meter;

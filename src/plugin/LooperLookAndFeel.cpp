@@ -10,6 +10,45 @@ namespace livelooper
 namespace
 {
     std::array<std::atomic<juce::uint32>, 8> trackOverrides {};
+    bool lightTheme = false, stageMode = false;
+    int themeVersion = 0;
+}
+
+//============================================================================== v1.7 theme
+void theme::apply (bool light, bool stage)
+{
+    lightTheme = light;
+    stageMode = stage;
+    ++themeVersion;
+    if (light)
+    {
+        // same glass style on light surfaces, dark text; stage mode raises the contrast further
+        colours::text        = juce::Colour (stage ? 0xff000000 : 0xff1c1e24);
+        colours::textDim     = juce::Colour (stage ? 0xff30333a : 0xff626772);
+        colours::panel       = juce::Colour (0xfff2f3f6);
+        colours::panelLight  = juce::Colour (0xffffffff);
+        colours::section     = juce::Colour (0xfff7f8fa);
+        colours::sectionEdge = juce::Colour (0xffd5d8df);
+    }
+    else
+    {
+        colours::text        = stage ? juce::Colours::white : juce::Colour (0xffe6e8ee);
+        colours::textDim     = juce::Colour (stage ? 0xffd8dbe2 : 0xff8e939c);
+        colours::panel       = juce::Colour (stage ? 0xff050506 : 0xff141418);
+        colours::panelLight  = juce::Colour (0xff2a2d32);
+        colours::section     = juce::Colour (stage ? 0xff101114 : 0xff1e1f25);
+        colours::sectionEdge = juce::Colour (stage ? 0xff8a8e98 : 0xff3a3e44);
+    }
+    // the displays stay dark like real LCDs; stage mode brightens their text
+    colours::lcdText = juce::Colour (stage ? 0xffb8f2ff : 0xff7fe3ff);
+}
+
+bool theme::isLight() noexcept { return lightTheme; }
+bool theme::isStage() noexcept { return stageMode; }
+int theme::version() noexcept  { return themeVersion; }
+float theme::fontScale (float height) noexcept
+{
+    return stageMode ? (height < 12.0f ? 1.2f : 1.07f) : 1.0f;
 }
 
 void colours::setTrackOverride (int index, juce::uint32 argb)
@@ -43,13 +82,21 @@ namespace
 
 LooperLookAndFeel::LooperLookAndFeel()
 {
+    applyTheme();
+    setDefaultSansSerifTypeface (font (14.0f).getTypefacePtr());
+}
+
+void LooperLookAndFeel::applyTheme()
+{
+    const bool light = theme::isLight();
+    const auto line = light ? juce::Colours::black : juce::Colours::white;
     setColour (juce::ResizableWindow::backgroundColourId, colours::panel);
     setColour (juce::DocumentWindow::backgroundColourId, colours::panel);
-    setColour (juce::ComboBox::backgroundColourId, juce::Colour (0xff23242b));
+    setColour (juce::ComboBox::backgroundColourId, theme::pick (0xff23242b, 0xffffffff));
     setColour (juce::ComboBox::textColourId, colours::text);
-    setColour (juce::ComboBox::outlineColourId, juce::Colours::white.withAlpha (0.10f));
+    setColour (juce::ComboBox::outlineColourId, line.withAlpha (light ? 0.14f : 0.10f));
     setColour (juce::ComboBox::arrowColourId, colours::textDim);
-    setColour (juce::PopupMenu::backgroundColourId, juce::Colour (0xf41c1d23));
+    setColour (juce::PopupMenu::backgroundColourId, theme::pick (0xf41c1d23, 0xf8f7f8fa));
     setColour (juce::PopupMenu::textColourId, colours::text);
     setColour (juce::PopupMenu::highlightedBackgroundColourId, colours::blue.withAlpha (0.85f));
     setColour (juce::PopupMenu::highlightedTextColourId, juce::Colours::white);
@@ -61,28 +108,28 @@ LooperLookAndFeel::LooperLookAndFeel()
     setColour (juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
     setColour (juce::Slider::textBoxBackgroundColourId, juce::Colours::transparentBlack);
     setColour (juce::Label::textColourId, colours::text);
-    setColour (juce::BubbleComponent::backgroundColourId, juce::Colour (0xf01c1d23));
-    setColour (juce::TooltipWindow::backgroundColourId, juce::Colour (0xf01c1d23));
+    setColour (juce::BubbleComponent::backgroundColourId, theme::pick (0xf01c1d23, 0xf8ffffff));
+    setColour (juce::TooltipWindow::backgroundColourId, theme::pick (0xf01c1d23, 0xf8ffffff));
     setColour (juce::TooltipWindow::textColourId, colours::text);
-    setColour (juce::TooltipWindow::outlineColourId, juce::Colours::white.withAlpha (0.12f));
+    setColour (juce::TooltipWindow::outlineColourId, line.withAlpha (0.12f));
     setColour (juce::CaretComponent::caretColourId, colours::cyan);
-    setColour (juce::TextEditor::backgroundColourId, juce::Colour (0xff1c1d23));
+    setColour (juce::TextEditor::backgroundColourId, theme::pick (0xff1c1d23, 0xfff5f6f8));
     setColour (juce::TextEditor::textColourId, colours::text);
-    setColour (juce::TextEditor::outlineColourId, juce::Colours::white.withAlpha (0.10f));
+    setColour (juce::TextEditor::outlineColourId, line.withAlpha (0.10f));
     setColour (juce::TextEditor::focusedOutlineColourId, colours::blue.withAlpha (0.8f));
     setColour (juce::TextEditor::highlightColourId, colours::blue.withAlpha (0.4f));
     setColour (juce::ListBox::backgroundColourId, juce::Colours::transparentBlack);
-    setColour (juce::ScrollBar::thumbColourId, juce::Colours::white.withAlpha (0.25f));
+    setColour (juce::ScrollBar::thumbColourId, line.withAlpha (0.25f));
     setColour (juce::ToggleButton::textColourId, colours::text);
     setColour (juce::ToggleButton::tickColourId, colours::green);
-    setColour (juce::AlertWindow::backgroundColourId, juce::Colour (0xff1c1d23));
+    setColour (juce::AlertWindow::backgroundColourId, theme::pick (0xff1c1d23, 0xfff5f6f8));
     setColour (juce::AlertWindow::textColourId, colours::text);
-    setColour (juce::AlertWindow::outlineColourId, juce::Colours::white.withAlpha (0.12f));
-    setDefaultSansSerifTypeface (font (14.0f).getTypefacePtr());
+    setColour (juce::AlertWindow::outlineColourId, line.withAlpha (0.12f));
 }
 
 juce::Font LooperLookAndFeel::font (float height, bool bold)
 {
+    height *= theme::fontScale (height);      // v1.7 stage mode
     static const juce::Typeface::Ptr semi = juce::Typeface::createSystemTypefaceFor (BinaryData::Manrope600_ttf, (size_t) BinaryData::Manrope600_ttfSize);
     static const juce::Typeface::Ptr heavy = juce::Typeface::createSystemTypefaceFor (BinaryData::Manrope800_ttf, (size_t) BinaryData::Manrope800_ttfSize);
     const auto& tf = bold ? heavy : semi;
@@ -105,7 +152,7 @@ void LooperLookAndFeel::drawSoftShadow (juce::Graphics& g, juce::Rectangle<float
     for (int i = steps; i >= 1; --i)
     {
         const float k = (float) i / (float) steps;
-        g.setColour (juce::Colours::black.withAlpha (strength * 0.16f * (1.0f - k * 0.7f)));
+        g.setColour (juce::Colours::black.withAlpha (strength * 0.16f * (1.0f - k * 0.7f) * theme::shade()));
         g.fillRoundedRectangle (r.expanded (spread * k).translated (0.0f, dy * k), radius + spread * k);
     }
 }
@@ -117,8 +164,23 @@ void LooperLookAndFeel::drawGlassPanel (juce::Graphics& g, juce::Rectangle<float
 
     // translucent body: a cool dark glass, a little lighter at the top
     const float topA = level >= 2 ? 0.96f : (level == 1 ? 0.90f : 0.80f);
-    juce::ColourGradient body (juce::Colour (level >= 2 ? 0xff2a2b33 : (level == 1 ? 0xff24252c : 0xff1f2026)).withAlpha (topA), r.getX(), r.getY(),
-                               juce::Colour (level >= 2 ? 0xff1a1b21 : 0xff17181d).withAlpha (topA), r.getX(), r.getBottom(), false);
+    juce::Colour top, bottom;
+    if (theme::isStage() && ! theme::isLight())
+    {
+        top = juce::Colour (level >= 2 ? 0xff16171b : 0xff101114);       // stage: near-black glass
+        bottom = juce::Colour (0xff0b0b0d);
+    }
+    else if (theme::isLight())
+    {
+        top = juce::Colour (level >= 2 ? 0xfffdfdfe : 0xfff7f8fa);
+        bottom = juce::Colour (level >= 2 ? 0xffeef0f4 : 0xffeceef2);
+    }
+    else
+    {
+        top = juce::Colour (level >= 2 ? 0xff2a2b33 : (level == 1 ? 0xff24252c : 0xff1f2026));
+        bottom = juce::Colour (level >= 2 ? 0xff1a1b21 : 0xff17181d);
+    }
+    juce::ColourGradient body (top.withAlpha (topA), r.getX(), r.getY(), bottom.withAlpha (topA), r.getX(), r.getBottom(), false);
     g.setGradientFill (body);
     g.fillRoundedRectangle (r, radius);
     if (! tint.isTransparent())
@@ -135,10 +197,17 @@ void LooperLookAndFeel::drawGlassPanel (juce::Graphics& g, juce::Rectangle<float
         g.fillRoundedRectangle (r.reduced (1.0f), radius - 1.0f);
     }
     // hairline border: bright on top, dark at the bottom (lit from above)
-    juce::ColourGradient edge (juce::Colours::white.withAlpha (level >= 2 ? 0.22f : 0.15f), r.getX(), r.getY(),
-                               juce::Colours::white.withAlpha (0.04f), r.getX(), r.getBottom(), false);
+    const auto edgeC = theme::isLight() ? juce::Colours::black : juce::Colours::white;
+    juce::ColourGradient edge (edgeC.withAlpha (level >= 2 ? 0.22f : 0.15f), r.getX(), r.getY(),
+                               edgeC.withAlpha (theme::isLight() ? 0.10f : 0.04f), r.getX(), r.getBottom(), false);
     g.setGradientFill (edge);
     g.drawRoundedRectangle (r.reduced (0.5f), radius, 1.0f);
+    if (theme::isStage())
+    {
+        // stage mode: a clear outline around every panel
+        g.setColour (edgeC.withAlpha (level >= 2 ? 0.55f : 0.40f));
+        g.drawRoundedRectangle (r.reduced (0.75f), radius, 1.5f);
+    }
     // specular top line
     juce::ColourGradient line (juce::Colours::white.withAlpha (0.0f), r.getX() + radius, r.getY(),
                                juce::Colours::white.withAlpha (0.0f), r.getRight() - radius, r.getY(), false);
@@ -163,7 +232,7 @@ void LooperLookAndFeel::drawRotarySlider (juce::Graphics& g, int x, int y, int w
     // value arc in a recessed groove, with a soft glow
     juce::Path track, value;
     track.addCentredArc (centre.x, centre.y, radius - arcW * 0.5f, radius - arcW * 0.5f, 0.0f, startAngle, endAngle, true);
-    g.setColour (juce::Colours::black.withAlpha (0.55f));
+    g.setColour (juce::Colours::black.withAlpha (0.55f * theme::shade()));
     g.strokePath (track, juce::PathStrokeType (arcW + 1.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
     const bool bipolar = slider.getMinimum() < 0.0 && slider.getMaximum() > 0.0;
     const float from = bipolar ? (startAngle + endAngle) * 0.5f : startAngle;
@@ -182,32 +251,32 @@ void LooperLookAndFeel::drawRotarySlider (juce::Graphics& g, int x, int y, int w
         return;
     const auto knobArea = juce::Rectangle<float> (r * 2.0f, r * 2.0f).withCentre (centre);
     {
-        juce::ColourGradient sh (juce::Colours::black.withAlpha (0.55f), centre.x, centre.y + r * 0.35f,
-                                 juce::Colours::black.withAlpha (0.0f), centre.x, centre.y + r * 1.45f, true);
+        juce::ColourGradient sh (juce::Colours::black.withAlpha (0.55f * theme::shade()), centre.x, centre.y + r * 0.35f,
+                                 juce::Colours::black.withAlpha (0.0f * theme::shade()), centre.x, centre.y + r * 1.45f, true);
         g.setGradientFill (sh);
         g.fillEllipse (knobArea.expanded (r * 0.35f).translated (0.0f, r * 0.18f));
     }
-    juce::ColourGradient skirt (juce::Colour (0xff6b6e78), centre.x, centre.y - r, juce::Colour (0xff141519), centre.x, centre.y + r, false);
+    juce::ColourGradient skirt (theme::pick (0xff6b6e78, 0xffffffff), centre.x, centre.y - r, theme::pick (0xff141519, 0xffbfc3cb), centre.x, centre.y + r, false);
     g.setGradientFill (skirt);
     g.fillEllipse (knobArea);
     const auto cap = knobArea.reduced (r * 0.12f);
-    juce::ColourGradient capG (juce::Colour (0xff4a4d56), cap.getX() + cap.getWidth() * 0.3f, cap.getY() + cap.getHeight() * 0.2f,
-                               juce::Colour (0xff1f2026), cap.getRight(), cap.getBottom(), true);
+    juce::ColourGradient capG (theme::pick (0xff4a4d56, 0xffffffff), cap.getX() + cap.getWidth() * 0.3f, cap.getY() + cap.getHeight() * 0.2f,
+                               theme::pick (0xff1f2026, 0xffd3d6dd), cap.getRight(), cap.getBottom(), true);
     g.setGradientFill (capG);
     g.fillEllipse (cap);
     juce::ColourGradient spec (juce::Colours::white.withAlpha (0.28f), centre.x, cap.getY(),
                                juce::Colours::white.withAlpha (0.0f), centre.x, cap.getY() + cap.getHeight() * 0.55f, false);
     g.setGradientFill (spec);
     g.fillEllipse (cap.reduced (cap.getWidth() * 0.12f, 0.0f).withHeight (cap.getHeight() * 0.55f).translated (0.0f, 1.0f));
-    g.setColour (juce::Colours::black.withAlpha (0.65f));
+    g.setColour (juce::Colours::black.withAlpha (0.65f * theme::shade()));
     g.drawEllipse (knobArea, 1.0f);
 
     // pointer: a light line with a lit tip
     const juce::Point<float> tip (centre.x + std::sin (angle) * (r * 0.78f), centre.y - std::cos (angle) * (r * 0.78f));
     const juce::Point<float> inner (centre.x + std::sin (angle) * (r * 0.25f), centre.y - std::cos (angle) * (r * 0.25f));
-    g.setColour (juce::Colours::black.withAlpha (0.5f));
+    g.setColour (juce::Colours::black.withAlpha (0.5f * theme::shade()));
     g.drawLine ({ inner.translated (0.0f, 1.0f), tip.translated (0.0f, 1.0f) }, juce::jmax (2.0f, r * 0.13f));
-    g.setColour (enabled ? juce::Colour (0xfff4f5f8) : colours::textDim);
+    g.setColour (enabled ? theme::pick (0xfff4f5f8, 0xff2a2c33) : colours::textDim);
     g.drawLine ({ inner, tip }, juce::jmax (2.0f, r * 0.12f));
 }
 
@@ -226,7 +295,7 @@ void LooperLookAndFeel::drawLinearSlider (juce::Graphics& g, int x, int y, int w
 
     // recessed slot with an inner shadow
     const juce::Rectangle<float> slot (cx - 3.5f, bounds.getY(), 7.0f, bounds.getHeight());
-    g.setColour (juce::Colours::black.withAlpha (0.75f));
+    g.setColour (juce::Colours::black.withAlpha (0.75f * theme::shade()));
     g.fillRoundedRectangle (slot, 3.5f);
     g.setColour (juce::Colours::white.withAlpha (0.07f));
     g.drawRoundedRectangle (slot.translated (0.0f, 0.5f), 3.5f, 0.8f);
@@ -251,12 +320,12 @@ void LooperLookAndFeel::drawLinearSlider (juce::Graphics& g, int x, int y, int w
     // fader cap: shadow, bevel, grip line
     const juce::Rectangle<float> cap (cx - 13.0f, sliderPos - 8.0f, 26.0f, 16.0f);
     drawSoftShadow (g, cap, 4.0f, 0.9f, 4.0f, 3.0f);
-    juce::ColourGradient grad (juce::Colour (0xff70737d), cap.getX(), cap.getY(), juce::Colour (0xff2a2c32), cap.getX(), cap.getBottom(), false);
+    juce::ColourGradient grad (theme::pick (0xff70737d, 0xffffffff), cap.getX(), cap.getY(), theme::pick (0xff2a2c32, 0xffc6c9d0), cap.getX(), cap.getBottom(), false);
     g.setGradientFill (grad);
     g.fillRoundedRectangle (cap, 4.0f);
     g.setColour (juce::Colours::white.withAlpha (0.25f));
     g.fillRoundedRectangle (cap.reduced (2.0f, 1.0f).withHeight (3.0f), 1.5f);
-    g.setColour (juce::Colours::black.withAlpha (0.7f));
+    g.setColour (juce::Colours::black.withAlpha (0.7f * theme::shade()));
     g.drawRoundedRectangle (cap, 4.0f, 1.0f);
     g.setColour (juce::Colours::white.withAlpha (0.85f));
     g.fillRect (cap.getX() + 5.0f, sliderPos - 0.5f, cap.getWidth() - 10.0f, 1.5f);
@@ -278,8 +347,22 @@ void LooperLookAndFeel::drawButtonBackground (juce::Graphics& g, juce::Button& b
         drawSoftShadow (g, bounds, corner, level == 0 ? 0.35f : 0.6f, 3.0f, 2.0f);
 
     // body: lit from above
-    const juce::Colour top = down ? juce::Colour (0xff23242a) : juce::Colour (level == 0 ? 0xff2c2d34 : (level >= 2 ? 0xff40424b : 0xff36373f));
-    const juce::Colour bottom = down ? juce::Colour (0xff2a2b31) : juce::Colour (level == 0 ? 0xff222329 : 0xff25262c);
+    juce::Colour top, bottom;
+    if (theme::isLight())
+    {
+        top = juce::Colour (down ? 0xffdde0e6 : 0xffffffff);
+        bottom = juce::Colour (down ? 0xffe3e5ea : 0xffeceef2);
+    }
+    else if (theme::isStage())
+    {
+        top = juce::Colour (down ? 0xff1a1b1f : 0xff26272d);       // stage: darker bodies, bright outline (below)
+        bottom = juce::Colour (0xff141518);
+    }
+    else
+    {
+        top = down ? juce::Colour (0xff23242a) : juce::Colour (level == 0 ? 0xff2c2d34 : (level >= 2 ? 0xff40424b : 0xff36373f));
+        bottom = down ? juce::Colour (0xff2a2b31) : juce::Colour (level == 0 ? 0xff222329 : 0xff25262c);
+    }
     juce::ColourGradient grad (top, bounds.getX(), bounds.getY(), bottom, bounds.getX(), bounds.getBottom(), false);
     g.setGradientFill (grad);
     g.fillRoundedRectangle (bounds, corner);
@@ -297,8 +380,13 @@ void LooperLookAndFeel::drawButtonBackground (juce::Graphics& g, juce::Button& b
     }
     else
     {
-        g.setColour (juce::Colours::black.withAlpha (0.6f));
+        g.setColour (juce::Colours::black.withAlpha (0.6f * theme::shade()));
         g.drawRoundedRectangle (bounds, corner, 1.0f);
+        if (theme::isStage())
+        {
+            g.setColour ((theme::isLight() ? juce::Colours::black : juce::Colours::white).withAlpha (0.45f));
+            g.drawRoundedRectangle (bounds.reduced (0.5f), corner, 1.2f);
+        }
     }
 
     // specular top edge + sheen
@@ -324,14 +412,25 @@ void LooperLookAndFeel::drawButtonText (juce::Graphics& g, juce::TextButton& but
     const bool on = button.getToggleState();
     const auto led = ledOf (button);
     const int level = levelOf (button);
-    g.setFont (getTextButtonFont (button, button.getHeight()));
-    juce::Colour c = on ? led.brighter (0.55f) : (level == 0 ? colours::textDim.brighter (0.25f) : colours::text);
+    const auto text = i18n::tr (button.getButtonText());
+    const auto area = button.getLocalBounds().reduced (4, 1);
+    auto f = getTextButtonFont (button, button.getHeight());
+    if (theme::isStage() && ! text.containsChar ('\n'))
+    {
+        // stage mode: larger type only where it fits - a long label keeps the normal size instead of being squeezed
+        const float w = juce::GlyphArrangement::getStringWidth (f, text);
+        if (w > (float) area.getWidth())
+            f = f.withHeight (juce::jmax (f.getHeight() / 1.2f, f.getHeight() * (float) area.getWidth() / w));
+    }
+    g.setFont (f);
+    const bool light = theme::isLight();
+    juce::Colour c = on ? (light ? led.darker (0.8f) : led.brighter (0.55f))
+                        : (level == 0 ? (light ? colours::textDim.darker (0.2f) : colours::textDim.brighter (0.25f)) : colours::text);
     if (! button.isEnabled())
         c = colours::textDim.withAlpha (0.6f);
     g.setColour (c);
     // one line unless the text asks for two (a long translation shrinks a little instead of wrapping)
-    const auto text = i18n::tr (button.getButtonText());
-    g.drawFittedText (text, button.getLocalBounds().reduced (4, 1), juce::Justification::centred, text.containsChar ('\n') ? 2 : 1, 0.7f);
+    g.drawFittedText (text, area, juce::Justification::centred, text.containsChar ('\n') ? 2 : 1, 0.7f);
 }
 
 juce::Font LooperLookAndFeel::getTextButtonFont (juce::TextButton&, int buttonHeight)
@@ -346,9 +445,9 @@ void LooperLookAndFeel::drawToggleButton (juce::Graphics& g, juce::ToggleButton&
     const float sh = juce::jmin (22.0f, bounds.getHeight() - 4.0f), sw = sh * 1.75f;
     const juce::Rectangle<float> sw_r (bounds.getRight() - sw - 2.0f, bounds.getCentreY() - sh * 0.5f, sw, sh);
     const bool on = b.getToggleState();
-    g.setColour (on ? colours::green : juce::Colour (0xff3a3b43));
+    g.setColour (on ? colours::green : theme::pick (0xff3a3b43, 0xffc9ccd3));
     g.fillRoundedRectangle (sw_r, sh * 0.5f);
-    g.setColour (juce::Colours::black.withAlpha (0.35f));
+    g.setColour (juce::Colours::black.withAlpha (0.35f * theme::shade()));
     g.drawRoundedRectangle (sw_r, sh * 0.5f, 1.0f);
     const float d = sh - 4.0f;
     const juce::Rectangle<float> knob (on ? sw_r.getRight() - d - 2.0f : sw_r.getX() + 2.0f, sw_r.getY() + 2.0f, d, d);
@@ -421,7 +520,7 @@ void LooperLookAndFeel::drawPopupMenuBackground (juce::Graphics& g, int width, i
     juce::ColourGradient sheen (juce::Colours::white.withAlpha (0.05f), 0.0f, 0.0f, juce::Colours::white.withAlpha (0.0f), 0.0f, 60.0f, false);
     g.setGradientFill (sheen);
     g.fillRect (r);
-    g.setColour (juce::Colours::white.withAlpha (0.12f));
+    g.setColour ((theme::isLight() ? juce::Colours::black : juce::Colours::white).withAlpha (0.12f));
     g.drawRect (r, 1.0f);
 }
 
@@ -431,7 +530,7 @@ void LooperLookAndFeel::drawPopupMenuItem (juce::Graphics& g, const juce::Rectan
 {
     if (isSeparator)
     {
-        g.setColour (juce::Colours::white.withAlpha (0.10f));
+        g.setColour ((theme::isLight() ? juce::Colours::black : juce::Colours::white).withAlpha (0.10f));
         g.fillRect (area.reduced (10, 0).withSizeKeepingCentre (area.getWidth() - 20, 1));
         return;
     }
@@ -521,10 +620,10 @@ void LooperLookAndFeel::drawCallOutBoxBackground (juce::CallOutBox&, juce::Graph
 {
     for (int i = 4; i >= 1; --i)
     {
-        g.setColour (juce::Colours::black.withAlpha (0.07f));
+        g.setColour (juce::Colours::black.withAlpha (0.07f * theme::shade()));
         g.strokePath (path, juce::PathStrokeType ((float) i * 3.0f));
     }
-    g.setColour (juce::Colour (0xf61d1e24));
+    g.setColour (theme::pick (0xf61d1e24, 0xf8f7f8fa));
     g.fillPath (path);
     g.setColour (juce::Colours::white.withAlpha (0.14f));
     g.strokePath (path, juce::PathStrokeType (1.0f));

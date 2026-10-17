@@ -260,6 +260,13 @@ LiveLooperProcessor::LiveLooperProcessor (bool withCueOutput, bool withTrackOutp
         createGridControllers();                  // v1.6
         createKo2Device();                        // v1.6 K.O. II
     }
+    // v1.7 display: colour theme, stage mode and waveforms belong to this computer (SETUP > Display);
+    // a new instance starts with them (a restored project / set may bring its own values).
+    for (const auto& [id, key] : { std::pair<juce::String, const char*> { gUiTheme, "display.theme" },
+                                   { gStageMode, "display.stage" }, { gWaveforms, "display.waveforms" } })
+        if (const auto v = appsettings::getValue (key); v.isNotEmpty())
+            if (auto* p = apvts.getParameter (id))
+                p->setValueNotifyingHost (v.getIntValue() != 0 ? 1.0f : 0.0f);
     startTimerHz (30);
 }
 

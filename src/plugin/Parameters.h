@@ -169,8 +169,14 @@ inline const juce::String gVelMidi      { "vel_midi" };       // velocity curve 
 inline const juce::String gMidiFeedback { "midi_fb" };        // generic MIDI feedback (experimental) on / off
 inline const juce::String gPushProgress { "push_progress" };  // Push 1 display: loop progress bars (default on)
 juce::StringArray velocityCurveChoices();
+// ---- v1.7 display (appended, ids 498 - 501): Live view, stage mode, colour theme, waveforms
+inline const juce::String gLiveView     { "live_view" };      // on: the Live view (big track cards) instead of the full surface
+inline const juce::String gStageMode    { "stage_mode" };     // high contrast, larger type
+inline const juce::String gUiTheme      { "ui_theme" };       // Dark (default), Light
+inline const juce::String gWaveforms    { "waveforms" };      // large waveforms in the track displays (default off)
+juce::StringArray themeChoices();
 // ---- end v1.7
-inline constexpr int kNumParameters = 497;
+inline constexpr int kNumParameters = 501;
 
 inline constexpr int kNumScenes = 8;
 inline constexpr int kCaptureBars[] = { 1, 2, 4, 8, 16, 32 };   // 16 / 32 since 1.5 (appended)

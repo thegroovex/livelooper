@@ -345,7 +345,7 @@ public:
             LiveLooperProcessor proc { false, false };
             const auto& ps = proc.getParameters();
             expectEquals (ps.size(), kNumParameters);
-            expectEquals (kNumParameters, 497);
+            expectEquals (kNumParameters, 501);
             const juce::StringArray ids { "lat_comp", "lat_offset", "lat_measure", "vel_push", "vel_ko2", "vel_midi", "midi_fb", "push_progress" };
             for (int i = 0; i < ids.size(); ++i)
                 if (auto* p = dynamic_cast<juce::RangedAudioParameter*> (ps[489 + i]))

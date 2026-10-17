@@ -4,27 +4,47 @@
 
 namespace livelooper
 {
+/**
+    v1.7 display settings: colour theme (dark = default, light) and stage mode (high contrast, larger
+    type). theme::apply() rewrites the colours:: values below (text, panels ...); accent colours, the
+    displays (LCDs) and the VU meters stay the same in every theme. Message thread only.
+*/
+namespace theme
+{
+    void apply (bool light, bool stage);
+    bool isLight() noexcept;
+    bool isStage() noexcept;
+    /** Changes with every apply() (cache keys of pre-rendered surfaces). */
+    int version() noexcept;
+    /** The dark or the light variant of a surface colour. */
+    inline juce::Colour pick (juce::uint32 dark, juce::uint32 light) { return juce::Colour (isLight() ? light : dark); }
+    /** Strength of black shadows / recesses (light theme: softer). */
+    inline float shade() noexcept { return isLight() ? 0.35f : 1.0f; }
+    /** Stage mode: small captions grow most, titles a little (the fixed layout stays intact). */
+    float fontScale (float height) noexcept;
+}
+
 namespace colours
 {
-    const juce::Colour panel       { 0xff141418 };
-    const juce::Colour panelLight  { 0xff2a2d32 };
-    const juce::Colour section     { 0xff1e1f25 };
-    const juce::Colour sectionEdge { 0xff3a3e44 };
-    const juce::Colour text        { 0xffe6e8ee };
-    const juce::Colour textDim     { 0xff8e939c };
-    const juce::Colour red         { 0xffff3b30 };
-    const juce::Colour green       { 0xff30d158 };
-    const juce::Colour orange      { 0xffff9f0a };
-    const juce::Colour yellow      { 0xffffd60a };
-    const juce::Colour blue        { 0xff0a84ff };
-    const juce::Colour cyan        { 0xff64d2ff };
-    const juce::Colour lcdBack     { 0xff06121a };
-    const juce::Colour lcdText     { 0xff7fe3ff };
-    const juce::Colour learn       { 0xffbf5af2 };
+    inline juce::Colour panel       { 0xff141418 };
+    inline juce::Colour panelLight  { 0xff2a2d32 };
+    inline juce::Colour section     { 0xff1e1f25 };
+    inline juce::Colour sectionEdge { 0xff3a3e44 };
+    inline juce::Colour text        { 0xffe6e8ee };
+    inline juce::Colour textDim     { 0xff8e939c };
+    inline juce::Colour red         { 0xffff3b30 };
+    inline juce::Colour green       { 0xff30d158 };
+    inline juce::Colour orange      { 0xffff9f0a };
+    inline juce::Colour yellow      { 0xffffd60a };
+    inline juce::Colour blue        { 0xff0a84ff };
+    inline juce::Colour cyan        { 0xff64d2ff };
+    inline juce::Colour lcdBack     { 0xff06121a };
+    inline juce::Colour lcdText     { 0xff7fe3ff };
+    inline juce::Colour learn       { 0xffbf5af2 };
     // brand gradient
-    const juce::Colour brand0      { 0xffff7a18 };
-    const juce::Colour brand1      { 0xffff2d6f };
-    const juce::Colour brand2      { 0xffb14bff };
+    inline juce::Colour brand0      { 0xffff7a18 };
+    inline juce::Colour brand1      { 0xffff2d6f };
+    inline juce::Colour brand2      { 0xffb14bff };
 
     /** v1.6: one colour per track (accent of the strip, its title bar and the idle pad). */
     juce::Colour track (int index);
@@ -41,6 +61,8 @@ class LooperLookAndFeel : public juce::LookAndFeel_V4
 {
 public:
     LooperLookAndFeel();
+    /** v1.7: re-reads the colours:: values after theme::apply(). */
+    void applyTheme();
 
     void drawRotarySlider (juce::Graphics&, int x, int y, int w, int h, float pos,
                            float startAngle, float endAngle, juce::Slider&) override;

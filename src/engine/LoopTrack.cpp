@@ -1004,6 +1004,44 @@ bool LoopTrack::getWaveform (float* bins, int numBins, int maxSpanSamples) const
     return true;
 }
 
+bool LoopTrack::getOverdubLayer (float* bins, int numBins) const noexcept
+{
+    std::fill (bins, bins + std::max (0, numBins), 0.0f);
+    const auto st = state;
+    const int len = length;
+    const bool hasLayer = st == State::Overdubbing || undoKind == UndoKind::Overdub;
+    if (! hasLayer || st == State::Empty || st == State::Recording || len <= 0 || numBins <= 0 || numChunks == 0)
+        return false;
+
+    constexpr int kStride = 8;     // display only: every 8th sample is plenty for a peak overview
+    const int usedChunks = std::min ((int) numChunks, (len + kChunkSize - 1) >> kChunkShift);
+    bool any = false;
+    for (int b = 0; b < numBins; ++b)
+    {
+        const int c0 = (int) ((long long) b * usedChunks / numBins);
+        const int c1 = std::max ((int) ((long long) (b + 1) * usedChunks / numBins), c0 + 1);
+        float m = 0.0f;
+        for (int c = c0; c < c1 && c < usedChunks; ++c)
+        {
+            if (chunkTouched[(size_t) c] == 0)
+                continue;
+            const int now = chunkOwner[(size_t) c] & 1, before = now ^ 1;
+            const int start = c << kChunkShift, end = std::min (len, start + kChunkSize);
+            for (int ch = 0; ch < 2; ++ch)
+            {
+                const float* a = layers[now][ch].data();
+                const float* p = layers[before][ch].data();
+                for (int i = start; i < end; i += kStride)
+                    m = std::max (m, std::abs (a[i] - p[i]));
+            }
+        }
+        const int dst = settings.reverse ? numBins - 1 - b : b;
+        bins[dst] = std::min (1.0f, m);
+        any = any || m > 1.0e-4f;
+    }
+    return any;
+}
+
 //==============================================================================
 void LoopTrack::readLoop (float* dstL, float* dstR) const noexcept
 {
