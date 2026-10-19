@@ -165,6 +165,9 @@ public:
     BackupNotice takeBackupNotice();
     bool hasBackupNotice() const noexcept { return backupNotice.kind != BackupNotice::Kind::None; }
     const BackupNotice& peekBackupNotice() const noexcept { return backupNotice; }
+    /** Tests / screenshots: show a notice, or present this instance as the app (SETUP rows of the app). */
+    void postBackupNoticeForTests (const BackupNotice& n) { backupNotice = n; }
+    void markStandaloneForTests() noexcept { standaloneSession = true; }
     /** Tests: leave the session like a crash would (marker stays, nothing written). */
     void simulateCrashForTests();
     AutoBackup& getAutoBackup() noexcept { return *autoBackup; }

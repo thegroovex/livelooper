@@ -188,6 +188,7 @@ Since 1.6 **SETUP** opens a settings window in the style of the macOS System Set
 | Type in tempo (BPM) … | type the internal tempo (section 11) |
 | Language / Sprache | Automatic (system language) · English · Deutsch |
 | Last used sets | the last 10 sets you saved or loaded, one click to load (section 13) |
+| Auto backup | background backups of the whole set, interval, auto load of the last session (app), restore, backup folder (section 46) |
 | Capture length | 1 · 2 · 4 · 8 · 16 · 32 bars (section 16) |
 | Audio → Latency | measure latency, latency compensation (on), manual offset (section 41) |
 | Controllers → Velocity curves / Push 1 display / MIDI feedback | velocity curves per controller, loop progress bars on the Push 1 display, LED feedback for learned controls (section 42) |
@@ -453,6 +454,8 @@ On the first start livelooper asks once how it should start from then on:
 
 Change it any time under **SETUP → Settings on start**; *Reset all settings to the defaults now* resets the controls without clearing the loops. A DAW project always loads its own saved state.
 
+Since 1.7 the standalone app also loads **the whole last session, loops included** (*SETUP → Sets → Auto backup → Auto load last session on start*, on by default) – see section 46.
+
 ## 32. About and updates
 
 **SETUP → About livelooper …** shows the version (with build number, git hash and date), the license (AGPLv3) and the third-party notices. **Check for updates** asks GitHub for a newer release:
@@ -697,6 +700,41 @@ Every track has **one** loop length: *how many bars the first recording lasts*. 
 **Push 1:** hold **FIXED LENGTH** and press a pad in a track's column (rows 3 – 8 from the bottom = AUTO, 1, 2, 4, 8, 16 bars) or turn that track's encoder. The display shows the eight lengths while you hold the button; the FIXED LENGTH LED is lit when the selected track has a length other than AUTO. FIXED LENGTH pressed and released on its own still steps the capture length. Details: [Push](PUSH.md#loop-length-new-in-17).
 
 ![Push 1: FIXED LENGTH held](../images/livelooper-controller-push-length.png)
+
+## 46. Auto backup and crash recovery (new in 1.7)
+
+livelooper saves your whole set in the background – the same `.livelooper` file as *Save set to share* (section 37): settings, FX, rhythm, every loop and the own samples of the BEATS rows, lossless as FLAC. If the computer, the DAW or livelooper crashes, the last minutes are not lost.
+
+- **When**: every 2 minutes (or 1, 5, 10 – *SETUP → Sets → Auto backup → Backup interval*) and a few seconds **after every recording or overdub**. Never while a track records or overdubs, and **only when something changed** – an untouched set writes nothing.
+- **Never in the way of the music**: the audio keeps playing while a backup is made; packing and writing the file run in the background. Every backup is written as a temporary file and then renamed, so a crash in the middle never leaves half a file. The **last 3 backups** are kept.
+- **Where**: in livelooper's app data folder, sub-folder `Backups` (macOS `~/Library/Application Support/livelooper/Backups`, Windows `%APPDATA%\livelooper\Backups`, Linux `~/.config/livelooper/Backups`) – the app in `standalone`, every plug-in instance in its own `plugin-…` folder. *Open backup folder* shows it.
+
+**Standalone app**
+
+- **Auto load last session on start** (on by default): livelooper starts with the set you had when you quit – loops included. Off: the app starts as before (*Settings on start*, section 31).
+- **After a crash** livelooper notices it on the next start and loads the **newest backup** automatically – even with auto load off. A short notice at the bottom right says so: **Keep** (or just play on – it closes by itself) or **Start empty** (an empty set; the backups stay and can be restored later).
+
+![Notice after a crash](../images/livelooper-backup-notice.png)
+
+**Plug-in in a DAW**
+
+- Your DAW restores the plug-in with the project as always – livelooper **never overrides the project silently**.
+- Only if livelooper was not closed properly last time **and** its newest backup is newer than the project (you played on after the last save), a notice offers **Restore backup** or **Keep project**. Without an answer the project stays; the backup can still be restored in SETUP.
+- Every instance finds its own backups again: its id travels in the project. Folders of instances that were not used for 30 days are removed.
+
+**SETUP → Sets → Auto backup**
+
+![SETUP → Sets](../images/livelooper-setup-sets.png)
+
+| Entry | Meaning |
+|---|---|
+| Auto backup | on (default) / off – the background backups |
+| Backup interval | every 1 · 2 (default) · 5 · 10 minutes; also after every recording |
+| Auto load last session on start | standalone app only, on by default |
+| Restore backup … | the backups of this livelooper (time, size) – or *Choose a backup file …*; the current set is backed up first, so restoring can be undone |
+| Open backup folder | shows the folder in the Finder / Explorer |
+
+These are settings of this computer (like *Updates* or *Settings on start*), not of a set or a project, so they are not host parameters and not MIDI-mappable: they are not played – a backup should never depend on a controller.
 
 ## Drums, BEATS and sound packs (1.6)
 

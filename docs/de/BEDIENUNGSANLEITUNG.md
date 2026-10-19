@@ -190,6 +190,7 @@ Seit 1.6 öffnet **SETUP** ein Einstellungsfenster im Stil der macOS-Systemeinst
 | Tempo eintippen (BPM) … | internes Tempo eintippen (Abschnitt 11) |
 | Language / Sprache | Automatisch (Systemsprache) · English · Deutsch |
 | Zuletzt verwendete Sets | die letzten 10 gespeicherten oder geladenen Sets, ein Klick lädt (Abschnitt 13) |
+| Automatische Sicherung | Sicherungen des ganzen Sets im Hintergrund, Intervall, letzte Sitzung beim Start laden (App), wiederherstellen, Sicherungsordner (Abschnitt 46) |
 | Capture-Länge | 1 · 2 · 4 · 8 · 16 · 32 Takte (Abschnitt 16) |
 | Audio → Latenz | Latenz messen, Latenzausgleich (an), manueller Versatz (Abschnitt 41) |
 | Controller → Anschlagkurven / Push-1-Display / MIDI-Feedback | Anschlagkurven pro Controller, Loop-Fortschrittsbalken im Push-1-Display, LED-Feedback für gelernte Bedienelemente (Abschnitt 42) |
@@ -325,6 +326,8 @@ Ohne Cue-Paar (und im Plug-in) spielt der Rhythmus immer auf dem Hauptausgang �
 | Anschlagkurven: Weich · Normal · Hart · Fest | Velocity curves: Soft · Normal · Hard · Fixed |
 | Host-Transport folgen | Follow host transport |
 | Zuletzt verwendete Sets | Last used sets |
+| Automatische Sicherung | Auto backup |
+| Letzte Sitzung beim Start laden | Auto load last session on start |
 
 ## 16. Capture (rückwirkende Aufnahme)
 
@@ -488,6 +491,8 @@ Beim ersten Start fragt livelooper einmal, wie es künftig starten soll:
 - **Standard-Einstellungen**: immer frisch starten.
 
 Jederzeit änderbar unter **SETUP → Einstellungen beim Start**; *Alle Einstellungen jetzt zurücksetzen (Loops bleiben)* setzt die Bedienelemente zurück, ohne die Loops zu löschen. Ein DAW-Projekt lädt immer seinen eigenen gespeicherten Zustand.
+
+Seit 1.7 lädt die Standalone-App außerdem **die ganze letzte Sitzung mit allen Loops** (*SETUP → Sets → Automatische Sicherung → Letzte Sitzung beim Start laden*, standardmäßig an) – siehe Abschnitt 46.
 
 ## 32. Info und Updates
 
@@ -733,6 +738,41 @@ Jede Spur hat **eine** Loop-Länge: *wie viele Takte die erste Aufnahme dauert*.
 **Push 1:** **FIXED LENGTH** halten und ein Pad in der Spalte einer Spur drücken (Reihen 3 – 8 von unten = AUTO, 1, 2, 4, 8, 16 Takte) oder den Encoder dieser Spur drehen. Solange die Taste gehalten wird, zeigt das Display die acht Längen; die FIXED-LENGTH-LED leuchtet, wenn die ausgewählte Spur eine andere Länge als AUTO hat. FIXED LENGTH allein gedrückt und losgelassen stellt weiterhin die Capture-Länge um. Details: [Push](PUSH.md#loop-länge-neu-in-17).
 
 ![Push 1: FIXED LENGTH gehalten](../images/livelooper-controller-push-length-de.png)
+
+## 46. Automatische Sicherung und Absturz-Wiederherstellung (neu in 1.7)
+
+livelooper sichert dein ganzes Set im Hintergrund – in derselben `.livelooper`-Datei wie *Set zum Teilen speichern* (Abschnitt 37): Einstellungen, FX, Rhythmus, alle Loops und die eigenen Samples der BEATS-Zeilen, verlustfrei als FLAC. Stürzt der Computer, die DAW oder livelooper ab, sind die letzten Minuten nicht verloren.
+
+- **Wann**: alle 2 Minuten (oder 1, 5, 10 – *SETUP → Sets → Automatische Sicherung → Sicherungsintervall*) und wenige Sekunden **nach jeder Aufnahme oder jedem Overdub**. Nie, während eine Spur aufnimmt oder overdubbt, und **nur wenn sich etwas geändert hat** – ein unverändertes Set schreibt nichts.
+- **Nie der Musik im Weg**: der Ton läuft weiter, während gesichert wird; Packen und Schreiben der Datei laufen im Hintergrund. Jede Sicherung wird als temporäre Datei geschrieben und dann umbenannt – ein Absturz mittendrin hinterlässt nie eine halbe Datei. Die **letzten 3 Sicherungen** bleiben.
+- **Wo**: im App-Datenordner von livelooper, Unterordner `Backups` (macOS `~/Library/Application Support/livelooper/Backups`, Windows `%APPDATA%\livelooper\Backups`, Linux `~/.config/livelooper/Backups`) – die App in `standalone`, jede Plug-in-Instanz in ihrem eigenen `plugin-…`-Ordner. *Sicherungsordner öffnen* zeigt ihn.
+
+**Standalone-App**
+
+- **Letzte Sitzung beim Start laden** (standardmäßig an): livelooper startet mit dem Set, das beim Beenden offen war – mit allen Loops. Aus: die App startet wie bisher (*Einstellungen beim Start*, Abschnitt 31).
+- **Nach einem Absturz** merkt livelooper das beim nächsten Start und lädt automatisch die **neueste Sicherung** – auch wenn das Laden der letzten Sitzung aus ist. Ein kurzer Hinweis unten rechts sagt es: **Behalten** (oder einfach weiterspielen – er schließt sich von selbst) oder **Leer starten** (ein leeres Set; die Sicherungen bleiben und lassen sich später wiederherstellen).
+
+![Hinweis nach einem Absturz](../images/livelooper-backup-notice-de.png)
+
+**Plug-in in einer DAW**
+
+- Die DAW stellt das Plug-in wie immer mit dem Projekt wieder her – livelooper **überschreibt das Projekt nie stillschweigend**.
+- Nur wenn livelooper beim letzten Mal nicht richtig beendet wurde **und** seine neueste Sicherung neuer ist als das Projekt (du hast nach dem letzten Speichern weitergespielt), bietet ein Hinweis **Sicherung wiederherstellen** oder **Projekt behalten** an. Ohne Antwort bleibt das Projekt; die Sicherung lässt sich weiterhin im SETUP wiederherstellen.
+- Jede Instanz findet ihre eigenen Sicherungen wieder: ihre Kennung reist im Projekt mit. Ordner von Instanzen, die 30 Tage nicht benutzt wurden, werden entfernt.
+
+**SETUP → Sets → Automatische Sicherung**
+
+![SETUP → Sets](../images/livelooper-setup-sets-de.png)
+
+| Eintrag | Bedeutung |
+|---|---|
+| Automatische Sicherung | an (Standard) / aus – die Sicherungen im Hintergrund |
+| Sicherungsintervall | jede Minute · alle 2 (Standard) · 5 · 10 Minuten; außerdem nach jeder Aufnahme |
+| Letzte Sitzung beim Start laden | nur Standalone-App, standardmäßig an |
+| Sicherung wiederherstellen … | die Sicherungen dieses livelooper (Uhrzeit, Größe) – oder *Sicherungsdatei wählen …*; das aktuelle Set wird vorher gesichert, das Wiederherstellen lässt sich also rückgängig machen |
+| Sicherungsordner öffnen | zeigt den Ordner im Finder / Explorer |
+
+Das sind Einstellungen dieses Computers (wie *Updates* oder *Einstellungen beim Start*), nicht eines Sets oder Projekts – deshalb sind sie keine Host-Parameter und nicht per MIDI zuweisbar: sie werden nicht gespielt, und eine Sicherung soll nie von einem Controller abhängen.
 
 ## Drums, BEATS und Sound-Packs (1.6)
 

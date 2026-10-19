@@ -71,6 +71,7 @@ int main (int argc, char* argv[])
 
     LiveLooperProcessor proc;
     proc.prepareToPlay (48000.0, 512);
+    proc.markStandaloneForTests();      // v1.7: SETUP shows the app rows (auto load); no backups are written here
     auto set = [&proc] (const juce::String& id, float plain) {
         auto* p = proc.getState().getParameter (id);
         p->setValueNotifyingHost (p->convertTo0to1 (plain));
@@ -143,7 +144,8 @@ int main (int argc, char* argv[])
         // v1.6: the SETUP window (System Settings style), two pages
         {
             for (const auto& [page, name] : { std::pair<const char*, const char*> { "Looper", "setup" }, std::pair<const char*, const char*> { "App", "setup-app" },
-                                                     std::pair<const char*, const char*> { "Audio", "setup-audio" } /* v1.7: latency */ })
+                                                     std::pair<const char*, const char*> { "Audio", "setup-audio" } /* v1.7: latency */,
+                                                     std::pair<const char*, const char*> { "Sets", "setup-sets" } /* v1.7: auto backup */ })
             {
                 auto panel = ed->createSettingsPanel();
                 if (auto* sp = dynamic_cast<SettingsPanel*> (panel.get()))
@@ -395,6 +397,29 @@ int main (int argc, char* argv[])
             juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
             save (about, outDir.getChildFile ("livelooper-about" + sfx + ".png"));
             about.setLookAndFeel (nullptr);
+        }
+
+        // v1.7 auto backup: the notice after a crash (standalone: the newest backup was restored)
+        {
+            LiveLooperProcessor::BackupNotice n;
+            n.kind = LiveLooperProcessor::BackupNotice::Kind::Restored;
+            n.time = juce::Time::getCurrentTime() - juce::RelativeTime::minutes (3);
+            proc.postBackupNoticeForTests (n);
+            ed->updateBackupNotice();
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
+            if (auto* t = ed->getBackupToast())
+            {
+                const auto area = t->getBounds().expanded (24);
+                auto full = editor->createComponentSnapshot (editor->getLocalBounds(), true, 1.0f);
+                full.getClippedImage (area).createCopy();
+                juce::PNGImageFormat png;
+                const auto f = outDir.getChildFile ("livelooper-backup-notice" + sfx + ".png");
+                f.deleteFile();
+                juce::FileOutputStream out (f);
+                png.writeImageToStream (full.getClippedImage (area), out);
+            }
+            ed->pressBackupToastButton (-1);
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
         }
 
         ed->setLearnMode (true);

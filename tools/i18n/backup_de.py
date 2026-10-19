@@ -36,6 +36,18 @@ T = [
     ("Keep", "Behalten"),
     ("Start empty", "Leer starten"),
     ("Keep project", "Projekt behalten"),
+    # ---- in-app help page "Backup"
+    ("Backup", "Sicherung"),
+    ("livelooper saves the whole set in the background: every few minutes and after every recording - only when something changed.",
+     "livelooper sichert das ganze Set im Hintergrund: alle paar Minuten und nach jeder Aufnahme \u2013 nur wenn sich etwas ge\u00e4ndert hat."),
+    ("The audio keeps playing. The last 3 backups stay in the app data folder (SETUP > Sets > Auto backup > Open backup folder).",
+     "Der Ton l\u00e4uft weiter. Die letzten 3 Sicherungen bleiben im App-Datenordner (SETUP > Sets > Automatische Sicherung > Sicherungsordner \u00f6ffnen)."),
+    ("App: the last session loads on start. After a crash the newest backup is restored - a notice lets you start empty instead.",
+     "App: beim Start wird die letzte Sitzung geladen. Nach einem Absturz kommt die neueste Sicherung zur\u00fcck \u2013 ein Hinweis bietet stattdessen einen leeren Start an."),
+    ("Plug-in: the DAW project comes first. After a crash a notice offers a newer backup - nothing is replaced without asking.",
+     "Plug-in: das DAW-Projekt hat Vorrang. Nach einem Absturz bietet ein Hinweis eine neuere Sicherung an \u2013 nichts wird ungefragt ersetzt."),
+    ("SETUP > Sets > Auto backup: on / off, interval, auto load, restore a backup.",
+     "SETUP > Sets > Automatische Sicherung: an / aus, Intervall, letzte Sitzung laden, Sicherung wiederherstellen."),
 ]
 
 def esc(s):

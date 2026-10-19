@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""v1.7 in-app help pictures (resources/help/help-{looplen,live,display,latency,controllers}[-de].png).
+"""v1.7 in-app help pictures (resources/help/help-{looplen,live,display,latency,controllers,backup}[-de].png).
 
 Unlike the drawn v1.6 pages these show the real v1.7 interface: they are composed from the
 documentation screenshots in docs/images (rendered by livelooper_screenshot) on the brand
@@ -68,6 +68,11 @@ def make(sfx):
         bg = background()
         place(bg, doc(src, sfx), (30, 22, 840, 481))
         out[key] = bg
+    # auto backup: SETUP > Sets with the notice after a crash on top
+    bg = background()
+    place(bg, doc('livelooper-setup-sets', sfx), (30, 22, 700, 481))
+    place(bg, doc('livelooper-backup-notice', sfx), (440, 330, 440, 150))
+    out['help-backup'] = bg
     for key, img in out.items():
         path = os.path.join(OUT, key + sfx + '.png')
         img.save(path, optimize=True)
