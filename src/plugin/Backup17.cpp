@@ -298,7 +298,7 @@ bool LiveLooperProcessor::restoreBackup (const juce::File& file, juce::String& e
         return false;
     }
     // copy first: the backup of the current set below may rotate the chosen file away
-    juce::TemporaryFile copy (juce::String (backup::kExtension));   // in the temp folder, not among the backups
+    juce::TemporaryFile copy { juce::String (backup::kExtension) };   // in the temp folder, not among the backups
     if (! file.copyFileTo (copy.getFile()))
     {
         error = i18n::tr ("The backup could not be read.");
