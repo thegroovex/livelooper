@@ -116,6 +116,7 @@ set(LIVELOOPER_ENGINE_SOURCES
 set(LIVELOOPER_PLUGIN_SOURCES
     src/plugin/Localisation.cpp
     src/plugin/AppSettings.cpp
+    src/plugin/AutoBackup.cpp
     src/plugin/Updates.cpp
     src/plugin/InfoWindows.cpp
     src/plugin/HelpGuide.cpp
@@ -128,10 +129,12 @@ set(LIVELOOPER_PLUGIN_SOURCES
     src/plugin/Parameters.cpp
     src/plugin/PluginProcessor.cpp
     src/plugin/Processor17.cpp
+    src/plugin/Backup17.cpp
     src/plugin/MidiFeedback.cpp
     src/plugin/PluginEditor.cpp
     src/plugin/Editor17.cpp
     src/plugin/EditorDisplay.cpp
+    src/plugin/EditorBackup.cpp
     src/plugin/LiveView.cpp
     src/plugin/LooperLookAndFeel.cpp
     src/plugin/Widgets.cpp
@@ -245,6 +248,7 @@ if(LIVELOOPER_BUILD_TESTS)
         tests/V17Tests.cpp
         tests/DisplayTests.cpp
         tests/LoopLengthTests.cpp
+        tests/BackupTests.cpp
         ${LIVELOOPER_ENGINE_SOURCES} ${LIVELOOPER_PLUGIN_SOURCES})
     target_include_directories(livelooper_tests PRIVATE src ${LIVELOOPER_THIRD_PARTY_INCLUDES})
     target_compile_definitions(livelooper_tests PRIVATE ${LIVELOOPER_DEFINES} LIVELOOPER_NO_PLUGIN_ENTRY=1 JUCE_MODAL_LOOPS_PERMITTED=1)

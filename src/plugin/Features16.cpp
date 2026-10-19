@@ -37,11 +37,19 @@ bool LiveLooperProcessor::saveSetContainer (const juce::File& file)
     auto xml = createSetXml();
     if (xml == nullptr)
         return false;
+    auto target = file.hasFileExtension (kContainerExtension) ? file : file.withFileExtension (kContainerExtension);
+    return writeSetContainer (*xml, {}, (double) tempo->load(), target);
+}
 
+/** The container from a set XML: loops / row samples given as base64 FLAC ("data") or, v1.7 auto backup,
+    as raw audio (encoded here - this runs on the backup thread then). Written atomically. */
+bool LiveLooperProcessor::writeSetContainer (juce::XmlElement& xml, const std::vector<StoredLoop>& rawLoops, double tempoBpm,
+                                             const juce::File& target)
+{
     juce::ZipFile::Builder zip;
     const auto now = juce::Time::getCurrentTime();
     juce::var tracks;
-    if (auto* loops = xml->getChildByName ("LOOPS"))
+    if (auto* loops = xml.getChildByName ("LOOPS"))
         for (auto* e : loops->getChildWithTagNameIterator ("LOOP"))
         {
             juce::MemoryBlock flac;
@@ -54,7 +62,36 @@ bool LiveLooperProcessor::saveSetContainer (const juce::File& file)
             tracks.append (e->getIntAttribute ("track") + 1);
         }
 
-    if (auto* rows = xml->getChildByName ("ROWSAMPLES"))       // v1.6: own samples of the BEATS rows
+    if (! rawLoops.empty())
+    {
+        auto* loops = xml.getChildByName ("LOOPS");
+        if (loops == nullptr)
+            loops = xml.createNewChildElement ("LOOPS");
+        for (const auto& l : rawLoops)
+        {
+            juce::MemoryBlock flac;
+            {
+                juce::FlacAudioFormat format;
+                std::unique_ptr<juce::OutputStream> stream = std::make_unique<juce::MemoryOutputStream> (flac, false);
+                auto writer = format.createWriterFor (stream, juce::AudioFormatWriterOptions {}
+                                                                  .withSampleRate (l.sampleRate)
+                                                                  .withNumChannels (2)
+                                                                  .withBitsPerSample (24));
+                if (writer == nullptr || ! writer->writeFromAudioSampleBuffer (l.audio, 0, l.audio.getNumSamples()))
+                    return false;
+            }
+            const auto path = "audio/track" + juce::String (l.track + 1) + ".flac";
+            auto* e = loops->createNewChildElement ("LOOP");
+            e->setAttribute ("track", l.track);
+            e->setAttribute ("samplesPerPpq", l.samplesPerPpq);
+            e->setAttribute ("sampleRate", l.sampleRate);
+            e->setAttribute ("file", path);
+            zip.addEntry (new juce::MemoryInputStream (flac, true), 0, path, now);
+            tracks.append (l.track + 1);
+        }
+    }
+
+    if (auto* rows = xml.getChildByName ("ROWSAMPLES"))       // v1.6: own samples of the BEATS rows
         for (auto* e : rows->getChildWithTagNameIterator ("ROWSAMPLE"))
         {
             juce::MemoryBlock flac;
@@ -70,25 +107,19 @@ bool LiveLooperProcessor::saveSetContainer (const juce::File& file)
     info->setProperty ("format", "livelooper-set");
     info->setProperty ("formatVersion", 1);
     info->setProperty ("app", juce::String ("livelooper ") + LIVELOOPER_VERSION);
-    info->setProperty ("tempo", (double) tempo->load());
+    info->setProperty ("tempo", tempoBpm);
     info->setProperty ("tracksWithLoops", tracks);
     info->setProperty ("created", now.toISO8601 (true));
 
-    zip.addEntry (new juce::MemoryInputStream (juce::MemoryBlock (xml->toString().toRawUTF8(), xml->toString().getNumBytesAsUTF8()), true),
+    const auto text = xml.toString();
+    zip.addEntry (new juce::MemoryInputStream (juce::MemoryBlock (text.toRawUTF8(), text.getNumBytesAsUTF8()), true),
                   9, kSetEntry, now);
     const auto json = juce::JSON::toString (juce::var (info.get()));
     zip.addEntry (new juce::MemoryInputStream (juce::MemoryBlock (json.toRawUTF8(), json.getNumBytesAsUTF8()), true), 9, kInfoEntry, now);
     const auto readme = containerReadme();
     zip.addEntry (new juce::MemoryInputStream (juce::MemoryBlock (readme.toRawUTF8(), readme.getNumBytesAsUTF8()), true), 9, kReadmeEntry, now);
 
-    auto target = file.hasFileExtension (kContainerExtension) ? file : file.withFileExtension (kContainerExtension);
-    juce::TemporaryFile temp (target);
-    {
-        juce::FileOutputStream out (temp.getFile());
-        if (! out.openedOk() || ! zip.writeToStream (out, nullptr))
-            return false;
-    }
-    return temp.overwriteTargetFileWithTemporary();
+    return backup::writeAtomically (target, [&zip] (juce::OutputStream& out) { return zip.writeToStream (out, nullptr); });
 }
 
 bool LiveLooperProcessor::loadSetContainer (const juce::File& file, juce::String& error)

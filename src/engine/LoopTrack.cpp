@@ -1052,6 +1052,20 @@ void LoopTrack::readLoop (float* dstL, float* dstR) const noexcept
     }
 }
 
+double LoopTrack::sparseChecksum (int points) const noexcept
+{
+    if (length <= 0 || points <= 0)
+        return 0.0;
+    const int n = std::min (points, length);
+    double sum = 0.0;
+    for (int k = 0; k < n; ++k)
+    {
+        const int i = (int) (((long long) k * length) / n);
+        sum += (double) sampleAt (0, i) * (k + 1) + (double) sampleAt (1, i) * (n + k + 1);
+    }
+    return sum;
+}
+
 void LoopTrack::loadLoop (const float* srcL, const float* srcR, int numSamples, double samplesPerPpq)
 {
     clear();

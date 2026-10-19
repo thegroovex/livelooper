@@ -6,7 +6,8 @@
 // - "Settings on start: default settings" starts without the last session's state,
 // - on macOS the microphone permission is asked for once and then remembered (see
 //   MacMicPermission.mm) - nothing else asks again,
-// - the audio device's output latency is passed on for Ableton Link.
+// - the audio device's output latency is passed on for Ableton Link,
+// - v1.7: the last session is loaded on start (auto backup, crash recovery - see AutoBackup.h).
 //
 // The storage location of the JUCE wrapper settings (audio device, last state) is unchanged,
 // so existing users keep their audio setup.
@@ -283,6 +284,9 @@ private:
                                                      juce::LookAndFeel::getDefaultLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId),
                                                      std::move (holder));
         mainWindow->setVisible (true);
+        // v1.7: crash check (restores the newest backup after a crash), "Auto load last session", crash marker
+        if (auto* p = dynamic_cast<LiveLooperProcessor*> (mainWindow->pluginHolder->processor.get()))
+            p->startStandaloneSession();
 
        #if JUCE_MAC
         if (macMicrophonePermissionStatus() == 2)

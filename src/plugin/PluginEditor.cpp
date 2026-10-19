@@ -880,6 +880,7 @@ void LiveLooperEditor::timerCallback()
     timer17();             // v1.7
     timerDisplay();        // v1.7 theme / Live view
     updateKo2Ui();         // v1.6 K.O. II chip / toast / controller view / track colours
+    updateBackupNotice();  // v1.7 restored after a crash / newer backup than the project
     refreshPatternNames();      // v1.6
     blinkCounter = (blinkCounter + 1) % 16;
     const bool blink = blinkCounter < 8;
@@ -1552,6 +1553,7 @@ juce::PopupMenu LiveLooperEditor::buildSetupMenu (juce::Array<int>& toggles)
     menu.addItem (8, tr ("Save set ..."));
     menu.addItem (9, tr ("Load set ..."));
     menu.addSubMenu (tr ("Last used sets"), recentMenu);
+    addBackupMenu (menu, toggles);    // v1.7 auto backup
     menu.addItem (10, tr ("Export stems (one WAV per track) ..."));
     addFeatures16Menu (menu, 0);      // v1.6: shared set, welcome, demo / empty set
     // ---- Looper
@@ -1622,6 +1624,8 @@ void LiveLooperEditor::handleSetupResult (int r)
     if (handleControllerMenu (r))      // v1.6 K.O. II / Controller GUI
         return;
     if (handleDisplayMenu (r))         // v1.7 display
+        return;
+    if (handleBackupMenu (r))          // v1.7 auto backup
         return;
     if (handle17Menu (r))              // v1.7 latency, velocity curves, MIDI feedback
         return;

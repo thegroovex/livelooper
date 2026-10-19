@@ -8,6 +8,7 @@
 #include "PerformanceRecorder.h"
 #include "SoundPacks.h"
 #include "MidiFeedback.h"
+#include "AutoBackup.h"
 #include "engine/LatencyMeasure.h"
 #include "engine/Velocity.h"
 
@@ -152,6 +153,45 @@ public:
     /** Called from the timer when the user switches perf_rec; also notifies listeners. */
     std::function<void (const juce::File&)> onRecordingFinished;
     // ---- end v1.6 features
+    //============================================================================== v1.7 auto backup + crash recovery
+    /** What the editor tells the user after a start (a small notice, never a modal dialog). */
+    struct BackupNotice
+    {
+        enum class Kind { None, Restored, Offer };
+        Kind kind = Kind::None;     // Restored: standalone after a crash; Offer: plug-in, newer backup than the project
+        juce::File file;
+        juce::Time time;
+    };
+    BackupNotice takeBackupNotice();
+    bool hasBackupNotice() const noexcept { return backupNotice.kind != BackupNotice::Kind::None; }
+    const BackupNotice& peekBackupNotice() const noexcept { return backupNotice; }
+    /** Tests: leave the session like a crash would (marker stays, nothing written). */
+    void simulateCrashForTests();
+    AutoBackup& getAutoBackup() noexcept { return *autoBackup; }
+    /** This instance's backup folder (standalone or plugin-<instance id>). */
+    juce::File getBackupFolder() const;
+    juce::String getInstanceId() const { return instanceId; }
+    /** Standalone app, once after the window exists: crash check (restores the newest backup after a
+        crash), "Auto load last session", crash marker. */
+    void startStandaloneSession();
+    bool isStandaloneSession() const noexcept { return standaloneSession; }
+    /** Ends the session cleanly: standalone writes the last state (for auto load), the marker goes. */
+    void endBackupSession();
+    /** Loads a backup (the current set is backed up first when it changed). */
+    bool restoreBackup (const juce::File& file, juce::String& error);
+    /** Starts with an empty set instead of the restored backup (the backups stay). */
+    void startEmptyAfterRestore();
+    /** Reads SETUP > Auto backup (on / off, interval) from the app settings. */
+    void applyBackupSettings();
+    /** Cheap fingerprint of the set (settings + loops), unchanged = no backup. */
+    juce::uint64 computeBackupSignature();
+    /** Tests: run the backup logic although no host / app is around (wrapperType undefined). */
+    void enableBackupsForTests (bool on) { backupsForTests = on; }
+    /** Called from the timer (about twice a second); public for tests. */
+    void backupTick (juce::int64 nowMs);
+    /** Plug-in session: marker + folder (normally 1.5 s after creation; public for tests). */
+    void beginPluginBackupSession();
+
     //============================================================================== v1.7 latency compensation
     /** Round-trip latency measurement (SETUP > Audio > Measure latency, host parameter lat_measure). */
     LatencyMeasure& getLatencyMeasure() noexcept { return latencyMeasure; }
@@ -534,6 +574,22 @@ private:
     juce::CriticalSection noticeLock;
     void updateControllers();
     bool pushEnabledSetting = true;
+
+    // v1.7 auto backup
+    std::unique_ptr<AutoBackup> autoBackup;
+    juce::String instanceId;
+    BackupNotice backupNotice;
+    bool backupSessionStarted = false, standaloneSession = false, backupsForTests = false;
+    bool baselineIsNewest = false;       // standalone: the session started from the newest backup
+    juce::int64 createdMs = 0;
+    int backupTickCounter = 0;
+    std::unique_ptr<juce::InterProcessLock> standaloneLock;
+    void initBackup();
+    void shutdownBackup();
+    void adoptInstanceId (const juce::String& id, juce::int64 hostSavedMs);
+    std::unique_ptr<juce::XmlElement> createSetXmlWithoutAudio (std::vector<StoredLoop>& loops);
+    static bool writeSetContainer (juce::XmlElement& xml, const std::vector<StoredLoop>& rawLoops, double tempoBpm,
+                                   const juce::File& target);
 
     // v1.7 latency + controllers
     LatencyMeasure latencyMeasure;

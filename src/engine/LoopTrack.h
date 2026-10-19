@@ -157,6 +157,9 @@ public:
     //============================================================================== import / export (message thread, track locked)
     /** Copies the current loop (merged layers) into the destination (must hold getLength() samples). */
     void readLoop (float* dstL, float* dstR) const noexcept;
+    /** v1.7 auto backup: a cheap fingerprint of the loop audio (weighted sum of `points` evenly spaced
+        samples per channel). Changes when the loop is overdubbed, replaced, reversed in place ... */
+    double sparseChecksum (int points = 4096) const noexcept;
     /** Replaces the loop with the given audio; the track ends up stopped. */
     void loadLoop (const float* srcL, const float* srcR, int numSamples, double samplesPerPpq);
     /** Loads numSamples from a ring buffer starting at start (wrapping), crossfades the loop end

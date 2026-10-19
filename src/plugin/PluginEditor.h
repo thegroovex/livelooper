@@ -158,6 +158,15 @@ public:
     juce::Button& getLiveButton() noexcept { return *liveBtn; }
     void addDisplayMenu (juce::PopupMenu& menu, juce::Array<int>& toggles);
     bool handleDisplayMenu (int result);
+    // v1.7 auto backup + crash recovery (EditorBackup.cpp)
+    void addBackupMenu (juce::PopupMenu& menu, juce::Array<int>& toggles);
+    bool handleBackupMenu (int result);
+    void showRestoreBackupMenu();
+    /** Shows the backup notice of the processor (after a crash) once; timer, public for tests. */
+    void updateBackupNotice();
+    juce::Component* getBackupToast() noexcept { return backupToast.get(); }
+    /** Tests: press a button of the notice (0 = first / main action, 1 = second). */
+    void pressBackupToastButton (int index);
     /** Applies theme / stage mode / waveforms / Live view from the parameters (timer; public for tests). */
     void applyDisplaySettings (bool force = false);
 
@@ -209,6 +218,8 @@ private:
     juce::Rectangle<int> livePunchBadgeArea() const;
     std::unique_ptr<juce::Button> ko2Chip;
     std::unique_ptr<juce::Component> ko2Toast;
+    std::unique_ptr<juce::Component> backupToast;     // v1.7
+    std::unique_ptr<juce::FileChooser> backupChooser;
     std::unique_ptr<ControllerView> controllerView;
     bool ko2WasConnected = false;
     std::array<int, 8> shownTrackColours { -2, -2, -2, -2, -2, -2, -2, -2 };

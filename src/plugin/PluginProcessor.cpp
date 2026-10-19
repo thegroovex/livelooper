@@ -267,12 +267,14 @@ LiveLooperProcessor::LiveLooperProcessor (bool withCueOutput, bool withTrackOutp
         if (const auto v = appsettings::getValue (key); v.isNotEmpty())
             if (auto* p = apvts.getParameter (id))
                 p->setValueNotifyingHost (v.getIntValue() != 0 ? 1.0f : 0.0f);
+    initBackup();                                  // v1.7 auto backup + crash recovery (Backup17.cpp)
     startTimerHz (30);
 }
 
 LiveLooperProcessor::~LiveLooperProcessor()
 {
     stopTimer();
+    shutdownBackup();             // v1.7: standalone writes the last session, the crash marker goes
     if (wrapperType != wrapperType_Undefined)
         saveLastSettings();
     linkPtr.store (nullptr);
@@ -890,6 +892,8 @@ void LiveLooperProcessor::timerCallback()
         if (settingsTimer % 300 == 0)
             saveLastSettings();
     }
+    if (++backupTickCounter % 15 == 0)        // v1.7 auto backup, about twice a second
+        backupTick (juce::Time::currentTimeMillis());
 
     // v1.6: sound packs changed (import in another instance / rescan)
     if (SoundPacks::get().getVersion() != soundPackVersion)
@@ -1234,6 +1238,8 @@ void LiveLooperProcessor::getStateInformation (juce::MemoryBlock& destData)
     root.setAttribute ("clickRoute", clickRoute.load());
     root.setAttribute ("visibleTracks", visibleTracks.load());
     root.setAttribute ("push", pushEnabledSetting);
+    root.setAttribute ("instanceId", instanceId);        // v1.7: finds this instance's backups after a crash
+    root.setAttribute ("savedAt", juce::String (juce::Time::currentTimeMillis()));
     {
         juce::StringArray cols;                          // v1.6 track colours
         for (auto& c : trackColours) cols.add (juce::String (c.load()));
@@ -1290,6 +1296,9 @@ void LiveLooperProcessor::setStateInformation (const void* data, int sizeInBytes
     if (root == nullptr || ! root->hasTagName ("LIVELOOPER_STATE"))
         return;
     stateLoaded = true;
+    // v1.7: the project's instance id (crash check against this instance's backups)
+    if (root->hasAttribute ("instanceId"))
+        adoptInstanceId (root->getStringAttribute ("instanceId"), root->getStringAttribute ("savedAt").getLargeIntValue());
 
     saveLoops = root->getBoolAttribute ("saveLoops", true);
     if (root->hasAttribute ("cuePair"))
@@ -1531,6 +1540,8 @@ std::unique_ptr<juce::XmlElement> LiveLooperProcessor::createSetXml()
     xml->removeAttribute ("clickRoute");
     xml->removeAttribute ("trackOutputs");
     xml->removeAttribute ("push");
+    xml->removeAttribute ("instanceId");
+    xml->removeAttribute ("savedAt");
     if (auto* mm = xml->getChildByName ("MIDIMAP")) xml->removeChildElement (mm, true);
     if (auto* km = xml->getChildByName ("KEYMAP"))  xml->removeChildElement (km, true);
     return xml;
