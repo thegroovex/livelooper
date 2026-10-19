@@ -63,6 +63,7 @@ Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
 - **Display** (*SETUP → Display*): light and dark theme, high-contrast **stage mode**, interface size **75 – 200 %** (Ctrl/Cmd + / −), large waveforms with the overdub layer (off by default)
 - **Velocity curves** (soft / normal / hard / fixed) for Push 1, the sampler pads and learned MIDI notes, **MIDI feedback** to light up learned controls (experimental), **Push 1 display bars** for loop progress and the punch FX amount
 - **Follow host transport is on by default**: stopping your DAW stops the loops (switchable in *SETUP → Looper*)
+- **Auto backup and crash recovery**: the whole set (loops included) is saved in the background every few minutes and after every recording – only when something changed, without touching the audio; the app loads the last session on start and restores the newest backup after a crash; in a DAW a newer backup is offered, never applied silently (*SETUP → Sets → Auto backup*)
 - 12 new host parameters – **501** in total, all MIDI-mappable
 <!-- end v1.7 features -->
 
@@ -113,7 +114,7 @@ Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
 - **Loop length on every track** (1.7): AUTO or 1 – 16 bars right in the track strip and the Live view (click, scroll, MIDI learn); on Push 1 hold FIXED LENGTH + pad or encoder
 - **Live view, themes, stage mode** (1.7): a stage view (also as a borderless full-screen window) with large track cards and a performance FX strip, light and dark theme, high-contrast stage mode, interface size 75 – 200 %, large waveforms with the overdub layer
 - **Meters and waveforms**: stereo meter per track, master VU in dB on the display (green / yellow / red), waveform with play position, clip LED
-- **Comfort**: in-app help (searchable user guide), about window with update check, start with the last used or the default settings, list of the last used sets
+- **Comfort**: in-app help (searchable user guide), about window with update check, start with the last used or the default settings, list of the last used sets, **auto backup** with crash recovery (1.7)
 - **All 501 functions** are host parameters for your DAW's MIDI mapping and automation
 - **English and German** interface (*SETUP → Language / Sprache*)
 
@@ -150,7 +151,7 @@ Everything else is in the **[User Guide](docs/en/USER-GUIDE.md)**, MIDI control 
 |---|---|
 | [INSTALLATION.md](docs/en/INSTALLATION.md) | Download, installers and manual installation on macOS and Windows, Gatekeeper / SmartScreen, microphone permission, setup in your DAW |
 | [DAW-SETUP.md](docs/en/DAW-SETUP.md) | Using the plug-in in your DAW: looper track, monitoring, looping mic/guitar and software instruments, switching sources live, getting audio out, MIDI routing (Live, Bitwig, Cubase, Logic, Reaper, Studio One) |
-| [USER-GUIDE.md](docs/en/USER-GUIDE.md) | Interface, all functions, beat FX, beat repeat / stutter, colour FX, rhythm, Link, setup, language, latency, Live view, display, loop length (1.7) |
+| [USER-GUIDE.md](docs/en/USER-GUIDE.md) | Interface, all functions, beat FX, beat repeat / stutter, colour FX, rhythm, Link, setup, language, latency, Live view, display, loop length, auto backup (1.7) |
 | [MIDI.md](docs/en/MIDI.md) | MIDI learn, your DAW's MIDI mapping, default mapping, parameter list |
 | [PUSH.md](docs/en/PUSH.md) | Ableton Push control (in any DAW and standalone): setup, pad layout, encoders, FX XY pad, performance FX, STEP mode |
 | [KO2.md](docs/en/KO2.md) | K.O. II control (experimental – please test): pages, roles, clock, recording, test list |

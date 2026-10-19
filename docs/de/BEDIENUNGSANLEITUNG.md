@@ -479,7 +479,7 @@ Das Beitreten ändert nie das Tempo einer Session – livelooper übernimmt das 
 
 ## 30. Hilfe
 
-Der Knopf **?** (oben rechts) oder **SETUP → App → Hilfe …** öffnet die Hilfe. Sie beginnt mit bebilderten Seiten (seit 1.6): **Willkommen**, **Loops**, **FX**, **BEATS**, **Aufnahme**, **Link**, seit 1.7 **Loop-Länge**, **Live-Ansicht**, **Anzeige**, **Latenz** und **Controller** (Bilder der echten Oberfläche), **Push 1** (der ganze Controller mit nummerierten Tasten und ihrer Funktion – mit den 1.7-Gesten SHIFT + MASTER und gehaltenem FIXED LENGTH), **Push 1: STEP** und **K.O. II**. Danach folgen diese Bedienungsanleitung, die Push-Anleitung, die MIDI-Anleitung und die Installationsanleitung in deiner Sprache, in Abschnitte aufgeteilt, mit Suchfeld (z. B. *Stutter*, *Link*, *Capture*). Fährt man mit der Maus über ein Element, erscheint ein kurzer Hinweis.
+Der Knopf **?** (oben rechts) oder **SETUP → App → Hilfe …** öffnet die Hilfe. Sie beginnt mit bebilderten Seiten (seit 1.6): **Willkommen**, **Loops**, **FX**, **BEATS**, **Aufnahme**, **Link**, seit 1.7 **Loop-Länge**, **Live-Ansicht**, **Anzeige**, **Latenz**, **Controller** und **Sicherung** (Bilder der echten Oberfläche), **Push 1** (der ganze Controller mit nummerierten Tasten und ihrer Funktion – mit den 1.7-Gesten SHIFT + MASTER und gehaltenem FIXED LENGTH), **Push 1: STEP** und **K.O. II**. Danach folgen diese Bedienungsanleitung, die Push-Anleitung, die MIDI-Anleitung und die Installationsanleitung in deiner Sprache, in Abschnitte aufgeteilt, mit Suchfeld (z. B. *Stutter*, *Link*, *Capture*). Fährt man mit der Maus über ein Element, erscheint ein kurzer Hinweis.
 
 ![Hilfe](../images/livelooper-help-de.png)
 

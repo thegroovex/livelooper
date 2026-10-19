@@ -64,6 +64,7 @@ Einrichtung und komplette Belegung: **[PUSH.md](docs/de/PUSH.md)**.
 - **Anschlagkurven** (weich / normal / hart / fest) für Push 1, die Sampler-Pads und gelernte MIDI-Noten, **MIDI-Feedback** für leuchtende gelernte Bedienelemente (experimentell), **Push-1-Display-Balken** für Loop-Fortschritt und Punch-FX-Stärke
 - **Host-Transport folgen ist standardmäßig an**: stoppt deine DAW, stoppen auch die Loops (umschaltbar unter *SETUP → Looper*)
 - 12 neue Host-Parameter – insgesamt **501**, alle per MIDI steuerbar
+- **Automatische Sicherung und Absturz-Wiederherstellung**: das ganze Set (mit allen Loops) wird alle paar Minuten und nach jeder Aufnahme im Hintergrund gesichert – nur wenn sich etwas geändert hat, ohne den Ton zu stören; die App lädt beim Start die letzte Sitzung und stellt nach einem Absturz die neueste Sicherung wieder her; in einer DAW wird eine neuere Sicherung angeboten, nie stillschweigend übernommen (*SETUP → Sets → Automatische Sicherung*)
 <!-- end v1.7 features -->
 
 <!-- v1.6 features -->
@@ -113,7 +114,7 @@ Einrichtung und komplette Belegung: **[PUSH.md](docs/de/PUSH.md)**.
 - **Direkte Spurausgänge** (Plug-in Multi-Out – jede Spur als eigener Ausgang in deiner DAW – oder Interface-Ausgänge in der Standalone-App), **Cue-Ausgang** für das Metronom
 - **Mit dem Projekt gespeichert**: Loops verlustfrei (FLAC, 24 Bit) im DAW-Projekt; komplette **Looper-Sets** als `.llset`-Datei
 - **Pegel und Wellenformen**: Stereo-Pegel pro Spur, Master-VU in dB im Display (grün / gelb / rot), Wellenform mit Abspielposition, Clip-LED
-- **Komfort**: Hilfe in der App (durchsuchbare Bedienungsanleitung), Info-Fenster mit Update-Prüfung, Start mit den zuletzt verwendeten oder den Standard-Einstellungen, Liste der zuletzt verwendeten Sets
+- **Komfort**: Hilfe in der App (durchsuchbare Bedienungsanleitung), Info-Fenster mit Update-Prüfung, Start mit den zuletzt verwendeten oder den Standard-Einstellungen, Liste der zuletzt verwendeten Sets, **automatische Sicherung** mit Absturz-Wiederherstellung (1.7)
 - **Alle 501 Funktionen** sind Host-Parameter für MIDI-Mapping und Automation deiner DAW
 - **Deutsche und englische** Oberfläche (*SETUP → Language / Sprache*)
 
@@ -150,7 +151,7 @@ Alles Weitere steht in der **[Bedienungsanleitung](docs/de/BEDIENUNGSANLEITUNG.m
 |---|---|
 | [INSTALLATION.md](docs/de/INSTALLATION.md) | Download, Installer und manuelle Installation auf macOS und Windows, Gatekeeper / SmartScreen, Mikrofon-Freigabe, Einrichtung in deiner DAW |
 | [DAW-EINRICHTUNG.md](docs/de/DAW-EINRICHTUNG.md) | Das Plug-in in deiner DAW: Looper-Spur, Monitoring, Mikro/Gitarre und Software-Instrumente loopen, live zwischen Quellen wechseln, Audio herausholen, MIDI-Routing (Live, Bitwig, Cubase, Logic, Reaper, Studio One) |
-| [BEDIENUNGSANLEITUNG.md](docs/de/BEDIENUNGSANLEITUNG.md) | Oberfläche, alle Funktionen, Beat-FX, Beat Repeat / Stutter, Color-FX, Rhythmus, Link, Setup, Sprache, Latenz, Live-Ansicht, Anzeige, Loop-Länge (1.7) |
+| [BEDIENUNGSANLEITUNG.md](docs/de/BEDIENUNGSANLEITUNG.md) | Oberfläche, alle Funktionen, Beat-FX, Beat Repeat / Stutter, Color-FX, Rhythmus, Link, Setup, Sprache, Latenz, Live-Ansicht, Anzeige, Loop-Länge, automatische Sicherung (1.7) |
 | [MIDI.md](docs/de/MIDI.md) | MIDI-Learn, MIDI-Mapping deiner DAW, Standard-Belegung, Parameterliste |
 | [PUSH.md](docs/de/PUSH.md) | Steuerung mit Ableton Push (in jeder DAW und standalone): Einrichtung, Pad-Belegung, Encoder, FX-XY-Pad, Performance-FX, STEP-Modus |
 | [KO2.md](docs/de/KO2.md) | K.O. II steuern (experimentell – bitte testen): Seiten, Rollen, Clock, Aufnahme, Testliste |

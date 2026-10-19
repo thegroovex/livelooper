@@ -441,7 +441,7 @@ Joining a session never changes its tempo – livelooper takes over the tempo of
 
 ## 30. Help
 
-The **?** button (top right) or **SETUP → App → Help …** opens the help. It starts with illustrated pages (since 1.6): **Welcome**, **Loops**, **FX**, **BEATS**, **Recording**, **Link**, since 1.7 **Loop length**, **Live view**, **Display**, **Latency** and **Controllers** (pictures of the real interface), **Push 1** (the whole controller with numbered buttons and what they do – with the 1.7 gestures SHIFT + MASTER and FIXED LENGTH held), **Push 1: STEP** and **K.O. II**. Below them follow this user guide, the Push guide, the MIDI guide and the installation guide in your language, split into sections, with a search field (e.g. *stutter*, *Link*, *capture*). Hover over any control for a short tooltip.
+The **?** button (top right) or **SETUP → App → Help …** opens the help. It starts with illustrated pages (since 1.6): **Welcome**, **Loops**, **FX**, **BEATS**, **Recording**, **Link**, since 1.7 **Loop length**, **Live view**, **Display**, **Latency**, **Controllers** and **Backup** (pictures of the real interface), **Push 1** (the whole controller with numbered buttons and what they do – with the 1.7 gestures SHIFT + MASTER and FIXED LENGTH held), **Push 1: STEP** and **K.O. II**. Below them follow this user guide, the Push guide, the MIDI guide and the installation guide in your language, split into sections, with a search field (e.g. *stutter*, *Link*, *capture*). Hover over any control for a short tooltip.
 
 ![Help](../images/livelooper-help.png)
 
