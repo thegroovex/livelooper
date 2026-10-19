@@ -151,6 +151,10 @@ public:
     bool isLiveViewShown() const noexcept;
     bool isLiveFullscreen() const noexcept { return liveWindow != nullptr; }
     LiveView* getLiveView() noexcept { return liveView.get(); }
+    LiveView* getFullscreenLiveView() noexcept { return fullscreenLive; }
+    /** For tests: the controls the MIDI learn overlay frames right now, and whether it is in front of the Live view. */
+    juce::Array<juce::Component*> getLearnablesForTests() { juce::Array<juce::Component*> a; collectMappables (surface, a); return a; }
+    bool isLearnOverlayInFrontForTests() const { return overlay.isVisible() && (liveView == nullptr || surface.getIndexOfChildComponent (&overlay) > surface.getIndexOfChildComponent (liveView.get())); }
     juce::Button& getLiveButton() noexcept { return *liveBtn; }
     void addDisplayMenu (juce::PopupMenu& menu, juce::Array<int>& toggles);
     bool handleDisplayMenu (int result);

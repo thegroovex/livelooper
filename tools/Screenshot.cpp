@@ -481,6 +481,14 @@ int main (int argc, char* argv[])
             setParam (gLiveView, 1.0f);
             frames (6);
             save (*editor, outDir.getChildFile ("livelooper-live" + sfx + ".png"));
+            if (juce::SystemStats::getEnvironmentVariable ("LL_SHOT_CHECKS", {}).isNotEmpty())
+            {
+                // review only (not a docs image): MIDI learn frames over the Live view
+                ed->setLearnMode (true);
+                frames (4);
+                save (*editor, outDir.getChildFile ("check-live-learn" + sfx + ".png"));
+                ed->setLearnMode (false);
+            }
             setParam (gStageMode, 1.0f);
             frames (6);
             save (*editor, outDir.getChildFile ("livelooper-live-stage" + sfx + ".png"));

@@ -31,11 +31,13 @@ namespace
     }
 
     /** The fullscreen Live view: a borderless window over the whole screen, the Live view scaled to its height. */
-    class LiveWindow : public juce::Component
+    /** v1.7: the fullscreen Live view window. It is a MidiMenuHost so right-click MIDI learn on its controls
+        (pads, STOP, level, loop length pills, FX strip) reaches the editor like on the surface. */
+    class LiveWindow : public juce::Component, public MidiMenuHost
     {
     public:
-        LiveWindow (LiveLooperProcessor& p, std::function<TrackStrip*(int)> strips, juce::LookAndFeel& lf)
-            : view (p, std::move (strips))
+        LiveWindow (LiveLooperProcessor& p, std::function<TrackStrip*(int)> strips, juce::LookAndFeel& lf, MidiMenuHost& h)
+            : view (p, std::move (strips)), host (h)
         {
             setLookAndFeel (&lf);
             setOpaque (true);
@@ -53,7 +55,12 @@ namespace
             view.setTransform (juce::AffineTransform::scale (sc));
         }
         void paint (juce::Graphics& g) override { g.fillAll (juce::Colours::black); }
+        void showMidiMenuFor (juce::Component& c) override { host.showMidiMenuFor (c); }
+        void exportTrack (int t) override { host.exportTrack (t); }
+        void importTrack (int t) override { host.importTrack (t); }
+        void showTrackSettings (int t, juce::Component& anchor) override { host.showTrackSettings (t, anchor); }
         LiveView view;
+        MidiMenuHost& host;
     };
 }
 
@@ -124,7 +131,7 @@ void LiveLooperEditor::setLiveView (bool on, bool fullscreen)
     if (on && fullscreen && liveWindow == nullptr)
     {
         auto w = std::make_unique<LiveWindow> (proc, [this] (int t) { return juce::isPositiveAndBelow (t, kNumTracks) ? strips[(size_t) t].get() : nullptr; },
-                                               lookAndFeel);
+                                               lookAndFeel, *this);
         fullscreenLive = &w->view;
         fullscreenLive->onExit = [this] { setLiveView (false); };
         fullscreenLive->selectedPunch = [this] { return selectedPunch; };
@@ -180,8 +187,15 @@ void LiveLooperEditor::applyDisplaySettings (bool force)
         if (live)
         {
             liveView->toFront (false);
+            if (learnMode)
+                overlay.toFront (false);    // v1.7: the learn frames stay visible over the Live view
             if (isShowing())
                 liveView->grabKeyboardFocus();
+        }
+        else if (learnMode)
+        {
+            overlay.toFront (false);
+            learnBtn.toFront (false);
         }
     }
     if (! live && liveWindow != nullptr)

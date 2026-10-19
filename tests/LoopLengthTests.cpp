@@ -219,6 +219,43 @@ public:
             r.set (gLiveView, 0.0f);
         }
 
+        beginTest ("MIDI learn: the pills get the learn frame (strip and Live view), learn works, Live view hides the strips' frames");
+        {
+            LenRig r;
+            std::unique_ptr<juce::AudioProcessorEditor> ed (r.proc.createEditor());
+            auto* e = dynamic_cast<LiveLooperEditor*> (ed.get());
+            std::vector<TrackStrip*> strips;
+            findAll (*ed, strips);
+            e->setLearnMode (true);
+            auto learnables = e->getLearnablesForTests();
+            for (auto* s : strips)
+                if (s->isVisible())
+                    expect (learnables.contains (&s->getLengthPill()), "strip pill framed, track " + juce::String (s->getTrackIndex() + 1));
+            // learn by clicking in learn mode = startMidiLearn on t*_measure; a CC then maps it
+            r.proc.startMidiLearn (getParamId (strips[0]->getLengthPill()));
+            expectEquals (r.proc.getMidiLearnParamId(), trackId (0, kMeasure));
+            r.proc.handleMidiMessage (juce::MidiMessage::controllerEvent (1, 61, 127));
+            expect (r.proc.describeMidiMapping (trackId (0, kMeasure)).isNotEmpty(), "pill learned to a CC");
+
+            // Live view opened while learn mode is on: the overlay stays in front, only Live view controls framed
+            r.set (gLiveView, 1.0f);
+            e->applyDisplaySettings (true);
+            auto* lv = e->getLiveView();
+            lv->setBounds (0, 0, 1180, 856);
+            lv->refresh (false);
+            expect (e->isLearnOverlayInFrontForTests(), "learn frames over the Live view");
+            learnables = e->getLearnablesForTests();
+            expect (learnables.contains (lv->getLengthPill (1)), "Live view pill framed");
+            for (auto* s : strips)
+                expect (! learnables.contains (&s->getLengthPill()), "hidden strip pill not framed");
+            for (auto* c : learnables)
+                expect (c == lv || lv->isParentOf (c), "only Live view controls: " + getParamId (*c));
+            r.set (gLiveView, 0.0f);
+            e->applyDisplaySettings (true);
+            expect (e->getLearnablesForTests().contains (&strips[1]->getLengthPill()), "strip pills framed again");
+            e->setLearnMode (false);
+        }
+
         beginTest ("Push 1: hold FIXED LENGTH + pad = loop length of that track (rows 3 - 8: AUTO .. 16), tap alone = capture");
         {
             PushLenRig r;

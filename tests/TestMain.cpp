@@ -42,7 +42,7 @@ int main (int argc, char* argv[])
     // tests expect the English texts unless they switch the language themselves (never saved)
     livelooper::i18n::setSetting (livelooper::i18n::Language::English, false);
 
-    juce::String category, shardArg;
+    juce::String category, shardArg, nameFilter;
     bool list = false;
     for (int i = 1; i < argc; ++i)
     {
@@ -50,6 +50,7 @@ int main (int argc, char* argv[])
         if (a == "--shard" && i + 1 < argc)  shardArg = argv[++i];
         else if (a.startsWith ("--shard="))  shardArg = a.fromFirstOccurrenceOf ("=", false, false);
         else if (a == "--list")              list = true;
+        else if (a == "--name" && i + 1 < argc) nameFilter = argv[++i];   // groups whose name contains this text
         else                                 category = a;
     }
 
@@ -76,7 +77,16 @@ int main (int argc, char* argv[])
         groups += runner.getNumResults();
     };
 
-    if (shardArg.isNotEmpty())
+    if (nameFilter.isNotEmpty())
+    {
+        juce::Array<juce::UnitTest*> chosen;
+        for (auto* t : sortedTests())
+            if (t->getName().containsIgnoreCase (nameFilter))
+                chosen.add (t);
+        runner.runTests (chosen);
+        addResults();
+    }
+    else if (shardArg.isNotEmpty())
     {
         int index = 0, count = 0;
         if (! parseShard (shardArg, index, count))

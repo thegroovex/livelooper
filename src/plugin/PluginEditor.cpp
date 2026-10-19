@@ -1202,7 +1202,8 @@ void LiveLooperEditor::setLearnMode (bool on)
         proc.cancelMidiLearn();
     overlay.setVisible (on);
     overlay.toFront (false);
-    learnBtn.toFront (false);
+    if (! isLiveViewShown())
+        learnBtn.toFront (false);       // v1.7: not over the Live view (it comes back on top when the Live view closes)
     learnBtn.setToggleState (on, juce::dontSendNotification);
 }
 
@@ -1214,6 +1215,10 @@ void LiveLooperEditor::collectMappables (juce::Component& parent, juce::Array<ju
             continue;
         // v1.6: controls hidden under the BEATS page are not offered for MIDI learn
         if (&parent == &surface && isBeatsPageVisible() && c != beatsPage.get() && beatsPage->getBounds().contains (c->getBounds()))
+            continue;
+        // v1.7: while the Live view covers the surface only its own controls (pads, STOP, level, loop length
+        // pills, FX strip) are learnable - the hidden strips behind it get no frames
+        if (&parent == &surface && isLiveViewShown() && c != liveView.get())
             continue;
         if (getParamId (*c).isNotEmpty())
             out.add (c);
