@@ -87,7 +87,7 @@ The slice starts are snapped to 16th notes of the loop, so a cut keeps the groov
 | OCTAVE UP / DOWN | pitch of the selected track +12 / −12 semitones |
 | SHIFT + OCTAVE DOWN / UP | *(new in 1.6)* loop trick of the selected track: **half speed** (twice as long, an octave lower) / **double speed** (played twice, an octave higher) – on the next beat or bar, UNDO restores the loop |
 | SHIFT + second row 1 – 8 | *(new in 1.6)* **reverse the loop audio** of that track (quantized, UNDO restores it). SCALES (with or without SHIFT) opens the STEP mode |
-| MASTER | level meters on / off (display line 3) · *(new in 1.7)* **SHIFT + MASTER** = **Live view** on / off on the computer (large track cards for the stage, see the user guide, section 43) |
+| MASTER | level meters on / off (display line 3) · *(new in 1.7)* **SHIFT + MASTER** = switch the **view** on the computer: Full → Live (large track cards for the stage) → Live without FX (taller cards) → Full (see the user guide, section 43) |
 | SELECT + pad | select a track without doing anything else |
 | SHIFT + row 1 / row 2 | undo / redo of that track |
 | AUTOMATION | auto record on / off |

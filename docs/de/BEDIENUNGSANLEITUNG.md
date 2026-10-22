@@ -194,7 +194,7 @@ Seit 1.6 öffnet **SETUP** ein Einstellungsfenster im Stil der macOS-Systemeinst
 | Capture-Länge | 1 · 2 · 4 · 8 · 16 · 32 Takte (Abschnitt 16) |
 | Audio → Latenz | Latenz messen, Latenzausgleich (an), manueller Versatz (Abschnitt 41) |
 | Controller → Anschlagkurven / Push-1-Display / MIDI-Feedback | Anschlagkurven pro Controller, Loop-Fortschrittsbalken im Push-1-Display, LED-Feedback für gelernte Bedienelemente (Abschnitt 42) |
-| Anzeige | Farbschema, Oberflächengröße 75 – 200 %, Bühnenmodus, Wellenformen in den Loop-Spuren, Live-Ansicht (Abschnitte 43, 44) |
+| Anzeige | Farbschema, Oberflächengröße 75 – 200 %, Bühnenmodus, Wellenformen in den Loop-Spuren, Live-Ansicht (Wellenformen, Performance-FX-Leiste = Host-Parameter *Live-Ansicht FX-Leiste*; Ansichten auch mit SHIFT + MASTER oder dem Host-Parameter *Ansicht*, Abschnitte 43, 44) |
 | Rhythmus-Groove / Rhythmus-Fills | Gefühl und Fills des Drumcomputers (Abschnitt 4) |
 | Ableton Link | Link an / aus, Start / Stopp synchronisieren, Anzahl Teilnehmer (Abschnitt 29) |
 | Einstellungen beim Start | mit den zuletzt verwendeten oder den Standard-Einstellungen starten, jetzt zurücksetzen (Abschnitt 31) |
@@ -320,6 +320,7 @@ Ohne Cue-Paar (und im Plug-in) spielt der Rhythmus immer auf dem Hauptausgang �
 | Einstellungen beim Start | Settings on start |
 | Loop-Länge einmalig (vor 1.7 Aufnahmelänge) | Loop Length Once (before 1.7 Rec Length) |
 | Live-Ansicht · LIVE BEENDEN | Live view · EXIT LIVE |
+| Ansicht: Voll · Live · Live ohne FX · Live-Ansicht FX-Leiste | View: Full · Live · Live without FX · Live View FX Bar |
 | Anzeige · Farbschema: Dunkel · Hell | Display · Colour theme: Dark · Light |
 | Oberflächengröße · Bühnenmodus · Wellenformen zeigen | Interface size · Stage mode · Show waveforms |
 | Latenz messen · Latenzausgleich · Manueller Versatz | Measure latency · Latency compensation · Manual offset |
@@ -696,7 +697,18 @@ Die **Live-Ansicht** ist die Oberfläche für die Bühne: eine große Karte pro 
 | Spur-Karten (5 oder 8) | Zustand (PLAY, DUB, REC, STOP, LEER, REC WAIT …), Länge in Takten, Loop-Position in %, die **Wellenform** mit Abspielmarke, das große **REC / PLAY / DUB**-Pad mit LED-Ring, **PEGEL** (Balken ziehen; die Pegelanzeige läuft hinter der weißen Pegelmarke), **STOP** (1,5 s halten = löschen) |
 | PERFORMANCE-FX | Regler **FILTER** (Performance-Filter), **BEAT-FX** (Beat-FX-Pegel), **PUNCH** (Punch-FX-Stärke), **MASTER**; **ECHO …** (Beat-FX an / aus, zeigt Beat-FX-Typ und Notenwert), **REPEAT** und **STUTTER** (solange gehalten), **FILL** (solange gehalten); der Punch-FX-Balken (der gehaltene Punch-FX mit seiner aktuellen Stärke, sonst der ausgewählte); **ALLE START / STOP**, **CAPTURE** |
 
-Jedes Bedienelement der Live-Ansicht ist dieselbe Funktion wie auf der vollen Oberfläche (Rechtsklick = MIDI Learn). *SETUP → Anzeige → Live-Ansicht* schaltet die **Wellenformen in den Spur-Displays** (standardmäßig an; aus = ein Positionsbalken) und die **Performance-FX-Leiste** (an; aus = höhere Karten). *Live-Ansicht öffnen (Vollbild)* öffnet sie in einem eigenen randlosen Fenster, das den ganzen Bildschirm bedeckt und über anderen Fenstern bleibt (Esc schließt es) – praktisch auf einem zweiten Monitor oder dem Laptop auf der Bühne. Es ist kein gesperrter Kiosk-Modus: die Tastenkürzel des Betriebssystems (App wechseln, Taskleiste / Dock) funktionieren weiter.
+Jedes Bedienelement der Live-Ansicht ist dieselbe Funktion wie auf der vollen Oberfläche (Rechtsklick = MIDI Learn). *SETUP → Anzeige → Live-Ansicht* schaltet die **Wellenformen in den Spur-Displays** (standardmäßig an; aus = ein Positionsbalken) und die **Performance-FX-Leiste** (an; aus = höhere Karten; seit 1.7 auch der Host-Parameter *Live-Ansicht FX-Leiste*, `live_fx`). *Live-Ansicht öffnen (Vollbild)* öffnet sie in einem eigenen randlosen Fenster, das den ganzen Bildschirm bedeckt und über anderen Fenstern bleibt (Esc schließt es) – praktisch auf einem zweiten Monitor oder dem Laptop auf der Bühne. Es ist kein gesperrter Kiosk-Modus: die Tastenkürzel des Betriebssystems (App wechseln, Taskleiste / Dock) funktionieren weiter.
+
+**Ansichten mit Push 1 oder MIDI umschalten.** Es gibt drei Ansichten: **Voll** (die ganze Oberfläche), **Live** (die Live-Ansicht mit Performance-FX-Leiste) und **Live ohne FX** (die Live-Ansicht mit höheren Karten).
+
+| Bedienung | Was passiert |
+|---|---|
+| **SHIFT + MASTER** am Push 1 | schaltet Voll → Live → Live ohne FX → Voll weiter (das Display zeigt die neue Ansicht) |
+| Host-Parameter *Ansicht* (View, `view`, Auswahl Voll / Live / Live ohne FX) | MIDI Learn auf eine **Note / Taste**: jeder Druck schaltet zur nächsten Ansicht; auf einen **CC / Regler**: unten = Voll, Mitte = Live, oben = Live ohne FX |
+| Host-Parameter *Live-Ansicht* (Live View, `live_view`, Schalter) | Live-Ansicht an / aus (die FX-Leisten-Einstellung bleibt) |
+| Host-Parameter *Live-Ansicht FX-Leiste* (Live View FX Bar, `live_fx`, Schalter) | Performance-FX-Leiste an / aus (auch während die volle Oberfläche zu sehen ist – gilt beim nächsten Öffnen der Live-Ansicht) |
+
+Die drei Parameter passen immer zusammen: LIVE-Taste, Esc, LIVE BEENDEN und das SETUP-Menü stellen *Ansicht* mit um, und *Ansicht* stellt die beiden anderen. Die FX-Leisten-Einstellung merkt sich livelooper auf diesem Computer.
 
 Bühnenmodus und helles Farbschema gelten auch für die Live-Ansicht:
 

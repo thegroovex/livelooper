@@ -17,7 +17,7 @@
 - **Live-Performance zuerst.** Jede Funktion reagiert sofort, landet auf dem Schlag und hält die Musik nie an. Beim Spielen braucht nichts ein Menü.
 - **Spaß am Spielen.** Beat-FX, Beat Repeat und Stutter, Color-FX und ein Groove, der sich wie ein Drummer anfühlt, machen aus einem Loop eine Performance – drücken, halten, loslassen, und du bist wieder auf dem Schlag.
 - **Erforschen und spielen.** Halte fest, was du gerade improvisiert hast, leg mit dem XY-Pad einen Effekt darauf, verstimm es, dreh es um, lass es ausklingen wie ein Band – und behalte, was funktioniert.
-- **Hände an die Hardware.** Schließ einen Ableton Push an und livelooper übernimmt ihn – ohne Mapping. Jeder andere Controller funktioniert per MIDI Learn, alle 501 Funktionen sind zuweisbar.
+- **Hände an die Hardware.** Schließ einen Ableton Push an und livelooper übernimmt ihn – ohne Mapping. Jeder andere Controller funktioniert per MIDI Learn, alle 503 Funktionen sind zuweisbar.
 - **Deine Loops gehören in deinen Song.** Zieh einen Loop direkt aus livelooper auf eine Spur in deiner DAW, exportiere Stems oder behalte alles im Projekt gespeichert.
 
 ## Spielen mit Ableton Push
@@ -34,7 +34,7 @@ Push (ab Version 1) anschließen, **User** drücken – und livelooper macht dar
 - **Touchstrip** = Tape-Stopp, der synchron zurückspringt (SHIFT = Filter-Sweep), **Fußschalter** = REC/PLAY, doppelt STOP, halten LÖSCHEN
 - **FX-XY-Pad**: Das 8×8-Raster wird zum Performance-Pad – anfassen, schieben, fester drücken für mehr, loslassen, und es springt zurück
 - **Performance-FX (1.5)**: ADD EFFECT = Beat-FX an / aus, ADD TRACK = Beat-FX solange gehalten, LEFT / RIGHT = Schlag, BROWSE = Encoder für Typ, Schlag, Pegel, Kanal, Color-FX, Repeat- / Stutter-Timing; REPEAT / ACCENT = Beat Repeat / Stutter solange gehalten (SHIFT = Latch), dabei über den Touchstrip streichen für 1/2 … 1/32; FIXED LENGTH = Capture 1–32 Takte; SHIFT + METRONOME = Ableton Link
-- **Neu in 1.7**: **FIXED LENGTH** halten + Pad (Reihe 3 – 8 = AUTO … 16 Takte) oder Encoder = Loop-Länge einer Spur, **SHIFT + MASTER** = Live-Ansicht, Loop-Fortschrittsbalken und Punch-FX-Stärke im Display, Anschlagkurve für die Pads
+- **Neu in 1.7**: **FIXED LENGTH** halten + Pad (Reihe 3 – 8 = AUTO … 16 Takte) oder Encoder = Loop-Länge einer Spur, **SHIFT + MASTER** = Ansicht umschalten (Voll / Live / Live ohne FX), Loop-Fortschrittsbalken und Punch-FX-Stärke im Display, Anschlagkurve für die Pads
 - **Display** mit Namen, Werten, Spurstatus, Tempo und Pegelanzeige
 
 Einrichtung und komplette Belegung: **[PUSH.md](docs/de/PUSH.md)**.
@@ -63,7 +63,7 @@ Einrichtung und komplette Belegung: **[PUSH.md](docs/de/PUSH.md)**.
 - **Anzeige** (*SETUP → Anzeige*): helles und dunkles Farbschema, kontrastreicher **Bühnenmodus**, Oberflächengröße **75 – 200 %** (Strg/Cmd + / −), große Wellenformen mit Overdub-Schicht (anfangs aus)
 - **Anschlagkurven** (weich / normal / hart / fest) für Push 1, die Sampler-Pads und gelernte MIDI-Noten, **MIDI-Feedback** für leuchtende gelernte Bedienelemente (experimentell), **Push-1-Display-Balken** für Loop-Fortschritt und Punch-FX-Stärke
 - **Host-Transport folgen ist standardmäßig an**: stoppt deine DAW, stoppen auch die Loops (umschaltbar unter *SETUP → Looper*)
-- 12 neue Host-Parameter – insgesamt **501**, alle per MIDI steuerbar
+- 14 neue Host-Parameter – insgesamt **503**, alle per MIDI steuerbar
 - **Automatische Sicherung und Absturz-Wiederherstellung**: das ganze Set (mit allen Loops) wird alle paar Minuten und nach jeder Aufnahme im Hintergrund gesichert – nur wenn sich etwas geändert hat, ohne den Ton zu stören; die App lädt beim Start die letzte Sitzung und stellt nach einem Absturz die neueste Sicherung wieder her; in einer DAW wird eine neuere Sicherung angeboten, nie stillschweigend übernommen (*SETUP → Sets → Automatische Sicherung*)
 <!-- end v1.7 features -->
 
@@ -115,7 +115,7 @@ Einrichtung und komplette Belegung: **[PUSH.md](docs/de/PUSH.md)**.
 - **Mit dem Projekt gespeichert**: Loops verlustfrei (FLAC, 24 Bit) im DAW-Projekt; komplette **Looper-Sets** als `.llset`-Datei
 - **Pegel und Wellenformen**: Stereo-Pegel pro Spur, Master-VU in dB im Display (grün / gelb / rot), Wellenform mit Abspielposition, Clip-LED
 - **Komfort**: Hilfe in der App (durchsuchbare Bedienungsanleitung), Info-Fenster mit Update-Prüfung, Start mit den zuletzt verwendeten oder den Standard-Einstellungen, Liste der zuletzt verwendeten Sets, **automatische Sicherung** mit Absturz-Wiederherstellung (1.7)
-- **Alle 501 Funktionen** sind Host-Parameter für MIDI-Mapping und Automation deiner DAW
+- **Alle 503 Funktionen** sind Host-Parameter für MIDI-Mapping und Automation deiner DAW
 - **Deutsche und englische** Oberfläche (*SETUP → Language / Sprache*)
 
 ## Download

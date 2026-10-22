@@ -17,7 +17,7 @@
 - **Live performance comes first.** Every function reacts instantly, lands on the beat and never stops the music. Nothing needs a menu while you play.
 - **Fun to play.** Beat FX, beat repeat and stutter, colour FX and a groove that feels like a drummer turn a loop into a performance – press, hold, let go, and you are back on the beat.
 - **Explore and play.** Capture what you just improvised, throw an effect on it with the XY pad, pitch it, reverse it, let it decay like tape – and keep what works.
-- **Hands on hardware.** Plug in an Ableton Push and livelooper takes it over – no mapping. Any other controller works through MIDI learn, every one of the 501 functions is mappable.
+- **Hands on hardware.** Plug in an Ableton Push and livelooper takes it over – no mapping. Any other controller works through MIDI learn, every one of the 503 functions is mappable.
 - **Your loops belong in your song.** Drag a loop straight from livelooper onto a track in your DAW, export stems, or keep everything saved with your project.
 
 ## Play it with Ableton Push
@@ -34,7 +34,7 @@ Connect a Push (1 and up), press **User**, and livelooper turns it into a dedica
 - **Touch strip** = tape stop that springs back in sync (SHIFT = filter sweep), **footswitch** = REC/PLAY, double tap STOP, hold CLEAR
 - **FX XY pad**: the 8×8 grid becomes a performance pad – touch, slide, press harder for more, let go and it snaps back
 - **Performance FX (1.5)**: ADD EFFECT = beat FX on / off, ADD TRACK = beat FX while held, LEFT / RIGHT = beat, BROWSE = encoders for type, beat, level, channel, colour FX, repeat / stutter timing; REPEAT / ACCENT = beat repeat / stutter while held (SHIFT = latch), hold them and slide on the touch strip for 1/2 … 1/32; FIXED LENGTH = capture 1–32 bars; SHIFT + METRONOME = Ableton Link
-- **New in 1.7**: hold **FIXED LENGTH** + pad (rows 3 – 8 = AUTO … 16 bars) or encoder = loop length of a track, **SHIFT + MASTER** = Live view, loop progress bars and the punch FX amount bar on the display, velocity curve for the pads
+- **New in 1.7**: hold **FIXED LENGTH** + pad (rows 3 – 8 = AUTO … 16 bars) or encoder = loop length of a track, **SHIFT + MASTER** = switch views (Full / Live / Live without FX), loop progress bars and the punch FX amount bar on the display, velocity curve for the pads
 - **Display** with names, values, track states, tempo and level meters
 
 Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
@@ -64,7 +64,7 @@ Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
 - **Velocity curves** (soft / normal / hard / fixed) for Push 1, the sampler pads and learned MIDI notes, **MIDI feedback** to light up learned controls (experimental), **Push 1 display bars** for loop progress and the punch FX amount
 - **Follow host transport is on by default**: stopping your DAW stops the loops (switchable in *SETUP → Looper*)
 - **Auto backup and crash recovery**: the whole set (loops included) is saved in the background every few minutes and after every recording – only when something changed, without touching the audio; the app loads the last session on start and restores the newest backup after a crash; in a DAW a newer backup is offered, never applied silently (*SETUP → Sets → Auto backup*)
-- 12 new host parameters – **501** in total, all MIDI-mappable
+- 14 new host parameters – **503** in total, all MIDI-mappable
 <!-- end v1.7 features -->
 
 <!-- v1.6 features -->
@@ -115,7 +115,7 @@ Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
 - **Live view, themes, stage mode** (1.7): a stage view (also as a borderless full-screen window) with large track cards and a performance FX strip, light and dark theme, high-contrast stage mode, interface size 75 – 200 %, large waveforms with the overdub layer
 - **Meters and waveforms**: stereo meter per track, master VU in dB on the display (green / yellow / red), waveform with play position, clip LED
 - **Comfort**: in-app help (searchable user guide), about window with update check, start with the last used or the default settings, list of the last used sets, **auto backup** with crash recovery (1.7)
-- **All 501 functions** are host parameters for your DAW's MIDI mapping and automation
+- **All 503 functions** are host parameters for your DAW's MIDI mapping and automation
 - **English and German** interface (*SETUP → Language / Sprache*)
 
 ## Download

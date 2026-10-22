@@ -67,7 +67,7 @@ Automation works too (in Live, e.g., in Arrangement view), for example to start 
 
 ## Parameter list
 
-501 parameters, names as shown in your DAW with the English interface (with the German interface they are localised, e.g. "S1 Pegel" instead of "T1 Level"; the internal IDs and your saved assignments stay the same):
+503 parameters, names as shown in your DAW with the English interface (with the German interface they are localised, e.g. "S1 Pegel" instead of "T1 Level"; the internal IDs and your saved assignments stay the same):
 
 **Per track (T1 … T5)** – 16 each:
 `Rec/Play`, `Stop`, `Clear`, `Undo`, `Redo` (buttons) · `Level`, `Pan` · `Reverse`, `One Shot`, `Loop Sync`, `Track FX` (switches) · `Input`, `Start Mode`, `Stop Mode`, `Dub Mode`, `Loop Length` (selectors; `Measures` before 1.7, ID `t1_measure` unchanged)
@@ -108,6 +108,8 @@ Automation works too (in Live, e.g., in Arrangement view), for example to start 
 **Since 1.7 (latency, velocity curves, MIDI feedback, Push 1 display)** – 8 more, appended (parameters 490 – 497): `Latency Compensation` (`lat_comp`, switch, on), `Latency Offset` (`lat_offset`, −50 … +50 ms), `Measure Latency` (`lat_measure`, button), `Push 1 Velocity Curve`, `Sampler Pad Velocity Curve` (the K.O. II curve; hosts see no device names), `MIDI Velocity Curve` (`vel_push`, `vel_ko2`, `vel_midi`: Soft / Normal (default) / Hard / Fixed), `MIDI Feedback (experimental)` (`midi_fb`, switch, off) and `Push 1 Loop Progress Bars` (`push_progress`, switch, on). The default of `Follow Transport` (`follow`) is **on** since 1.7 (the ID is unchanged; saved projects keep their value).
 
 **Since 1.7 (display)** – 4 more, appended (parameters 498 – 501): `Live View` (`live_view`, switch, off – the Live view with large track cards), `Stage Mode` (`stage_mode`, switch, off – high contrast, larger text), `Colour Theme` (`ui_theme`, Dark (default) / Light) and `Show Waveforms` (`waveforms`, switch, off – large waveforms in the track displays). Theme, stage mode and waveforms are also remembered on the computer (*SETUP → Display*).
+
+**Since 1.7 (views)** – 2 more, appended (parameters 502 – 503): `Live View FX Bar` (`live_fx`, switch, on – the performance FX strip in the Live view; off = taller cards) and `View` (`view`, choice Full / Live / Live without FX – sets *Live View* and *Live View FX Bar* together; on a note each press steps to the next view, on a CC low / middle / high = Full / Live / Live without FX). The three stay in sync whichever you move. Push 1: SHIFT + MASTER steps through the same views.
 
 ### Velocity curve and LED feedback for learned controls (1.7)
 
