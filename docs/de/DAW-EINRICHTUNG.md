@@ -137,6 +137,8 @@ Auf der Bühne willst du zwischen Gitarre, Synth und Stimme springen, ohne die M
 
 In anderen DAWs: die Instrumentenspur scharfschalten oder auswählen, um sie zu spielen (die meisten DAWs schicken das Keyboard an die scharfgeschaltete bzw. ausgewählte Spur) – das Routing in die Looper-Spur bleibt gleich.
 
+**Komplette Anleitung:** Ableton Live + Push 1 mit mehreren Instrumenten und zweitem Keyboard → [LIVE-PUSH-WORKFLOW.md](LIVE-PUSH-WORKFLOW.md).
+
 **Tipp – zwei Controller:** Spiel deine Instrumente mit einem **MIDI-Keyboard** und steuere livelooper mit dem **Push**. Hände auf den Tasten, Loops auf den Pads, nichts umzuschalten.
 
 ---

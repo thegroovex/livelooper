@@ -137,6 +137,8 @@ When you perform, you want to jump between guitar, synth and voice without touch
 
 In other DAWs: arm or select the instrument track to play it (most DAWs send your keyboard to the armed or selected track) – the routing into the looper track stays the same.
 
+**Complete walkthrough:** Ableton Live + Push 1 with several instruments and a second keyboard → [LIVE-PUSH-WORKFLOW.md](LIVE-PUSH-WORKFLOW.md).
+
 **Tip – two controllers:** play your instruments from a **MIDI keyboard** and drive livelooper with **Push**. Hands on the keys, loops on the pads, nothing to switch.
 
 ---

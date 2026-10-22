@@ -151,6 +151,7 @@ Everything else is in the **[User Guide](docs/en/USER-GUIDE.md)**, MIDI control 
 |---|---|
 | [INSTALLATION.md](docs/en/INSTALLATION.md) | Download, installers and manual installation on macOS and Windows, Gatekeeper / SmartScreen, microphone permission, setup in your DAW |
 | [DAW-SETUP.md](docs/en/DAW-SETUP.md) | Using the plug-in in your DAW: looper track, monitoring, looping mic/guitar and software instruments, switching sources live, getting audio out, MIDI routing (Live, Bitwig, Cubase, Logic, Reaper, Studio One) |
+| [LIVE-PUSH-WORKFLOW.md](docs/en/LIVE-PUSH-WORKFLOW.md) | Step by step: Ableton Live + Push 1 with keyboards, vocals, guitar and drums into one livelooper, a second MIDI keyboard playing a synth |
 | [USER-GUIDE.md](docs/en/USER-GUIDE.md) | Interface, all functions, beat FX, beat repeat / stutter, colour FX, rhythm, Link, setup, language, latency, Live view, display, loop length, auto backup (1.7) |
 | [MIDI.md](docs/en/MIDI.md) | MIDI learn, your DAW's MIDI mapping, default mapping, parameter list |
 | [PUSH.md](docs/en/PUSH.md) | Ableton Push control (in any DAW and standalone): setup, pad layout, encoders, FX XY pad, performance FX, STEP mode |
