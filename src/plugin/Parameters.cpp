@@ -90,6 +90,7 @@ juce::StringArray ctlAudioModeChoices() { return { "Controller only", "Record co
 juce::StringArray holdRampChoices()     { return { "Off", "1 beat", "2 beats", "1 bar" }; }
 juce::StringArray velocityCurveChoices() { return { "Soft", "Normal", "Hard", "Fixed" }; }   // v1.7
 juce::StringArray themeChoices() { return { "Dark", "Light" }; }                                  // v1.7 display
+juce::StringArray viewChoices() { return { "Full", "Live", "Live without FX" }; }                       // v1.7 views (append-only)
 
 juce::StringArray grooveChoices()
 {
@@ -221,7 +222,9 @@ namespace
         { "vel_push", "Push 1 Velocity Curve" }, { "vel_ko2", "Sampler Pad Velocity Curve" }, { "vel_midi", "MIDI Velocity Curve" },
         { "midi_fb", "MIDI Feedback (experimental)" }, { "push_progress", "Push 1 Loop Progress Bars" },
         // v1.7 display
-        { "live_view", "Live View" }, { "stage_mode", "Stage Mode" }, { "ui_theme", "Colour Theme" }, { "waveforms", "Show Waveforms" }
+        { "live_view", "Live View" }, { "stage_mode", "Stage Mode" }, { "ui_theme", "Colour Theme" }, { "waveforms", "Show Waveforms" },
+        // v1.7 views
+        { "live_fx", "Live View FX Bar" }, { "view", "View" }
     };
 
     template <size_t N>
@@ -561,6 +564,13 @@ APVTS::ParameterLayout createLayout()
         group->addChild (b (gStageMode));
         group->addChild (std::make_unique<juce::AudioParameterChoice> (PID { gUiTheme, 9 }, localisedName (gUiTheme), translated (themeChoices()), 0));
         group->addChild (b (gWaveforms));
+        layout.add (std::move (group));
+    }
+    {
+        // v1.7 (appended): views - Live view FX bar, view selector (Full / Live / Live without FX)
+        auto group = std::make_unique<juce::AudioProcessorParameterGroup> ("views", i18n::tr ("Views"), "|");
+        group->addChild (std::make_unique<juce::AudioParameterBool> (PID { gLiveFx, 9 }, localisedName (gLiveFx), true));
+        group->addChild (std::make_unique<juce::AudioParameterChoice> (PID { gView, 9 }, localisedName (gView), translated (viewChoices()), 0));
         layout.add (std::move (group));
     }
 

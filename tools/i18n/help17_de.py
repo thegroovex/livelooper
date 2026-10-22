@@ -28,8 +28,8 @@ T = [
      "Jede Karte: Status, Länge, Wellenform, das große REC / PLAY / DUB-Pad, Pegel und STOP."),
     ("The performance FX strip: filter, beat FX, punch, master, echo, repeat, stutter, fill, ALL START / STOP and capture.",
      "Die Performance-FX-Leiste: Filter, Beat-FX, Punch, Master, Echo, Repeat, Stutter, Fill, ALLE START / STOP und Capture."),
-    ("Also with SHIFT + MASTER on Push 1 or any MIDI control (host parameter Live View). Esc or EXIT LIVE returns.",
-     "Auch mit SHIFT + MASTER am Push 1 oder jedem MIDI-Regler (Host-Parameter Live-Ansicht). Esc oder LIVE BEENDEN führt zurück."),
+    ("SHIFT + MASTER on Push 1 cycles Full - Live - Live without FX. MIDI learn: host parameters View, Live View, Live View FX Bar. Esc or EXIT LIVE returns.",
+     "SHIFT + MASTER am Push 1 schaltet Voll – Live – Live ohne FX weiter. MIDI-Learn: Host-Parameter Ansicht, Live-Ansicht, Live-Ansicht FX-Leiste. Esc oder LIVE BEENDEN führt zurück."),
     ("SETUP > Display > Open Live view (fullscreen): a borderless window kept on top over the whole screen - handy on a second monitor.",
      "SETUP > Anzeige > Live-Ansicht öffnen (Vollbild): ein randloses Fenster, immer im Vordergrund, über den ganzen Bildschirm – praktisch auf einem zweiten Monitor."),
     # ---- Display
@@ -62,8 +62,8 @@ T = [
     ("Everything is in SETUP > Controllers. Every function can be MIDI-learned with a right-click.",
      "Alles unter SETUP > Controller. Jede Funktion lässt sich per Rechtsklick per MIDI-Learn zuweisen."),
     # ---- Push 1 page
-    ("SHIFT + MASTER: Live view on the computer. Hold FIXED LENGTH + pad or encoder: loop length of a track.",
-     "SHIFT + MASTER: Live-Ansicht am Computer. FIXED LENGTH halten + Pad oder Encoder: Loop-Länge einer Spur."),
+    ("SHIFT + MASTER: cycles the views on the computer (Full, Live, Live without FX). Hold FIXED LENGTH + pad or encoder: loop length of a track.",
+     "SHIFT + MASTER: schaltet die Ansichten am Computer weiter (Voll, Live, Live ohne FX). FIXED LENGTH halten + Pad oder Encoder: Loop-Länge einer Spur."),
     # ---- v1.6 tooltip without German text (Controller view XY pad)
     ("XY: hold to play the selected punch FX, move for X / Y. Right-click: MIDI learn of X",
      "XY: halten spielt den gewählten Punch-FX, bewegen für X / Y. Rechtsklick: MIDI-Learn von X"),

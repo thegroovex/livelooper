@@ -269,8 +269,58 @@ void LiveLooperProcessor::renderMidiFeedback (std::vector<juce::MidiMessage>& ou
     midiFeedback.render (buildMidiFeedbackItems(), blink, out, full);
 }
 
+//============================================================================== views
+namespace
+{
+    void setParamValue (juce::AudioProcessorValueTreeState& s, const juce::String& id, float normalised)
+    {
+        if (auto* p = s.getParameter (id); p != nullptr && p->getValue() != normalised)
+            p->setValueNotifyingHost (normalised);
+    }
+}
+
+int LiveLooperProcessor::getView() const noexcept
+{
+    const bool live = apvts.getRawParameterValue (gLiveView)->load() >= 0.5f;
+    const bool fx = apvts.getRawParameterValue (gLiveFx)->load() >= 0.5f;
+    return live ? (fx ? 1 : 2) : 0;
+}
+
+void LiveLooperProcessor::setView (int view)
+{
+    view = juce::jlimit (0, kNumViews - 1, view);
+    setParamValue (apvts, gView, (float) view / (float) (kNumViews - 1));
+    setParamValue (apvts, gLiveView, view > 0 ? 1.0f : 0.0f);
+    if (view > 0)                                       // Full keeps the FX bar choice for the next Live view
+        setParamValue (apvts, gLiveFx, view == 1 ? 1.0f : 0.0f);
+    syncedView = view;
+    syncedLive = view > 0 ? 1 : 0;
+    syncedFx = apvts.getRawParameterValue (gLiveFx)->load() >= 0.5f ? 1 : 0;
+}
+
+void LiveLooperProcessor::syncViews()
+{
+    const int sel = juce::jlimit (0, kNumViews - 1, juce::roundToInt (apvts.getRawParameterValue (gView)->load()));
+    const int live = apvts.getRawParameterValue (gLiveView)->load() >= 0.5f ? 1 : 0;
+    const int fx = apvts.getRawParameterValue (gLiveFx)->load() >= 0.5f ? 1 : 0;
+    if (sel == syncedView && live == syncedLive && fx == syncedFx)
+        return;
+    if (syncedView >= 0 && sel != syncedView && live == syncedLive && fx == syncedFx)
+        setView (sel);                                  // the selector moved (host / MIDI)
+    else
+    {
+        // live_view / live_fx moved (LIVE button, Esc, SETUP, MIDI), or the first call / a restored state
+        const int derived = live != 0 ? (fx != 0 ? 1 : 2) : 0;
+        setParamValue (apvts, gView, (float) derived / (float) (kNumViews - 1));
+        syncedView = derived;
+        syncedLive = live;
+        syncedFx = fx;
+    }
+}
+
 void LiveLooperProcessor::timerV17()
 {
+    syncViews();
     updateLatency();
 
     if (! isMidiFeedbackOn())

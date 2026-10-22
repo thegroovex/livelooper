@@ -93,7 +93,7 @@ public:
         beginTest ("Parameters: same ids and count, one concept in the names (Loop Length / Loop Length Once)");
         {
             LenRig r;
-            expectEquals (r.proc.getParameters().size(), 501, "no parameter added");
+            expectEquals (r.proc.getParameters().size(), 503, "no parameter added");
             expect (r.proc.getState().getParameter ("t1_measure") != nullptr);
             expect (r.proc.getState().getParameter ("t1_reclen") != nullptr);
             expectEquals (englishName (trackId (0, kMeasure)), juce::String ("T1 Loop Length"));

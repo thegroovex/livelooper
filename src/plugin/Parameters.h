@@ -175,8 +175,13 @@ inline const juce::String gStageMode    { "stage_mode" };     // high contrast, 
 inline const juce::String gUiTheme      { "ui_theme" };       // Dark (default), Light
 inline const juce::String gWaveforms    { "waveforms" };      // large waveforms in the track displays (default off)
 juce::StringArray themeChoices();
+// ---- v1.7 views (appended, ids 502 - 503): Live view FX bar, view selector
+inline const juce::String gLiveFx       { "live_fx" };        // Live view: Performance FX bar shown (default on; off = taller cards)
+inline const juce::String gView         { "view" };           // Full, Live, Live without FX (drives live_view + live_fx)
+juce::StringArray viewChoices();
+inline constexpr int kNumViews = 3;
 // ---- end v1.7
-inline constexpr int kNumParameters = 501;
+inline constexpr int kNumParameters = 503;
 
 inline constexpr int kNumScenes = 8;
 inline constexpr int kCaptureBars[] = { 1, 2, 4, 8, 16, 32 };   // 16 / 32 since 1.5 (appended)

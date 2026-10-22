@@ -263,10 +263,12 @@ LiveLooperProcessor::LiveLooperProcessor (bool withCueOutput, bool withTrackOutp
     // v1.7 display: colour theme, stage mode and waveforms belong to this computer (SETUP > Display);
     // a new instance starts with them (a restored project / set may bring its own values).
     for (const auto& [id, key] : { std::pair<juce::String, const char*> { gUiTheme, "display.theme" },
-                                   { gStageMode, "display.stage" }, { gWaveforms, "display.waveforms" } })
+                                   { gStageMode, "display.stage" }, { gWaveforms, "display.waveforms" },
+                                   { gLiveFx, "display.liveFxStrip" } })    // the SETUP > Display > Live view FX strip setting (since 1.7 a host parameter)
         if (const auto v = appsettings::getValue (key); v.isNotEmpty())
             if (auto* p = apvts.getParameter (id))
                 p->setValueNotifyingHost (v.getIntValue() != 0 ? 1.0f : 0.0f);
+    syncViews();                                   // v1.7 views: selector follows live_view / live_fx
     initBackup();                                  // v1.7 auto backup + crash recovery (Backup17.cpp)
     startTimerHz (30);
 }

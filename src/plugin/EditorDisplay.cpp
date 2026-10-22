@@ -79,7 +79,7 @@ void LiveLooperEditor::initDisplay()
     liveView->selectedPunch = [this] { return selectedPunch; };
     liveView->livePunchAmount = [this] { return shownLivePunch; };
     liveView->setShowWaveforms (appsettings::getValue (kLiveWavesKey) != "0");
-    liveView->setShowFxStrip (appsettings::getValue (kLiveFxKey) != "0");
+    liveView->setShowFxStrip (paramOn (proc, gLiveFx));        // v1.7: host parameter "Live View FX Bar"
     surface.addChildComponent (*liveView);
 
     guiScale = appsettings::getValue (kScaleKey, "100").getIntValue();
@@ -178,6 +178,16 @@ void LiveLooperEditor::applyDisplaySettings (bool force)
         }
     }
 
+    // v1.7: the FX bar is the host parameter live_fx (MIDI-mappable, view selector); remembered on this computer
+    const bool fx = paramOn (proc, gLiveFx);
+    if (fx != liveView->getShowFxStrip())
+    {
+        liveView->setShowFxStrip (fx);
+        appsettings::setValue (kLiveFxKey, fx ? "1" : "0");
+    }
+    if (fullscreenLive != nullptr && fullscreenLive->getShowFxStrip() != fx)
+        fullscreenLive->setShowFxStrip (fx);
+
     const bool live = paramOn (proc, gLiveView);
     TrackStrip::layersWanted = live && liveView->getShowWaveforms();
     liveBtn->setToggleState (live, juce::dontSendNotification);
@@ -226,9 +236,9 @@ void LiveLooperEditor::addDisplayMenu (juce::PopupMenu& menu, juce::Array<int>& 
         size.addItem (1905 + i, juce::String (kGuiScales[i]) + " %", true, kGuiScales[i] == guiScale);
     live.addItem (1920, tr ("Open Live view (fullscreen)"));
     live.addItem (1921, tr ("Waveforms in the track displays"), true, liveView->getShowWaveforms());
-    live.addItem (1922, tr ("Performance FX strip"), true, liveView->getShowFxStrip());
+    live.addItem (1922, tr ("Performance FX strip"), true, paramOn (proc, gLiveFx));
     live.addSeparator();
-    live.addItem (1946, tr ("Also with the LIVE button in the header, the host parameter \"Live View\" and on the controllers (see the docs)"), false);
+    live.addItem (1946, tr ("Also with the LIVE button in the header, the host parameters \"View\", \"Live View\" and \"Live View FX Bar\" (MIDI learn) and SHIFT + MASTER on Push 1 (see the docs)"), false);
 
     menu.addSubMenu (tr ("Colour theme"), themeMenu);
     menu.addSubMenu (tr ("Interface size"), size);
@@ -258,12 +268,7 @@ bool LiveLooperEditor::handleDisplayMenu (int r)
                 fullscreenLive->setShowWaveforms (liveView->getShowWaveforms());
             appsettings::setValue (kLiveWavesKey, liveView->getShowWaveforms() ? "1" : "0");
             break;
-        case 1922:
-            liveView->setShowFxStrip (! liveView->getShowFxStrip());
-            if (fullscreenLive != nullptr)
-                fullscreenLive->setShowFxStrip (liveView->getShowFxStrip());
-            appsettings::setValue (kLiveFxKey, liveView->getShowFxStrip() ? "1" : "0");
-            break;
+        case 1922: setParam (proc, gLiveFx, paramOn (proc, gLiveFx) ? 0.0f : 1.0f); break;    // applied below
         default: break;
     }
     applyDisplaySettings();

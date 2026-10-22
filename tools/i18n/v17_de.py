@@ -76,6 +76,12 @@ T = [
     ("Capture: the last bars you played become a loop on the next free track",
      "Capture: die zuletzt gespielten Takte werden ein Loop auf der n\u00e4chsten freien Spur"),
     ("FILTER", "FILTER"), ("PUNCH", "PUNCH"),
+    # ---- v1.7 views (host parameters 502 - 503, Push SHIFT + MASTER)
+    ("Views", "Ansichten"), ("Live View FX Bar", "Live-Ansicht FX-Leiste"), ("View", "Ansicht"),
+    ("Full", "Voll"), ("Live", "Live"), ("Live without FX", "Live ohne FX"),
+    ("Full view", "Volle Ansicht"), ("Live view without FX", "Live-Ansicht ohne FX"),
+    ("Also with the LIVE button in the header, the host parameters \"View\", \"Live View\" and \"Live View FX Bar\" (MIDI learn) and SHIFT + MASTER on Push 1 (see the docs)",
+     "Auch mit der LIVE-Taste oben, den Host-Parametern \u201eAnsicht\u201c, \u201eLive-Ansicht\u201c und \u201eLive-Ansicht FX-Leiste\u201c (MIDI-Learn) und SHIFT + MASTER am Push 1 (siehe Anleitung)"),
 ]
 
 def esc(s):

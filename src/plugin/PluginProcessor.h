@@ -223,6 +223,15 @@ public:
     bool updateLatency();
     static juce::String latencySettingsKey (const juce::String& deviceKey);
 
+    //============================================================================== v1.7 views
+    /** 0 = Full, 1 = Live, 2 = Live without FX (from live_view + live_fx). */
+    int getView() const noexcept;
+    /** Sets the view selector, live_view and live_fx together (Push SHIFT + MASTER, tests). */
+    void setView (int view);
+    /** Keeps the selector (view) and live_view / live_fx consistent: whichever changed last wins.
+        Called from the timer (message thread); public for the tests. */
+    void syncViews();
+
     //============================================================================== v1.7 controllers
     enum class VelocitySource { Push = 0, Ko2, Midi };
     velocity::Curve getVelocityCurve (VelocitySource s) const noexcept;
@@ -612,6 +621,7 @@ private:
     void initV17();
     void processV17 (const float* inL, const float* inR, juce::AudioBuffer<float>& buffer, int numSamples) noexcept;
     void timerV17();
+    int syncedView = -1, syncedLive = -1, syncedFx = -1;     // v1.7 views: last values seen by syncViews()
     double cachedMeasuredMs = -2.0;      // -2 = not read yet
     // v1.6 features
     PerformanceRecorder recorder;
