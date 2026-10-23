@@ -372,7 +372,7 @@ public:
             expectEquals (proc.getView(), 0, "and wraps to Full");
             note();
             expectEquals (proc.getView(), 1);
-            send (juce::MidiMessage::controllerEvent (1, 21, 0));
+            send (juce::MidiMessage::controllerEvent (1, 21, 127));
             expectEquals (proc.getView(), 2, "MIDI on the FX bar toggles it");
             proc.releaseResources();
         }

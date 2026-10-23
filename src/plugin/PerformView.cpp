@@ -592,7 +592,9 @@ void PerformView::refresh (bool blinkPhase)
         meterR = juce::jmax (r, meterR * 0.85f);
         repaint (meterArea.expanded (4));
     }
-    const auto masterText = paramText (proc, gMaster);
+    auto masterText = paramText (proc, gMaster);
+    if (masterText.isNotEmpty() && masterText.containsOnly ("0123456789.-"))
+        masterText << " %";
     if (masterText != shownMaster)
     {
         shownMaster = masterText;
