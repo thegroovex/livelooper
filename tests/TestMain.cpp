@@ -33,6 +33,17 @@ namespace
         count = s.fromFirstOccurrenceOf ("/", false, false).getIntValue();
         return count > 0 && index >= 1 && index <= count;
     }
+
+    // JUCE's runner logs through Logger::outputDebugString, which on Windows goes to
+    // OutputDebugString only (invisible in a console / CI log). Print to stdout and flush
+    // right away, so a crashing test group is named in the log before the process dies.
+    struct ConsoleRunner final : juce::UnitTestRunner
+    {
+        void logMessage (const juce::String& message) override
+        {
+            std::cout << message << std::endl;
+        }
+    };
 }
 
 int main (int argc, char* argv[])
@@ -61,7 +72,7 @@ int main (int argc, char* argv[])
         return 0;
     }
 
-    juce::UnitTestRunner runner;
+    ConsoleRunner runner;
     runner.setAssertOnFailure (false);
     runner.setPassesAreLogged (false);
 
