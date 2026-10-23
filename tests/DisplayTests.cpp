@@ -76,7 +76,8 @@ public:
     {
         beginTest ("Display host parameters 498 - 501 are appended (ids never change)");
         {
-            LiveLooperProcessor proc { false, false };
+            auto procOwner = std::make_unique<LiveLooperProcessor> (false, false);     // heap: 15 processors on the stack overflowed Windows' 1 MB main stack
+            auto& proc = *procOwner;
             const auto& ps = proc.getParameters();
             expectEquals (ps.size(), kNumParameters);
             const juce::StringArray ids { "live_view", "stage_mode", "ui_theme", "waveforms" };
@@ -97,7 +98,8 @@ public:
         beginTest ("Theme switch: light / dark / stage mode change the surface colours, the displays stay dark");
         {
             DisplayTempFolder tmp;
-            LiveLooperProcessor proc { false, false };
+            auto procOwner = std::make_unique<LiveLooperProcessor> (false, false);
+            auto& proc = *procOwner;
             std::unique_ptr<juce::AudioProcessorEditor> ed (proc.createEditor());
             auto* e = dynamic_cast<LiveLooperEditor*> (ed.get());
             expect (! theme::isLight());
@@ -140,7 +142,8 @@ public:
         {
             DisplayTempFolder tmp;
             {
-                LiveLooperProcessor proc { false, false };
+                auto procOwner = std::make_unique<LiveLooperProcessor> (false, false);
+                auto& proc = *procOwner;
                 std::unique_ptr<juce::AudioProcessorEditor> ed (proc.createEditor());
                 auto* e = dynamic_cast<LiveLooperEditor*> (ed.get());
                 expectEquals (e->getGuiScale(), 100);
@@ -163,7 +166,8 @@ public:
                 expectEquals (ed->getWidth(), juce::roundToInt (LiveLooperEditor::kBaseWidth * 0.75f));
                 e->setGuiScale (125);
             }
-            LiveLooperProcessor proc2 { false, false };
+            auto proc2Owner = std::make_unique<LiveLooperProcessor> (false, false);
+            auto& proc2 = *proc2Owner;
             std::unique_ptr<juce::AudioProcessorEditor> ed2 (proc2.createEditor());
             expectEquals (dynamic_cast<LiveLooperEditor*> (ed2.get())->getGuiScale(), 125, "a new editor opens at the remembered size");
             expectEquals (ed2->getHeight(), juce::roundToInt (LiveLooperEditor::kBaseHeight * 1.25f));
@@ -173,7 +177,8 @@ public:
         {
             DisplayTempFolder tmp;
             {
-                LiveLooperProcessor proc { false, false };
+                auto procOwner = std::make_unique<LiveLooperProcessor> (false, false);
+                auto& proc = *procOwner;
                 std::unique_ptr<juce::AudioProcessorEditor> ed (proc.createEditor());
                 auto* e = dynamic_cast<LiveLooperEditor*> (ed.get());
                 setP (proc, gUiTheme, 1.0f);
@@ -183,7 +188,8 @@ public:
                 expect (e->handleDisplayMenu (1922), "Live view strip off (SETUP > Display > Live view)");
                 expect (! e->getLiveView()->getShowFxStrip());
             }
-            LiveLooperProcessor proc { false, false };
+            auto procOwner = std::make_unique<LiveLooperProcessor> (false, false);
+            auto& proc = *procOwner;
             expectEquals (getP (proc, gUiTheme), 1.0f);
             expectEquals (getP (proc, gStageMode), 1.0f);
             expectEquals (getP (proc, gWaveforms), 1.0f);
@@ -205,7 +211,8 @@ public:
         beginTest ("Live view: host parameter, LIVE button, EXIT LIVE and Esc");
         {
             DisplayTempFolder tmp;
-            LiveLooperProcessor proc { false, false };
+            auto procOwner = std::make_unique<LiveLooperProcessor> (false, false);
+            auto& proc = *procOwner;
             std::unique_ptr<juce::AudioProcessorEditor> ed (proc.createEditor());
             auto* e = dynamic_cast<LiveLooperEditor*> (ed.get());
             ed->setSize (LiveLooperEditor::kBaseWidth, LiveLooperEditor::kBaseHeight);
@@ -239,7 +246,8 @@ public:
 
         beginTest ("Push 1: SHIFT + MASTER cycles Full -> Live -> Live without FX -> Performance -> Full, MASTER alone still the meters");
         {
-            LiveLooperProcessor proc { false, false };
+            auto procOwner = std::make_unique<LiveLooperProcessor> (false, false);
+            auto& proc = *procOwner;
             push::PushSurface surface { proc };
             auto button = [&surface] (int cc, bool down) { surface.handleMidi (juce::MidiMessage::controllerEvent (1, cc, down ? 127 : 0)); };
             auto shiftMaster = [&button] { button (push::cc::shift, true); button (push::cc::master, true); button (push::cc::master, false); button (push::cc::shift, false); };
@@ -275,7 +283,8 @@ public:
 
         beginTest ("Views: host parameters 502 - 503 appended (Live View FX Bar, View), names EN / DE");
         {
-            LiveLooperProcessor proc { false, false };
+            auto procOwner = std::make_unique<LiveLooperProcessor> (false, false);
+            auto& proc = *procOwner;
             const auto& ps = proc.getParameters();
             expectEquals (ps.size(), 503);
             const juce::StringArray ids { "live_fx", "view" };
@@ -303,7 +312,8 @@ public:
 
         beginTest ("Views: selector drives live_view + live_fx, and follows them (LIVE button, Esc, SETUP, MIDI)");
         {
-            LiveLooperProcessor proc { false, false };
+            auto procOwner = std::make_unique<LiveLooperProcessor> (false, false);
+            auto& proc = *procOwner;
             auto setView = [&proc] (int v) { setP (proc, gView, (float) v / 3.0f); proc.syncViews(); };
             setView (2);
             expectEquals (getP (proc, gLiveView), 1.0f);
@@ -338,7 +348,8 @@ public:
                 // a saved state in the Performance view comes back in the Performance view
                 juce::MemoryBlock mb;
                 proc.getStateInformation (mb);
-                LiveLooperProcessor proc2 { false, false };
+                auto proc2Owner = std::make_unique<LiveLooperProcessor> (false, false);
+                auto& proc2 = *proc2Owner;
                 proc2.setStateInformation (mb.getData(), (int) mb.getSize());
                 proc2.syncViews();
                 expectEquals (proc2.getView(), 3, "restored Performance view");
@@ -381,7 +392,8 @@ public:
         {
             DisplayTempFolder tmp;
             appsettings::setValue ("display.liveFxStrip", "0");
-            LiveLooperProcessor proc { false, false };
+            auto procOwner = std::make_unique<LiveLooperProcessor> (false, false);
+            auto& proc = *procOwner;
             expectEquals (getP (proc, gLiveFx), 0.0f, "the setting of 1.7 builds before becomes the parameter");
             std::unique_ptr<juce::AudioProcessorEditor> ed (proc.createEditor());
             auto* e = dynamic_cast<LiveLooperEditor*> (ed.get());
@@ -402,7 +414,8 @@ public:
         beginTest ("Performance view: View = Performance shows it, Esc / EXIT return, every control MIDI-learnable and framed");
         {
             DisplayTempFolder tmp;
-            LiveLooperProcessor proc { false, false };
+            auto procOwner = std::make_unique<LiveLooperProcessor> (false, false);
+            auto& proc = *procOwner;
             std::unique_ptr<juce::AudioProcessorEditor> ed (proc.createEditor());
             auto* e = dynamic_cast<LiveLooperEditor*> (ed.get());
             ed->setSize (LiveLooperEditor::kBaseWidth, LiveLooperEditor::kBaseHeight);
@@ -492,7 +505,8 @@ public:
         beginTest ("Performance view: mini waveforms only with the global waveforms setting, 8 tracks, sizes 75 - 200 %, light theme, stage mode");
         {
             DisplayTempFolder tmp;
-            LiveLooperProcessor proc { false, false };
+            auto procOwner = std::make_unique<LiveLooperProcessor> (false, false);
+            auto& proc = *procOwner;
             std::unique_ptr<juce::AudioProcessorEditor> ed (proc.createEditor());
             auto* e = dynamic_cast<LiveLooperEditor*> (ed.get());
             ed->setSize (LiveLooperEditor::kBaseWidth, LiveLooperEditor::kBaseHeight);
@@ -587,7 +601,8 @@ public:
         beginTest ("No allocation on the audio thread while the waveforms / Live view are shown");
         {
             DisplayTempFolder tmp;
-            LiveLooperProcessor proc { false, false };
+            auto procOwner = std::make_unique<LiveLooperProcessor> (false, false);
+            auto& proc = *procOwner;
             proc.prepareToPlay (48000.0, 512);
             setP (proc, "quantize", 0.0f);
             setP (proc, "recaction", 1.0f);

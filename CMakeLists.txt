@@ -259,6 +259,9 @@ if(LIVELOOPER_BUILD_TESTS)
         # symbols for the crash handler's stack trace in the CI log (/Z7: inside the objects, works with ccache)
         target_compile_options(livelooper_tests PRIVATE /Z7)
         target_link_options(livelooper_tests PRIVATE /DEBUG /OPT:REF /OPT:ICF)
+        # 8 MB main thread stack like Linux / macOS (Windows default 1 MB): the big test functions keep
+        # processors and engines on the stack (DisplayTests::runTest overflowed it, exception 0xc00000fd)
+        target_link_options(livelooper_tests PRIVATE /STACK:8388608)
     endif()
     add_test(NAME unit_tests COMMAND livelooper_tests)
 
