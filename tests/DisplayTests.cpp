@@ -322,13 +322,16 @@ public:
                 proc.processBlock (buf, midi);
                 proc.syncViews();
             };
-            proc.getMidiMap().assign ({ 0, true, 20 }, proc.getParamIndex (gView));
-            proc.getMidiMap().assign ({ 0, false, 61 }, proc.getParamIndex (gView));
+            proc.getMidiMap().assign ({ 0, true, 20 }, proc.getParamIndex (gView));      // one assignment per function
             proc.getMidiMap().assign ({ 0, true, 21 }, proc.getParamIndex (gLiveFx));
             send (juce::MidiMessage::controllerEvent (1, 20, 127));
             expectEquals (proc.getView(), 2, "CC 127 = Live without FX");
             send (juce::MidiMessage::controllerEvent (1, 20, 64));
             expectEquals (proc.getView(), 1, "CC 64 = Live");
+            send (juce::MidiMessage::controllerEvent (1, 20, 0));
+            expectEquals (proc.getView(), 0, "CC 0 = Full");
+            send (juce::MidiMessage::controllerEvent (1, 20, 64));
+            proc.getMidiMap().assign ({ 0, false, 61 }, proc.getParamIndex (gView));
             send (juce::MidiMessage::noteOn (1, 61, (juce::uint8) 100));
             send (juce::MidiMessage::noteOff (1, 61));
             expectEquals (proc.getView(), 2, "note steps");
