@@ -90,7 +90,7 @@ juce::StringArray ctlAudioModeChoices() { return { "Controller only", "Record co
 juce::StringArray holdRampChoices()     { return { "Off", "1 beat", "2 beats", "1 bar" }; }
 juce::StringArray velocityCurveChoices() { return { "Soft", "Normal", "Hard", "Fixed" }; }   // v1.7
 juce::StringArray themeChoices() { return { "Dark", "Light" }; }                                  // v1.7 display
-juce::StringArray viewChoices() { return { "Full", "Live", "Live without FX" }; }                       // v1.7 views (append-only)
+juce::StringArray viewChoices() { return { "Full", "Live", "Live without FX", "Performance" }; }      // v1.7 views (append-only)
 
 juce::StringArray grooveChoices()
 {
@@ -567,7 +567,7 @@ APVTS::ParameterLayout createLayout()
         layout.add (std::move (group));
     }
     {
-        // v1.7 (appended): views - Live view FX bar, view selector (Full / Live / Live without FX)
+        // v1.7 (appended): views - Live view FX bar, view selector (Full / Live / Live without FX / Performance)
         auto group = std::make_unique<juce::AudioProcessorParameterGroup> ("views", i18n::tr ("Views"), "|");
         group->addChild (std::make_unique<juce::AudioParameterBool> (PID { gLiveFx, 9 }, localisedName (gLiveFx), true));
         group->addChild (std::make_unique<juce::AudioParameterChoice> (PID { gView, 9 }, localisedName (gView), translated (viewChoices()), 0));

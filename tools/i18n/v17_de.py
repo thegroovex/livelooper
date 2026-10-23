@@ -82,6 +82,28 @@ T = [
     ("Full view", "Volle Ansicht"), ("Live view without FX", "Live-Ansicht ohne FX"),
     ("Also with the LIVE button in the header, the host parameters \"View\", \"Live View\" and \"Live View FX Bar\" (MIDI learn) and SHIFT + MASTER on Push 1 (see the docs)",
      "Auch mit der LIVE-Taste oben, den Host-Parametern \u201eAnsicht\u201c, \u201eLive-Ansicht\u201c und \u201eLive-Ansicht FX-Leiste\u201c (MIDI-Learn) und SHIFT + MASTER am Push 1 (siehe Anleitung)"),
+    # ---- v1.7 Performance view (4th choice of View)
+    ("Performance", "Performance"), ("Performance view", "Performance-Ansicht"),
+    ("FULL", "VOLL"), ("LIVE", "LIVE"), ("LIVE - FX", "LIVE - FX"), ("PERFORM", "PERFORM"), ("EXIT", "BEENDEN"),
+    ("View: Full, Live, Live without FX, Performance - also SHIFT + MASTER on Push 1 or the host parameter View; Esc returns to the full surface",
+     "Ansicht: Voll, Live, Live ohne FX, Performance \u2013 auch SHIFT + MASTER am Push 1 oder der Host-Parameter Ansicht; Esc f\u00fchrt zur vollen Oberfl\u00e4che zur\u00fcck"),
+    ("SHIFT + MASTER on Push 1 or the host parameter View switches views", "SHIFT + MASTER am Push 1 oder der Host-Parameter Ansicht schaltet die Ansichten"),
+    ("Tap tempo (internal tempo, used when host sync is off)", "Tempo tappen (internes Tempo, wenn die Host-Synchronisation aus ist)"),
+    ("TARGET", "ZIEL"), ("PUNCH AMOUNT", "PUNCH-ST\u00c4RKE"), ("BIPOLAR", "BIPOLAR"), ("CUTOFF", "CUTOFF"), ("LP", "TP"), ("HP", "HP"),
+    ("CENTER", "MITTE"), ("Filter off (centre)", "Filter aus (Mitte)"), ("double-click", "Doppelklick"),
+    ("REPEAT RATE", "REPEAT-RATE"), ("hold", "halten"), ("while held", "solange gehalten"), ("last %1 bars", "letzte %1 Takte"),
+    ("Hold a punch FX pad, move in the field - release = off", "Punch-FX-Pad halten, im Feld bewegen \u2013 loslassen = aus"),
+    ("hold = on - velocity / pressure = amount", "halten = an \u2013 Anschlag / Druck = St\u00e4rke"),
+    ("XY: hold to play the selected punch FX, move for X / Y (MIDI learn: the X and Y captions)",
+     "XY: halten spielt den gew\u00e4hlten Punch-FX, bewegen f\u00fcr X / Y (MIDI-Learn: die Beschriftungen X und Y)"),
+    ("Performance filter: left = low-pass, right = high-pass, centre = off (double-click: centre)",
+     "Performance-Filter: links = Tiefpass, rechts = Hochpass, Mitte = aus (Doppelklick: Mitte)"),
+    ("Beat FX type (all types on the full surface)", "Beat-FX-Typ (alle Typen auf der vollen Oberfl\u00e4che)"),
+    ("Beat FX beat fraction", "Beat-FX-Notenwert"), ("Beat FX only while held", "Beat FX nur solange gehalten"),
+    ("Beat repeat timing", "Beat-Repeat-Timing"),
+    ("Open Performance view (fullscreen)", "Performance-Ansicht \u00f6ffnen (Vollbild)"),
+    ("Performance view: the 4th choice of \"View\" (also the view switcher in the Live view header); Esc returns",
+     "Performance-Ansicht: die 4. Wahl von \u201eAnsicht\u201c (auch die Ansichtsumschaltung oben in der Live-Ansicht); Esc f\u00fchrt zur\u00fcck"),
 ]
 
 def esc(s):

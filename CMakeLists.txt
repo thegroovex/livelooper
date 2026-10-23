@@ -136,6 +136,7 @@ set(LIVELOOPER_PLUGIN_SOURCES
     src/plugin/EditorDisplay.cpp
     src/plugin/EditorBackup.cpp
     src/plugin/LiveView.cpp
+    src/plugin/PerformView.cpp
     src/plugin/LooperLookAndFeel.cpp
     src/plugin/Widgets.cpp
     src/plugin/BeatsPage.cpp

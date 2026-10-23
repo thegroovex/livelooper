@@ -177,9 +177,10 @@ inline const juce::String gWaveforms    { "waveforms" };      // large waveforms
 juce::StringArray themeChoices();
 // ---- v1.7 views (appended, ids 502 - 503): Live view FX bar, view selector
 inline const juce::String gLiveFx       { "live_fx" };        // Live view: Performance FX bar shown (default on; off = taller cards)
-inline const juce::String gView         { "view" };           // Full, Live, Live without FX (drives live_view + live_fx)
+inline const juce::String gView         { "view" };           // Full, Live, Live without FX, Performance (drives live_view + live_fx)
 juce::StringArray viewChoices();
-inline constexpr int kNumViews = 3;
+inline constexpr int kNumViews = 4;
+inline constexpr int kPerformanceView = 3;                    // the 4th choice (live_view on, live_fx unchanged)
 // ---- end v1.7
 inline constexpr int kNumParameters = 503;
 

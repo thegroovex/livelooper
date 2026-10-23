@@ -4,6 +4,7 @@
 #include "KeyMapEditor.h"
 #include "BeatsPage.h"
 #include "LiveView.h"
+#include "PerformView.h"
 
 namespace livelooper { class GuidedTour;
 class WelcomeScreen;
@@ -152,9 +153,20 @@ public:
     bool isLiveFullscreen() const noexcept { return liveWindow != nullptr; }
     LiveView* getLiveView() noexcept { return liveView.get(); }
     LiveView* getFullscreenLiveView() noexcept { return fullscreenLive; }
+    /** v1.7 Performance view (4th choice of the host parameter View): shown over the surface or fullscreen. */
+    void setPerformView (bool on, bool fullscreen = false);
+    bool isPerformViewShown() const noexcept;
+    /** The Live view or the Performance view covers the surface. */
+    bool isStageViewShown() const noexcept { return isLiveViewShown() || isPerformViewShown(); }
+    PerformView* getPerformView() noexcept { return perfView.get(); }
+    PerformView* getFullscreenPerformView() noexcept { return fullscreenPerf; }
     /** For tests: the controls the MIDI learn overlay frames right now, and whether it is in front of the Live view. */
     juce::Array<juce::Component*> getLearnablesForTests() { juce::Array<juce::Component*> a; collectMappables (surface, a); return a; }
-    bool isLearnOverlayInFrontForTests() const { return overlay.isVisible() && (liveView == nullptr || surface.getIndexOfChildComponent (&overlay) > surface.getIndexOfChildComponent (liveView.get())); }
+    bool isLearnOverlayInFrontForTests() const
+    {
+        return overlay.isVisible() && (liveView == nullptr || surface.getIndexOfChildComponent (&overlay) > surface.getIndexOfChildComponent (liveView.get()))
+                                   && (perfView == nullptr || surface.getIndexOfChildComponent (&overlay) > surface.getIndexOfChildComponent (perfView.get()));
+    }
     juce::Button& getLiveButton() noexcept { return *liveBtn; }
     void addDisplayMenu (juce::PopupMenu& menu, juce::Array<int>& toggles);
     bool handleDisplayMenu (int result);
@@ -178,6 +190,13 @@ private:
     std::unique_ptr<LiveButton> liveBtn;
     std::unique_ptr<juce::Component> liveWindow;      // fullscreen Live view
     LiveView* fullscreenLive = nullptr;
+    std::unique_ptr<PerformView> perfView;            // v1.7 Performance view
+    PerformView* fullscreenPerf = nullptr;
+    float perfMeterL = 0.0f, perfMeterR = 0.0f;       // main output meter for the Performance view
+    void openStageWindow (bool performance);
+    void closeStageWindow();
+    void wireStageView (LiveView& v);
+    void wireStageView (PerformView& v);
     int guiScale = 100;
     int shownDisplayState = -1;
     bool shownLive = false;

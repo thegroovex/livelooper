@@ -929,6 +929,8 @@ void LiveLooperEditor::timerCallback()
         float ml = 0.0f, mr = 0.0f;
         proc.getEngine().takeMasterMeter (ml, mr);
         lcd.pushMasterMeter (ml, mr);
+        perfMeterL = ml;        // v1.7 Performance view (MASTER meter)
+        perfMeterR = mr;
     }
 
     if (keyClear.track >= 0)
@@ -1057,7 +1059,7 @@ void LiveLooperEditor::updateKeyboardFocusPolicy()
 bool LiveLooperEditor::keyPressed (const juce::KeyPress& key)
 {
     // v1.7: Esc leaves the Live view; Ctrl / Cmd + and - change the interface size (Ctrl / Cmd 0 = 100 %)
-    if (key == juce::KeyPress::escapeKey && isLiveViewShown() && ! tempoEntry.isVisible())
+    if (key == juce::KeyPress::escapeKey && isStageViewShown() && ! tempoEntry.isVisible())
     {
         setLiveView (false);
         return true;
@@ -1203,7 +1205,7 @@ void LiveLooperEditor::setLearnMode (bool on)
         proc.cancelMidiLearn();
     overlay.setVisible (on);
     overlay.toFront (false);
-    if (! isLiveViewShown())
+    if (! isStageViewShown())
         learnBtn.toFront (false);       // v1.7: not over the Live view (it comes back on top when the Live view closes)
     learnBtn.setToggleState (on, juce::dontSendNotification);
 }
@@ -1220,6 +1222,8 @@ void LiveLooperEditor::collectMappables (juce::Component& parent, juce::Array<ju
         // v1.7: while the Live view covers the surface only its own controls (pads, STOP, level, loop length
         // pills, FX strip) are learnable - the hidden strips behind it get no frames
         if (&parent == &surface && isLiveViewShown() && c != liveView.get())
+            continue;
+        if (&parent == &surface && isPerformViewShown() && c != perfView.get())     // v1.7 Performance view: the same
             continue;
         if (getParamId (*c).isNotEmpty())
             out.add (c);

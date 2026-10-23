@@ -522,6 +522,51 @@ int main (int argc, char* argv[])
             frames (6);
             save (*editor, outDir.getChildFile ("livelooper-live-light" + sfx + ".png"));
             setParam (gUiTheme, 0.0f);
+            {
+                // v1.7 Performance view (4th view): beat FX on, a punch FX held in the XY field
+                ed->setPerformView (true);
+                setParam (gBfxOn, 1.0f);
+                setParam (gPfxX, 0.72f);
+                setParam (gPfxY, 0.66f);
+                setParam (gPerfFilter, 0.2f);
+                setParam (punchHoldId (4), 1.0f);
+                frames (6);
+                save (*editor, outDir.getChildFile ("livelooper-perform" + sfx + ".png"));
+                if (juce::SystemStats::getEnvironmentVariable ("LL_SHOT_CHECKS", {}).isNotEmpty())
+                {
+                    // review only (not docs images): learn frames, light theme, stage mode, waveforms, 75 % / 200 %
+                    ed->setLearnMode (true);
+                    frames (4);
+                    save (*editor, outDir.getChildFile ("check-perform-learn" + sfx + ".png"));
+                    ed->setLearnMode (false);
+                    setParam (gUiTheme, 1.0f);
+                    frames (6);
+                    save (*editor, outDir.getChildFile ("check-perform-light" + sfx + ".png"));
+                    setParam (gUiTheme, 0.0f);
+                    setParam (gStageMode, 1.0f);
+                    frames (6);
+                    save (*editor, outDir.getChildFile ("check-perform-stage" + sfx + ".png"));
+                    setParam (gStageMode, 0.0f);
+                    setParam (gWaveforms, 1.0f);
+                    frames (6);
+                    save (*editor, outDir.getChildFile ("check-perform-waves" + sfx + ".png"));
+                    setParam (gWaveforms, 0.0f);
+                    ed->setGuiScale (75);
+                    frames (4);
+                    save (*editor, outDir.getChildFile ("check-perform-75" + sfx + ".png"));
+                    ed->setGuiScale (200);
+                    frames (4);
+                    save (*editor, outDir.getChildFile ("check-perform-200" + sfx + ".png"));
+                    ed->setGuiScale (100);
+                    frames (3);
+                }
+                setParam (punchHoldId (4), 0.0f);
+                setParam (gBfxOn, 0.0f);
+                setParam (gPerfFilter, 0.5f);
+                setParam (gView, 0.0f);
+                ed->setLiveView (false);
+                frames (3);
+            }
             setParam (gLiveView, 0.0f);
             frames (4);
             {

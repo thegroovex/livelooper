@@ -34,7 +34,7 @@ Connect a Push (1 and up), press **User**, and livelooper turns it into a dedica
 - **Touch strip** = tape stop that springs back in sync (SHIFT = filter sweep), **footswitch** = REC/PLAY, double tap STOP, hold CLEAR
 - **FX XY pad**: the 8×8 grid becomes a performance pad – touch, slide, press harder for more, let go and it snaps back
 - **Performance FX (1.5)**: ADD EFFECT = beat FX on / off, ADD TRACK = beat FX while held, LEFT / RIGHT = beat, BROWSE = encoders for type, beat, level, channel, colour FX, repeat / stutter timing; REPEAT / ACCENT = beat repeat / stutter while held (SHIFT = latch), hold them and slide on the touch strip for 1/2 … 1/32; FIXED LENGTH = capture 1–32 bars; SHIFT + METRONOME = Ableton Link
-- **New in 1.7**: hold **FIXED LENGTH** + pad (rows 3 – 8 = AUTO … 16 bars) or encoder = loop length of a track, **SHIFT + MASTER** = switch views (Full / Live / Live without FX), loop progress bars and the punch FX amount bar on the display, velocity curve for the pads
+- **New in 1.7**: hold **FIXED LENGTH** + pad (rows 3 – 8 = AUTO … 16 bars) or encoder = loop length of a track, **SHIFT + MASTER** = switch views (Full / Live / Live without FX / Performance), loop progress bars and the punch FX amount bar on the display, velocity curve for the pads
 - **Display** with names, values, track states, tempo and level meters
 
 Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
@@ -58,6 +58,7 @@ Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
 ![Live view](docs/images/livelooper-live.png)
 
 - **Live view** for the stage: one large card per track (state, length, waveform, the big REC / PLAY / DUB pad, level, STOP) and a performance FX strip – open it with **LIVE** next to the logo, **SHIFT + MASTER** on Push 1 or any MIDI control; *Open Live view (fullscreen)* puts it in a borderless window kept on top over the whole screen (handy on a second monitor – not a locked kiosk mode)
+- **Performance view** (1.7, the 4th view): a compact track row and a large performance FX area – punch FX target, XY field with amount and latch, bipolar filter, beat FX, REPEAT / STUTTER / FILL with repeat rate, the 12 punch FX pads, master, ALL START / STOP and CAPTURE; switch with the view switcher (FULL · LIVE · LIVE − FX · PERFORM), SHIFT + MASTER on Push 1 or the host parameter *View*, also fullscreen
 - **Loop length on every track**: a pill next to the track name – **AUTO** (your next press ends the recording) or **1 · 2 · 4 · 8 · 16 bars** (ends by itself on the bar line); click, scroll or MIDI-learn it, also in the Live view. Host parameters *Loop Length* and *Loop Length Once* (one-shot, up to 32 bars). On Push 1: hold **FIXED LENGTH** + a pad in rows 3 – 8 or the track encoder; FIXED LENGTH alone still sets the capture length (on release)
 - **Latency measurement and compensation**: one click measures your interface's round trip (loopback ping), stored per audio device; every recording, overdub and capture lands on the beat; manual offset −50 … +50 ms
 - **Display** (*SETUP → Display*): light and dark theme, high-contrast **stage mode**, interface size **75 – 200 %** (Ctrl/Cmd + / −), large waveforms with the overdub layer (off by default)
@@ -112,7 +113,7 @@ Setup and the full layout: **[PUSH.md](docs/en/PUSH.md)**.
 - **Direct track outputs** (plug-in multi-out – each track on its own output in your DAW – or interface outputs in the standalone app), **cue output** for the metronome
 - **Saved with your project**: loops stored losslessly (FLAC, 24 bit) in your DAW project; whole **looper sets** as `.llset` files
 - **Loop length on every track** (1.7): AUTO or 1 – 16 bars right in the track strip and the Live view (click, scroll, MIDI learn); on Push 1 hold FIXED LENGTH + pad or encoder
-- **Live view, themes, stage mode** (1.7): a stage view (also as a borderless full-screen window) with large track cards and a performance FX strip, light and dark theme, high-contrast stage mode, interface size 75 – 200 %, large waveforms with the overdub layer
+- **Live view, Performance view, themes, stage mode** (1.7): stage views (also as a borderless full-screen window) – large track cards with a performance FX strip, or a compact track row with a large performance FX area – light and dark theme, high-contrast stage mode, interface size 75 – 200 %, large waveforms with the overdub layer
 - **Meters and waveforms**: stereo meter per track, master VU in dB on the display (green / yellow / red), waveform with play position, clip LED
 - **Comfort**: in-app help (searchable user guide), about window with update check, start with the last used or the default settings, list of the last used sets, **auto backup** with crash recovery (1.7)
 - **All 503 functions** are host parameters for your DAW's MIDI mapping and automation
@@ -152,7 +153,7 @@ Everything else is in the **[User Guide](docs/en/USER-GUIDE.md)**, MIDI control 
 | [INSTALLATION.md](docs/en/INSTALLATION.md) | Download, installers and manual installation on macOS and Windows, Gatekeeper / SmartScreen, microphone permission, setup in your DAW |
 | [DAW-SETUP.md](docs/en/DAW-SETUP.md) | Using the plug-in in your DAW: looper track, monitoring, looping mic/guitar and software instruments, switching sources live, getting audio out, MIDI routing (Live, Bitwig, Cubase, Logic, Reaper, Studio One) |
 | [LIVE-PUSH-WORKFLOW.md](docs/en/LIVE-PUSH-WORKFLOW.md) | Step by step: Ableton Live + Push 1 with keyboards, vocals, guitar and drums into one livelooper, a second MIDI keyboard playing a synth |
-| [USER-GUIDE.md](docs/en/USER-GUIDE.md) | Interface, all functions, beat FX, beat repeat / stutter, colour FX, rhythm, Link, setup, language, latency, Live view, display, loop length, auto backup (1.7) |
+| [USER-GUIDE.md](docs/en/USER-GUIDE.md) | Interface, all functions, beat FX, beat repeat / stutter, colour FX, rhythm, Link, setup, language, latency, Live view, Performance view, display, loop length, auto backup (1.7) |
 | [MIDI.md](docs/en/MIDI.md) | MIDI learn, your DAW's MIDI mapping, default mapping, parameter list |
 | [PUSH.md](docs/en/PUSH.md) | Ableton Push control (in any DAW and standalone): setup, pad layout, encoders, FX XY pad, performance FX, STEP mode |
 | [KO2.md](docs/en/KO2.md) | K.O. II control (experimental – please test): pages, roles, clock, recording, test list |

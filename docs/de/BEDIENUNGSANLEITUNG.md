@@ -194,7 +194,7 @@ Seit 1.6 öffnet **SETUP** ein Einstellungsfenster im Stil der macOS-Systemeinst
 | Capture-Länge | 1 · 2 · 4 · 8 · 16 · 32 Takte (Abschnitt 16) |
 | Audio → Latenz | Latenz messen, Latenzausgleich (an), manueller Versatz (Abschnitt 41) |
 | Controller → Anschlagkurven / Push-1-Display / MIDI-Feedback | Anschlagkurven pro Controller, Loop-Fortschrittsbalken im Push-1-Display, LED-Feedback für gelernte Bedienelemente (Abschnitt 42) |
-| Anzeige | Farbschema, Oberflächengröße 75 – 200 %, Bühnenmodus, Wellenformen in den Loop-Spuren, Live-Ansicht (Wellenformen, Performance-FX-Leiste = Host-Parameter *Live-Ansicht FX-Leiste*; Ansichten auch mit SHIFT + MASTER oder dem Host-Parameter *Ansicht*, Abschnitte 43, 44) |
+| Anzeige | Farbschema, Oberflächengröße 75 – 200 %, Bühnenmodus, Wellenformen in den Loop-Spuren, Live-Ansicht (im Vollbild öffnen, Wellenformen, Performance-FX-Leiste = Host-Parameter *Live-Ansicht FX-Leiste*), *Performance-Ansicht öffnen (Vollbild)*; Ansichten auch mit SHIFT + MASTER oder dem Host-Parameter *Ansicht*, Abschnitte 43, 44, 47 |
 | Rhythmus-Groove / Rhythmus-Fills | Gefühl und Fills des Drumcomputers (Abschnitt 4) |
 | Ableton Link | Link an / aus, Start / Stopp synchronisieren, Anzahl Teilnehmer (Abschnitt 29) |
 | Einstellungen beim Start | mit den zuletzt verwendeten oder den Standard-Einstellungen starten, jetzt zurücksetzen (Abschnitt 31) |
@@ -320,7 +320,8 @@ Ohne Cue-Paar (und im Plug-in) spielt der Rhythmus immer auf dem Hauptausgang �
 | Einstellungen beim Start | Settings on start |
 | Loop-Länge einmalig (vor 1.7 Aufnahmelänge) | Loop Length Once (before 1.7 Rec Length) |
 | Live-Ansicht · LIVE BEENDEN | Live view · EXIT LIVE |
-| Ansicht: Voll · Live · Live ohne FX · Live-Ansicht FX-Leiste | View: Full · Live · Live without FX · Live View FX Bar |
+| Ansicht: Voll · Live · Live ohne FX · Performance · Live-Ansicht FX-Leiste | View: Full · Live · Live without FX · Performance · Live View FX Bar |
+| Performance-Ansicht · ZIEL · PUNCH-STÄRKE · MITTE · REPEAT-RATE · BEENDEN | Performance view · TARGET · PUNCH AMOUNT · CENTER · REPEAT RATE · EXIT |
 | Anzeige · Farbschema: Dunkel · Hell | Display · Colour theme: Dark · Light |
 | Oberflächengröße · Bühnenmodus · Wellenformen zeigen | Interface size · Stage mode · Show waveforms |
 | Latenz messen · Latenzausgleich · Manueller Versatz | Measure latency · Latency compensation · Manual offset |
@@ -699,16 +700,16 @@ Die **Live-Ansicht** ist die Oberfläche für die Bühne: eine große Karte pro 
 
 Jedes Bedienelement der Live-Ansicht ist dieselbe Funktion wie auf der vollen Oberfläche (Rechtsklick = MIDI Learn). *SETUP → Anzeige → Live-Ansicht* schaltet die **Wellenformen in den Spur-Displays** (standardmäßig an; aus = ein Positionsbalken) und die **Performance-FX-Leiste** (an; aus = höhere Karten; seit 1.7 auch der Host-Parameter *Live-Ansicht FX-Leiste*, `live_fx`). *Live-Ansicht öffnen (Vollbild)* öffnet sie in einem eigenen randlosen Fenster, das den ganzen Bildschirm bedeckt und über anderen Fenstern bleibt (Esc schließt es) – praktisch auf einem zweiten Monitor oder dem Laptop auf der Bühne. Es ist kein gesperrter Kiosk-Modus: die Tastenkürzel des Betriebssystems (App wechseln, Taskleiste / Dock) funktionieren weiter.
 
-**Ansichten mit Push 1 oder MIDI umschalten.** Es gibt drei Ansichten: **Voll** (die ganze Oberfläche), **Live** (die Live-Ansicht mit Performance-FX-Leiste) und **Live ohne FX** (die Live-Ansicht mit höheren Karten).
+**Ansichten mit Push 1 oder MIDI umschalten.** Es gibt vier Ansichten: **Voll** (die ganze Oberfläche), **Live** (die Live-Ansicht mit Performance-FX-Leiste), **Live ohne FX** (die Live-Ansicht mit höheren Karten) und **Performance** (die FX-Bühnenansicht, Abschnitt 47). Live- und Performance-Ansicht haben außerdem oben eine **Ansichtsumschaltung** (VOLL · LIVE · LIVE − FX · PERFORM; Rechtsklick = MIDI Learn von *Ansicht*).
 
 | Bedienung | Was passiert |
 |---|---|
-| **SHIFT + MASTER** am Push 1 | schaltet Voll → Live → Live ohne FX → Voll weiter (das Display zeigt die neue Ansicht) |
-| Host-Parameter *Ansicht* (View, `view`, Auswahl Voll / Live / Live ohne FX) | MIDI Learn auf eine **Note / Taste**: jeder Druck schaltet zur nächsten Ansicht; auf einen **CC / Regler**: unten = Voll, Mitte = Live, oben = Live ohne FX |
-| Host-Parameter *Live-Ansicht* (Live View, `live_view`, Schalter) | Live-Ansicht an / aus (die FX-Leisten-Einstellung bleibt) |
+| **SHIFT + MASTER** am Push 1 | schaltet Voll → Live → Live ohne FX → Performance → Voll weiter (das Display zeigt die neue Ansicht) |
+| Host-Parameter *Ansicht* (View, `view`, Auswahl Voll / Live / Live ohne FX / Performance) | MIDI Learn auf eine **Note / Taste**: jeder Druck schaltet zur nächsten Ansicht; auf einen **CC / Regler** ist der Bereich geviertelt: 0 – 21 Voll, 22 – 63 Live, 64 – 105 Live ohne FX, 106 – 127 Performance |
+| Host-Parameter *Live-Ansicht* (Live View, `live_view`, Schalter) | Live-Ansicht an / aus (die FX-Leisten-Einstellung bleibt; auch in der Performance-Ansicht an – aus führt zu Voll zurück) |
 | Host-Parameter *Live-Ansicht FX-Leiste* (Live View FX Bar, `live_fx`, Schalter) | Performance-FX-Leiste an / aus (auch während die volle Oberfläche zu sehen ist – gilt beim nächsten Öffnen der Live-Ansicht) |
 
-Die drei Parameter passen immer zusammen: LIVE-Taste, Esc, LIVE BEENDEN und das SETUP-Menü stellen *Ansicht* mit um, und *Ansicht* stellt die beiden anderen. Die FX-Leisten-Einstellung merkt sich livelooper auf diesem Computer.
+Die drei Parameter passen immer zusammen: LIVE-Taste, Esc, LIVE BEENDEN und das SETUP-Menü stellen *Ansicht* mit um, und *Ansicht* stellt die beiden anderen. In der Performance-Ansicht ist *Live-Ansicht* an und *Live-Ansicht FX-Leiste* behält ihren Wert; die FX-Leiste dort umzuschalten wählt die passende Live-Ansicht. Die FX-Leisten-Einstellung merkt sich livelooper auf diesem Computer.
 
 Bühnenmodus und helles Farbschema gelten auch für die Live-Ansicht:
 
@@ -785,6 +786,26 @@ livelooper sichert dein ganzes Set im Hintergrund – in derselben `.livelooper`
 | Sicherungsordner öffnen | zeigt den Ordner im Finder / Explorer |
 
 Das sind Einstellungen dieses Computers (wie *Updates* oder *Einstellungen beim Start*), nicht eines Sets oder Projekts – deshalb sind sie keine Host-Parameter und nicht per MIDI zuweisbar: sie werden nicht gespielt, und eine Sicherung soll nie von einem Controller abhängen.
+
+## 47. Performance-Ansicht (neu in 1.7)
+
+![Performance-Ansicht](../images/livelooper-perform-de.png)
+
+Die **Performance-Ansicht** ist die vierte Ansicht, gemacht zum Spielen der Effekte auf der Bühne: oben eine kompakte Reihe Spur-Karten, darunter ein großer **PERFORMANCE-FX**-Bereich. Öffnen mit **PERFORM** in der Ansichtsumschaltung (oben in der Live- und der Performance-Ansicht), dem Host-Parameter *Ansicht* = *Performance* (MIDI Learn: eine Note schaltet weiter, ein CC wählt nach Bereich), **SHIFT + MASTER** am Push 1 (Voll → Live → Live ohne FX → Performance → Voll) oder *SETUP → Anzeige → Live-Ansicht → Performance-Ansicht öffnen (Vollbild)*. **Esc** oder **BEENDEN** führen zur vollen Oberfläche zurück.
+
+| Bereich | Inhalt (jeweils eine vorhandene Funktion – keine neuen Effekte) |
+|---|---|
+| Kopfzeile | Logo mit PERFORM-Plakette, die **Ansichtsumschaltung** (VOLL · LIVE · LIVE − FX · PERFORM = *Ansicht*), das Display (Tempo, Takt . Schlag, Schlag-Punkte), **TAP**, **BEENDEN** (Esc) |
+| Spur-Reihe (5 oder 8) | Zustandswort, Loop-Länge (die Längen-Pille, solange eine Spur leer ist / aufnimmt), **Mini-Wellenform** nur, wenn *SETUP → Anzeige → Wellenformen in den Loop-Spuren zeigen* an ist (standardmäßig aus – sonst ein Positionsbalken), REC/PLAY/DUB-Pad, **PEGEL**, **STOP** (halten = löschen) |
+| ZIEL | wo die Punch-FX wirken: LOOPS, EINGANG, MASTER, DRUMS (*Punch-FX-Ziel*) |
+| XY-Feld | halten = der gewählte Punch-FX an, bewegen = sein X und Y (*Punch-FX X / Y*; die Beschriftungen X und Y nennen, was sie tun, und lassen sich ziehen); **PUNCH-STÄRKE** (die Live-Stärke, solange ein Pad gehalten wird) und **LATCH** |
+| FILTER | der Performance-Filter, bipolar: links = Tiefpass, rechts = Hochpass, Mitte = aus; **MITTE** oder Doppelklick = aus |
+| BEAT FX | die große Taste = Beat FX an / aus mit Typ und Notenwert (ECHO 1/8 …); Typ DELAY · ECHO · PING PONG · ROLL (alle Typen auf der vollen Oberfläche), Notenwert 1/16 · 1/8 · 1/4 · 1/2 · 1, **PEGEL** (oder TIEFE / TONHÖHE je nach Typ), **HALTEN** (Beat FX nur solange gehalten) |
+| REPEAT · STUTTER · FILL | Beat Repeat, Stutter und Drum-Fill, solange gehalten; **REPEAT-RATE** 1/2 … 1/32 (*Beat-Repeat-Timing*) |
+| PUNCH FX | die 12 Punch-FX-Pads (halten = an, Anschlag / Druck = Stärke; das aktive Pad zeigt seine Stärke) – ein Pad-Druck wählt es auch für das XY-Feld |
+| MASTER | Master-Pegel mit Wert, die Pegelanzeige des Hauptausgangs, **ALLE START / STOP**, **CAPTURE** (die letzten Takte – wie in *Capture-Länge* eingestellt – werden ein Loop) |
+
+**MIDI Learn**: im MIDI-LEARN-Modus bekommt jedes Bedienelement der Performance-Ansicht seinen Learn-Rahmen (die verdeckte Oberfläche dahinter keinen), und ein Rechtsklick öffnet das Learn-Menü – auch im Vollbild-Fenster, das ihn an den Editor weitergibt. Die Chips einer Reihe (Ansichtsumschaltung, ZIEL, Beat-FX-Typ / -Notenwert, REPEAT-RATE) lernen ihren ganzen Parameter. Oberflächengröße (75 – 200 %), helles Farbschema und Bühnenmodus gelten auch hier.
 
 ## Drums, BEATS und Sound-Packs (1.6)
 

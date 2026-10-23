@@ -711,10 +711,10 @@ void PushSurface::handleButton (int number, bool pressed)
         case cc::master:
             if (shift)
             {
-                // v1.7: SHIFT + MASTER cycles the views: Full -> Live -> Live without FX -> Full
+                // v1.7: SHIFT + MASTER cycles the views: Full -> Live -> Live without FX -> Performance -> Full
                 const int next = (proc.getView() + 1) % kNumViews;
                 proc.setView (next);
-                showNotice (i18n::tr (next == 0 ? "Full view" : next == 1 ? "Live view" : "Live view without FX"));
+                showNotice (i18n::tr (next == 0 ? "Full view" : next == 1 ? "Live view" : next == 2 ? "Live view without FX" : "Performance view"));
                 break;
             }
             metersShown = ! metersShown;

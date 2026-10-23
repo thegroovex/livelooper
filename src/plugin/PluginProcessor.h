@@ -224,7 +224,7 @@ public:
     static juce::String latencySettingsKey (const juce::String& deviceKey);
 
     //============================================================================== v1.7 views
-    /** 0 = Full, 1 = Live, 2 = Live without FX (from live_view + live_fx). */
+    /** 0 = Full, 1 = Live, 2 = Live without FX (from live_view + live_fx), 3 = Performance (live_view on + View = Performance). */
     int getView() const noexcept;
     /** Sets the view selector, live_view and live_fx together (Push SHIFT + MASTER, tests). */
     void setView (int view);

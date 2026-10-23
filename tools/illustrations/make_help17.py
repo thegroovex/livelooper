@@ -63,7 +63,7 @@ def make(sfx):
     push = doc('livelooper-controller-push-length', sfx)
     place(bg, push.crop((270, 150, 830, 745)), (220, 210, 460, 300))
     out['help-looplen'] = bg
-    for key, src in (('help-live', 'livelooper-live'), ('help-display', 'livelooper-setup-display'),
+    for key, src in (('help-live', 'livelooper-live'), ('help-perform', 'livelooper-perform'), ('help-display', 'livelooper-setup-display'),
                      ('help-latency', 'livelooper-setup-audio'), ('help-controllers', 'livelooper-setup-controllers-17')):
         bg = background()
         place(bg, doc(src, sfx), (30, 22, 840, 481))

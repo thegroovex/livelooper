@@ -192,7 +192,7 @@ Since 1.6 **SETUP** opens a settings window in the style of the macOS System Set
 | Capture length | 1 · 2 · 4 · 8 · 16 · 32 bars (section 16) |
 | Audio → Latency | measure latency, latency compensation (on), manual offset (section 41) |
 | Controllers → Velocity curves / Push 1 display / MIDI feedback | velocity curves per controller, loop progress bars on the Push 1 display, LED feedback for learned controls (section 42) |
-| Display | colour theme, interface size 75 – 200 %, stage mode, waveforms in the loop tracks, Live view (waveforms, performance FX strip = host parameter *Live View FX Bar*; views also with SHIFT + MASTER or the host parameter *View*, sections 43, 44) |
+| Display | colour theme, interface size 75 – 200 %, stage mode, waveforms in the loop tracks, Live view (open fullscreen, waveforms, performance FX strip = host parameter *Live View FX Bar*), *Open Performance view (fullscreen)*; views also with SHIFT + MASTER or the host parameter *View*, sections 43, 44, 47 |
 | Rhythm groove / Rhythm fills | feel and fills of the drum machine (section 4) |
 | Ableton Link | Link on / off, sync start / stop, number of peers (section 29) |
 | Settings on start | start with the last used or the default settings, reset now (section 31) |
@@ -660,16 +660,16 @@ The **Live view** is the surface for the stage: one large card per loop track an
 
 Every control in the Live view is the same function as on the full surface (right-click = MIDI learn). *SETUP → Display → Live view* switches the **waveforms in the track displays** (on by default; off = a loop position bar) and the **performance FX strip** (on; off = taller cards; since 1.7 also the host parameter *Live View FX Bar*, `live_fx`). *Open Live view (fullscreen)* opens it in its own borderless window that covers the whole screen and stays on top of other windows (Esc closes it) – handy on a second monitor or a laptop on stage. It is not a locked kiosk mode: the operating system's own shortcuts (switching apps, the taskbar / Dock) keep working.
 
-**Switching views with Push 1 or MIDI.** There are three views: **Full** (the whole surface), **Live** (the Live view with the performance FX strip) and **Live without FX** (the Live view with taller cards).
+**Switching views with Push 1 or MIDI.** There are four views: **Full** (the whole surface), **Live** (the Live view with the performance FX strip), **Live without FX** (the Live view with taller cards) and **Performance** (the FX-focused stage view, section 47). The Live view and the Performance view also have a **view switcher** in their header (FULL · LIVE · LIVE − FX · PERFORM; right-click = MIDI learn of *View*).
 
 | Control | What it does |
 |---|---|
-| **SHIFT + MASTER** on Push 1 | steps Full → Live → Live without FX → Full (the display shows the new view) |
-| host parameter *View* (`view`, choice Full / Live / Live without FX) | MIDI learn on a **note / button**: each press steps to the next view; on a **CC / knob**: low = Full, middle = Live, high = Live without FX |
-| host parameter *Live View* (`live_view`, switch) | Live view on / off (keeps the FX strip setting) |
+| **SHIFT + MASTER** on Push 1 | steps Full → Live → Live without FX → Performance → Full (the display shows the new view) |
+| host parameter *View* (`view`, choice Full / Live / Live without FX / Performance) | MIDI learn on a **note / button**: each press steps to the next view; on a **CC / knob** the range is split into four: 0 – 21 Full, 22 – 63 Live, 64 – 105 Live without FX, 106 – 127 Performance |
+| host parameter *Live View* (`live_view`, switch) | Live view on / off (keeps the FX strip setting; it is also on in the Performance view – off returns to Full) |
 | host parameter *Live View FX Bar* (`live_fx`, switch) | performance FX strip on / off (also while the full surface is shown – it applies the next time the Live view opens) |
 
-The three parameters always agree: the LIVE button, Esc, EXIT LIVE and the SETUP menu move *View* as well, and *View* sets the other two. The FX strip setting is remembered on this computer.
+The three parameters always agree: the LIVE button, Esc, EXIT LIVE and the SETUP menu move *View* as well, and *View* sets the other two. In the Performance view *Live View* is on and *Live View FX Bar* keeps its value; switching the FX bar there selects that Live view. The FX strip setting is remembered on this computer.
 
 Stage mode and the light theme apply to the Live view too:
 
@@ -746,6 +746,26 @@ livelooper saves your whole set in the background – the same `.livelooper` fil
 | Open backup folder | shows the folder in the Finder / Explorer |
 
 These are settings of this computer (like *Updates* or *Settings on start*), not of a set or a project, so they are not host parameters and not MIDI-mappable: they are not played – a backup should never depend on a controller.
+
+## 47. Performance view (new in 1.7)
+
+![Performance view](../images/livelooper-perform.png)
+
+The **Performance view** is the fourth view, made for playing the effects on stage: a compact row of track cards on top and a large **PERFORMANCE FX** area. Open it with **PERFORM** in the view switcher (header of the Live view and the Performance view), the host parameter *View* = *Performance* (MIDI learn: a note steps through the views, a CC selects by range), **SHIFT + MASTER** on Push 1 (Full → Live → Live without FX → Performance → Full) or *SETUP → Display → Live view → Open Performance view (fullscreen)*. **Esc** or **EXIT** return to the full surface.
+
+| Area | Contents (each one is an existing function – no new effects) |
+|---|---|
+| Header | logo with the PERFORM badge, the **view switcher** (FULL · LIVE · LIVE − FX · PERFORM = *View*), the display (tempo, bar . beat, beat dots), **TAP**, **EXIT** (Esc) |
+| Track row (5 or 8) | state word, loop length (the length pill while a track is empty / recording), **mini waveform** only when *SETUP → Display → Show waveforms in the loop tracks* is on (off by default – otherwise a loop position bar), REC / PLAY / DUB pad, **LEVEL**, **STOP** (hold = clear) |
+| TARGET | where the punch FX work: LOOPS, INPUT, MASTER, DRUMS (*Punch FX Target*) |
+| XY field | hold = the selected punch FX on, move = its X and Y (*Punch FX X / Y*; the X and Y captions name what they do and can be dragged); **PUNCH AMOUNT** (the live amount while a pad is held) and **LATCH** |
+| FILTER | the performance filter, bipolar: left = low-pass, right = high-pass, centre = off; **CENTER** or a double-click = off |
+| BEAT FX | the big button = beat FX on / off with type and beat (ECHO 1/8 …); type DELAY · ECHO · PING PONG · ROLL (all types on the full surface), beat 1/16 · 1/8 · 1/4 · 1/2 · 1, **LEVEL** (or DEPTH / PITCH, depending on the type), **HOLD** (beat FX only while held) |
+| REPEAT · STUTTER · FILL | beat repeat, stutter and drum fill while held; **REPEAT RATE** 1/2 … 1/32 (*Beat Repeat Timing*) |
+| PUNCH FX | the 12 punch FX pads (hold = on, velocity / pressure = amount; the active pad shows its amount) – a pad press also selects it for the XY field |
+| MASTER | master level with its value, the main output meter, **ALL START / STOP**, **CAPTURE** (the last bars – as set in *Capture Length* – become a loop) |
+
+**MIDI learn**: in MIDI LEARN mode every control of the Performance view gets its learn frame (the hidden surface behind it gets none), and a right-click on a control opens its learn menu – also in the fullscreen window, which passes it on to the editor. The chips of a row (view switcher, TARGET, beat FX type / beat, REPEAT RATE) learn their whole parameter. Interface size (75 – 200 %), the light theme and stage mode apply to the Performance view as well.
 
 ## Drums, BEATS and sound packs (1.6)
 

@@ -109,7 +109,7 @@ Automation works too (in Live, e.g., in Arrangement view), for example to start 
 
 **Since 1.7 (display)** – 4 more, appended (parameters 498 – 501): `Live View` (`live_view`, switch, off – the Live view with large track cards), `Stage Mode` (`stage_mode`, switch, off – high contrast, larger text), `Colour Theme` (`ui_theme`, Dark (default) / Light) and `Show Waveforms` (`waveforms`, switch, off – large waveforms in the track displays). Theme, stage mode and waveforms are also remembered on the computer (*SETUP → Display*).
 
-**Since 1.7 (views)** – 2 more, appended (parameters 502 – 503): `Live View FX Bar` (`live_fx`, switch, on – the performance FX strip in the Live view; off = taller cards) and `View` (`view`, choice Full / Live / Live without FX – sets *Live View* and *Live View FX Bar* together; on a note each press steps to the next view, on a CC low / middle / high = Full / Live / Live without FX). The three stay in sync whichever you move. Push 1: SHIFT + MASTER steps through the same views.
+**Since 1.7 (views)** – 2 more, appended (parameters 502 – 503): `Live View FX Bar` (`live_fx`, switch, on – the performance FX strip in the Live view; off = taller cards) and `View` (`view`, choice Full / Live / Live without FX / Performance – sets *Live View* and *Live View FX Bar* together; on a note each press steps to the next view, a CC is split into four ranges: 0 – 21 Full, 22 – 63 Live, 64 – 105 Live without FX, 106 – 127 Performance). *Performance* (the FX-focused stage view, user guide section 47) was added as the 4th choice before 1.7 was released. The three stay in sync whichever you move. Push 1: SHIFT + MASTER steps through the same views.
 
 ### Velocity curve and LED feedback for learned controls (1.7)
 

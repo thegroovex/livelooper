@@ -237,7 +237,7 @@ public:
             e->setLiveView (false);
         }
 
-        beginTest ("Push 1: SHIFT + MASTER cycles Full -> Live -> Live without FX -> Full, MASTER alone still the meters");
+        beginTest ("Push 1: SHIFT + MASTER cycles Full -> Live -> Live without FX -> Performance -> Full, MASTER alone still the meters");
         {
             LiveLooperProcessor proc { false, false };
             push::PushSurface surface { proc };
@@ -253,7 +253,14 @@ public:
             expectEquals (getP (proc, gLiveView), 1.0f);
             expectEquals (getP (proc, gLiveFx), 0.0f);
             expectEquals (proc.getView(), 2, "Live without FX");
+            expectEquals (getP (proc, gView), 2.0f / 3.0f);
+            shiftMaster();
+            expectEquals (proc.getView(), 3, "Performance");
+            expectEquals (getP (proc, gLiveView), 1.0f, "the Performance view is a stage view (live_view on)");
+            expectEquals (getP (proc, gLiveFx), 0.0f, "the FX bar choice of the Live view stays");
             expectEquals (getP (proc, gView), 1.0f);
+            proc.syncViews();
+            expectEquals (proc.getView(), 3, "sync keeps the Performance view");
             shiftMaster();
             expectEquals (getP (proc, gLiveView), 0.0f);
             expectEquals (proc.getView(), 0, "back to Full");
@@ -285,9 +292,10 @@ public:
                 expect (! englishName (id).containsIgnoreCase ("push") && ! englishName (id).containsIgnoreCase ("k.o."), "no device names");
             expect (! isTrigger (gLiveFx) && ! isTrigger (gView));
             expectEquals (viewChoices().size(), kNumViews);
-            expect (viewChoices() == juce::StringArray { "Full", "Live", "Live without FX" }, "choice order never changes");
+            expect (viewChoices() == juce::StringArray { "Full", "Live", "Live without FX", "Performance" }, "choice order never changes (Performance appended)");
             if (auto* v = dynamic_cast<juce::AudioParameterChoice*> (proc.getState().getParameter (gView)))
-                expectEquals (v->choices.size(), 3);
+                expectEquals (v->choices.size(), 4);
+            expect (juce::String (i18n::germanFor ("Performance")).isNotEmpty() && juce::String (i18n::germanFor ("Performance view")).isNotEmpty());
             expectEquals (getP (proc, gLiveFx), 1.0f, "FX bar on by default");
             expectEquals (getP (proc, gView), 0.0f, "Full by default");
             expectEquals (proc.getMidiMap().getNumParams(), kNumParameters, "both MIDI-learnable");
@@ -296,7 +304,7 @@ public:
         beginTest ("Views: selector drives live_view + live_fx, and follows them (LIVE button, Esc, SETUP, MIDI)");
         {
             LiveLooperProcessor proc { false, false };
-            auto setView = [&proc] (int v) { setP (proc, gView, (float) v / 2.0f); proc.syncViews(); };
+            auto setView = [&proc] (int v) { setP (proc, gView, (float) v / 3.0f); proc.syncViews(); };
             setView (2);
             expectEquals (getP (proc, gLiveView), 1.0f);
             expectEquals (getP (proc, gLiveFx), 0.0f);
@@ -309,11 +317,34 @@ public:
             expectEquals (getP (proc, gView), 0.0f, "FX bar off while Full: still Full");
             setP (proc, gLiveView, 1.0f); proc.syncViews();
             expectEquals (proc.getView(), 2);
-            expectEquals (getP (proc, gView), 1.0f, "LIVE with the FX bar off = Live without FX");
+            expectEquals (getP (proc, gView), 2.0f / 3.0f, "LIVE with the FX bar off = Live without FX");
             setP (proc, gLiveFx, 1.0f); proc.syncViews();
-            expectEquals (getP (proc, gView), 0.5f, "FX bar on = Live");
+            expectEquals (getP (proc, gView), 1.0f / 3.0f, "FX bar on = Live");
             setP (proc, gLiveView, 0.0f); proc.syncViews();
             expectEquals (getP (proc, gView), 0.0f, "Esc = Full");
+            // Performance: live_view on, the FX bar choice untouched; Esc / LIVE off = Full, the FX bar switch = that Live view
+            setView (3);
+            expectEquals (proc.getView(), 3);
+            expectEquals (getP (proc, gLiveView), 1.0f);
+            expectEquals (getP (proc, gLiveFx), 1.0f, "Performance keeps the FX bar choice");
+            setP (proc, gLiveView, 0.0f); proc.syncViews();
+            expectEquals (proc.getView(), 0, "Esc in the Performance view = Full");
+            expectEquals (getP (proc, gView), 0.0f);
+            setView (3);
+            setP (proc, gLiveFx, 0.0f); proc.syncViews();
+            expectEquals (proc.getView(), 2, "the FX bar switch in the Performance view = Live without FX");
+            setView (3);
+            {
+                // a saved state in the Performance view comes back in the Performance view
+                juce::MemoryBlock mb;
+                proc.getStateInformation (mb);
+                LiveLooperProcessor proc2 { false, false };
+                proc2.setStateInformation (mb.getData(), (int) mb.getSize());
+                proc2.syncViews();
+                expectEquals (proc2.getView(), 3, "restored Performance view");
+                expectEquals (getP (proc2, gLiveView), 1.0f);
+            }
+            setView (0);
             // MIDI: a CC on View selects by range, a note steps through the views
             proc.prepareToPlay (48000.0, 256);
             auto send = [&proc] (const juce::MidiMessage& m) {
@@ -324,19 +355,25 @@ public:
             };
             proc.getMidiMap().assign ({ 0, true, 20 }, proc.getParamIndex (gView));      // one assignment per function
             proc.getMidiMap().assign ({ 0, true, 21 }, proc.getParamIndex (gLiveFx));
-            send (juce::MidiMessage::controllerEvent (1, 20, 127));
-            expectEquals (proc.getView(), 2, "CC 127 = Live without FX");
-            send (juce::MidiMessage::controllerEvent (1, 20, 64));
-            expectEquals (proc.getView(), 1, "CC 64 = Live");
-            send (juce::MidiMessage::controllerEvent (1, 20, 0));
-            expectEquals (proc.getView(), 0, "CC 0 = Full");
-            send (juce::MidiMessage::controllerEvent (1, 20, 64));
+            // a CC splits into 4 ranges: 0 - 21 Full, 22 - 63 Live, 64 - 105 Live without FX, 106 - 127 Performance
+            const std::pair<int, int> ccs[] = { { 127, 3 }, { 106, 3 }, { 105, 2 }, { 64, 2 }, { 63, 1 }, { 22, 1 }, { 21, 0 }, { 0, 0 }, { 40, 1 } };
+            for (const auto& [cc, view] : ccs)
+            {
+                send (juce::MidiMessage::controllerEvent (1, 20, cc));
+                expectEquals (proc.getView(), view, "CC " + juce::String (cc));
+            }
             proc.getMidiMap().assign ({ 0, false, 61 }, proc.getParamIndex (gView));
-            send (juce::MidiMessage::noteOn (1, 61, (juce::uint8) 100));
-            send (juce::MidiMessage::noteOff (1, 61));
+            auto note = [&] { send (juce::MidiMessage::noteOn (1, 61, (juce::uint8) 100)); send (juce::MidiMessage::noteOff (1, 61)); };
+            note();
             expectEquals (proc.getView(), 2, "note steps");
-            send (juce::MidiMessage::controllerEvent (1, 21, 127));
-            expectEquals (proc.getView(), 1, "MIDI on the FX bar toggles it");
+            note();
+            expectEquals (proc.getView(), 3, "note steps to Performance");
+            note();
+            expectEquals (proc.getView(), 0, "and wraps to Full");
+            note();
+            expectEquals (proc.getView(), 1);
+            send (juce::MidiMessage::controllerEvent (1, 21, 0));
+            expectEquals (proc.getView(), 2, "MIDI on the FX bar toggles it");
             proc.releaseResources();
         }
 
@@ -360,6 +397,153 @@ public:
             e->applyDisplaySettings();
             expect (e->getLiveView()->getFxStripArea().isEmpty());
             e->setLiveView (false);
+        }
+
+        beginTest ("Performance view: View = Performance shows it, Esc / EXIT return, every control MIDI-learnable and framed");
+        {
+            DisplayTempFolder tmp;
+            LiveLooperProcessor proc { false, false };
+            std::unique_ptr<juce::AudioProcessorEditor> ed (proc.createEditor());
+            auto* e = dynamic_cast<LiveLooperEditor*> (ed.get());
+            ed->setSize (LiveLooperEditor::kBaseWidth, LiveLooperEditor::kBaseHeight);
+            setP (proc, gView, 1.0f);                   // host / MIDI: Performance
+            proc.syncViews();
+            e->applyDisplaySettings();
+            expect (e->isPerformViewShown() && ! e->isLiveViewShown(), "Performance view instead of the Live view");
+            expect (e->isStageViewShown());
+            auto* pv = e->getPerformView();
+            pv->refresh (false);
+            expectEquals (pv->getNumCards(), proc.getVisibleTracks());
+            expect (pv->getFxArea().getHeight() > 400, "the FX area is the large part");
+            expect (pv->getCardArea (0).getHeight() < 200, "compact track row");
+            expect (pv->getCardArea (0).getBottom() < pv->getFxArea().getY());
+            expect (pv->getXYPad().getWidth() > 250 && pv->getXYPad().getHeight() > 250, "large XY field");
+            for (int i = 0; i < kNumPunchFx; ++i)
+                expect (! pv->getPunchPad (i).getBounds().isEmpty() && pv->getFxArea().contains (pv->getPunchPad (i).getBounds()), "punch pad " + juce::String (i + 1));
+            // everything inside the view, nothing overlapping the header / track row / FX area borders
+            for (auto* c : pv->getChildren())
+                if (c->isVisible())
+                    expect (pv->getLocalBounds().contains (c->getBounds()), "inside the view: " + getParamId (*c));
+            // view switcher: 4 chips, the 4th selected, a click selects Live
+            auto& vs = pv->getViewSwitcher();
+            expectEquals (vs.getNumChips(), 4);
+            expectEquals (vs.getSelectedChip(), 3);
+            expectEquals (getParamId (vs), gView);
+            vs.selectChip (1);
+            e->applyDisplaySettings();
+            expect (e->isLiveViewShown() && ! e->isPerformViewShown(), "switcher: Live");
+            expectEquals (e->getLiveView()->getViewSwitcher().getSelectedChip(), 1, "the Live view has the switcher too");
+            e->getLiveView()->getViewSwitcher().selectChip (3);
+            e->applyDisplaySettings();
+            expect (e->isPerformViewShown(), "switcher in the Live view: Performance");
+            expect (e->keyPressed (juce::KeyPress (juce::KeyPress::escapeKey)), "Esc");
+            expect (! e->isStageViewShown());
+            expectEquals (proc.getView(), 0, "Esc = Full");
+            e->setPerformView (true);
+            expect (e->isPerformViewShown());
+            pv->getExitButton().onPress();             // EXIT (the click calls onPress)
+            e->applyDisplaySettings();
+            expect (! e->isStageViewShown(), "EXIT");
+
+            // controls map to existing parameters (no new functions)
+            e->setPerformView (true);
+            expectEquals (getParamId (pv->getTargetChips()), gPfxTarget);
+            expectEquals (getParamId (pv->getRepeatRateChips()), gRepeatRate);
+            expectEquals (getParamId (pv->getBeatTypeChips()), gBfxType);
+            expectEquals (getParamId (pv->getBeatChips()), gBfxBeat);
+            expectEquals (getParamId (pv->getRepeatPad()), gRepeatHold);
+            expectEquals (getParamId (pv->getBeatFxPad()), gBfxOn);
+            expectEquals (getParamId (pv->getExitButton()), gLiveView);
+            expectEquals (getParamId (pv->getPunchPad (4)), punchHoldId (4));
+            pv->getTargetChips().selectChip (2);
+            expectEquals (juce::roundToInt (proc.getState().getRawParameterValue (gPfxTarget)->load()), 2, "TARGET chip = Punch FX Target");
+            pv->getBeatChips().selectChip (0);
+            expectEquals (juce::roundToInt (proc.getState().getRawParameterValue (gBfxBeat)->load()), 1, "1/16");
+            pv->getRepeatRateChips().selectChip (3);
+            expectEquals (juce::roundToInt (proc.getState().getRawParameterValue (gRepeatRate)->load()), 3, "1/16");
+            setP (proc, gPerfFilter, 0.9f);
+            pv->getCenterButton().triggerClick();
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (20);
+            expectWithinAbsoluteError (proc.getState().getRawParameterValue (gPerfFilter)->load(), 0.0f, 0.001f, "CENTER = filter off");
+
+            // MIDI learn: the overlay frames the Performance view's controls only, every one has a parameter
+            e->setLearnMode (true);
+            e->applyDisplaySettings (true);
+            expect (e->isLearnOverlayInFrontForTests(), "learn frames over the Performance view");
+            auto learnables = e->getLearnablesForTests();
+            juce::StringArray ids;
+            for (auto* c : learnables)
+            {
+                expect (c == pv || pv->isParentOf (c), "only Performance view controls: " + getParamId (*c));
+                ids.addIfNotAlreadyThere (getParamId (*c));
+            }
+            for (const auto& id : { gView, gTap, gLiveView, gPfxTarget, gPfxX, gPfxY, gPfxAmount, gPfxLatch, gPerfFilter, gBfxOn, gBfxType,
+                                    gBfxBeat, gBfxDepth, gBfxHold, gRepeatHold, gStutterHold, gRhythmFill, gRepeatRate, gMaster,
+                                    gAllStartStop, gCapture, trackId (0, kRecPlay), trackId (0, kStop), trackId (0, kLevel), trackId (0, kMeasure) })
+                expect (ids.contains (id), "framed for MIDI learn: " + id);
+            for (int i = 0; i < kNumPunchFx; ++i)
+                expect (ids.contains (punchHoldId (i)), "punch pad framed " + juce::String (i + 1));
+            for (auto& s : e->getChildren())
+                juce::ignoreUnused (s);
+            e->setLearnMode (false);
+            e->setLiveView (false);
+        }
+
+        beginTest ("Performance view: mini waveforms only with the global waveforms setting, 8 tracks, sizes 75 - 200 %, light theme, stage mode");
+        {
+            DisplayTempFolder tmp;
+            LiveLooperProcessor proc { false, false };
+            std::unique_ptr<juce::AudioProcessorEditor> ed (proc.createEditor());
+            auto* e = dynamic_cast<LiveLooperEditor*> (ed.get());
+            ed->setSize (LiveLooperEditor::kBaseWidth, LiveLooperEditor::kBaseHeight);
+            e->setPerformView (true);
+            auto* pv = e->getPerformView();
+            expectEquals (getP (proc, gWaveforms), 0.0f, "waveforms off by default");
+            e->applyDisplaySettings (true);
+            expect (! pv->areWaveformsShown(), "no mini waveforms by default");
+            setP (proc, gWaveforms, 1.0f);
+            e->applyDisplaySettings();
+            expect (pv->areWaveformsShown(), "the global setting turns them on");
+            setP (proc, gWaveforms, 0.0f);
+            e->applyDisplaySettings();
+            proc.setVisibleTracks (8);
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+            pv->refresh (false);
+            expectEquals (pv->getNumCards(), 8);
+            for (int t = 0; t < 8; ++t)
+                expect (pv->getCardArea (t).getWidth() > 100, "card " + juce::String (t + 1));
+            for (int scale : { 75, 100, 125, 150, 200 })
+            {
+                e->setGuiScale (scale);
+                pv->refresh (false);
+                expect (pv->isVisible() && pv->getFxArea().getHeight() > 400, "size " + juce::String (scale));
+                juce::Image img (juce::Image::ARGB, ed->getWidth(), ed->getHeight(), true);
+                juce::Graphics g (img);
+                ed->paintEntireComponent (g, false);
+            }
+            e->setGuiScale (100);
+            for (int look = 0; look < 3; ++look)
+            {
+                setP (proc, gUiTheme, look == 1 ? 1.0f : 0.0f);
+                setP (proc, gStageMode, look == 2 ? 1.0f : 0.0f);
+                e->applyDisplaySettings();
+                juce::Image img (juce::Image::ARGB, pv->getWidth(), pv->getHeight(), true);
+                juce::Graphics g (img);
+                pv->paintEntireComponent (g, false);
+                expect (img.getPixelAt (pv->getWidth() / 2, 5).getAlpha() == 255, "painted (opaque) look " + juce::String (look));
+            }
+            setP (proc, gUiTheme, 0.0f);
+            setP (proc, gStageMode, 0.0f);
+            // SETUP > Display > Live view: open the Performance view fullscreen
+            juce::Array<int> toggles;
+            juce::PopupMenu menu;
+            e->addDisplayMenu (menu, toggles);
+            bool found = false;
+            for (juce::PopupMenu::MenuItemIterator it (menu, true); it.next();)
+                found = found || it.getItem().itemID == 1923;
+            expect (found, "SETUP > Display: Open Performance view (fullscreen)");
+            e->setLiveView (false);
+            proc.setVisibleTracks (kDefaultVisibleTracks);
         }
 
         beginTest ("Waveform peaks: the last overdub layer is read on the message thread, gone after undo");
