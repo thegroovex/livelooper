@@ -346,7 +346,16 @@ PerformView::PerformView (LiveLooperProcessor& p, std::function<TrackStrip*(int)
     bfxPad->setTitle (beatFxText(), false);
 }
 
-PerformView::~PerformView() = default;
+PerformView::~PerformView()
+{
+    // the attachments go first: filterAtt is declared before filterKnob, so the default order would
+    // detach it from an already destroyed slider (crashed the Windows unit tests)
+    filterAtt.reset();
+    xAtt.reset();
+    yAtt.reset();
+    amountAtt.reset();
+    latchAtt.reset();
+}
 
 juce::Component& PerformView::getXYPad() noexcept { return *xyPad; }
 
