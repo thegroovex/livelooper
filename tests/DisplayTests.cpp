@@ -541,9 +541,13 @@ public:
                 setP (proc, gUiTheme, look == 1 ? 1.0f : 0.0f);
                 setP (proc, gStageMode, look == 2 ? 1.0f : 0.0f);
                 e->applyDisplaySettings();
-                juce::Image img (juce::Image::ARGB, pv->getWidth(), pv->getHeight(), true);
-                juce::Graphics g (img);
-                pv->paintEntireComponent (g, false);
+                // software image, Graphics gone before reading: on Windows a native (Direct2D) image only
+                // has the pixels once its Graphics is flushed (read too early: transparent, the check failed)
+                juce::Image img (juce::Image::ARGB, pv->getWidth(), pv->getHeight(), true, juce::SoftwareImageType());
+                {
+                    juce::Graphics g (img);
+                    pv->paintEntireComponent (g, false);
+                }
                 expect (img.getPixelAt (pv->getWidth() / 2, 5).getAlpha() == 255, "painted (opaque) look " + juce::String (look));
             }
             setP (proc, gUiTheme, 0.0f);
