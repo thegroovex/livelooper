@@ -255,6 +255,11 @@ if(LIVELOOPER_BUILD_TESTS)
     target_compile_definitions(livelooper_tests PRIVATE ${LIVELOOPER_DEFINES} LIVELOOPER_NO_PLUGIN_ENTRY=1 JUCE_MODAL_LOOPS_PERMITTED=1)
     target_link_libraries(livelooper_tests PRIVATE ${LIVELOOPER_MODULES}
         juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
+    if(MSVC)
+        # symbols for the crash handler's stack trace in the CI log (/Z7: inside the objects, works with ccache)
+        target_compile_options(livelooper_tests PRIVATE /Z7)
+        target_link_options(livelooper_tests PRIVATE /DEBUG /OPT:REF /OPT:ICF)
+    endif()
     add_test(NAME unit_tests COMMAND livelooper_tests)
 
     # Loads the built VST3 through JUCE's plug-in hosting code and drives it like a DAW would

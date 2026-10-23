@@ -44,10 +44,28 @@ namespace
             std::cout << message << std::endl;
         }
     };
+
+    // A crash (access violation, stack overflow, ...) names its stack in the log: with the CI's
+    // Windows build there is no debugger, ctest only reports "SegFault".
+    void crashHandler (void* info)
+    {
+        std::cout.flush();
+        std::cerr << "\n*** livelooper_tests crashed";
+       #if JUCE_WINDOWS
+        if (info != nullptr)    // EXCEPTION_POINTERS: the first member points at the EXCEPTION_RECORD (code first)
+            if (const auto* rec = *static_cast<const unsigned long* const*> (info))
+                std::cerr << " (exception 0x" << juce::String::toHexString ((juce::int64) *rec) << ")";
+       #else
+        juce::ignoreUnused (info);
+       #endif
+        std::cerr << ", stack:\n" << juce::SystemStats::getStackBacktrace() << std::endl;
+        std::cerr.flush();
+    }
 }
 
 int main (int argc, char* argv[])
 {
+    juce::SystemStats::setApplicationCrashHandler (crashHandler);
     juce::ScopedJuceInitialiser_GUI gui;
 
     // tests expect the English texts unless they switch the language themselves (never saved)
