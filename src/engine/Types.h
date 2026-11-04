@@ -17,6 +17,7 @@ struct TimeInfo
 {
     double bpm          = 120.0;
     bool   hostPlaying  = false;   // host transport is running and reports a ppq position
+    bool   hostTempo    = false;   // v1.7: bpm comes from the host / Link (not the looper's own tempo)
     double ppq          = 0.0;     // host position in quarter notes at the first sample of the block
     int    numerator    = 4;
     int    denominator  = 4;
@@ -75,6 +76,7 @@ struct GlobalSettings
     bool      autoRecord    = false;   // armed tracks start recording when the input exceeds the threshold
     float     autoRecThreshold = 0.0316f;   // linear (-30 dB)
     int       captureBars   = 4;       // retrospective capture length
+    bool      freeFirstLoop = true;    // v1.7: free first loop (no other loop, own clock, no metronome / rhythm): ends on the press, sets the tempo
 };
 
 inline double positiveModulo (double a, double b) noexcept

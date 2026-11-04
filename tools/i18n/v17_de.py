@@ -104,6 +104,12 @@ T = [
     ("Open Performance view (fullscreen)", "Performance-Ansicht \u00f6ffnen (Vollbild)"),
     ("Performance view: the 4th choice of \"View\" (also the view switcher in the Live view header); Esc returns",
      "Performance-Ansicht: die 4. Wahl von \u201eAnsicht\u201c (auch die Ansichtsumschaltung oben in der Live-Ansicht); Esc f\u00fchrt zur\u00fcck"),
+    # ---- views: MIDI learn inside the Live / Performance view (bug report 2026-11-04)
+    ("MIDI LEARN - DONE", "MIDI LEARN \u2013 FERTIG"),
+    # ---- views: mouse diagnostics log (macOS bug report 2026-11-04)
+    ("Mouse diagnostics log (for bug reports)", "Maus-Diagnoseprotokoll (f\u00fcr Fehlerberichte)"),
+    ("Show the mouse log file", "Maus-Protokolldatei zeigen"),
+    ("MOUSE LOG: %1", "MAUS-PROTOKOLL: %1"), ("MOUSE LOG OFF", "MAUS-PROTOKOLL AUS"),
 ]
 
 def esc(s):

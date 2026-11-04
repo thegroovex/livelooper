@@ -230,7 +230,9 @@ jobs:
       - name: Unit tests (shard ${{ matrix.shard }}/3)
         run: |
           set -o pipefail
-          xvfb-run -a build/livelooper_tests_artefacts/Release/livelooper_tests --shard ${{ matrix.shard }}/3 2>&1 | tee ctest.log || {
+          # a real screen size (default 640 x 480: the view mouse tests drop to 75 %) and no MIT-SHM (large window images
+          # of the fullscreen view tests failed X_ShmAttach with BadAccess under Xvfb)
+          xvfb-run -a -s "-screen 0 1920x1200x24 -extension MIT-SHM" build/livelooper_tests_artefacts/Release/livelooper_tests --shard ${{ matrix.shard }}/3 2>&1 | tee ctest.log || {
             grep -E '!!!|FAILED|failed' ctest.log | head -n 40 | while IFS= read -r line; do echo "::error title=Unit test::$line"; done
             exit 1
           }

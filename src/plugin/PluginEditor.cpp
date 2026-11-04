@@ -365,6 +365,9 @@ LiveLooperEditor::~LiveLooperEditor()
     proc.removeChangeListener (this);
     i18n::removeListener (this);
     stopTimer();
+    mouseLog.reset();                   // v1.7 mouse diagnostics (global mouse listener)
+    liveWindow.reset();                 // v1.7 fullscreen windows use the editor's look and feel
+    retiredStageWindow.reset();
     setLookAndFeel (nullptr);
 }
 
@@ -528,11 +531,11 @@ void LiveLooperEditor::renderSurfaceCache()
         g.setColour (colours::textDim);
         g.setFont (LooperLookAndFeel::font (11.0f, true));
         const auto sub = tr ("%1 TRACK LOOP STATION", juce::String (proc.getVisibleTracks()));
-        g.drawText (sub, 24, 52, 200, 16, juce::Justification::centredLeft);
+        g.drawText (sub, 24, 47, 200, 16, juce::Justification::centredLeft);        // v1.7: 5 px up for the view switcher below
         const auto sf = LooperLookAndFeel::font (11.0f, true);
         g.setColour (colours::textDim.withAlpha (0.6f));
         g.setFont (LooperLookAndFeel::font (9.5f));
-        g.drawText ("designed by groovex", 24 + juce::roundToInt (juce::GlyphArrangement::getStringWidth (sf, sub)) + 10, 52, 120, 16,
+        g.drawText ("designed by groovex", 24 + juce::roundToInt (juce::GlyphArrangement::getStringWidth (sf, sub)) + 10, 47, 120, 16,
                     juce::Justification::centredLeft);
     }
 
@@ -1061,7 +1064,10 @@ bool LiveLooperEditor::keyPressed (const juce::KeyPress& key)
     // v1.7: Esc leaves the Live view; Ctrl / Cmd + and - change the interface size (Ctrl / Cmd 0 = 100 %)
     if (key == juce::KeyPress::escapeKey && isStageViewShown() && ! tempoEntry.isVisible())
     {
-        setLiveView (false);
+        if (learnMode)
+            setLearnMode (false);       // v1.7: Esc ends MIDI learn first (the view stays)
+        else
+            setLiveView (false);
         return true;
     }
     if (key.getModifiers().isCommandDown() && ! key.getModifiers().isAltDown())
@@ -1257,6 +1263,26 @@ void LiveLooperEditor::LearnOverlay::paint (juce::Graphics& g)
             g.fillEllipse (r.getRight() - 7.0f, r.getY() - 1.0f, 8.0f, 8.0f);
         }
     }
+
+    // v1.7 views: over the Live / Performance view the MIDI LEARN button of the header is hidden, so the overlay
+    // brings its own way out (before, every click there only picked a learn target and no control reacted)
+    if (editor.isStageViewShown())
+    {
+        const auto r = editor.learnDoneArea().toFloat();
+        g.setGradientFill (LooperLookAndFeel::brandGradient (r));
+        g.fillRoundedRectangle (r, r.getHeight() * 0.5f);
+        g.setColour (juce::Colours::white.withAlpha (0.35f));
+        g.drawRoundedRectangle (r.reduced (0.5f), r.getHeight() * 0.5f, 1.0f);
+        g.setColour (juce::Colours::white);
+        g.setFont (LooperLookAndFeel::font (12.0f, true));
+        g.drawFittedText (i18n::upper (tr ("MIDI LEARN - DONE")), r.toNearestInt().reduced (8, 0), juce::Justification::centred, 1, 0.7f);
+    }
+}
+
+juce::Rectangle<int> LiveLooperEditor::learnDoneArea() const
+{
+    // top centre of the Live / Performance view, above its transport display
+    return { surface.getWidth() / 2 - 120, 2, 240, 26 };
 }
 
 void LiveLooperEditor::LearnOverlay::mouseDown (const juce::MouseEvent& e)
@@ -1266,7 +1292,7 @@ void LiveLooperEditor::LearnOverlay::mouseDown (const juce::MouseEvent& e)
     auto* hit = editor.surface.getComponentAt (pos);
     setInterceptsMouseClicks (true, false);
 
-    if (hit == &editor.learnBtn)
+    if (hit == &editor.learnBtn || (editor.isStageViewShown() && editor.learnDoneArea().contains (pos.roundToInt())))
     {
         editor.setLearnMode (false);
         return;
@@ -1565,6 +1591,7 @@ juce::PopupMenu LiveLooperEditor::buildSetupMenu (juce::Array<int>& toggles)
     menu.addSubMenu (tr ("Tracks"), tracksMenu);
     menu.addItem (450, tr ("Track meters"), true, TrackStrip::showMeters);
     menu.addSubMenu (tr ("Record action"), rec);
+    menu.addItem (451, tr ("Free first loop (no other loop, no metronome / rhythm, host stopped: ends on the press and sets the tempo)"), true, proc.getFreeFirstLoop());
     menu.addSubMenu (tr ("Maximum loop length"), memory);
     menu.addSubMenu (tr ("Capture length"), captureMenu);
     menu.addSubMenu (tr ("Auto record"), autoRecMenu);
@@ -1617,7 +1644,7 @@ juce::PopupMenu LiveLooperEditor::buildSetupMenu (juce::Array<int>& toggles)
     addFeatures16Menu (menu, 3);      // v1.6: guided tour
     menu.addItem (431, tr ("About livelooper ..."));
 
-    toggles.addArray ({ 3, 4, 5, 120, 140, 400, 401, 421, 422, 450 });
+    toggles.addArray ({ 3, 4, 5, 120, 140, 400, 401, 421, 422, 450, 451 });
     toggles.addArray ({ -410, -411, -100, -101, -1, -2 });     // radio groups (shown as pop-ups even when nothing is ticked)
     return menu;
 }
@@ -1653,6 +1680,11 @@ void LiveLooperEditor::handleSetupResult (int r)
     const auto recent = appsettings::getRecentSets();
     auto* linkOn = dynamic_cast<juce::AudioParameterBool*> (st.getParameter (gLinkOn));
     auto* linkStartStop = dynamic_cast<juce::AudioParameterBool*> (st.getParameter (gLinkStartStop));
+    if (r == 451)
+    {
+        proc.setFreeFirstLoop (! proc.getFreeFirstLoop());
+        return;
+    }
     if (r == 450)
     {
         TrackStrip::showMeters = ! TrackStrip::showMeters;

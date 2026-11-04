@@ -12,10 +12,10 @@ Die Oberfläche hat die klassische Anordnung: alle Effekte oben in zwei Reihen (
 
 | Bereich | Inhalt |
 |---|---|
-| Kopfzeile | **LIVE** neben dem Logo (Live-Ansicht, Abschnitt 43), Display (Tempo, Takt/Schlag, Quantisierung, Link, Master-VU in dB, Meldungen), **MIDI LEARN**, **MIDI MAP**, **SETUP**, **?** (Hilfe), der runde **REC**-Knopf (Performance-Recorder) |
+| Kopfzeile | **LIVE** neben dem Logo (Live-Ansicht, Abschnitt 43), darunter die **Ansichtsumschaltung** VOLL · LIVE · LIVE − FX · PERFORM (Abschnitt 43), Display (Tempo, Takt/Schlag, Quantisierung, Link, Master-VU in dB, Meldungen), **MIDI LEARN**, **MIDI MAP**, **SETUP**, **?** (Hilfe), der runde **REC**-Knopf (Performance-Recorder) |
 | FX-Reihe 1 | **EINGANGS-FX** A–D, **EINGANGS-FX … BEARBEITEN** (Typ, zwei Parameter, Mix des gewählten Slots), **SPUR-FX** A–D, **PUNCH-FX** (Abschnitte 3, 39) |
 | FX-Reihe 2 | **BEAT-FX**, **REPEAT / STUTTER**, **COLOR-FX**, **SEND-FX**, **METRONOM** (Abschnitte 25–28, 39) |
-| SPUR 1–5 (oder 1–8) | die Loop-Spuren (SETUP → Looper → Spuren), von oben nach unten: Titelzeile mit der **Loop-Länge**-Pille (AUTO / 1–16 Takte, Abschnitt 45), Display mit Status und Wellenform, RÜCKW. / 1SHOT / FX, Pegel-Fader mit IN/OUT-Anzeige, PAN / COLOR, ZURÜCK / VOR / SETUP, das große REC/PLAY-Pad, STOP |
+| SPUR 1–5 (oder 1–8) | die Loop-Spuren (SETUP → Looper → Spuren), von oben nach unten: Titelzeile mit der **Loop-Länge**-Pille (AUTO / 1–16 Takte, Abschnitt 45), Display mit Status und Wellenform, RÜCKW. / 1SHOT / FX, Pegel-Fader mit IN/OUT-Anzeige, PAN / COLOR, UNDO / VOR / SETUP, das große REC/PLAY-Pad, STOP |
 | RHYTHMUS | Drumcomputer, Tempo, Tap, FILL, BEATS |
 | MASTER | Quantisierung, Host-Sync, Pegel, Fade-Zeit, ALLE START / STOP, CAPTURE, ALLE LÖSCHEN |
 | Fußleiste | 8 Szenen-Knöpfe, SPEICHERN |
@@ -62,7 +62,7 @@ Der LED-Ring zeigt den Zustand und die Position im Loop:
 | **FX** | Spur durch die Spur-FX schicken |
 | Fader | Pegel 0–200 % (Doppelklick = 100 %), daneben die Pegelanzeige |
 | **PAN** | Panorama L50–R50 (Doppelklick = Mitte) |
-| **ZURÜCK / VOR** (UNDO / REDO) | letzten Overdub zurücknehmen / wiederherstellen. ZURÜCK direkt nach der ersten Aufnahme leert die Spur, VOR holt sie zurück |
+| **UNDO / VOR** (Rückgängig / Wiederherstellen) | letzten Overdub zurücknehmen / wiederherstellen. UNDO direkt nach der ersten Aufnahme leert die Spur, VOR holt sie zurück |
 | **SETUP** | Spur-Einstellungen (Bild oben) |
 
 ### Spur-Einstellungen (SETUP)
@@ -90,6 +90,8 @@ Der LED-Ring zeigt den Zustand und die Position im Loop:
 - **Aus** (Off): alles sofort, freie Loop-Länge (auf das Sample genau zwischen den beiden Drücken).
 
 **Rückwirkendes Beenden**: Wer das Ende einer Aufnahme bis zu 15 % eines Rasterschritts *nach* dem Taktstrich drückt, bekommt den Loop trotzdem exakt am Taktstrich beendet – das Gespielte nach dem Taktstrich wird an den Anfang des Loops (in den Overdub) übernommen. Wer zu früh drückt, wartet einfach auf den Taktstrich.
+
+**Freier erster Loop** (SETUP → Looper, neu in 1.7, standardmäßig an): Hält keine andere Spur einen Loop, sind Metronom und Rhythmus aus und ist das Tempo livelooper-eigen (Standalone ohne Link oder HOST-SYNC aus – nicht, solange Host oder Link das Tempo vorgeben), startet die erste Aufnahme sofort und **endet genau beim Drücken** – kein Warten auf den Taktstrich. Ihre Länge bestimmt das Tempo: Der Loop wird 1, 2, 4, 8 … Takte lang (die Anzahl, deren Tempo 70 – 160 BPM am nächsten liegt; bei fester Loop-Länge genau so viele Takte), TEMPO zeigt es an und Takt 1 beginnt mit dem Loop – spätere Spuren, Metronom und Quantisierung richten sich danach.
 
 **HOST-SYNC** (Standard an): Tempo, Taktart und Position kommen von deiner DAW. Läuft der Host-Transport nicht, läuft eine interne Clock im aktuellen Host-Tempo weiter, sobald eine Spur aufnimmt oder spielt. Ohne Host-Sync gilt das interne Tempo (Regler **TEMPO**, **TAP** mehrfach im Takt antippen, oder auf das Tempo im Display klicken und eintippen – siehe Abschnitt 11).
 
@@ -194,7 +196,7 @@ Seit 1.6 öffnet **SETUP** ein Einstellungsfenster im Stil der macOS-Systemeinst
 | Capture-Länge | 1 · 2 · 4 · 8 · 16 · 32 Takte (Abschnitt 16) |
 | Audio → Latenz | Latenz messen, Latenzausgleich (an), manueller Versatz (Abschnitt 41) |
 | Controller → Anschlagkurven / Push-1-Display / MIDI-Feedback | Anschlagkurven pro Controller, Loop-Fortschrittsbalken im Push-1-Display, LED-Feedback für gelernte Bedienelemente (Abschnitt 42) |
-| Anzeige | Farbschema, Oberflächengröße 75 – 200 %, Bühnenmodus, Wellenformen in den Loop-Spuren, Live-Ansicht (im Vollbild öffnen, Wellenformen, Performance-FX-Leiste = Host-Parameter *Live-Ansicht FX-Leiste*), *Performance-Ansicht öffnen (Vollbild)*; Ansichten auch mit SHIFT + MASTER oder dem Host-Parameter *Ansicht*, Abschnitte 43, 44, 47 |
+| Anzeige | Farbschema, Oberflächengröße 75 – 200 %, Bühnenmodus, Wellenformen in den Loop-Spuren, Live-Ansicht (im Vollbild öffnen, Ansichten im Vollbild öffnen, Wellenformen, Performance-FX-Leiste = Host-Parameter *Live-Ansicht FX-Leiste*), *Performance-Ansicht öffnen (Vollbild)*; Ansichten auch mit SHIFT + MASTER oder dem Host-Parameter *Ansicht*, Abschnitte 43, 44, 47 |
 | Rhythmus-Groove / Rhythmus-Fills | Gefühl und Fills des Drumcomputers (Abschnitt 4) |
 | Ableton Link | Link an / aus, Start / Stopp synchronisieren, Anzahl Teilnehmer (Abschnitt 29) |
 | Einstellungen beim Start | mit den zuletzt verwendeten oder den Standard-Einstellungen starten, jetzt zurücksetzen (Abschnitt 31) |
@@ -241,7 +243,7 @@ Standardbelegung – eine Tastaturspalte pro Spur:
 | **1 2 3 4 5** (6 7 8) | REC/PLAY Spur 1–5 (6–8) |
 | **Q W E R T** (Y U I) | STOP Spur 1–5 (6–8) |
 | **Shift + Q … T** | Spur 1–5 LÖSCHEN – Taste 1,5 s halten, wie die STOP-Taste (kurzes Antippen löscht nicht) |
-| **A S D F G** (H J L) | ZURÜCK (Undo) Spur 1–5 (6–8) |
+| **A S D F G** (H J L) | UNDO Spur 1–5 (6–8) |
 | **Shift + A … G** | VOR (Redo) Spur 1–5 |
 | **Leertaste** | ALLE START / STOP |
 | **Shift + Rücktaste** | ALLE LÖSCHEN (mit Rückfrage) |
@@ -306,7 +308,7 @@ Ohne Cue-Paar (und im Plug-in) spielt der Rhythmus immer auf dem Hauptausgang �
 | ALLE START / STOP · ALLE LÖSCHEN | ALL START / STOP · CLEAR ALL |
 | HOST-SYNC | HOST SYNC |
 | RÜCKW. | REV |
-| ZURÜCK / VOR | UNDO / REDO |
+| UNDO / VOR | UNDO / REDO |
 | LÖSCHEN · WAV EXPORT | CLEAR · EXPORT WAV |
 | Pegel · Eingang | Level · Input |
 | Quantisierung: Aus · Schlag · Takt | Quantize: Off · Beat · Measure |
@@ -530,7 +532,7 @@ Direkt nach dem ersten Start zeigt eine **geführte Tour** (etwa 60 Sekunden) di
 
 ## 34. Loop-Tricks (neu in 1.6)
 
-Drei Tricks schreiben den Loop einer Spur um – musikalisch auf den nächsten Schlag oder Takt (QUANTISIERUNG), und **ZURÜCK** (Undo) stellt den Loop exakt wieder her:
+Drei Tricks schreiben den Loop einer Spur um – musikalisch auf den nächsten Schlag oder Takt (QUANTISIERUNG), und **UNDO** stellt den Loop exakt wieder her:
 
 - **Halbe Geschwindigkeit**: Der Loop läuft halb so schnell, eine Oktave tiefer, und wird doppelt so lang (reicht der Speicher nicht, wird die erste Hälfte auf die alte Länge gedehnt).
 - **Doppelte Geschwindigkeit**: doppelt so schnell, eine Oktave höher – zweimal hintereinander, Länge und Taktstruktur bleiben.
@@ -582,7 +584,7 @@ Neben [Push 1](PUSH.md) und MIDI Learn hat livelooper fertige Vorlagen für verb
 |---|---|---|
 | 1 | REC / PLAY (Clip starten, aufnehmen, overdubben) | |
 | 2 | STOP | LÖSCHEN |
-| 3 | ZURÜCK (Undo) | VOR (Redo) |
+| 3 | UNDO | VOR (Redo) |
 | 4 | STUMM | |
 | 5 | HALBE GESCHWINDIGKEIT | |
 | 6 | DOPPELTE GESCHWINDIGKEIT | |
@@ -690,7 +692,7 @@ REC / PLAY auf einem Pad: blinkt bei Aufnahme / Overdub / Warten, leuchtet beim 
 
 ![Live-Ansicht](../images/livelooper-live-de.png)
 
-Die **Live-Ansicht** ist die Oberfläche für die Bühne: eine große Karte pro Loop-Spur und sonst nichts, was man aus Versehen trifft. Öffnen mit der **LIVE**-Taste neben dem Logo, dem Host-Parameter *Live-Ansicht* (`live_view`, wie jede Funktion per MIDI zuweisbar), **SHIFT + MASTER** am Push 1 oder *SETUP → Anzeige → Live-Ansicht → Live-Ansicht öffnen (Vollbild)*. **Esc**, **LIVE BEENDEN** oder noch einmal LIVE führen zur vollen Oberfläche zurück.
+Die **Live-Ansicht** ist die Oberfläche für die Bühne: eine große Karte pro Loop-Spur und sonst nichts, was man aus Versehen trifft. Öffnen mit der **LIVE**-Taste neben dem Logo, **LIVE** in der Ansichtsumschaltung unter dem Logo, dem Host-Parameter *Live-Ansicht* (`live_view`, wie jede Funktion per MIDI zuweisbar), **SHIFT + MASTER** am Push 1 oder *SETUP → Anzeige → Live-Ansicht → Live-Ansicht öffnen (Vollbild)*. **Esc**, **LIVE BEENDEN** oder noch einmal LIVE führen zur vollen Oberfläche zurück.
 
 | Bereich | Inhalt |
 |---|---|
@@ -698,9 +700,10 @@ Die **Live-Ansicht** ist die Oberfläche für die Bühne: eine große Karte pro 
 | Spur-Karten (5 oder 8) | Zustand (PLAY, DUB, REC, STOP, LEER, REC WAIT …), Länge in Takten, Loop-Position in %, die **Wellenform** mit Abspielmarke, das große **REC / PLAY / DUB**-Pad mit LED-Ring, **PEGEL** (Balken ziehen; die Pegelanzeige läuft hinter der weißen Pegelmarke), **STOP** (1,5 s halten = löschen) |
 | PERFORMANCE-FX | Regler **FILTER** (Performance-Filter), **BEAT-FX** (Beat-FX-Pegel), **PUNCH** (Punch-FX-Stärke), **MASTER**; **ECHO …** (Beat-FX an / aus, zeigt Beat-FX-Typ und Notenwert), **REPEAT** und **STUTTER** (solange gehalten), **FILL** (solange gehalten); der Punch-FX-Balken (der gehaltene Punch-FX mit seiner aktuellen Stärke, sonst der ausgewählte); **ALLE START / STOP**, **CAPTURE** |
 
-Jedes Bedienelement der Live-Ansicht ist dieselbe Funktion wie auf der vollen Oberfläche (Rechtsklick = MIDI Learn). *SETUP → Anzeige → Live-Ansicht* schaltet die **Wellenformen in den Spur-Displays** (standardmäßig an; aus = ein Positionsbalken) und die **Performance-FX-Leiste** (an; aus = höhere Karten; seit 1.7 auch der Host-Parameter *Live-Ansicht FX-Leiste*, `live_fx`). *Live-Ansicht öffnen (Vollbild)* öffnet sie in einem eigenen randlosen Fenster, das den ganzen Bildschirm bedeckt und über anderen Fenstern bleibt (Esc schließt es) – praktisch auf einem zweiten Monitor oder dem Laptop auf der Bühne. Es ist kein gesperrter Kiosk-Modus: die Tastenkürzel des Betriebssystems (App wechseln, Taskleiste / Dock) funktionieren weiter.
+Jedes Bedienelement der Live-Ansicht ist dieselbe Funktion wie auf der vollen Oberfläche (Rechtsklick = MIDI Learn). *SETUP → Anzeige → Live-Ansicht* schaltet die **Wellenformen in den Spur-Displays** (standardmäßig an; aus = ein Positionsbalken) und die **Performance-FX-Leiste** (an; aus = höhere Karten; seit 1.7 auch der Host-Parameter *Live-Ansicht FX-Leiste*, `live_fx`). *Live-Ansicht öffnen (Vollbild)* öffnet sie in einem eigenen randlosen Fenster, das den ganzen Bildschirm bedeckt und über anderen Fenstern bleibt (Esc schließt es) – praktisch auf einem zweiten Monitor oder dem Laptop auf der Bühne. Eine Ansicht aus SETUP heraus zu öffnen schließt das SETUP-Fenster. Seit 1.7 sorgt **Ansichten im Vollbild öffnen** (gleiche Stelle, auf diesem Computer gemerkt) dafür, dass jeder Wechsel zur Live-, Live-ohne-FX- oder Performance-Ansicht im Vollbild öffnet – mit der LIVE-Taste, der Ansichtsumschaltung, den Host-Parametern / MIDI und Push 1 gleichermaßen; aus (Standard) öffnen sie im Plug-in-Fenster. Auf einem MacBook Pro mit Notch bleibt der Inhalt unter der Kamera-Aussparung (der Streifen oben wird mit dem Hintergrund gefüllt; ab macOS 12); auf jedem Mac bleibt der Inhalt außerdem frei von Menüleiste und sichtbarem Dock, die macOS vor allen Fenstern hält. Es ist kein gesperrter Kiosk-Modus: die Tastenkürzel des Betriebssystems (App wechseln, Taskleiste / Dock) funktionieren weiter.
 
-**Ansichten mit Push 1 oder MIDI umschalten.** Es gibt vier Ansichten: **Voll** (die ganze Oberfläche), **Live** (die Live-Ansicht mit Performance-FX-Leiste), **Live ohne FX** (die Live-Ansicht mit höheren Karten) und **Performance** (die FX-Bühnenansicht, Abschnitt 47). Live- und Performance-Ansicht haben außerdem oben eine **Ansichtsumschaltung** (VOLL · LIVE · LIVE − FX · PERFORM; Rechtsklick = MIDI Learn von *Ansicht*).
+**Ansichten mit Push 1 oder MIDI umschalten.** Es gibt vier Ansichten: **Voll** (die ganze Oberfläche), **Live** (die Live-Ansicht mit Performance-FX-Leiste), **Live ohne FX** (die Live-Ansicht mit höheren Karten) und **Performance** (die FX-Bühnenansicht, Abschnitt 47). Jede Ansicht hat oben eine **Ansichtsumschaltung** – auf der vollen Oberfläche unter dem Logo, in der Live- und der Performance-Ansicht unter ihrem Logo (VOLL · LIVE · LIVE − FX · PERFORM): Klick auf einen Chip schaltet um (die Ansicht wechselt beim Loslassen der Maustaste), Rechtsklick = MIDI Learn von *Ansicht*. Sie funktioniert genauso in den Vollbild-Fenstern.
+
 
 | Bedienung | Was passiert |
 |---|---|
@@ -791,7 +794,7 @@ Das sind Einstellungen dieses Computers (wie *Updates* oder *Einstellungen beim 
 
 ![Performance-Ansicht](../images/livelooper-perform-de.png)
 
-Die **Performance-Ansicht** ist die vierte Ansicht, gemacht zum Spielen der Effekte auf der Bühne: oben eine kompakte Reihe Spur-Karten, darunter ein großer **PERFORMANCE-FX**-Bereich. Öffnen mit **PERFORM** in der Ansichtsumschaltung (oben in der Live- und der Performance-Ansicht), dem Host-Parameter *Ansicht* = *Performance* (MIDI Learn: eine Note schaltet weiter, ein CC wählt nach Bereich), **SHIFT + MASTER** am Push 1 (Voll → Live → Live ohne FX → Performance → Voll) oder *SETUP → Anzeige → Live-Ansicht → Performance-Ansicht öffnen (Vollbild)*. **Esc** oder **BEENDEN** führen zur vollen Oberfläche zurück.
+Die **Performance-Ansicht** ist die vierte Ansicht, gemacht zum Spielen der Effekte auf der Bühne: oben eine kompakte Reihe Spur-Karten, darunter ein großer **PERFORMANCE-FX**-Bereich. Öffnen mit **PERFORM** in der Ansichtsumschaltung (oben auf der vollen Oberfläche, in der Live- und der Performance-Ansicht), dem Host-Parameter *Ansicht* = *Performance* (MIDI Learn: eine Note schaltet weiter, ein CC wählt nach Bereich), **SHIFT + MASTER** am Push 1 (Voll → Live → Live ohne FX → Performance → Voll) oder *SETUP → Anzeige → Live-Ansicht → Performance-Ansicht öffnen (Vollbild)*. **Esc** oder **BEENDEN** führen zur vollen Oberfläche zurück.
 
 | Bereich | Inhalt (jeweils eine vorhandene Funktion – keine neuen Effekte) |
 |---|---|

@@ -128,3 +128,6 @@
         { "Beat repeat timing", "Beat-Repeat-Timing" },
         { "Open Performance view (fullscreen)", "Performance-Ansicht \xc3" "\xb6" "ffnen (Vollbild)" },
         { "Performance view: the 4th choice of \"View\" (also the view switcher in the Live view header); Esc returns", "Performance-Ansicht: die 4. Wahl von \xe2" "\x80" "\x9e" "Ansicht\xe2" "\x80" "\x9c" " (auch die Ansichtsumschaltung oben in der Live-Ansicht); Esc f\xc3" "\xbc" "hrt zur\xc3" "\xbc" "ck" },
+        { "MIDI LEARN - DONE", "MIDI LEARN \xe2" "\x80" "\x93" " FERTIG" },
+        { "Free first loop (no other loop, no metronome / rhythm, host stopped: ends on the press and sets the tempo)", "Freier erster Loop (kein anderer Loop, kein Metronom / Rhythmus, Host gestoppt: endet beim Dr\xc3" "\xbc" "cken und bestimmt das Tempo)" },
+        { "Open the views fullscreen (LIVE, view switcher, MIDI, Push)", "Ansichten im Vollbild \xc3" "\xb6" "ffnen (LIVE, Ansichtsumschaltung, MIDI, Push)" },

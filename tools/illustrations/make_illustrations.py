@@ -525,7 +525,7 @@ KO_PAD_LABELS = [['7', '8', '9'], ['4', '5', '6'], ['1', '2', '3'], ['.', '0', '
 KO_PAD_SMALL = [['LEVEL', 'PITCH', 'TIME'], ['LPF', 'HPF', '→FX'], ['ATK', 'REL', 'PAN'], ['TUNE', 'VEL', 'MOD']]
 KO_FUNC_A = [['T7', 'T8', 'ALL'], ['T4', 'T5', 'T6'], ['T1', 'T2', 'T3'], ['STOP', 'UNDO', 'CAPT']]
 KO_DE = {'T%d' % i: 'S%d' % i for i in range(1, 9)}
-KO_DE.update({'ALL': 'ALLE', 'UNDO': 'ZURÜCK'})
+KO_DE.update({'ALL': 'ALLE', 'UNDO': 'UNDO'})
 # K.O. II geometry (portrait, as on a photo of the real device) - the same numbers are used by
 # src/plugin/ControllerView.cpp (kKo... tables)
 KO_W, KO_H = 880, 1180

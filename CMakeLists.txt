@@ -161,7 +161,7 @@ set(LIVELOOPER_PLUGIN_SOURCES
     src/plugin/ProcessorRemote.cpp
     src/plugin/EditorRemote.cpp)
 if(APPLE)
-    list(APPEND LIVELOOPER_PLUGIN_SOURCES src/plugin/VideoWriterMac.mm)
+    list(APPEND LIVELOOPER_PLUGIN_SOURCES src/plugin/VideoWriterMac.mm src/plugin/MouseLogMac.mm)
 endif()
 set(LIVELOOPER_DEFINES LIVELOOPER_VERSION="${PROJECT_VERSION}" JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_VST3_CAN_REPLACE_VST2=0 JUCE_DISPLAY_SPLASH_SCREEN=0
     ${LIVELOOPER_LINK_DEFINES})
@@ -254,6 +254,7 @@ if(LIVELOOPER_BUILD_TESTS)
         tests/Ko2AudioTests.cpp
         tests/V17Tests.cpp
         tests/DisplayTests.cpp
+        tests/ViewMouseTests.cpp
         tests/LoopLengthTests.cpp
         tests/BackupTests.cpp
         tests/RemoteTests.cpp

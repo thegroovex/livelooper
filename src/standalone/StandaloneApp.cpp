@@ -30,10 +30,15 @@
 #ifdef Component
  #undef Component
 #endif
+// ... and on macOS "Point" as "juce::Point", which breaks juce::Point in the editor headers (PluginEditor.h)
+#ifdef Point
+ #undef Point
+#endif
 
 #include "plugin/AppSettings.h"
 #include "plugin/Localisation.h"
 #include "plugin/PluginProcessor.h"
+#include "plugin/PluginEditor.h"
 #include "plugin/controllers/Ko2.h"
 
 namespace livelooper
@@ -79,7 +84,27 @@ public:
         StandaloneFilterWindow::resized();
         const auto font = juce::FontOptions (14.0f);
         const int w = juce::GlyphArrangement::getStringWidthInt (font, settingsButton.getButtonText()) + 28;
-        settingsButton.setBounds (8, 6, juce::jmax (120, w), juce::jmax (16, getTitleBarHeight() - 8));
+        settingsButton.setBounds (8, 6 + safeTopInset(), juce::jmax (120, w), juce::jmax (16, getTitleBarHeight() - 8));
+    }
+
+    /** v1.7 macOS fullscreen: title bar and editor below the camera housing (notch) when the window covers it;
+        the strip is filled with the window background. Other systems / windowed: unchanged. */
+    juce::BorderSize<int> getBorderThickness() const override
+    {
+        auto b = StandaloneFilterWindow::getBorderThickness();
+        b.setTop (b.getTop() + safeTopInset());
+        return b;
+    }
+
+private:
+    int safeTopInset() const
+    {
+       #if JUCE_MAC
+        if (isFullScreen() && isOnDesktop())
+            if (auto* d = juce::Desktop::getInstance().getDisplays().getDisplayForRect (getScreenBounds()))
+                return juce::jmax (0, d->totalArea.getY() + LiveLooperEditor::getFullscreenSafeInsets (d).getTop() - getScreenY());
+       #endif
+        return 0;
     }
 
 private:

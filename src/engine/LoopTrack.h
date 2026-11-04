@@ -108,6 +108,15 @@ public:
     void setInputLatency (int samples) noexcept          { inputLatency = std::max (0, samples); }
     int  getInputLatency() const noexcept                { return inputLatency; }
     void invalidateAnchor() noexcept                     { anchorValid = false; }
+    /** v1.7 free first loop: the loop's tempo is now samplesPerPpq; anchored so its current position sits at ppqNow. */
+    void retime (double samplesPerPpq, double ppqNow) noexcept
+    {
+        if (samplesPerPpq <= 0.0)
+            return;
+        recSamplesPerPpq = samplesPerPpq;
+        anchorPpq = ppqNow - (double) playPos / samplesPerPpq;
+        anchorValid = true;
+    }
 
     //============================================================================== processing
     /** Processes a block segment. out* receive the dry track signal (added), fx* receive the

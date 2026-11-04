@@ -435,6 +435,7 @@ void LiveLooperProcessor::pushSettingsToEngine() noexcept
     g.autoRecord    = autoRec->load() >= 0.5f;
     g.autoRecThreshold = juce::Decibels::decibelsToGain (autoRecThresh->load());
     g.duckSource    = (DuckSource) juce::jlimit (0, 1, juce::roundToInt (duckSource->load()));
+    g.freeFirstLoop = freeFirstLoop.load();
     engine.setGlobalSettings (g);
     engine.setFollowHostTransport (follow->load() >= 0.5f);
     engine.setInputLatency (compensationSamples.load());     // v1.7: every recording, overdub and capture
@@ -747,7 +748,10 @@ void LiveLooperProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::
         if (auto pos = ph->getPosition())
         {
             if (auto b = pos->getBpm())
+            {
                 time.bpm = *b;
+                time.hostTempo = true;
+            }
             if (auto sig = pos->getTimeSignature())
             {
                 time.numerator = sig->numerator;
@@ -780,6 +784,7 @@ void LiveLooperProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::
             {
                 driving = true;
                 time.bpm = blk.bpm;
+                time.hostTempo = true;
                 time.ppq = blk.beat;
                 time.numerator = 4;
                 time.denominator = 4;
@@ -927,6 +932,11 @@ void LiveLooperProcessor::timerCallback()
                 p->endChangeGesture();
             }
     }
+
+    // v1.7 free first loop: the tempo its length set (the engine keeps the exact value, the parameter shows 0.1 BPM)
+    if (const double freeTempo = engine.takeFreeLoopTempo(); freeTempo > 0.0)
+        if (auto* p = apvts.getParameter (gTempo))
+            p->setValueNotifyingHost (p->convertTo0to1 ((float) freeTempo));
 
     const float tap = pendingTapTempo.exchange (0.0f);
     if (tap > 0.0f)
@@ -2298,5 +2308,16 @@ void LiveLooperProcessor::updateControllers()
         }
         lastTrackState[(size_t) t] = now;
     }
+}
+//============================================================================== v1.7 free first loop
+bool LiveLooperProcessor::loadFreeFirstLoopSetting()
+{
+    return appsettings::getValue ("looper.freeFirstLoop", "1") != "0";
+}
+
+void LiveLooperProcessor::setFreeFirstLoop (bool on)
+{
+    freeFirstLoop.store (on);
+    appsettings::setValue ("looper.freeFirstLoop", on ? "1" : "0");
 }
 } // namespace livelooper

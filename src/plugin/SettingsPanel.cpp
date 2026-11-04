@@ -197,7 +197,7 @@ namespace
 class ActionRow : public juce::Component
 {
 public:
-    ActionRow (const juce::String& t, std::function<void()> fn) : text (t), onClick (std::move (fn)) { setMouseCursor (juce::MouseCursor::PointingHandCursor); }
+    ActionRow (const juce::String& t, std::function<void()> fn) : text (t), onClick (std::move (fn)) { setName (t); setMouseCursor (juce::MouseCursor::PointingHandCursor); }
     void paint (juce::Graphics& g) override
     {
         if (isMouseOverOrDragging())
