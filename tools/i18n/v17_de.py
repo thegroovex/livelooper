@@ -104,6 +104,8 @@ T = [
     ("Open Performance view (fullscreen)", "Performance-Ansicht \u00f6ffnen (Vollbild)"),
     ("Performance view: the 4th choice of \"View\" (also the view switcher in the Live view header); Esc returns",
      "Performance-Ansicht: die 4. Wahl von \u201eAnsicht\u201c (auch die Ansichtsumschaltung oben in der Live-Ansicht); Esc f\u00fchrt zur\u00fcck"),
+    # ---- views: MIDI learn inside the Live / Performance view (bug report 2026-11-04)
+    ("MIDI LEARN - DONE", "MIDI LEARN \u2013 FERTIG"),
 ]
 
 def esc(s):

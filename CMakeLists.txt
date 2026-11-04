@@ -248,6 +248,7 @@ if(LIVELOOPER_BUILD_TESTS)
         tests/Ko2AudioTests.cpp
         tests/V17Tests.cpp
         tests/DisplayTests.cpp
+        tests/ViewMouseTests.cpp
         tests/LoopLengthTests.cpp
         tests/BackupTests.cpp
         ${LIVELOOPER_ENGINE_SOURCES} ${LIVELOOPER_PLUGIN_SOURCES})

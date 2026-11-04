@@ -63,9 +63,43 @@ namespace
     }
 }
 
+#if JUCE_LINUX
+#include <dlfcn.h>
+
+/** xvfb without a window manager has no WM_PROTOCOLS / WM_DELETE_WINDOW ... atoms; JUCE sets WM_PROTOCOLS on every
+    window it creates without checking, which fails with BadAtom. The tests that open real windows (mouse clicks
+    through the window peer, fullscreen Live / Performance windows) create them first. The connection stays open
+    so the server keeps the atoms. */
+static void createWindowManagerAtoms()
+{
+    // libX11 loaded at run time like JUCE does (no X11 headers / link dependency)
+    void* lib = dlopen ("libX11.so.6", RTLD_NOW | RTLD_GLOBAL);
+    if (lib == nullptr)
+        return;
+    using OpenFn = void* (*) (const char*);
+    using InternFn = unsigned long (*) (void*, const char*, int);
+    using SyncFn = int (*) (void*, int);
+    auto open = reinterpret_cast<OpenFn> (dlsym (lib, "XOpenDisplay"));
+    auto intern = reinterpret_cast<InternFn> (dlsym (lib, "XInternAtom"));
+    auto sync = reinterpret_cast<SyncFn> (dlsym (lib, "XSync"));
+    if (open == nullptr || intern == nullptr || sync == nullptr)
+        return;
+    static void* keep = open (nullptr);
+    if (keep == nullptr)
+        return;
+    for (auto* name : { "WM_PROTOCOLS", "WM_TAKE_FOCUS", "WM_DELETE_WINDOW", "_NET_WM_PING", "WM_CHANGE_STATE", "WM_STATE",
+                              "_NET_WM_STATE", "_NET_WM_STATE_HIDDEN", "_NET_WM_STATE_MAXIMIZED_HORZ", "_NET_WM_STATE_MAXIMIZED_VERT" })
+        intern (keep, name, 0);
+    sync (keep, 0);
+}
+#endif
+
 int main (int argc, char* argv[])
 {
     juce::SystemStats::setApplicationCrashHandler (crashHandler);
+   #if JUCE_LINUX
+    createWindowManagerAtoms();
+   #endif
     juce::ScopedJuceInitialiser_GUI gui;
 
     // tests expect the English texts unless they switch the language themselves (never saved)

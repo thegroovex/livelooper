@@ -28,8 +28,6 @@ T = [
      "Jede Karte: Status, Länge, Wellenform, das große REC / PLAY / DUB-Pad, Pegel und STOP."),
     ("The performance FX strip: filter, beat FX, punch, master, echo, repeat, stutter, fill, ALL START / STOP and capture.",
      "Die Performance-FX-Leiste: Filter, Beat-FX, Punch, Master, Echo, Repeat, Stutter, Fill, ALLE START / STOP und Capture."),
-    ("SHIFT + MASTER on Push 1 cycles Full - Live - Live without FX - Performance (also the view switcher in the header). MIDI learn: host parameters View, Live View, Live View FX Bar. Esc or EXIT LIVE returns.",
-     "SHIFT + MASTER am Push 1 schaltet Voll – Live – Live ohne FX – Performance weiter (auch die Ansichtsumschaltung oben). MIDI-Learn: Host-Parameter Ansicht, Live-Ansicht, Live-Ansicht FX-Leiste. Esc oder LIVE BEENDEN führt zurück."),
     # ---- Performance view
     ("PERFORM in the view switcher (or View = Performance, SHIFT + MASTER on Push 1) opens the FX-focused stage view.",
      "PERFORM in der Ansichtsumschaltung (oder Ansicht = Performance, SHIFT + MASTER am Push 1) öffnet die FX-Bühnenansicht."),
@@ -43,8 +41,10 @@ T = [
      "Jedes Bedienelement ist eine vorhandene Funktion: Rechtsklick = MIDI-Learn, im MIDI-LEARN-Modus bekommt jedes Bedienelement seinen Rahmen."),
     ("SETUP > Display > Open Performance view (fullscreen). Esc or EXIT returns.",
      "SETUP > Anzeige > Performance-Ansicht öffnen (Vollbild). Esc oder BEENDEN führt zurück."),
-    ("SETUP > Display > Open Live view (fullscreen): a borderless window kept on top over the whole screen - handy on a second monitor.",
-     "SETUP > Anzeige > Live-Ansicht öffnen (Vollbild): ein randloses Fenster, immer im Vordergrund, über den ganzen Bildschirm – praktisch auf einem zweiten Monitor."),
+    ('SETUP > Display > Open Live view (fullscreen): a borderless window kept on top over the whole screen - handy on a second monitor. On a MacBook Pro the content stays below the notch.',
+     'SETUP > Anzeige > Live-Ansicht öffnen (Vollbild): ein randloses Fenster, immer im Vordergrund, über den ganzen Bildschirm – praktisch auf einem zweiten Monitor. Auf einem MacBook Pro bleibt der Inhalt unter der Notch.'),
+    ('Switch views with a click in the view switcher (FULL - LIVE - LIVE - FX - PERFORM) in the header of every view - on the full surface under the logo - or SHIFT + MASTER on Push 1. MIDI learn: host parameters View, Live View, Live View FX Bar. Esc or EXIT LIVE returns.',
+     'Ansichten per Klick in der Ansichtsumschaltung (VOLL – LIVE – LIVE − FX – PERFORM) oben in jeder Ansicht wechseln – auf der vollen Oberfläche unter dem Logo – oder mit SHIFT + MASTER am Push 1. MIDI-Learn: Host-Parameter Ansicht, Live-Ansicht, Live-Ansicht FX-Leiste. Esc oder LIVE BEENDEN führt zurück.'),
     # ---- Display
     ("SETUP > Display: dark or light theme, interface size 75 - 200 %, stage mode and waveforms.",
      "SETUP > Anzeige: dunkles oder helles Farbschema, Oberflächengröße 75 – 200 %, Bühnenmodus und Wellenformen."),

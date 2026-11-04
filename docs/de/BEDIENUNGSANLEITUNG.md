@@ -12,7 +12,7 @@ Die Oberfläche hat die klassische Anordnung: alle Effekte oben in zwei Reihen (
 
 | Bereich | Inhalt |
 |---|---|
-| Kopfzeile | **LIVE** neben dem Logo (Live-Ansicht, Abschnitt 43), Display (Tempo, Takt/Schlag, Quantisierung, Link, Master-VU in dB, Meldungen), **MIDI LEARN**, **MIDI MAP**, **SETUP**, **?** (Hilfe), der runde **REC**-Knopf (Performance-Recorder) |
+| Kopfzeile | **LIVE** neben dem Logo (Live-Ansicht, Abschnitt 43), darunter die **Ansichtsumschaltung** VOLL · LIVE · LIVE − FX · PERFORM (Abschnitt 43), Display (Tempo, Takt/Schlag, Quantisierung, Link, Master-VU in dB, Meldungen), **MIDI LEARN**, **MIDI MAP**, **SETUP**, **?** (Hilfe), der runde **REC**-Knopf (Performance-Recorder) |
 | FX-Reihe 1 | **EINGANGS-FX** A–D, **EINGANGS-FX … BEARBEITEN** (Typ, zwei Parameter, Mix des gewählten Slots), **SPUR-FX** A–D, **PUNCH-FX** (Abschnitte 3, 39) |
 | FX-Reihe 2 | **BEAT-FX**, **REPEAT / STUTTER**, **COLOR-FX**, **SEND-FX**, **METRONOM** (Abschnitte 25–28, 39) |
 | SPUR 1–5 (oder 1–8) | die Loop-Spuren (SETUP → Looper → Spuren), von oben nach unten: Titelzeile mit der **Loop-Länge**-Pille (AUTO / 1–16 Takte, Abschnitt 45), Display mit Status und Wellenform, RÜCKW. / 1SHOT / FX, Pegel-Fader mit IN/OUT-Anzeige, PAN / COLOR, ZURÜCK / VOR / SETUP, das große REC/PLAY-Pad, STOP |
@@ -690,7 +690,7 @@ REC / PLAY auf einem Pad: blinkt bei Aufnahme / Overdub / Warten, leuchtet beim 
 
 ![Live-Ansicht](../images/livelooper-live-de.png)
 
-Die **Live-Ansicht** ist die Oberfläche für die Bühne: eine große Karte pro Loop-Spur und sonst nichts, was man aus Versehen trifft. Öffnen mit der **LIVE**-Taste neben dem Logo, dem Host-Parameter *Live-Ansicht* (`live_view`, wie jede Funktion per MIDI zuweisbar), **SHIFT + MASTER** am Push 1 oder *SETUP → Anzeige → Live-Ansicht → Live-Ansicht öffnen (Vollbild)*. **Esc**, **LIVE BEENDEN** oder noch einmal LIVE führen zur vollen Oberfläche zurück.
+Die **Live-Ansicht** ist die Oberfläche für die Bühne: eine große Karte pro Loop-Spur und sonst nichts, was man aus Versehen trifft. Öffnen mit der **LIVE**-Taste neben dem Logo, **LIVE** in der Ansichtsumschaltung unter dem Logo, dem Host-Parameter *Live-Ansicht* (`live_view`, wie jede Funktion per MIDI zuweisbar), **SHIFT + MASTER** am Push 1 oder *SETUP → Anzeige → Live-Ansicht → Live-Ansicht öffnen (Vollbild)*. **Esc**, **LIVE BEENDEN** oder noch einmal LIVE führen zur vollen Oberfläche zurück.
 
 | Bereich | Inhalt |
 |---|---|
@@ -698,9 +698,9 @@ Die **Live-Ansicht** ist die Oberfläche für die Bühne: eine große Karte pro 
 | Spur-Karten (5 oder 8) | Zustand (PLAY, DUB, REC, STOP, LEER, REC WAIT …), Länge in Takten, Loop-Position in %, die **Wellenform** mit Abspielmarke, das große **REC / PLAY / DUB**-Pad mit LED-Ring, **PEGEL** (Balken ziehen; die Pegelanzeige läuft hinter der weißen Pegelmarke), **STOP** (1,5 s halten = löschen) |
 | PERFORMANCE-FX | Regler **FILTER** (Performance-Filter), **BEAT-FX** (Beat-FX-Pegel), **PUNCH** (Punch-FX-Stärke), **MASTER**; **ECHO …** (Beat-FX an / aus, zeigt Beat-FX-Typ und Notenwert), **REPEAT** und **STUTTER** (solange gehalten), **FILL** (solange gehalten); der Punch-FX-Balken (der gehaltene Punch-FX mit seiner aktuellen Stärke, sonst der ausgewählte); **ALLE START / STOP**, **CAPTURE** |
 
-Jedes Bedienelement der Live-Ansicht ist dieselbe Funktion wie auf der vollen Oberfläche (Rechtsklick = MIDI Learn). *SETUP → Anzeige → Live-Ansicht* schaltet die **Wellenformen in den Spur-Displays** (standardmäßig an; aus = ein Positionsbalken) und die **Performance-FX-Leiste** (an; aus = höhere Karten; seit 1.7 auch der Host-Parameter *Live-Ansicht FX-Leiste*, `live_fx`). *Live-Ansicht öffnen (Vollbild)* öffnet sie in einem eigenen randlosen Fenster, das den ganzen Bildschirm bedeckt und über anderen Fenstern bleibt (Esc schließt es) – praktisch auf einem zweiten Monitor oder dem Laptop auf der Bühne. Es ist kein gesperrter Kiosk-Modus: die Tastenkürzel des Betriebssystems (App wechseln, Taskleiste / Dock) funktionieren weiter.
+Jedes Bedienelement der Live-Ansicht ist dieselbe Funktion wie auf der vollen Oberfläche (Rechtsklick = MIDI Learn). *SETUP → Anzeige → Live-Ansicht* schaltet die **Wellenformen in den Spur-Displays** (standardmäßig an; aus = ein Positionsbalken) und die **Performance-FX-Leiste** (an; aus = höhere Karten; seit 1.7 auch der Host-Parameter *Live-Ansicht FX-Leiste*, `live_fx`). *Live-Ansicht öffnen (Vollbild)* öffnet sie in einem eigenen randlosen Fenster, das den ganzen Bildschirm bedeckt und über anderen Fenstern bleibt (Esc schließt es) – praktisch auf einem zweiten Monitor oder dem Laptop auf der Bühne. Auf einem MacBook Pro mit Notch bleibt der Inhalt unter der Kamera-Aussparung (der Streifen oben wird mit dem Hintergrund gefüllt; ab macOS 12). Es ist kein gesperrter Kiosk-Modus: die Tastenkürzel des Betriebssystems (App wechseln, Taskleiste / Dock) funktionieren weiter.
 
-**Ansichten mit Push 1 oder MIDI umschalten.** Es gibt vier Ansichten: **Voll** (die ganze Oberfläche), **Live** (die Live-Ansicht mit Performance-FX-Leiste), **Live ohne FX** (die Live-Ansicht mit höheren Karten) und **Performance** (die FX-Bühnenansicht, Abschnitt 47). Live- und Performance-Ansicht haben außerdem oben eine **Ansichtsumschaltung** (VOLL · LIVE · LIVE − FX · PERFORM; Rechtsklick = MIDI Learn von *Ansicht*).
+**Ansichten mit Push 1 oder MIDI umschalten.** Es gibt vier Ansichten: **Voll** (die ganze Oberfläche), **Live** (die Live-Ansicht mit Performance-FX-Leiste), **Live ohne FX** (die Live-Ansicht mit höheren Karten) und **Performance** (die FX-Bühnenansicht, Abschnitt 47). Jede Ansicht hat oben eine **Ansichtsumschaltung** – auf der vollen Oberfläche unter dem Logo, in der Live- und der Performance-Ansicht unter ihrem Logo (VOLL · LIVE · LIVE − FX · PERFORM): Klick auf einen Chip schaltet um, Rechtsklick = MIDI Learn von *Ansicht*. Sie funktioniert genauso in den Vollbild-Fenstern.
 
 | Bedienung | Was passiert |
 |---|---|
@@ -791,7 +791,7 @@ Das sind Einstellungen dieses Computers (wie *Updates* oder *Einstellungen beim 
 
 ![Performance-Ansicht](../images/livelooper-perform-de.png)
 
-Die **Performance-Ansicht** ist die vierte Ansicht, gemacht zum Spielen der Effekte auf der Bühne: oben eine kompakte Reihe Spur-Karten, darunter ein großer **PERFORMANCE-FX**-Bereich. Öffnen mit **PERFORM** in der Ansichtsumschaltung (oben in der Live- und der Performance-Ansicht), dem Host-Parameter *Ansicht* = *Performance* (MIDI Learn: eine Note schaltet weiter, ein CC wählt nach Bereich), **SHIFT + MASTER** am Push 1 (Voll → Live → Live ohne FX → Performance → Voll) oder *SETUP → Anzeige → Live-Ansicht → Performance-Ansicht öffnen (Vollbild)*. **Esc** oder **BEENDEN** führen zur vollen Oberfläche zurück.
+Die **Performance-Ansicht** ist die vierte Ansicht, gemacht zum Spielen der Effekte auf der Bühne: oben eine kompakte Reihe Spur-Karten, darunter ein großer **PERFORMANCE-FX**-Bereich. Öffnen mit **PERFORM** in der Ansichtsumschaltung (oben auf der vollen Oberfläche, in der Live- und der Performance-Ansicht), dem Host-Parameter *Ansicht* = *Performance* (MIDI Learn: eine Note schaltet weiter, ein CC wählt nach Bereich), **SHIFT + MASTER** am Push 1 (Voll → Live → Live ohne FX → Performance → Voll) oder *SETUP → Anzeige → Live-Ansicht → Performance-Ansicht öffnen (Vollbild)*. **Esc** oder **BEENDEN** führen zur vollen Oberfläche zurück.
 
 | Bereich | Inhalt (jeweils eine vorhandene Funktion – keine neuen Effekte) |
 |---|---|

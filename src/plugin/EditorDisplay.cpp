@@ -33,35 +33,50 @@ namespace
     /** v1.7: the fullscreen Live / Performance view window: a borderless window over the whole screen, the
         view scaled to its height. It is a MidiMenuHost so right-click MIDI learn on its controls (pads, STOP,
         level, loop length pills, FX controls) reaches the editor like on the surface. */
+    std::optional<juce::BorderSize<int>> safeInsetsOverride;     // tests
+
+    /** v1.7: the fullscreen Live / Performance view window: a borderless window over the whole screen, the
+        view scaled to its height. It is a MidiMenuHost so right-click MIDI learn on its controls (pads, STOP,
+        level, loop length pills, FX controls) reaches the editor like on the surface.
+        macOS: the view is laid out inside the display's safe area (below the camera housing / notch of
+        MacBook Pro displays); the strip above it is filled with the view's background. */
     template <class View>
     class StageWindow : public juce::Component, public MidiMenuHost
     {
     public:
-        StageWindow (LiveLooperProcessor& p, std::function<TrackStrip*(int)> strips, juce::LookAndFeel& lf, MidiMenuHost& h)
+        StageWindow (LiveLooperProcessor& p, std::function<TrackStrip*(int)> strips, juce::LookAndFeel& lf, MidiMenuHost& h,
+                     const juce::Displays::Display* display)
             : view (p, std::move (strips)), host (h)
         {
             setLookAndFeel (&lf);
             setOpaque (true);
             addAndMakeVisible (view);
-            const auto* display = juce::Desktop::getInstance().getDisplays().getPrimaryDisplay();
+            insets = LiveLooperEditor::getFullscreenSafeInsets (display);
             const auto area = display != nullptr ? display->totalArea : juce::Rectangle<int> (0, 0, 1920, 1080);
             setBounds (area);
         }
         ~StageWindow() override { setLookAndFeel (nullptr); }
         void resized() override
         {
-            // designed at 856 px height: scale to the screen, the width follows the screen's aspect ratio
-            const float sc = juce::jmax (0.5f, (float) getHeight() / (float) LiveLooperEditor::kBaseHeight);
-            view.setBounds (0, 0, juce::roundToInt ((float) getWidth() / sc), LiveLooperEditor::kBaseHeight);
-            view.setTransform (juce::AffineTransform::scale (sc));
+            // designed at 856 px height: scale to the safe area, the width follows its aspect ratio
+            const auto safe = insets.subtractedFrom (getLocalBounds());
+            const float sc = juce::jmax (0.5f, (float) safe.getHeight() / (float) LiveLooperEditor::kBaseHeight);
+            view.setBounds (0, 0, juce::roundToInt ((float) safe.getWidth() / sc), LiveLooperEditor::kBaseHeight);
+            view.setTransform (juce::AffineTransform::scale (sc).translated ((float) safe.getX(), (float) safe.getY()));
         }
-        void paint (juce::Graphics& g) override { g.fillAll (juce::Colours::black); }
+        void paint (juce::Graphics& g) override
+        {
+            // the strip beside the safe area (notch) in the view's background colour
+            const bool light = theme::isLight(), stage = theme::isStage();
+            g.fillAll (stage && ! light ? juce::Colour (0xff050506) : theme::pick (0xff1b1b21, 0xfff1f2f6));
+        }
         void showMidiMenuFor (juce::Component& c) override { host.showMidiMenuFor (c); }
         void exportTrack (int t) override { host.exportTrack (t); }
         void importTrack (int t) override { host.importTrack (t); }
         void showTrackSettings (int t, juce::Component& anchor) override { host.showTrackSettings (t, anchor); }
         View view;
         MidiMenuHost& host;
+        juce::BorderSize<int> insets;
     };
 
     bool performanceSelected (LiveLooperProcessor& proc)
@@ -79,6 +94,11 @@ void LiveLooperEditor::initDisplay()
     liveBtn->setWantsKeyboardFocus (false);
     setParamId (*liveBtn, gLiveView);
     surface.addAndMakeVisible (*liveBtn);
+    // v1.7 views: the view switcher in the header of the full surface too (under the logo, like in the Live view)
+    viewChips = LiveView::makeViewSwitcher (proc);
+    viewChips->onSelect = [this] (int v) { selectViewFromSwitcher (v); };
+    viewChips->setWantsKeyboardFocus (false);
+    surface.addAndMakeVisible (*viewChips);
 
     liveView = std::make_unique<LiveView> (proc, [this] (int t) { return juce::isPositiveAndBelow (t, kNumTracks) ? strips[(size_t) t].get() : nullptr; });
     wireStageView (*liveView);
@@ -103,6 +123,8 @@ void LiveLooperEditor::layoutDisplay (int dx)
     const int x = juce::roundToInt (22.0f + tw + 12.0f + 4.0f * 16.0f + 9.0f) + 12;
     const int w = 46;
     liveBtn->setBounds (juce::jmin (x, lcd.getX() - 6 - w), 25, w, 22);
+    // the view switcher under the tagline (header 0 - 88, the FX rows start at 94)
+    viewChips->setBounds (22, 66, juce::jmin (296, lcd.getX() - 12 - 22), 22);
     liveView->setBounds (surface.getLocalBounds());
     perfView->setBounds (surface.getLocalBounds());
 }
@@ -133,16 +155,46 @@ bool LiveLooperEditor::isLiveViewShown() const noexcept
     return liveView != nullptr && liveView->isVisible();
 }
 
+juce::BorderSize<int> LiveLooperEditor::getFullscreenSafeInsets (const juce::Displays::Display* display)
+{
+    if (safeInsetsOverride.has_value())
+        return *safeInsetsOverride;
+   #if JUCE_MAC
+    // JUCE reads NSScreen.safeAreaInsets (macOS 12+, guarded with @available) into Display::safeAreaInsets
+    if (display != nullptr)
+        return display->safeAreaInsets;
+   #else
+    juce::ignoreUnused (display);
+   #endif
+    return {};
+}
+
+void LiveLooperEditor::setSafeInsetsForTests (std::optional<juce::BorderSize<int>> insets)
+{
+    safeInsetsOverride = insets;
+}
+
+void LiveLooperEditor::selectViewFromSwitcher (int view)
+{
+    // the view switchers (header, Live view, Performance view): set the host parameter View, then apply it after
+    // the click has finished - applying can close the fullscreen window the clicked switcher lives in
+    proc.setView (view);
+    juce::Component::SafePointer<LiveLooperEditor> safe (this);
+    juce::MessageManager::callAsync ([safe] { if (safe != nullptr) safe->applyDisplaySettings(); });
+}
+
 void LiveLooperEditor::wireStageView (LiveView& v)
 {
-    v.onExit = [this] { setLiveView (false); };
+    v.onExit = [this] { if (learnMode) setLearnMode (false); else setLiveView (false); };     // Esc ends MIDI learn first
+    v.getViewSwitcher().onSelect = [this] (int view) { selectViewFromSwitcher (view); };
     v.selectedPunch = [this] { return selectedPunch; };
     v.livePunchAmount = [this] { return shownLivePunch; };
 }
 
 void LiveLooperEditor::wireStageView (PerformView& v)
 {
-    v.onExit = [this] { setLiveView (false); };
+    v.onExit = [this] { if (learnMode) setLearnMode (false); else setLiveView (false); };
+    v.getViewSwitcher().onSelect = [this] (int view) { selectViewFromSwitcher (view); };
     v.selectedPunch = [this] { return selectedPunch; };
     v.onSelectPunch = [this] (int i) {
         selectedPunch = juce::jlimit (0, kNumPunchFx - 1, i);
@@ -159,12 +211,17 @@ void LiveLooperEditor::wireStageView (PerformView& v)
 void LiveLooperEditor::openStageWindow (bool performance)
 {
     closeStageWindow();
+    // the display the editor is on (a second monitor), else the main display
+    const auto& displays = juce::Desktop::getInstance().getDisplays();
+    const auto* display = isShowing() ? displays.getDisplayForRect (getScreenBounds()) : nullptr;
+    if (display == nullptr)
+        display = displays.getPrimaryDisplay();
     auto strips = [this] (int t) { return juce::isPositiveAndBelow (t, kNumTracks) ? this->strips[(size_t) t].get() : nullptr; };
     std::unique_ptr<juce::Component> w;
     juce::Component* focus = nullptr;
     if (performance)
     {
-        auto pw = std::make_unique<StageWindow<PerformView>> (proc, strips, lookAndFeel, *this);
+        auto pw = std::make_unique<StageWindow<PerformView>> (proc, strips, lookAndFeel, *this, display);
         fullscreenPerf = &pw->view;
         wireStageView (*fullscreenPerf);
         focus = fullscreenPerf;
@@ -172,7 +229,7 @@ void LiveLooperEditor::openStageWindow (bool performance)
     }
     else
     {
-        auto lw = std::make_unique<StageWindow<LiveView>> (proc, strips, lookAndFeel, *this);
+        auto lw = std::make_unique<StageWindow<LiveView>> (proc, strips, lookAndFeel, *this, display);
         fullscreenLive = &lw->view;
         wireStageView (*fullscreenLive);
         fullscreenLive->setShowWaveforms (liveView->getShowWaveforms());
@@ -192,7 +249,16 @@ void LiveLooperEditor::closeStageWindow()
 {
     fullscreenLive = nullptr;
     fullscreenPerf = nullptr;
-    liveWindow.reset();
+    if (liveWindow == nullptr)
+        return;
+    // The window is usually closed from inside one of its own events (EXIT / the FULL chip on mouse-down, Esc,
+    // the view switcher). Deleting it there destroyed its peer while the peer was still dispatching that event
+    // (crash "pure virtual method called", the mouse source left on a dead window). Hide it now, delete it after
+    // the event has finished.
+    liveWindow->setVisible (false);
+    retiredStageWindow = std::move (liveWindow);
+    juce::Component::SafePointer<LiveLooperEditor> safe (this);
+    juce::MessageManager::callAsync ([safe] { if (safe != nullptr) safe->retiredStageWindow.reset(); });
 }
 
 void LiveLooperEditor::setLiveView (bool on, bool fullscreen)
@@ -263,6 +329,7 @@ void LiveLooperEditor::applyDisplaySettings (bool force)
     const bool live = stageOn && ! perf;
     TrackStrip::layersWanted = live && liveView->getShowWaveforms();
     liveBtn->setToggleState (stageOn, juce::dontSendNotification);
+    viewChips->refresh();
     auto showView = [this] (juce::Component& v, bool on) {
         if (on == v.isVisible())
             return;

@@ -6,6 +6,8 @@
 #include "LiveView.h"
 #include "PerformView.h"
 
+#include <optional>
+
 namespace livelooper { class GuidedTour;
 class WelcomeScreen;
 class ControllerView; }
@@ -162,12 +164,23 @@ public:
     PerformView* getFullscreenPerformView() noexcept { return fullscreenPerf; }
     /** For tests: the controls the MIDI learn overlay frames right now, and whether it is in front of the Live view. */
     juce::Array<juce::Component*> getLearnablesForTests() { juce::Array<juce::Component*> a; collectMappables (surface, a); return a; }
+    juce::Rectangle<int> getLearnDoneAreaForTests() const { return learnDoneArea(); }
+    juce::Component& getLearnOverlayForTests() noexcept { return overlay; }
     bool isLearnOverlayInFrontForTests() const
     {
         return overlay.isVisible() && (liveView == nullptr || surface.getIndexOfChildComponent (&overlay) > surface.getIndexOfChildComponent (liveView.get()))
                                    && (perfView == nullptr || surface.getIndexOfChildComponent (&overlay) > surface.getIndexOfChildComponent (perfView.get()));
     }
     juce::Button& getLiveButton() noexcept { return *liveBtn; }
+    /** v1.7 views: the view switcher in the header of the full surface (FULL . LIVE . LIVE - FX . PERFORM, host parameter View). */
+    ChoiceChips& getViewSwitcher() noexcept { return *viewChips; }
+    /** v1.7 fullscreen windows: the insets of the display area that is hidden or unsafe (macOS: the camera housing /
+        notch of MacBook Pro displays, from NSScreen.safeAreaInsets on macOS 12+; empty on other systems). */
+    static juce::BorderSize<int> getFullscreenSafeInsets (const juce::Displays::Display* display);
+    /** Tests: pretend the display has these safe area insets (any OS); empty optional = the real display. */
+    static void setSafeInsetsForTests (std::optional<juce::BorderSize<int>> insets);
+    /** The fullscreen window (Live / Performance view) or nullptr. */
+    juce::Component* getStageWindow() noexcept { return liveWindow.get(); }
     void addDisplayMenu (juce::PopupMenu& menu, juce::Array<int>& toggles);
     bool handleDisplayMenu (int result);
     // v1.7 auto backup + crash recovery (EditorBackup.cpp)
@@ -188,7 +201,10 @@ private:
     void timerDisplay();
     std::unique_ptr<LiveView> liveView;
     std::unique_ptr<LiveButton> liveBtn;
+    std::unique_ptr<ChoiceChips> viewChips;           // v1.7 view switcher in the header of the full surface
+    void selectViewFromSwitcher (int view);
     std::unique_ptr<juce::Component> liveWindow;      // fullscreen Live view
+    std::unique_ptr<juce::Component> retiredStageWindow;   // closed fullscreen window, deleted after the event that closed it
     LiveView* fullscreenLive = nullptr;
     std::unique_ptr<PerformView> perfView;            // v1.7 Performance view
     PerformView* fullscreenPerf = nullptr;
@@ -299,6 +315,7 @@ private:
     void commitTempoEntry();
     void updateKeyboardFocusPolicy();
     void collectMappables (juce::Component& parent, juce::Array<juce::Component*>& out);
+    juce::Rectangle<int> learnDoneArea() const;     // v1.7: MIDI LEARN - DONE over the Live / Performance view
     juce::String paramName (const juce::String& id) const;
 
     LiveLooperProcessor& proc;
