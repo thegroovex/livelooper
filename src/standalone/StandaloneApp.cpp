@@ -30,6 +30,10 @@
 #ifdef Component
  #undef Component
 #endif
+// ... and on macOS "Point" as "juce::Point", which breaks juce::Point in the editor headers (PluginEditor.h)
+#ifdef Point
+ #undef Point
+#endif
 
 #include "plugin/AppSettings.h"
 #include "plugin/Localisation.h"

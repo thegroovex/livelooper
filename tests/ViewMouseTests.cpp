@@ -69,6 +69,23 @@ juce::Point<int> clickPoint (juce::Component& c)
 {
     return c.getLocalBounds().getCentre();
 }
+/** The editor at the top left of the screen, at an interface size that fits on it (the Windows CI runner has a
+    1024 x 768 screen: an editor larger than the screen got clicks on its off-screen part lost and the OS hit-test
+    offset - the views themselves were fine). */
+bool fitsOnScreen (int percent, juce::Rectangle<int> screen)
+{
+    return screen.isEmpty()
+        || (LiveLooperEditor::kBaseWidth * percent / 100 <= screen.getWidth() && LiveLooperEditor::kBaseHeight * percent / 100 <= screen.getHeight());
+}
+
+int placeOnScreen (LiveLooperEditor& e, juce::Rectangle<int> screen)
+{
+    const int percent = fitsOnScreen (100, screen) ? 100 : 75;
+    if (percent != 100)
+        e.setGuiScale (percent);
+    e.setTopLeftPosition (screen.getPosition());
+    return percent;
+}
 } // namespace
 
 class ViewMouseTests : public juce::UnitTest
@@ -123,7 +140,11 @@ public:
     {
         juce::Rectangle<int> screen;
         if (auto* d = juce::Desktop::getInstance().getDisplays().getPrimaryDisplay())
-            screen = d->userArea;
+        {
+            screen = d->userBounds.toNearestInt();
+            logMessage ("primary display " + d->logicalBounds.toString() + ", user area " + screen.toString() + ", scale " + juce::String (d->scale)
+                        + (fitsOnScreen (100, screen) ? juce::String() : juce::String (" - editor at 75 %")));
+        }
 
         beginTest ("Full view: the view switcher in the header is clickable and selects every view (host parameter View)");
         {
@@ -133,7 +154,7 @@ public:
             std::unique_ptr<juce::AudioProcessorEditor> ed (proc.createEditor());
             auto* e = dynamic_cast<LiveLooperEditor*> (ed.get());
             ed->setSize (LiveLooperEditor::kBaseWidth, LiveLooperEditor::kBaseHeight);
-            ed->setTopLeftPosition (screen.getPosition());
+            placeOnScreen (*e, screen);
             ed->addToDesktop (juce::ComponentPeer::windowAppearsOnTaskbar);
             ed->setVisible (true);
             pump (20);
@@ -192,7 +213,7 @@ public:
             std::unique_ptr<juce::AudioProcessorEditor> ed (proc.createEditor());
             auto* e = dynamic_cast<LiveLooperEditor*> (ed.get());
             ed->setSize (LiveLooperEditor::kBaseWidth, LiveLooperEditor::kBaseHeight);
-            ed->setTopLeftPosition (screen.getPosition());
+            placeOnScreen (*e, screen);
             ed->addToDesktop (juce::ComponentPeer::windowAppearsOnTaskbar);
             ed->setVisible (true);
             pump (20);
@@ -223,12 +244,18 @@ public:
                 e->applyDisplaySettings();
                 expect (! e->isStageViewShown(), name + ": EXIT click returns to the full surface");
             }
-            // interface size 150 %: the clicks still land
-            e->setGuiScale (150);
+            // interface size 150 % (125 % on a small screen): the clicks still land
+            const int bigSize = fitsOnScreen (150, screen) ? 150 : fitsOnScreen (125, screen) ? 125 : 0;
+            if (bigSize == 0)
+                logMessage ("screen " + screen.toString() + " too small for 125 / 150 %: larger interface size not clicked");
+            else
+                e->setGuiScale (bigSize);
             pump (20);
             for (int view : { 1, 3 })
             {
-                const juce::String name = juce::String (view == 1 ? "Live" : "Performance") + " at 150 %";
+                if (bigSize == 0)
+                    break;
+                const juce::String name = juce::String (view == 1 ? "Live" : "Performance") + " at " + juce::String (bigSize) + " %";
                 auto& vs = e->getViewSwitcher();
                 expect (clickAt (vs, vs.getChipBounds (view).getCentre()), name);
                 pump (20);
@@ -245,7 +272,7 @@ public:
                 pump (20);
                 expect (! e->isStageViewShown(), name + ": FULL chip");
             }
-            e->setGuiScale (100);
+            e->setGuiScale (fitsOnScreen (100, screen) ? 100 : 75);
             pump (20);
             // MIDI learn mode inside a stage view: the learn overlay takes every click (it picks the learn target), the
             // MIDI LEARN button of the header is hidden behind the view - before, nothing reacted and only Esc (which
@@ -300,7 +327,7 @@ public:
             std::unique_ptr<juce::AudioProcessorEditor> ed (proc.createEditor());
             auto* e = dynamic_cast<LiveLooperEditor*> (ed.get());
             ed->setSize (LiveLooperEditor::kBaseWidth, LiveLooperEditor::kBaseHeight);
-            ed->setTopLeftPosition (screen.getPosition());
+            placeOnScreen (*e, screen);
             ed->addToDesktop (juce::ComponentPeer::windowAppearsOnTaskbar);
             ed->setVisible (true);
             pump (20);
@@ -370,7 +397,7 @@ public:
             std::unique_ptr<juce::AudioProcessorEditor> ed (proc.createEditor());
             auto* e = dynamic_cast<LiveLooperEditor*> (ed.get());
             ed->setSize (LiveLooperEditor::kBaseWidth, LiveLooperEditor::kBaseHeight);
-            ed->setTopLeftPosition (screen.getPosition());
+            placeOnScreen (*e, screen);
             ed->addToDesktop (juce::ComponentPeer::windowAppearsOnTaskbar);
             ed->setVisible (true);
             pump (20);
@@ -413,7 +440,7 @@ public:
             std::unique_ptr<juce::AudioProcessorEditor> ed (proc.createEditor());
             auto* e = dynamic_cast<LiveLooperEditor*> (ed.get());
             ed->setSize (LiveLooperEditor::kBaseWidth, LiveLooperEditor::kBaseHeight);
-            ed->setTopLeftPosition (screen.getPosition());
+            placeOnScreen (*e, screen);
             ed->addToDesktop (juce::ComponentPeer::windowAppearsOnTaskbar);
             ed->setVisible (true);
             pump (20);
