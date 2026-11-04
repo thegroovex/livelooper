@@ -402,6 +402,82 @@ public:
             LiveLooperEditor::setSafeInsetsForTests (std::nullopt);
             ed->removeFromDesktop();
         }
+
+        beginTest ("View switch only after the mouse button is up (macOS: no click reached the UI after a switch); mouse diagnostics log");
+        {
+            MouseTempFolder tmp;
+            const auto logFile = tmp.dir.getChildFile ("mouse.log");
+            LiveLooperEditor::setMouseLogFileForTests (logFile);
+            auto procOwner = std::make_unique<LiveLooperProcessor> (false, false);
+            auto& proc = *procOwner;
+            std::unique_ptr<juce::AudioProcessorEditor> ed (proc.createEditor());
+            auto* e = dynamic_cast<LiveLooperEditor*> (ed.get());
+            ed->setSize (LiveLooperEditor::kBaseWidth, LiveLooperEditor::kBaseHeight);
+            ed->setTopLeftPosition (screen.getPosition());
+            ed->addToDesktop (juce::ComponentPeer::windowAppearsOnTaskbar);
+            ed->setVisible (true);
+            pump (20);
+            expect (! e->isMouseLogEnabled(), "mouse log off by default");
+            e->setMouseLogEnabled (true);
+            expect (e->isMouseLogEnabled() && logFile.existsAsFile(), "log file started");
+
+            // press on the LIVE chip and keep the button down: nothing switches yet
+            auto& vs = e->getViewSwitcher();
+            auto* peer = vs.getPeer();
+            expect (peer != nullptr);
+            const auto pos = peer->globalToLocal (vs.localPointToGlobal (vs.getChipBounds (1).getCentre().toFloat()));
+            using Src = juce::MouseInputSource::InputSourceType;
+            mouseTime += 400;
+            peer->handleMouseEvent (Src::mouse, pos, {}, juce::MouseInputSource::defaultPressure, 0.0f, mouseTime);
+            peer->handleMouseEvent (Src::mouse, pos, juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier),
+                                    juce::MouseInputSource::defaultPressure, 0.0f, mouseTime + 1);
+            pump (40);
+            expectEquals (proc.getView(), 0, "no switch while the button is held");
+            expect (! e->isStageViewShown(), "no view while the button is held");
+            peer->handleMouseEvent (Src::mouse, pos, {}, juce::MouseInputSource::defaultPressure, 0.0f, mouseTime + 60);
+            pump (40);
+            expectEquals (proc.getView(), 1, "switch on release");
+            expect (e->isLiveViewShown(), "Live view after the release");
+            peer->handleMouseEvent (Src::mouse, { -50.0f, -50.0f }, {}, juce::MouseInputSource::defaultPressure, 0.0f, mouseTime + 80);
+            pump (40);
+            // press on a chip, release outside it: no switch (like a button)
+            auto& lvs = e->getLiveView()->getViewSwitcher();
+            const auto p3 = peer->globalToLocal (lvs.localPointToGlobal (lvs.getChipBounds (3).getCentre().toFloat()));
+            mouseTime += 400;
+            peer->handleMouseEvent (Src::mouse, p3, juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier),
+                                    juce::MouseInputSource::defaultPressure, 0.0f, mouseTime);
+            peer->handleMouseEvent (Src::mouse, p3 + juce::Point<float> (0.0f, 300.0f), {}, juce::MouseInputSource::defaultPressure, 0.0f, mouseTime + 60);
+            pump (40);
+            expectEquals (proc.getView(), 1, "released outside the chip: no switch");
+            // every control of the Live view still takes clicks after the switch
+            DownCounter dc;
+            e->getLiveView()->addMouseListener (&dc, true);
+            expect (clickAt (lvs, lvs.getChipBounds (3).getCentre()));
+            pump (40);
+            e->getLiveView()->removeMouseListener (&dc);
+            expect (dc.downs >= 1, "the click after the switch reaches the Live view");
+            expect (e->isPerformViewShown(), "PERFORM chip");
+            auto& pvs = e->getPerformView()->getViewSwitcher();
+            expect (clickAt (pvs, pvs.getChipBounds (0).getCentre()));
+            pump (40);
+            expect (! e->isStageViewShown(), "FULL");
+
+            const auto log = logFile.loadFileAsString();
+            expect (log.contains ("mouse log started"), "log header");
+            expect (log.contains ("mouseDown"), "mouse-downs logged");
+            expect (log.contains ("ChoiceChips") && log.contains ("param " + gView), "target component (view switcher, its parameter) logged");
+            expect (log.contains ("desktop[0]") && log.contains ("contains(mouse)"), "windows on the desktop and the peer hit test logged");
+            expect (log.contains ("view shown: View 1") && log.contains ("view shown: View 3") && log.contains ("view shown: View 0"), "view switches logged");
+            expect (log.contains ("focused:") && log.contains ("modal components"), "focus / modal state logged");
+            expect (! log.contains ("PRESS NOT DELIVERED"), "every press reached a component");
+            e->setMouseLogEnabled (false);
+            const auto size = logFile.getSize();
+            expect (clickAt (e->getViewSwitcher(), e->getViewSwitcher().getChipBounds (0).getCentre()));
+            pump (20);
+            expectEquals (logFile.getSize(), size, "nothing logged once off");
+            LiveLooperEditor::setMouseLogFileForTests ({});
+            ed->removeFromDesktop();
+        }
     }
 };
 

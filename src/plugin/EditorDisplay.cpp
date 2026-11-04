@@ -2,6 +2,8 @@
 // Menu ids 1900 - 1949.
 #include "PluginEditor.h"
 #include "AppSettings.h"
+#include "MouseLogNative.h"
+#include <typeinfo>
 
 namespace livelooper
 {
@@ -79,6 +81,16 @@ namespace
         juce::BorderSize<int> insets;
     };
 
+    /** A mouse button is held on any mouse source (JUCE's view of it - the same state the click is dispatched with). */
+    bool anyMouseButtonDown()
+    {
+        auto& desktop = juce::Desktop::getInstance();
+        for (int i = 0; i < desktop.getNumMouseSources(); ++i)
+            if (auto* m = desktop.getMouseSource (i); m != nullptr && m->isDragging())
+                return true;
+        return false;
+    }
+
     bool performanceSelected (LiveLooperProcessor& proc)
     {
         return paramOn (proc, gLiveView) && juce::roundToInt (proc.getState().getRawParameterValue (gView)->load()) == kPerformanceView;
@@ -108,6 +120,10 @@ void LiveLooperEditor::initDisplay()
     perfView = std::make_unique<PerformView> (proc, [this] (int t) { return juce::isPositiveAndBelow (t, kNumTracks) ? strips[(size_t) t].get() : nullptr; });
     wireStageView (*perfView);
     surface.addChildComponent (*perfView);
+
+    // v1.7 mouse diagnostics: SETUP > Display or LIVELOOPER_MOUSE_LOG=1 (default off)
+    if (appsettings::getValue ("debug.mouseLog") == "1" || juce::SystemStats::getEnvironmentVariable ("LIVELOOPER_MOUSE_LOG", {}) == "1")
+        setMouseLogEnabled (true);
 
     guiScale = appsettings::getValue (kScaleKey, "100").getIntValue();
     if (std::find (std::begin (kGuiScales), std::end (kGuiScales), guiScale) == std::end (kGuiScales))
@@ -178,9 +194,30 @@ void LiveLooperEditor::selectViewFromSwitcher (int view)
 {
     // the view switchers (header, Live view, Performance view): set the host parameter View, then apply it after
     // the click has finished - applying can close the fullscreen window the clicked switcher lives in
+    // (v1.7 bug report, macOS: after a view switch no click reached the UI any more, only Esc): the switch -
+    // showing an opaque view over the surface, keyboard focus, opening / closing a fullscreen window - now
+    // happens after the mouse button is up, never while macOS is still tracking the press
     proc.setView (view);
+    logMouseNote ("view switcher: View = " + juce::String (view));
+    runWhenMouseReleased ([this] { applyDisplaySettings(); });
+}
+
+void LiveLooperEditor::runWhenMouseReleased (std::function<void()> fn, int tries)
+{
     juce::Component::SafePointer<LiveLooperEditor> safe (this);
-    juce::MessageManager::callAsync ([safe] { if (safe != nullptr) safe->applyDisplaySettings(); });
+    juce::MessageManager::callAsync ([safe, fn = std::move (fn), tries]() mutable {
+        if (safe == nullptr)
+            return;
+        if (anyMouseButtonDown() && tries < 100)        // at most ~1.5 s, then anyway
+        {
+            juce::Timer::callAfterDelay (15, [safe, fn = std::move (fn), tries]() mutable {
+                if (safe != nullptr)
+                    safe->runWhenMouseReleased (std::move (fn), tries + 1);
+            });
+            return;
+        }
+        fn();
+    });
 }
 
 void LiveLooperEditor::wireStageView (LiveView& v)
@@ -340,11 +377,19 @@ void LiveLooperEditor::applyDisplaySettings (bool force)
             if (learnMode)
                 overlay.toFront (false);    // v1.7: the learn frames stay visible over the Live / Performance view
             if (isShowing())
-                v.grabKeyboardFocus();
+            {
+                if (anyMouseButtonDown())
+                    pendingViewFocus = true;    // taken by the timer once the button is up (no focus change mid-press)
+                else
+                    v.grabKeyboardFocus();
+            }
         }
     };
+    const bool liveWas = liveView->isVisible(), perfWas = perfView->isVisible();
     showView (*liveView, live);
     showView (*perfView, perf);
+    if (mouseLog != nullptr && (liveWas != live || perfWas != perf))
+        logMouseNote ("view shown: " + describeViewState());
     if (! stageOn && shownLive && learnMode)
     {
         overlay.toFront (false);
@@ -360,6 +405,14 @@ void LiveLooperEditor::applyDisplaySettings (bool force)
 void LiveLooperEditor::timerDisplay()
 {
     applyDisplaySettings();
+    if (pendingViewFocus && ! anyMouseButtonDown())
+    {
+        pendingViewFocus = false;
+        juce::Component* v = isPerformViewShown() ? (juce::Component*) perfView.get()
+                           : isLiveViewShown() ? (juce::Component*) liveView.get() : nullptr;
+        if (v != nullptr && isShowing() && liveWindow == nullptr)
+            v->grabKeyboardFocus();
+    }
     if (isLiveViewShown())
         liveView->refresh (blinkCounter % 16 < 8);
     if (fullscreenLive != nullptr)
@@ -394,8 +447,12 @@ void LiveLooperEditor::addDisplayMenu (juce::PopupMenu& menu, juce::Array<int>& 
     menu.addItem (1911, tr ("Show waveforms in the loop tracks"), true, paramOn (proc, gWaveforms));
     menu.addSubMenu (tr ("Live view"), live);
     menu.addSeparator();
+    menu.addItem (1912, tr ("Mouse diagnostics log (for bug reports)"), true, isMouseLogEnabled());
+    if (isMouseLogEnabled())
+        menu.addItem (1913, tr ("Show the mouse log file"));
+    menu.addSeparator();
     menu.addItem (1947, tr ("Interface size and theme are remembered on this computer"), false);
-    toggles.addArray ({ 1910, 1911, 1921, 1922, -1900, -1901 });
+    toggles.addArray ({ 1910, 1911, 1912, 1921, 1922, -1900, -1901 });
 }
 
 bool LiveLooperEditor::handleDisplayMenu (int r)
@@ -416,10 +473,233 @@ bool LiveLooperEditor::handleDisplayMenu (int r)
                 fullscreenLive->setShowWaveforms (liveView->getShowWaveforms());
             appsettings::setValue (kLiveWavesKey, liveView->getShowWaveforms() ? "1" : "0");
             break;
+        case 1912:
+            setMouseLogEnabled (! isMouseLogEnabled());
+            appsettings::setValue ("debug.mouseLog", isMouseLogEnabled() ? "1" : "0");
+            showStatus (isMouseLogEnabled() ? tr ("MOUSE LOG: %1", getMouseLogFile().getFullPathName()) : tr ("MOUSE LOG OFF"));
+            break;
+        case 1913: getMouseLogFile().revealToUser(); break;
         case 1922: setParam (proc, gLiveFx, paramOn (proc, gLiveFx) ? 0.0f : 1.0f); break;    // applied below
         default: break;
     }
     applyDisplaySettings();
     return true;
 }
+//============================================================================== v1.7 mouse diagnostics
+namespace
+{
+    juce::File mouseLogFileOverride;      // tests
+
+    juce::String describeComponent (const juce::Component* c)
+    {
+        if (c == nullptr)
+            return "none";
+        juce::String s (typeid (*c).name());
+        if (c->getName().isNotEmpty())
+            s << " \"" << c->getName() << "\"";
+        if (const auto id = getParamId (*c); id.isNotEmpty())
+            s << " param " << id;
+        bool self = true, children = true;
+        c->getInterceptsMouseClicks (self, children);
+        s << " screen " << c->getScreenBounds().toString()
+          << " visible " << (c->isVisible() ? 1 : 0) << " showing " << (c->isShowing() ? 1 : 0)
+          << " clicks " << (self ? 1 : 0) << (children ? 1 : 0)
+          << (c->isTransformed() ? " transformed" : "")
+          << (c->isOnDesktop() ? " [desktop]" : "");
+        return s;
+    }
+
+    juce::String parentChain (const juce::Component* c)
+    {
+        juce::StringArray names;
+        for (auto* p = c != nullptr ? c->getParentComponent() : nullptr; p != nullptr && names.size() < 6; p = p->getParentComponent())
+            names.add (juce::String (typeid (*p).name()) + (p->getName().isNotEmpty() ? " \"" + p->getName() + "\"" : juce::String()));
+        return names.joinIntoString (" < ");
+    }
+}
+
+/** Writes what the mouse did, and the state around it, to the mouse log (see setMouseLogEnabled). A global mouse
+    listener sees every mouse-down JUCE dispatches to a component; a 15 ms poll of the OS / JUCE button state
+    catches presses that never reached a component (blocked by a window in front, a modal component, a mouse
+    source stuck in a drag). */
+struct LiveLooperEditor::MouseLog : public juce::Timer, public juce::MouseListener
+{
+    MouseLog (LiveLooperEditor& e) : editor (e), file (LiveLooperEditor::getMouseLogFile())
+    {
+        file.getParentDirectory().createDirectory();
+        if (file.getSize() > 4 * 1024 * 1024)
+            file.deleteFile();
+        auto& d = juce::Desktop::getInstance();
+        juce::String s;
+        s << "\n===== livelooper " << LIVELOOPER_VERSION << " mouse log started " << juce::Time::getCurrentTime().toString (true, true, true, true)
+          << " | " << juce::SystemStats::getOperatingSystemName() << " | " << juce::SystemStats::getJUCEVersion()
+          << " | host " << juce::PluginHostType().getHostDescription()
+          << " | " << (juce::JUCEApplicationBase::isStandaloneApp() ? "standalone" : "plug-in") << "\n";
+        for (auto& disp : d.getDisplays().displays)
+            s << "  display " << disp.logicalBounds.toString() << " user " << disp.userBounds.toString() << " scale " << disp.scale
+              << " safe insets " << disp.safeAreaInsets.getTop() << "," << disp.safeAreaInsets.getLeft() << ","
+              << disp.safeAreaInsets.getBottom() << "," << disp.safeAreaInsets.getRight() << (disp.isMain ? " main" : "") << "\n";
+        s << "  global scale " << d.getGlobalScaleFactor() << ", editor desktop scale " << editor.getDesktopScaleFactor() << "\n";
+        write (s);
+        d.addGlobalMouseListener (this);
+        startTimer (15);
+    }
+
+    ~MouseLog() override
+    {
+        stopTimer();
+        juce::Desktop::getInstance().removeGlobalMouseListener (this);
+    }
+
+    void write (const juce::String& text)
+    {
+        file.appendText (text.endsWithChar ('\n') ? text : text + "\n", false, false, "\n");
+    }
+
+    juce::String stamp() const { return juce::Time::getCurrentTime().formatted ("%H:%M:%S.") + juce::String (juce::Time::getCurrentTime().getMilliseconds()).paddedLeft ('0', 3); }
+
+    juce::String snapshot (juce::Point<float> screenPos)
+    {
+        auto& d = juce::Desktop::getInstance();
+        juce::String s;
+        s << "  state: " << editor.describeViewState() << "\n";
+        s << "  focused: " << describeComponent (juce::Component::getCurrentlyFocusedComponent())
+          << " | modal components " << juce::Component::getNumCurrentlyModalComponents();
+        if (auto* m = juce::Component::getCurrentlyModalComponent())
+            s << " top modal: " << describeComponent (m);
+        s << " | foreground process " << (juce::Process::isForegroundProcess() ? 1 : 0) << "\n";
+        for (int i = 0; i < d.getNumMouseSources(); ++i)
+            if (auto* m = d.getMouseSource (i))
+                s << "  mouse source " << i << ": at " << m->getScreenPosition().toString() << " dragging " << (m->isDragging() ? 1 : 0)
+                  << " under mouse: " << describeComponent (m->getComponentUnderMouse()) << "\n";
+        const auto at = screenPos.roundToInt();
+        auto* hit = d.findComponentAt (at);
+        s << "  Desktop::findComponentAt " << at.toString() << ": " << describeComponent (hit) << " | parents: " << parentChain (hit) << "\n";
+        for (int i = 0; i < d.getNumComponents(); ++i)
+        {
+            auto* c = d.getComponent (i);
+            if (c == nullptr)
+                continue;
+            s << "  desktop[" << i << "] " << describeComponent (c) << " alwaysOnTop " << (c->isAlwaysOnTop() ? 1 : 0);
+            if (auto* peer = c->getPeer())
+            {
+                const auto local = peer->globalToLocal (screenPos).roundToInt();
+                s << " | peer style 0x" << juce::String::toHexString (peer->getStyleFlags())
+                  << " focused " << (peer->isFocused() ? 1 : 0) << " minimised " << (peer->isMinimised() ? 1 : 0)
+                  << " platform scale " << peer->getPlatformScaleFactor()
+                  << " peer bounds " << peer->getBounds().toString()
+                  << " contains(mouse) " << (peer->contains (local, false) ? 1 : 0) << "/" << (peer->contains (local, true) ? 1 : 0);
+            }
+            s << "\n";
+        }
+        s << juce::String (mouselog::native::describeWindows());
+        return s;
+    }
+
+    void mouseDown (const juce::MouseEvent& e) override
+    {
+        juceDowns++;
+        const auto screen = e.getScreenPosition();
+        juce::String s;
+        s << stamp() << " mouseDown " << (e.mods.isPopupMenu() ? "(right) " : "") << "at " << screen.toString()
+          << " -> " << describeComponent (e.eventComponent) << "\n  parents: " << parentChain (e.eventComponent)
+          << "\n  peer: " << describeComponent (e.eventComponent != nullptr && e.eventComponent->getPeer() != nullptr
+                                                  ? &e.eventComponent->getPeer()->getComponent() : nullptr) << "\n";
+        s << snapshot (screen.toFloat());
+        write (s);
+    }
+
+    void mouseUp (const juce::MouseEvent& e) override
+    {
+        write (stamp() + " mouseUp at " + e.getScreenPosition().toString() + " -> " + describeComponent (e.eventComponent));
+    }
+
+    void timerCallback() override
+    {
+        // a press the OS saw (macOS) or JUCE's mouse source has, compared with the mouse-downs that arrived
+        const int os = mouselog::native::pressedMouseButtons();
+        const bool down = os >= 0 ? (os != 0) : anyMouseButtonDown();
+        if (down && ! wasDown)
+        {
+            pressDowns = juceDowns;
+            pressAt = juce::Desktop::getMousePosition().toFloat();
+            pressTime = juce::Time::getMillisecondCounter();
+            pressReported = false;
+        }
+        if (wasDown && ! pressReported && juceDowns == pressDowns
+            && (! down || juce::Time::getMillisecondCounter() - pressTime > 300))
+        {
+            pressReported = true;
+            write (stamp() + " PRESS NOT DELIVERED to any component (the OS reported a mouse button down at "
+                   + pressAt.toString() + ", JUCE dispatched no mouse-down)\n" + snapshot (pressAt));
+        }
+        if (! down)
+            pressReported = true;
+        wasDown = down;
+    }
+
+    LiveLooperEditor& editor;
+    juce::File file;
+    int juceDowns = 0, pressDowns = 0;
+    bool wasDown = false, pressReported = true;
+    juce::Point<float> pressAt;
+    juce::uint32 pressTime = 0;
+};
+
+juce::File LiveLooperEditor::getMouseLogFile()
+{
+    if (mouseLogFileOverride != juce::File())
+        return mouseLogFileOverride;
+   #if JUCE_MAC
+    return juce::File::getSpecialLocation (juce::File::userHomeDirectory).getChildFile ("Library/Logs/livelooper-mouse.log");
+   #else
+    return juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("livelooper-mouse.log");
+   #endif
+}
+
+void LiveLooperEditor::setMouseLogFileForTests (const juce::File& f)
+{
+    mouseLogFileOverride = f;
+}
+
+void LiveLooperEditor::setMouseLogEnabled (bool on)
+{
+    if (on == (mouseLog != nullptr))
+        return;
+    if (on)
+        mouseLog = std::make_unique<MouseLog> (*this);
+    else
+    {
+        logMouseNote ("mouse log stopped");
+        mouseLog.reset();
+    }
+}
+
+void LiveLooperEditor::logMouseNote (const juce::String& text)
+{
+    if (auto* m = dynamic_cast<MouseLog*> (mouseLog.get()))
+        m->write (m->stamp() + " " + text);
+}
+
+juce::String LiveLooperEditor::describeViewState() const
+{
+    juce::String s;
+    s << "View " << juce::roundToInt (proc.getState().getRawParameterValue (gView)->load())
+      << " live_view " << (paramOn (proc, gLiveView) ? 1 : 0)
+      << " | Live view shown " << (isLiveViewShown() ? 1 : 0) << " Performance view shown " << (isPerformViewShown() ? 1 : 0)
+      << " | fullscreen window " << (liveWindow != nullptr ? (liveWindow->isVisible() ? "visible" : "hidden") : "none")
+      << (retiredStageWindow != nullptr ? " (+ retired one)" : "")
+      << " | MIDI learn " << (learnMode ? 1 : 0) << " | editor " << getScreenBounds().toString()
+      << " scale " << (float) getHeight() / (float) kBaseHeight
+      << " | pending view focus " << (pendingViewFocus ? 1 : 0);
+    return s;
+}
+
+#if ! JUCE_MAC
+namespace mouselog::native
+{
+int pressedMouseButtons() { return -1; }
+std::string describeWindows() { return {}; }
+}
+#endif
 } // namespace livelooper

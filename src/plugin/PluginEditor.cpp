@@ -365,6 +365,7 @@ LiveLooperEditor::~LiveLooperEditor()
     proc.removeChangeListener (this);
     i18n::removeListener (this);
     stopTimer();
+    mouseLog.reset();                   // v1.7 mouse diagnostics (global mouse listener)
     liveWindow.reset();                 // v1.7 fullscreen windows use the editor's look and feel
     retiredStageWindow.reset();
     setLookAndFeel (nullptr);

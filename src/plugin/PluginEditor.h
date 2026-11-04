@@ -194,6 +194,17 @@ public:
     void pressBackupToastButton (int index);
     /** Applies theme / stage mode / waveforms / Live view from the parameters (timer; public for tests). */
     void applyDisplaySettings (bool force = false);
+    /** v1.7 mouse diagnostics (SETUP > Display, or the environment variable LIVELOOPER_MOUSE_LOG=1): every mouse-down
+        (target component, bounds, peer, windows on the desktop, modal / focus / mouse source state), presses the OS
+        saw that never reached a component, and the view switches are written to getMouseLogFile(). Default off. */
+    void setMouseLogEnabled (bool on);
+    bool isMouseLogEnabled() const noexcept { return mouseLog != nullptr; }
+    /** macOS: ~/Library/Logs/livelooper-mouse.log, other systems: livelooper-mouse.log in the temp folder. */
+    static juce::File getMouseLogFile();
+    /** Tests: write the log to this file instead (an empty File = the normal place). */
+    static void setMouseLogFileForTests (const juce::File& f);
+    /** One line in the mouse log (when it is on). */
+    void logMouseNote (const juce::String& text);
 
 private:
     void initDisplay();
@@ -203,6 +214,13 @@ private:
     std::unique_ptr<LiveButton> liveBtn;
     std::unique_ptr<ChoiceChips> viewChips;           // v1.7 view switcher in the header of the full surface
     void selectViewFromSwitcher (int view);
+    /** Runs fn on the message thread once no mouse button is held any more (a view switch or a focus change while
+        the button is down left macOS with the press on a component / window that is gone). */
+    void runWhenMouseReleased (std::function<void()> fn, int tries = 0);
+    bool pendingViewFocus = false;                    // keyboard focus for the shown view, taken after the press
+    struct MouseLog;
+    std::unique_ptr<juce::Timer> mouseLog;            // v1.7 mouse diagnostics (MouseLog in EditorDisplay.cpp)
+    juce::String describeViewState() const;
     std::unique_ptr<juce::Component> liveWindow;      // fullscreen Live view
     std::unique_ptr<juce::Component> retiredStageWindow;   // closed fullscreen window, deleted after the event that closed it
     LiveView* fullscreenLive = nullptr;

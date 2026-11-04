@@ -15,6 +15,7 @@ public:
                  std::vector<int> choices = {}, juce::Colour accent = colours::cyan);
     void paint (juce::Graphics& g) override;
     void mouseDown (const juce::MouseEvent& e) override;
+    void mouseUp (const juce::MouseEvent& e) override;
     void mouseMove (const juce::MouseEvent& e) override;
     void mouseExit (const juce::MouseEvent& e) override;
     /** Called instead of setting the parameter (e.g. the view switcher sets view + live_view together). */
@@ -39,7 +40,7 @@ private:
     std::vector<int> values;
     juce::Colour accent;
     bool brand = false, grouped = false;
-    int hover = -1, shown = -2;
+    int hover = -1, shown = -2, pressedChip = -1;
 };
 
 /** v1.7 Performance view: a large pad tile - momentary (held = on), toggle or trigger - lit while its

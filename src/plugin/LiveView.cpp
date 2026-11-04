@@ -635,11 +635,22 @@ void ChoiceChips::refresh()
 
 void ChoiceChips::mouseDown (const juce::MouseEvent& e)
 {
+    pressedChip = -1;
     if (handleMidiRightClick (*this, e))
         return;
+    // v1.7: a chip is chosen on release like a button (a view switch while macOS still tracks the press left the
+    // press on a component / window the switch had covered or closed)
     for (int i = 0; i < labels.size(); ++i)
         if (getChipBounds (i).contains (e.getPosition()))
-            selectChip (i);
+            pressedChip = i;
+}
+
+void ChoiceChips::mouseUp (const juce::MouseEvent& e)
+{
+    const int chip = pressedChip;
+    pressedChip = -1;
+    if (chip >= 0 && ! e.mods.isPopupMenu() && getChipBounds (chip).contains (e.getPosition()))
+        selectChip (chip);
 }
 
 void ChoiceChips::mouseMove (const juce::MouseEvent& e)

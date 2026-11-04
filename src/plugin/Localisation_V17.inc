@@ -129,3 +129,7 @@
         { "Open Performance view (fullscreen)", "Performance-Ansicht \xc3" "\xb6" "ffnen (Vollbild)" },
         { "Performance view: the 4th choice of \"View\" (also the view switcher in the Live view header); Esc returns", "Performance-Ansicht: die 4. Wahl von \xe2" "\x80" "\x9e" "Ansicht\xe2" "\x80" "\x9c" " (auch die Ansichtsumschaltung oben in der Live-Ansicht); Esc f\xc3" "\xbc" "hrt zur\xc3" "\xbc" "ck" },
         { "MIDI LEARN - DONE", "MIDI LEARN \xe2" "\x80" "\x93" " FERTIG" },
+        { "Mouse diagnostics log (for bug reports)", "Maus-Diagnoseprotokoll (f\xc3" "\xbc" "r Fehlerberichte)" },
+        { "Show the mouse log file", "Maus-Protokolldatei zeigen" },
+        { "MOUSE LOG: %1", "MAUS-PROTOKOLL: %1" },
+        { "MOUSE LOG OFF", "MAUS-PROTOKOLL AUS" },
