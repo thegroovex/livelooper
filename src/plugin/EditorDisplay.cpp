@@ -176,9 +176,24 @@ juce::BorderSize<int> LiveLooperEditor::getFullscreenSafeInsets (const juce::Dis
     if (safeInsetsOverride.has_value())
         return *safeInsetsOverride;
    #if JUCE_MAC
-    // JUCE reads NSScreen.safeAreaInsets (macOS 12+, guarded with @available) into Display::safeAreaInsets
+    // JUCE reads NSScreen.safeAreaInsets (macOS 12+, guarded with @available) into Display::safeAreaInsets.
+    // v1.7: plus the menu bar and a visible Dock (the parts of the display outside its user area): they stay in
+    // front of every app window, so the controls of the bottom row (STOP, CAPTURE, FILL ...) were under the Dock
+    // and the top of the view under the menu bar on a Mac without notch - unclickable. The strips are background.
     if (display != nullptr)
-        return display->safeAreaInsets;
+    {
+        auto insets = display->safeAreaInsets;
+        const auto total = display->logicalBounds.toNearestInt();
+        const auto user = display->userBounds.toNearestInt();
+        if (! user.isEmpty() && total.contains (user))
+        {
+            insets.setTop    (juce::jmax (insets.getTop(),    user.getY() - total.getY()));
+            insets.setLeft   (juce::jmax (insets.getLeft(),   user.getX() - total.getX()));
+            insets.setBottom (juce::jmax (insets.getBottom(), total.getBottom() - user.getBottom()));
+            insets.setRight  (juce::jmax (insets.getRight(),  total.getRight() - user.getRight()));
+        }
+        return insets;
+    }
    #else
     juce::ignoreUnused (display);
    #endif
@@ -621,7 +636,9 @@ struct LiveLooperEditor::MouseLog : public juce::Timer, public juce::MouseListen
         const bool down = os >= 0 ? (os != 0) : anyMouseButtonDown();
         if (down && ! wasDown)
         {
-            pressDowns = juceDowns;
+            // the mouse-downs before this press: a mouse-down JUCE dispatched since the last tick belongs to it
+            // (taking the count now reported a delivered press as not delivered when the tick fell inside it)
+            pressDowns = downsAtLastTick;
             pressAt = juce::Desktop::getMousePosition().toFloat();
             pressTime = juce::Time::getMillisecondCounter();
             pressReported = false;
@@ -636,11 +653,12 @@ struct LiveLooperEditor::MouseLog : public juce::Timer, public juce::MouseListen
         if (! down)
             pressReported = true;
         wasDown = down;
+        downsAtLastTick = juceDowns;
     }
 
     LiveLooperEditor& editor;
     juce::File file;
-    int juceDowns = 0, pressDowns = 0;
+    int juceDowns = 0, pressDowns = 0, downsAtLastTick = 0;
     bool wasDown = false, pressReported = true;
     juce::Point<float> pressAt;
     juce::uint32 pressTime = 0;
