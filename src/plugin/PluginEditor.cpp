@@ -1605,6 +1605,9 @@ juce::PopupMenu LiveLooperEditor::buildSetupMenu (juce::Array<int>& toggles)
     addDisplayMenu (menu, toggles);
     menu.addSectionHeader (tr ("Sync"));
     menu.addSubMenu (tr ("Ableton Link"), linkMenu);
+    // ---- Remote (livelooper control app)
+    menu.addSectionHeader (tr ("Remote"));
+    addRemoteMenu (menu, toggles);
     // ---- App
     menu.addSectionHeader (tr ("App"));
     menu.addSubMenu ("Language / Sprache", language);
@@ -1630,6 +1633,8 @@ void LiveLooperEditor::handleSetupResult (int r)
     if (handleDisplayMenu (r))         // v1.7 display
         return;
     if (handleBackupMenu (r))          // v1.7 auto backup
+        return;
+    if (handleRemoteMenu (r))          // remote control
         return;
     if (handle17Menu (r))              // v1.7 latency, velocity curves, MIDI feedback
         return;

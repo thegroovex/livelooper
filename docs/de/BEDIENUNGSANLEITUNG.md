@@ -807,6 +807,17 @@ Die **Performance-Ansicht** ist die vierte Ansicht, gemacht zum Spielen der Effe
 
 **MIDI Learn**: im MIDI-LEARN-Modus bekommt jedes Bedienelement der Performance-Ansicht seinen Learn-Rahmen (die verdeckte Oberfläche dahinter keinen), und ein Rechtsklick öffnet das Learn-Menü – auch im Vollbild-Fenster, das ihn an den Editor weitergibt. Die Chips einer Reihe (Ansichtsumschaltung, ZIEL, Beat-FX-Typ / -Notenwert, REPEAT-RATE) lernen ihren ganzen Parameter. Oberflächengröße (75 – 200 %), helles Farbschema und Bühnenmodus gelten auch hier.
 
+## 48. Fernsteuerung mit der App livelooper control (neu, Testversion)
+
+livelooper lässt sich mit der App **livelooper control** von einem Android-Smartphone oder -Tablet im selben Netzwerk spielen: REC / PLAY / DUB, STOP, LÖSCHEN, ZURÜCK, MUTE, SOLO pro Spur, ALLE START / STOP, TAP und CAPTURE, alle Host-Parameter (Pegel, Panorama, FX …), dazu Tempo, Loop-Positionen, Pegelanzeigen und Wellenformen auf dem Gerät.
+
+1. *SETUP → Fernsteuerung → Fernsteuerung* einschalten (sie ist **standardmäßig aus**). Die Zeile darunter zeigt Adresse und Port, auf denen livelooper wartet (Standard **47800**; *Port* bietet 47810 – 47840, falls der belegt ist).
+2. Die App auf dem Gerät im selben Netzwerk starten: Sie findet livelooper von selbst (oder die angezeigte Adresse eingeben).
+3. Beim ersten Mal fragt die App nach dem **Kopplungscode**: *SETUP → Fernsteuerung → Koppeln* zeigt den 6-stelligen Code; *Neuer Kopplungscode* erzeugt einen neuen.
+4. Das Gerät bleibt gekoppelt. *SETUP → Fernsteuerung → Gekoppelte Geräte* listet sie auf; ein Klick entfernt ein Gerät (es wird sofort getrennt und muss neu koppeln).
+
+Nur Geräte im lokalen Netzwerk (private, Link-Local- und Loopback-Adressen) können sich verbinden; jede Verbindung meldet sich mit dem Schlüssel an, den das Gerät beim Koppeln bekommen hat. Die Tasten der App nutzen dieselben Funktionen wie MIDI-Learn und die Tastatur, alles bleibt also MIDI-zuweisbar. Mehrere livelooper-Instanzen: Die erste mit eingeschalteter Fernsteuerung bekommt den Port, die anderen zeigen „Port belegt“ und versuchen es erneut. Technische Details (englisch): [docs/remote/PROTOCOL.md](../remote/PROTOCOL.md).
+
 ## Drums, BEATS und Sound-Packs (1.6)
 
 ### Kits

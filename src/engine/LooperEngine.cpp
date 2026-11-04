@@ -1043,6 +1043,8 @@ void LooperEngine::processChunk (const float* inL, const float* inR, float* outL
     if (pc > cuePeak.load (std::memory_order_relaxed))     cuePeak.store (pc, std::memory_order_relaxed);
     if (std::max (pl, pr) > displayMasterPeak.load (std::memory_order_relaxed))
         displayMasterPeak.store (std::max (pl, pr), std::memory_order_relaxed);
+    if (std::max (pl, pr) > remoteMasterPeak.load (std::memory_order_relaxed))
+        remoteMasterPeak.store (std::max (pl, pr), std::memory_order_relaxed);
 
     // ---------------------------------------------------------------- advance
     const double endPpq = chunkStartPpq + n * ppqPerSample;
@@ -1075,6 +1077,8 @@ void LooperEngine::updateStatus() noexcept
             if (mr > st.meterR.load (std::memory_order_relaxed)) st.meterR.store (mr, std::memory_order_relaxed);
             if (std::max (ml, mr) > st.displayMeter.load (std::memory_order_relaxed))
                 st.displayMeter.store (std::max (ml, mr), std::memory_order_relaxed);
+            if (std::max (ml, mr) > st.remoteMeter.load (std::memory_order_relaxed))
+                st.remoteMeter.store (std::max (ml, mr), std::memory_order_relaxed);
             st.meterIsInput.store (in, std::memory_order_relaxed);
         }
         st.lengthSamples.store (tr.getLength());

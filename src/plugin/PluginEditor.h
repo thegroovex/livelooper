@@ -171,6 +171,10 @@ public:
     void addDisplayMenu (juce::PopupMenu& menu, juce::Array<int>& toggles);
     bool handleDisplayMenu (int result);
     // v1.7 auto backup + crash recovery (EditorBackup.cpp)
+    // remote control (EditorRemote.cpp)
+    void addRemoteMenu (juce::PopupMenu& menu, juce::Array<int>& toggles);
+    bool handleRemoteMenu (int result);
+    juce::StringArray remoteDeviceIds;
     void addBackupMenu (juce::PopupMenu& menu, juce::Array<int>& toggles);
     bool handleBackupMenu (int result);
     void showRestoreBackupMenu();

@@ -34,6 +34,9 @@ const TrackColour& getTrackColourInfo (int index) noexcept;
     with the host's own MIDI mapping (e.g. MIDI learn / MIDI map mode of your DAW).
     Additionally the plug-in accepts MIDI and has its own MIDI learn.
 */
+namespace remote { struct DeviceStore; class RemoteServer; }
+struct RemoteRuntime;
+
 class LiveLooperProcessor : public juce::AudioProcessor,
                             public juce::ChangeBroadcaster,
                             private juce::Timer
@@ -423,6 +426,21 @@ public:
     bool getSaveLoopsWithProject() const noexcept { return saveLoops; }
     void setSaveLoopsWithProject (bool s) noexcept { saveLoops = s; }
 
+    //============================================================================== remote (ProcessorRemote.cpp)
+    /** Starts / stops the remote server after the SETUP > Remote settings (on/off, port) changed.
+        Real hosts and the standalone app only (unit tests start it with startRemoteForTests). */
+    void applyRemoteSettings();
+    /** Tests: starts the remote server on a port (0 = any free one) with this pairing code and
+        device store, no discovery. Returns the bound port, 0 if it failed. */
+    int  startRemoteForTests (int port, const juce::String& pairingCode, remote::DeviceStore& store);
+    void stopRemote();
+    remote::RemoteServer* getRemoteServer() const noexcept;
+    /** One line for SETUP > Remote: off / listening on ... / port in use, connected devices. */
+    juce::String getRemoteStatusText() const;
+    /** After SETUP > Remote: new pairing code, a device was removed. */
+    void remotePairingCodeChanged();
+    void remoteDeviceRevoked (const juce::String& deviceId);
+
     // for tests: process MIDI learn/mapping as if it came from the host
     void handleMidiMessage (const juce::MidiMessage& m);
     static BusesProperties makeBuses (bool withCue, bool withTrackOutputs);
@@ -629,6 +647,11 @@ private:
     std::atomic<float>* perfRecParam {};
     std::atomic<bool> clipExportRequested { false };
     void updatePerformanceRecorder();
+
+    // remote control (ProcessorRemote.cpp)
+    friend struct RemoteRuntime;
+    std::shared_ptr<RemoteRuntime> remoteRuntime;
+    void timerRemote();
 
     juce::Array<juce::RangedAudioParameter*> paramList;
     juce::HashMap<juce::String, int> paramIndexById;

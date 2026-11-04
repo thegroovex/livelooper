@@ -270,12 +270,14 @@ LiveLooperProcessor::LiveLooperProcessor (bool withCueOutput, bool withTrackOutp
                 p->setValueNotifyingHost (v.getIntValue() != 0 ? 1.0f : 0.0f);
     syncViews();                                   // v1.7 views: selector follows live_view / live_fx
     initBackup();                                  // v1.7 auto backup + crash recovery (Backup17.cpp)
+    applyRemoteSettings();                         // remote control (off by default)
     startTimerHz (30);
 }
 
 LiveLooperProcessor::~LiveLooperProcessor()
 {
     stopTimer();
+    stopRemote();                 // remote threads read the engine and parameters: they go first
     shutdownBackup();             // v1.7: standalone writes the last session, the crash marker goes
     if (wrapperType != wrapperType_Undefined)
         saveLastSettings();
@@ -886,6 +888,7 @@ void LiveLooperProcessor::timerCallback()
     // v1.5: Link on / off, start settings (about 1 s after creation: a project would have loaded its
     // state by then), and the last used settings saved every 10 s when they changed
     updateLink();
+    timerRemote();                // remote: waveform cache, start retry
     if (wrapperType != wrapperType_Undefined)
     {
         ++settingsTimer;

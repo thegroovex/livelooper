@@ -767,6 +767,17 @@ The **Performance view** is the fourth view, made for playing the effects on sta
 
 **MIDI learn**: in MIDI LEARN mode every control of the Performance view gets its learn frame (the hidden surface behind it gets none), and a right-click on a control opens its learn menu – also in the fullscreen window, which passes it on to the editor. The chips of a row (view switcher, TARGET, beat FX type / beat, REPEAT RATE) learn their whole parameter. Interface size (75 – 200 %), the light theme and stage mode apply to the Performance view as well.
 
+## 48. Remote control with the livelooper control app (new, test version)
+
+livelooper can be played from an Android phone or tablet in the same network with the app **livelooper control**: REC / PLAY / DUB, STOP, CLEAR, UNDO, MUTE, SOLO per track, ALL START / STOP, TAP and CAPTURE, every host parameter (levels, pan, FX …), plus tempo, loop positions, meters and waveforms on the device.
+
+1. *SETUP → Remote → Remote control* on (it is **off by default**). The line below shows the address and port livelooper listens on (default **47800**; *Port* offers 47810 – 47840 if that one is taken).
+2. Start the app on the device in the same network: it finds livelooper by itself (or type the address shown).
+3. The first time, the app asks for the **pairing code**: *SETUP → Remote → Pairing* shows the 6-digit code; *New pairing code* makes a new one.
+4. The device stays paired. *SETUP → Remote → Paired devices* lists them; click one to remove it (it is disconnected right away and has to pair again).
+
+Only devices in the local network (private, link-local and loopback addresses) can connect; every connection authenticates with the key it got when pairing. The buttons of the app use the same functions as MIDI learn and the keyboard, so everything stays MIDI-mappable. Several livelooper instances: the first one with Remote on takes the port, the others show "port in use" and try again. Technical details: [docs/remote/PROTOCOL.md](../remote/PROTOCOL.md).
+
 ## Drums, BEATS and sound packs (1.6)
 
 ### Kits

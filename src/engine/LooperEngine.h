@@ -67,6 +67,8 @@ public:
         // v1.7 loop length: bars of the running fixed-length first recording, or the one-shot length
         // ("Loop Length Once", Push REC pad + pad) waiting for the next recording; 0 = none
         std::atomic<int>   recBars { 0 };
+        // remote: peak for the remote control (held until the remote server takes it with exchange)
+        mutable std::atomic<float> remoteMeter { 0.0f };
     };
 
     /** Extra outputs (all optional): cue pair for the rhythm, direct output pair per track. */
@@ -213,6 +215,8 @@ public:
     float  takeCueMeter() noexcept           { return cuePeak.exchange (0.0f); }
     /** Peak of the main output for the Push display (separate from the editor's meter), resets it. */
     float  takeDisplayMasterMeter() noexcept { return displayMasterPeak.exchange (0.0f); }
+    /** Peak of the main output for the remote control, resets it (any thread). */
+    float  takeRemoteMasterMeter() noexcept  { return remoteMasterPeak.exchange (0.0f); }
 
     // ---- direct access for tests and import/export (lock the track first when not on the audio thread)
     LoopTrack& getTrack (int t) noexcept      { return tracks[(size_t) t]; }
@@ -293,6 +297,7 @@ private:
     PerformanceFilter perfFilter;
     std::vector<float> loopBusL, loopBusR;
     std::atomic<float> displayMasterPeak { 0.0f };
+    std::atomic<float> remoteMasterPeak { 0.0f };
 
     std::array<QueuedCommand, 128> commandQueue {};
     int numQueued = 0;
