@@ -421,6 +421,10 @@ public:
     double getMaxLoopSeconds() const noexcept { return maxLoopSeconds; }
     void setMaxLoopSeconds (double seconds);
     bool getSaveLoopsWithProject() const noexcept { return saveLoops; }
+    /** v1.7 free first loop (SETUP > Looper, remembered on this computer, default on): with no other loop, the
+        looper's own clock and no metronome / rhythm the first recording ends on the press and sets the tempo. */
+    bool getFreeFirstLoop() const noexcept { return freeFirstLoop.load(); }
+    void setFreeFirstLoop (bool on);
     void setSaveLoopsWithProject (bool s) noexcept { saveLoops = s; }
 
     // for tests: process MIDI learn/mapping as if it came from the host
@@ -646,6 +650,8 @@ private:
     std::array<double, 4> tapIntervals {};
     int numTapIntervals = 0;
     std::atomic<float> pendingTapTempo { 0.0f };
+    static bool loadFreeFirstLoopSetting();
+    std::atomic<bool> freeFirstLoop { loadFreeFirstLoopSetting() };     // v1.7 SETUP > Looper > Free first loop
     std::atomic<int> midiActivity { 0 };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LiveLooperProcessor)

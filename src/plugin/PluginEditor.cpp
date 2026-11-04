@@ -1591,6 +1591,7 @@ juce::PopupMenu LiveLooperEditor::buildSetupMenu (juce::Array<int>& toggles)
     menu.addSubMenu (tr ("Tracks"), tracksMenu);
     menu.addItem (450, tr ("Track meters"), true, TrackStrip::showMeters);
     menu.addSubMenu (tr ("Record action"), rec);
+    menu.addItem (451, tr ("Free first loop (no other loop, no metronome / rhythm, host stopped: ends on the press and sets the tempo)"), true, proc.getFreeFirstLoop());
     menu.addSubMenu (tr ("Maximum loop length"), memory);
     menu.addSubMenu (tr ("Capture length"), captureMenu);
     menu.addSubMenu (tr ("Auto record"), autoRecMenu);
@@ -1640,7 +1641,7 @@ juce::PopupMenu LiveLooperEditor::buildSetupMenu (juce::Array<int>& toggles)
     addFeatures16Menu (menu, 3);      // v1.6: guided tour
     menu.addItem (431, tr ("About livelooper ..."));
 
-    toggles.addArray ({ 3, 4, 5, 120, 140, 400, 401, 421, 422, 450 });
+    toggles.addArray ({ 3, 4, 5, 120, 140, 400, 401, 421, 422, 450, 451 });
     toggles.addArray ({ -410, -411, -100, -101, -1, -2 });     // radio groups (shown as pop-ups even when nothing is ticked)
     return menu;
 }
@@ -1674,6 +1675,11 @@ void LiveLooperEditor::handleSetupResult (int r)
     const auto recent = appsettings::getRecentSets();
     auto* linkOn = dynamic_cast<juce::AudioParameterBool*> (st.getParameter (gLinkOn));
     auto* linkStartStop = dynamic_cast<juce::AudioParameterBool*> (st.getParameter (gLinkStartStop));
+    if (r == 451)
+    {
+        proc.setFreeFirstLoop (! proc.getFreeFirstLoop());
+        return;
+    }
     if (r == 450)
     {
         TrackStrip::showMeters = ! TrackStrip::showMeters;

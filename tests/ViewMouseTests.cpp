@@ -7,6 +7,7 @@
 #include "plugin/PluginEditor.h"
 #include "plugin/PluginProcessor.h"
 #include "plugin/AppSettings.h"
+#include "plugin/SettingsPanel.h"
 
 using namespace livelooper;
 using namespace livelooper::params;
@@ -279,6 +280,34 @@ void showEditor (juce::AudioProcessorEditor& ed, LiveLooperEditor& e, juce::Rect
     ed.setVisible (true);
     ed.toFront (true);
     pump (20);
+}
+
+/** The first visible component with this MIDI-learn parameter id inside root. */
+juce::Component* findByParam (juce::Component& root, const juce::String& id)
+{
+    for (auto* c : root.getChildren())
+    {
+        if (! c->isVisible())
+            continue;
+        if (getParamId (*c) == id)
+            return c;
+        if (auto* f = findByParam (*c, id))
+            return f;
+    }
+    return nullptr;
+}
+
+/** The first visible component with this name inside root. */
+juce::Component* findByName (juce::Component& root, const juce::String& name)
+{
+    for (auto* c : root.getChildren())
+    {
+        if (c->getName() == name && c->isVisible())
+            return c;
+        if (auto* f = findByName (*c, name))
+            return f;
+    }
+    return nullptr;
 }
 } // namespace
 
@@ -625,6 +654,228 @@ public:
                 pump (10);
             }
             LiveLooperEditor::setSafeInsetsForTests (std::nullopt);
+            ed->removeFromDesktop();
+        }
+
+        beginTest ("SETUP window open: a view switch closes it, no modal component is left, the view takes clicks (macOS: modal SETUP behind the fullscreen window)");
+        {
+            MouseTempFolder tmp;
+            auto procOwner = std::make_unique<LiveLooperProcessor> (false, false);
+            auto& proc = *procOwner;
+            std::unique_ptr<juce::AudioProcessorEditor> ed (proc.createEditor());
+            auto* e = dynamic_cast<LiveLooperEditor*> (ed.get());
+            showEditor (*ed, *e, screen);
+
+            const auto openSetup = [&] (const juce::String& where) {
+                e->showSettingsWindow();
+                pump (20);
+                auto* w = e->getSettingsWindow();
+                expect (w != nullptr && juce::Component::getNumCurrentlyModalComponents() == 1, where + ": SETUP window open and modal");
+                if (w != nullptr)
+                {
+                    w->setAlwaysOnTop (true);       // in front of the test editor (always on top itself)
+                    w->toFront (true);
+                    pump (20);
+                }
+                return w;
+            };
+            // a control of the shown view (its window or the editor) receives a real click, nothing modal blocks it
+            const auto expectClickable = [&] (int view, const juce::String& where) {
+                pump (30);
+                expectEquals (juce::Component::getNumCurrentlyModalComponents(), 0, where + ": no modal component left");
+                expect (e->getSettingsWindow() == nullptr, where + ": SETUP window closed");
+                expectEquals (proc.getView(), view, where + ": view selected");
+                juce::Component* root = nullptr;
+                if (e->isLiveFullscreen())
+                    root = view == 3 ? (juce::Component*) e->getFullscreenPerformView() : (juce::Component*) e->getFullscreenLiveView();
+                else
+                    root = view == 3 ? (juce::Component*) e->getPerformView() : (juce::Component*) e->getLiveView();
+                expect (root != nullptr && root->isShowing(), where + ": view shown");
+                if (root == nullptr)
+                    return;
+                for (const auto& id : view == 3 ? juce::StringArray { "t1_stop" } : juce::StringArray { "t1_recplay", "t1_stop" })
+                {
+                    auto* c = findByParam (*root, id);
+                    if (c == nullptr && view == 3)      // the Performance view: any control of its own
+                        for (auto* ch : root->getChildren())
+                            if (ch->isVisible() && getParamId (*ch).isNotEmpty() && ch != &e->getPerformView()->getViewSwitcher())
+                                { c = ch; break; }
+                    expect (c != nullptr, where + ": control " + id + " found");
+                    if (c == nullptr)
+                        continue;
+                    expect (! c->isCurrentlyBlockedByAnotherModalComponent(), where + ": " + getParamId (*c) + " not blocked by a modal component");
+                    DownCounter counter;
+                    counter.watch (*c);
+                    expect (clickAt (*c, clickPoint (*c)), where);
+                    counter.unwatch();
+                    expectEquals (counter.downs, 1, where + ": " + getParamId (*c) + " receives the mouse-down");
+                    juce::PopupMenu::dismissAllActiveMenus();
+                    pump();
+                }
+            };
+            const auto leave = [&] {
+                e->setLiveView (false);
+                pump (30);
+                e->applyDisplaySettings();
+                expect (! e->isStageViewShown() && ! e->isLiveFullscreen(), "back to the full surface");
+            };
+
+            // 1) SETUP > Display > Open Live view / Open Performance view (fullscreen): the action row clicked with the mouse
+            for (int row : { 1920, 1923 })
+            {
+                const juce::String where = row == 1920 ? "SETUP row Open Live view (fullscreen)" : "SETUP row Open Performance view (fullscreen)";
+                auto* w = openSetup (where);
+                auto* sp = w != nullptr ? dynamic_cast<SettingsPanel*> (w->getContentComponent()) : nullptr;
+                expect (sp != nullptr, where + ": settings panel");
+                if (sp == nullptr)
+                    continue;
+                sp->showPage (i18n::tr ("Display"));
+                pump (10);
+                auto* actionRow = findByName (*sp, i18n::tr (row == 1920 ? "Open Live view (fullscreen)" : "Open Performance view (fullscreen)"));
+                expect (actionRow != nullptr, where + ": action row found");
+                if (actionRow == nullptr)
+                    continue;
+                // scroll it into view
+                for (auto* p = actionRow->getParentComponent(); p != nullptr; p = p->getParentComponent())
+                    if (auto* vp = dynamic_cast<juce::Viewport*> (p))
+                    {
+                        vp->setViewPosition (0, juce::jmax (0, actionRow->getY() - 40));
+                        break;
+                    }
+                pump (10);
+                expect (clickAt (*actionRow, actionRow->getLocalBounds().getCentre()), where + ": click");
+                pump (60);
+                expect (e->isLiveFullscreen() && e->getStageWindow() != nullptr && e->getStageWindow()->isVisible(), where + ": fullscreen window");
+                expectClickable (row == 1920 ? 1 : 3, where);
+                leave();
+            }
+
+            // 2) the host parameter View (host automation, MIDI, Push 1 SHIFT + MASTER) while SETUP is open: windowed and fullscreen
+            for (bool fs : { false, true })
+            {
+                e->setViewsFullscreen (fs);
+                for (int view : { 1, 2, 3 })
+                {
+                    const juce::String where = "parameter View = " + juce::String (view) + (fs ? " (fullscreen)" : " (windowed)");
+                    openSetup (where);
+                    proc.setView (view);
+                    e->applyDisplaySettings();
+                    pump (30);
+                    expect (e->isLiveFullscreen() == fs, where + ": fullscreen window " + (fs ? "open" : "closed"));
+                    expectClickable (view, where);
+                    leave();
+                }
+            }
+
+            // 3) the parameter Live View (live_view) and the fullscreen switch while SETUP is open
+            e->setViewsFullscreen (false);
+            openSetup ("live_view");
+            if (auto* fxp = proc.getState().getParameter (gLiveFx))
+                fxp->setValueNotifyingHost (1.0f);      // Live with the FX bar (View 1)
+            if (auto* lvp = proc.getState().getParameter (gLiveView))
+                lvp->setValueNotifyingHost (1.0f);      // host / MIDI
+            e->applyDisplaySettings();
+            expectClickable (1, "parameter live_view");
+            openSetup ("fullscreen switch");
+            expect (e->handleDisplayMenu (1924), "SETUP > Display > Live view > Open the views fullscreen");
+            expect (e->getViewsFullscreen() && e->isLiveFullscreen(), "the shown view goes fullscreen");
+            expectClickable (1, "fullscreen switch");
+            leave();
+            e->setViewsFullscreen (false);
+            ed->removeFromDesktop();
+        }
+
+        beginTest ("Every way of switching honours the fullscreen setting: header switcher, LIVE, parameters");
+        {
+            MouseTempFolder tmp;
+            auto procOwner = std::make_unique<LiveLooperProcessor> (false, false);
+            auto& proc = *procOwner;
+            std::unique_ptr<juce::AudioProcessorEditor> ed (proc.createEditor());
+            auto* e = dynamic_cast<LiveLooperEditor*> (ed.get());
+            showEditor (*ed, *e, screen);
+            expect (! e->getViewsFullscreen(), "off by default");
+
+            for (bool fs : { true, false })
+            {
+                e->setViewsFullscreen (fs);
+                const juce::String mode = fs ? " (fullscreen on)" : " (fullscreen off)";
+                for (int view : { 1, 2, 3 })
+                {
+                    const juce::String where = "header chip " + juce::String (view) + mode;
+                    auto& vs = e->getViewSwitcher();
+                    expect (clickAt (vs, vs.getChipBounds (view).getCentre()), where);
+                    pump (40);
+                    expectEquals (proc.getView(), view, where + ": view");
+                    expect (e->isLiveFullscreen() == fs, where + ": fullscreen window " + (fs ? "visible" : "none"));
+                    if (fs)
+                    {
+                        expect (e->getStageWindow() != nullptr && e->getStageWindow()->isVisible(), where + ": window visible");
+                        expect (view == 3 ? e->getFullscreenPerformView() != nullptr : e->getFullscreenLiveView() != nullptr, where + ": the right view in it");
+                        // FULL in the window's own switcher closes it
+                        juce::Component* sw = view == 3 ? (juce::Component*) &e->getFullscreenPerformView()->getViewSwitcher()
+                                                        : (juce::Component*) &e->getFullscreenLiveView()->getViewSwitcher();
+                        if (auto* chips = dynamic_cast<ChoiceChips*> (sw))
+                            expect (clickAt (*chips, chips->getChipBounds (0).getCentre()));
+                    }
+                    else
+                    {
+                        expect (view == 3 ? e->isPerformViewShown() : e->isLiveViewShown(), where + ": shown in the editor");
+                        auto& chips = view == 3 ? e->getPerformView()->getViewSwitcher() : e->getLiveView()->getViewSwitcher();
+                        expect (clickAt (chips, chips.getChipBounds (0).getCentre()));
+                    }
+                    pump (40);
+                    e->applyDisplaySettings();
+                    expect (! e->isStageViewShown() && ! e->isLiveFullscreen(), where + ": FULL returns");
+                }
+                // the LIVE pill and the host parameters behave the same
+                expect (clickAt (e->getLiveButton(), e->getLiveButton().getLocalBounds().getCentre()));
+                pump (40);
+                expect (e->isLiveViewShown() && e->isLiveFullscreen() == fs, "LIVE pill" + mode);
+                e->setLiveView (false);
+                pump (20);
+                proc.setView (kPerformanceView);
+                e->applyDisplaySettings();
+                pump (20);
+                expect (e->isLiveFullscreen() == fs && (! fs || e->getFullscreenPerformView() != nullptr), "parameter View = Performance" + mode);
+                proc.setView (1);          // Push SHIFT + MASTER / MIDI step while shown: follows (window or editor)
+                e->applyDisplaySettings();
+                pump (20);
+                expect (e->isLiveFullscreen() == fs && (! fs || e->getFullscreenLiveView() != nullptr), "parameter View = Live" + mode);
+                e->setLiveView (false);
+                pump (20);
+                e->applyDisplaySettings();
+            }
+            // SETUP > Display > Open Live view (fullscreen) still opens fullscreen with the setting off, and switching there follows
+            e->setLiveView (true, true);
+            pump (20);
+            expect (e->isLiveFullscreen(), "explicit fullscreen row with the setting off");
+            proc.setView (kPerformanceView);
+            e->applyDisplaySettings();
+            expect (e->getFullscreenPerformView() != nullptr, "switch inside the explicit fullscreen window follows");
+            e->setLiveView (false);
+            pump (20);
+            e->applyDisplaySettings();
+            expect (! e->isLiveFullscreen(), "closed");
+            // remembered on this computer
+            e->setViewsFullscreen (true);
+            expectEquals (appsettings::getValue ("display.viewsFullscreen"), juce::String ("1"));
+            e->setViewsFullscreen (false);
+            // a mouse log switched on in a 1.7 test build is ignored and reset (only LIVELOOPER_MOUSE_LOG=1 starts it)
+            appsettings::setValue ("debug.mouseLog", "1");
+            {
+                std::unique_ptr<juce::AudioProcessorEditor> ed2 (proc.createEditor());
+                auto* e2 = dynamic_cast<LiveLooperEditor*> (ed2.get());
+                if (juce::SystemStats::getEnvironmentVariable ("LIVELOOPER_MOUSE_LOG", {}) != "1")
+                    expect (! e2->isMouseLogEnabled(), "saved mouse log setting ignored");
+                expectEquals (appsettings::getValue ("debug.mouseLog"), juce::String ("0"), "saved mouse log setting reset");
+                juce::Array<int> toggles;
+                juce::PopupMenu m;
+                e2->addDisplayMenu (m, toggles);
+                bool found = false;
+                for (juce::PopupMenu::MenuItemIterator it (m, true); it.next();)
+                    found = found || it.getItem().itemID == 1912 || it.getItem().itemID == 1913;
+                expect (! found, "no mouse log switch in SETUP > Display");
+            }
             ed->removeFromDesktop();
         }
 

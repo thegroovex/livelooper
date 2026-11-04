@@ -28,7 +28,7 @@ Die Zuweisungen werden mit dem DAW-Projekt gespeichert.
 
 | Art der Funktion | Beispiele | Note | CC |
 |---|---|---|---|
-| Taster | REC/PLAY, STOP, LÖSCHEN, ZURÜCK (Undo), VOR (Redo), ALLE START/STOP, ALLE LÖSCHEN, TAP | Note-On löst aus | Wert steigt über 63 → löst aus (Loslassen löst nichts aus) |
+| Taster | REC/PLAY, STOP, LÖSCHEN, UNDO, VOR (Redo), ALLE START/STOP, ALLE LÖSCHEN, TAP | Note-On löst aus | Wert steigt über 63 → löst aus (Loslassen löst nichts aus) |
 | Schalter | RÜCKW., 1SHOT, FX, Loop-Sync, Effekt A–D an/aus, RHYTHMUS, HOST-SYNC | Note-On schaltet um | steigende Flanke schaltet um |
 | Auswahl | Effekttyp, Quantisierung, Muster, Start-/Stopp-/Dub-Modus | Note-On → nächster Wert | CC wählt direkt (0–127 über alle Werte) |
 | Regler | Pegel, Pan, Effekt-Parameter, Tempo, Fade, Tape-Stopp, Performance-Filter | Anschlagstärke setzt den Wert | CC setzt den Wert |
@@ -48,7 +48,7 @@ Damit funktionieren sowohl Fußschalter, die beim Drücken 127 und beim Loslasse
 | F1–A1 (41–45) | STOP Spur 1–5 |
 | A#1 (46) | ALLE START/STOP |
 | B1 (47) | TAP |
-| C2–E2 (48–52) | ZURÜCK (Undo) Spur 1–5 |
+| C2–E2 (48–52) | UNDO Spur 1–5 |
 | C3–D#3 (60–63) | Eingangs-FX A–D an/aus |
 | E3–G3 (64–67) | Spur-FX A–D an/aus |
 | CC 20–24 | Pegel Spur 1–5 |

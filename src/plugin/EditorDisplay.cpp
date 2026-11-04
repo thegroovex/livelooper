@@ -15,6 +15,7 @@ namespace
     constexpr const char* kScaleKey = "display.scale";
     constexpr const char* kLiveWavesKey = "display.liveWaveforms";
     constexpr const char* kLiveFxKey = "display.liveFxStrip";
+    constexpr const char* kViewsFullscreenKey = "display.viewsFullscreen";
 
     bool paramOn (LiveLooperProcessor& proc, const juce::String& id)
     {
@@ -121,9 +122,13 @@ void LiveLooperEditor::initDisplay()
     wireStageView (*perfView);
     surface.addChildComponent (*perfView);
 
-    // v1.7 mouse diagnostics: SETUP > Display or LIVELOOPER_MOUSE_LOG=1 (default off)
-    if (appsettings::getValue ("debug.mouseLog") == "1" || juce::SystemStats::getEnvironmentVariable ("LIVELOOPER_MOUSE_LOG", {}) == "1")
+    // v1.7 mouse diagnostics: only with the environment variable LIVELOOPER_MOUSE_LOG=1 (developer note, docs DEVELOPMENT.md).
+    // The SETUP > Display switch of the 1.7 test builds is gone; a saved "on" is reset, the log is no longer written.
+    if (appsettings::getValue ("debug.mouseLog") == "1")
+        appsettings::setValue ("debug.mouseLog", "0");
+    if (juce::SystemStats::getEnvironmentVariable ("LIVELOOPER_MOUSE_LOG", {}) == "1")
         setMouseLogEnabled (true);
+    viewsFullscreen = appsettings::getValue (kViewsFullscreenKey) == "1";
 
     guiScale = appsettings::getValue (kScaleKey, "100").getIntValue();
     if (std::find (std::begin (kGuiScales), std::end (kGuiScales), guiScale) == std::end (kGuiScales))
@@ -263,6 +268,7 @@ void LiveLooperEditor::wireStageView (PerformView& v)
 void LiveLooperEditor::openStageWindow (bool performance)
 {
     closeStageWindow();
+    dismissModalDialogs();      // a modal SETUP window left behind the window blocked every click in it (only Esc worked)
     // the display the editor is on (a second monitor), else the main display
     const auto& displays = juce::Desktop::getInstance().getDisplays();
     const auto* display = isShowing() ? displays.getDisplayForRect (getScreenBounds()) : nullptr;
@@ -318,8 +324,8 @@ void LiveLooperEditor::setLiveView (bool on, bool fullscreen)
     if (on && isPerformViewShown())
         proc.setView (1);                   // LIVE from the Performance view: the Live view
     setParam (proc, gLiveView, on ? 1.0f : 0.0f);
-    if (on && fullscreen && (liveWindow == nullptr || fullscreenLive == nullptr))
-        openStageWindow (false);
+    if (on && fullscreen)
+        fullscreenRequested = true;         // SETUP > Display > Open Live view (fullscreen): fullscreen until the view is left
     applyDisplaySettings();
 }
 
@@ -331,9 +337,71 @@ bool LiveLooperEditor::isPerformViewShown() const noexcept
 void LiveLooperEditor::setPerformView (bool on, bool fullscreen)
 {
     proc.setView (on ? kPerformanceView : 0);
-    if (on && fullscreen && (liveWindow == nullptr || fullscreenPerf == nullptr))
-        openStageWindow (true);
+    if (on && fullscreen)
+        fullscreenRequested = true;
     applyDisplaySettings();
+}
+
+void LiveLooperEditor::setViewsFullscreen (bool on)
+{
+    viewsFullscreen = on;
+    appsettings::setValue (kViewsFullscreenKey, on ? "1" : "0");
+    applyDisplaySettings();
+}
+
+void LiveLooperEditor::updateStageWindow (bool stageOn, bool perf)
+{
+    // v1.7: the one place that decides between the view over the surface and the fullscreen window, for every way
+    // a view is selected (header / Live / Performance view switcher, LIVE, Esc / EXIT, host parameters View /
+    // Live View / Live View FX Bar from the host or MIDI, Push 1 SHIFT + MASTER, SETUP > Display): fullscreen when
+    // "Open the views fullscreen" is on, or while a view opened with SETUP > Display > Open ... (fullscreen) is shown
+    // (switching views there follows in the window)
+    if (! stageOn)
+        fullscreenRequested = false;
+    const bool wantWindow = stageOn && (viewsFullscreen || fullscreenRequested);
+    if (! wantWindow)
+    {
+        if (liveWindow != nullptr)
+            closeStageWindow();
+        return;
+    }
+    if (liveWindow == nullptr || (perf && fullscreenPerf == nullptr) || (! perf && fullscreenLive == nullptr))
+        openStageWindow (perf);
+}
+
+void LiveLooperEditor::dismissModalDialogs()
+{
+    // Every modal component here is livelooper's own (JUCE is linked into the plug-in / app, a host's windows are not
+    // in this list): the SETUP window, help / info dialogs, the key map editor, call-out boxes, menus. They end with
+    // result 0 (cancel) and are hidden now; the ones launched asynchronously delete themselves after this event.
+    juce::PopupMenu::dismissAllActiveMenus();
+    auto& mcm = *juce::ModalComponentManager::getInstance();
+    for (int guard = 0; guard < 16 && mcm.getNumModalComponents() > 0; ++guard)
+    {
+        auto* m = mcm.getModalComponent (0);
+        if (m == nullptr)
+            break;
+        logMouseNote ("modal component closed for the view: " + juce::String (typeid (*m).name()) + " \"" + m->getName() + "\"");
+        m->exitModalState (0);
+        if (m->isOnDesktop())
+            m->setVisible (false);
+    }
+    settingsWindow = nullptr;   // gone (deleted by the modal manager after this event)
+}
+
+void LiveLooperEditor::raiseModalDialogsOverStageWindow()
+{
+    // a livelooper dialog opened while a fullscreen view is up (keyboard shortcut, controller): in front of the
+    // always-on-top window, reachable and closable - never hidden behind it, blocking it
+    if (liveWindow == nullptr || ! liveWindow->isVisible())
+        return;
+    for (int i = 0; i < juce::Component::getNumCurrentlyModalComponents(); ++i)
+        if (auto* m = juce::Component::getCurrentlyModalComponent (i))
+            if (auto* top = m->getTopLevelComponent(); top != nullptr && top->isOnDesktop() && top != liveWindow.get() && ! top->isAlwaysOnTop())
+            {
+                top->setAlwaysOnTop (true);
+                top->toFront (true);
+            }
 }
 
 //============================================================================== apply
@@ -388,6 +456,7 @@ void LiveLooperEditor::applyDisplaySettings (bool force)
         v.setVisible (on);
         if (on)
         {
+            dismissModalDialogs();      // the view must not sit behind / under a modal SETUP window (clicks blocked)
             v.toFront (false);
             if (learnMode)
                 overlay.toFront (false);    // v1.7: the learn frames stay visible over the Live / Performance view
@@ -410,16 +479,14 @@ void LiveLooperEditor::applyDisplaySettings (bool force)
         overlay.toFront (false);
         learnBtn.toFront (false);
     }
-    if (! stageOn && liveWindow != nullptr)
-        closeStageWindow();
-    else if (liveWindow != nullptr && ((perf && fullscreenPerf == nullptr) || (live && fullscreenLive == nullptr)))
-        openStageWindow (perf);             // the view changed while fullscreen (Push SHIFT + MASTER, View): follow it
+    updateStageWindow (stageOn, perf);
     shownLive = stageOn;
 }
 
 void LiveLooperEditor::timerDisplay()
 {
     applyDisplaySettings();
+    raiseModalDialogsOverStageWindow();
     if (pendingViewFocus && ! anyMouseButtonDown())
     {
         pendingViewFocus = false;
@@ -449,6 +516,7 @@ void LiveLooperEditor::addDisplayMenu (juce::PopupMenu& menu, juce::Array<int>& 
         size.addItem (1905 + i, juce::String (kGuiScales[i]) + " %", true, kGuiScales[i] == guiScale);
     live.addItem (1920, tr ("Open Live view (fullscreen)"));
     live.addItem (1923, tr ("Open Performance view (fullscreen)"));
+    live.addItem (1924, tr ("Open the views fullscreen (LIVE, view switcher, MIDI, Push)"), true, viewsFullscreen);
     live.addItem (1921, tr ("Waveforms in the track displays"), true, liveView->getShowWaveforms());
     live.addItem (1922, tr ("Performance FX strip"), true, paramOn (proc, gLiveFx));
     live.addSeparator();
@@ -462,12 +530,8 @@ void LiveLooperEditor::addDisplayMenu (juce::PopupMenu& menu, juce::Array<int>& 
     menu.addItem (1911, tr ("Show waveforms in the loop tracks"), true, paramOn (proc, gWaveforms));
     menu.addSubMenu (tr ("Live view"), live);
     menu.addSeparator();
-    menu.addItem (1912, tr ("Mouse diagnostics log (for bug reports)"), true, isMouseLogEnabled());
-    if (isMouseLogEnabled())
-        menu.addItem (1913, tr ("Show the mouse log file"));
-    menu.addSeparator();
     menu.addItem (1947, tr ("Interface size and theme are remembered on this computer"), false);
-    toggles.addArray ({ 1910, 1911, 1912, 1921, 1922, -1900, -1901 });
+    toggles.addArray ({ 1910, 1911, 1921, 1922, 1924, -1900, -1901 });
 }
 
 bool LiveLooperEditor::handleDisplayMenu (int r)
@@ -480,20 +544,30 @@ bool LiveLooperEditor::handleDisplayMenu (int r)
         case 1905: case 1906: case 1907: case 1908: case 1909: setGuiScale (kGuiScales[r - 1905]); break;
         case 1910: setParam (proc, gStageMode, paramOn (proc, gStageMode) ? 0.0f : 1.0f); break;
         case 1911: setParam (proc, gWaveforms, paramOn (proc, gWaveforms) ? 0.0f : 1.0f); break;
-        case 1920: setLiveView (true, true); break;
-        case 1923: setPerformView (true, true); break;
+        case 1920:
+        case 1923:
+        {
+            // from the SETUP window: close it first (it stayed open and modal behind the always-on-top window - no
+            // click reached the view, only Esc; v1.7 bug report), open the view after this click has finished
+            dismissModalDialogs();
+            juce::Component::SafePointer<LiveLooperEditor> safe (this);
+            runWhenMouseReleased ([safe, r] {
+                if (safe == nullptr)
+                    return;
+                if (r == 1923)
+                    safe->setPerformView (true, true);
+                else
+                    safe->setLiveView (true, true);
+            });
+            return true;
+        }
+        case 1924: setViewsFullscreen (! viewsFullscreen); return true;
         case 1921:
             liveView->setShowWaveforms (! liveView->getShowWaveforms());
             if (fullscreenLive != nullptr)
                 fullscreenLive->setShowWaveforms (liveView->getShowWaveforms());
             appsettings::setValue (kLiveWavesKey, liveView->getShowWaveforms() ? "1" : "0");
             break;
-        case 1912:
-            setMouseLogEnabled (! isMouseLogEnabled());
-            appsettings::setValue ("debug.mouseLog", isMouseLogEnabled() ? "1" : "0");
-            showStatus (isMouseLogEnabled() ? tr ("MOUSE LOG: %1", getMouseLogFile().getFullPathName()) : tr ("MOUSE LOG OFF"));
-            break;
-        case 1913: getMouseLogFile().revealToUser(); break;
         case 1922: setParam (proc, gLiveFx, paramOn (proc, gLiveFx) ? 0.0f : 1.0f); break;    // applied below
         default: break;
     }
@@ -617,7 +691,15 @@ struct LiveLooperEditor::MouseLog : public juce::Timer, public juce::MouseListen
         const auto screen = e.getScreenPosition();
         juce::String s;
         s << stamp() << " mouseDown " << (e.mods.isPopupMenu() ? "(right) " : "") << "at " << screen.toString()
-          << " -> " << describeComponent (e.eventComponent) << "\n  parents: " << parentChain (e.eventComponent)
+          << " -> " << describeComponent (e.eventComponent);
+        // the global listener also gets presses JUCE's modal check keeps from the component: say so
+        if (e.eventComponent != nullptr && e.eventComponent->isCurrentlyBlockedByAnotherModalComponent())
+        {
+            auto* m = juce::Component::getCurrentlyModalComponent();
+            s << "\n  BLOCKED BY MODAL " << (m != nullptr ? juce::String (typeid (*m).name()) + " \"" + m->getName() + "\"" : juce::String ("component"))
+              << " - the component does not get this press";
+        }
+        s << "\n  parents: " << parentChain (e.eventComponent)
           << "\n  peer: " << describeComponent (e.eventComponent != nullptr && e.eventComponent->getPeer() != nullptr
                                                   ? &e.eventComponent->getPeer()->getComponent() : nullptr) << "\n";
         s << snapshot (screen.toFloat());
@@ -647,8 +729,13 @@ struct LiveLooperEditor::MouseLog : public juce::Timer, public juce::MouseListen
             && (! down || juce::Time::getMillisecondCounter() - pressTime > 300))
         {
             pressReported = true;
+            const bool elsewhere = ! juce::Process::isForegroundProcess()
+                                && juce::Desktop::getInstance().findComponentAt (pressAt.roundToInt()) == nullptr;
             write (stamp() + " PRESS NOT DELIVERED to any component (the OS reported a mouse button down at "
-                   + pressAt.toString() + ", JUCE dispatched no mouse-down)\n" + snapshot (pressAt));
+                   + pressAt.toString() + ", JUCE dispatched no mouse-down)"
+                   + (elsewhere ? juce::String (" - livelooper is not the active app and none of its windows is under the mouse: a press in another application")
+                                : juce::String())
+                   + "\n" + snapshot (pressAt));
         }
         if (! down)
             pressReported = true;

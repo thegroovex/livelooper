@@ -1,6 +1,6 @@
 #pragma once
 
-// v1.7 mouse diagnostics (SETUP > Display > Mouse diagnostics log): what the operating system knows about the
+// v1.7 mouse diagnostics (developers: environment variable LIVELOOPER_MOUSE_LOG=1): what the operating system knows about the
 // mouse and the app's windows, independent of JUCE (plain C++ interface, no JUCE headers, so the Objective-C++
 // file does not mix with them). Used to tell "the click never reached JUCE" from "JUCE sent it elsewhere".
 

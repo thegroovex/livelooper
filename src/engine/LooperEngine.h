@@ -204,6 +204,11 @@ public:
     const TrackStatus& getTrackStatus (int t) const noexcept { return status[(size_t) t]; }
     double getTimelinePpq() const noexcept   { return statusPpq.load(); }
     double getCurrentBpm() const noexcept    { return statusBpm.load(); }
+    /** v1.7 free first loop: the tempo a free first recording set (exact BPM), once; 0 = none. The processor writes it
+        to the tempo parameter (message thread); the engine keeps the exact value while the parameter shows it rounded. */
+    double takeFreeLoopTempo() noexcept      { return freeLoopTempo.exchange (0.0); }
+    /** v1.7: the first recording of track t is a free first loop (ends on the press, sets the tempo). */
+    bool   isFreeRecording (int t) const noexcept { return freeRec[(size_t) t]; }
     bool   isTimelineRunning() const noexcept { return statusRunning.load(); }
     bool   isHostDriven() const noexcept     { return statusHost.load(); }
     double getMeasurePpq() const noexcept    { return statusMeasurePpq.load(); }
@@ -289,6 +294,15 @@ private:
     std::array<PendingCut, kNumTracks> cutPending {};
     std::array<bool, kNumTracks> stutterWanted {};
     std::array<int, kNumTracks> recLengthBars {};
+    // v1.7 free first loop
+    std::array<bool, kNumTracks> freeRec {};          // the running first recording is free
+    std::array<int, kNumTracks> freeBars {};          // its fixed bar count (0 = picked from the length)
+    bool   tempoFromHost = false;                     // bpm of this block came from the host / Link
+    double tempoOverride = 0.0;                       // exact BPM set by a free first loop (0 = the parameter)
+    bool   tempoOverrideAwaiting = false;             // the parameter has not shown it yet
+    std::atomic<double> freeLoopTempo { 0.0 };
+    bool   freeFirstLoopNow (int t) const noexcept;
+    void   finishFreeRecording (int t, bool thenStop) noexcept;
     TapeStop tapeStop;
     PerformanceFilter perfFilter;
     std::vector<float> loopBusL, loopBusR;

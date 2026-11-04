@@ -194,7 +194,16 @@ public:
     void pressBackupToastButton (int index);
     /** Applies theme / stage mode / waveforms / Live view from the parameters (timer; public for tests). */
     void applyDisplaySettings (bool force = false);
-    /** v1.7 mouse diagnostics (SETUP > Display, or the environment variable LIVELOOPER_MOUSE_LOG=1): every mouse-down
+    /** v1.7: "Open the views fullscreen" (SETUP > Display > Live view, remembered on this computer): every switch to
+        the Live, Live without FX or Performance view - whichever way it is made - opens the fullscreen window. */
+    void setViewsFullscreen (bool on);
+    bool getViewsFullscreen() const noexcept { return viewsFullscreen; }
+    /** Ends livelooper's modal components (SETUP window, dialogs, menus): a view is never left behind one (its
+        clicks would be swallowed by JUCE's modal check). Called whenever a view or fullscreen window is shown. */
+    void dismissModalDialogs();
+    /** The SETUP window while it is open (tests). */
+    juce::DialogWindow* getSettingsWindow() noexcept { return settingsWindow.getComponent(); }
+    /** v1.7 mouse diagnostics (developers only: the environment variable LIVELOOPER_MOUSE_LOG=1): every mouse-down
         (target component, bounds, peer, windows on the desktop, modal / focus / mouse source state), presses the OS
         saw that never reached a component, and the view switches are written to getMouseLogFile(). Default off. */
     void setMouseLogEnabled (bool on);
@@ -229,6 +238,10 @@ private:
     float perfMeterL = 0.0f, perfMeterR = 0.0f;       // main output meter for the Performance view
     void openStageWindow (bool performance);
     void closeStageWindow();
+    void updateStageWindow (bool stageOn, bool performance);
+    void raiseModalDialogsOverStageWindow();
+    bool viewsFullscreen = false;                     // SETUP > Display > Live view > Open the views fullscreen
+    bool fullscreenRequested = false;                 // SETUP > Display > Open ... (fullscreen), until the view is left
     void wireStageView (LiveView& v);
     void wireStageView (PerformView& v);
     int guiScale = 100;

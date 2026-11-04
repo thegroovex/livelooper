@@ -35,6 +35,7 @@ struct Harness
         global.quantize = Quantize::Off;
         global.recAction = RecAction::RecPlay;
         global.fadeMs = 100.0f;
+        global.freeFirstLoop = false;         // the quantize tests below record their first loop on the grid (v1.7 setting off)
         time.bpm = 120.0;
         apply();
     }
@@ -599,3 +600,152 @@ static RecordingTests recordingTests;
 static OverdubUndoTests overdubUndoTests;
 static PlaybackTests playbackTests;
 static TimelineTests timelineTests;
+
+//============================================================================== v1.7 free first loop
+class FreeFirstLoopTests : public juce::UnitTest
+{
+public:
+    FreeFirstLoopTests() : juce::UnitTest ("Free first loop", "engine") {}
+
+    static Harness& freeSetup (Harness& h)
+    {
+        h.global.quantize = Quantize::Measure;      // the default
+        h.global.freeFirstLoop = true;
+        h.input = [] (long long) { return 0.3f; };
+        return h;
+    }
+
+    void runTest() override
+    {
+        beginTest ("No other loop, own clock, no metronome: the first recording ends on the press, its length sets the tempo");
+        {
+            Harness h;
+            freeSetup (h);
+            h.press (Cmd::RecPlay, 0);
+            h.run (1);
+            expect (h.track (0).getState() == State::Recording, "starts at once (no wait for a bar)");
+            expect (h.engine.isFreeRecording (0));
+            h.run (219);                                   // 220 blocks = 105600 samples = 2.2 s
+            h.press (Cmd::RecPlay, 0);
+            h.run (1);
+            expect (h.engine.getPending (0) == LooperEngine::Pending::None, "no waiting for the next bar");
+            expect (h.track (0).getState() == State::Playing, "playing right after the press");
+            const int len = h.track (0).getLength();
+            expectEquals (len, 220 * kBlock, "exact length, no trim");
+            // 2.2 s = 1 bar at 109.09 BPM (nearest the middle of 70 - 160)
+            const double want = 4.0 * 60.0 / 2.2;
+            expectWithinAbsoluteError (h.engine.getCurrentBpm(), want, 1.0e-6);
+            expectWithinAbsoluteError (h.engine.takeFreeLoopTempo(), want, 1.0e-6);
+            expectEquals (h.engine.takeFreeLoopTempo(), 0.0, "handed to the tempo parameter once");
+            expectWithinAbsoluteError (h.track (0).getSamplesPerPpq() * 4.0, (double) len, 1.0e-6, "the loop is exactly one bar");
+            // the clock restarted at the loop start: the loop sits on bar 1, beat 1
+            expectWithinAbsoluteError (std::fmod (h.engine.getTimelinePpq(), 4.0), kBlock / h.track (0).getSamplesPerPpq(), 1.0e-6);
+
+            // the second track quantizes to it: starts and ends on the loop's bars
+            h.run (50);
+            h.press (Cmd::RecPlay, 1);
+            h.run (1);
+            expect (h.engine.getPending (1) == LooperEngine::Pending::Record, "second track waits for the bar");
+            expect (! h.engine.isFreeRecording (1));
+            h.run (230);
+            expect (h.track (1).getState() == State::Recording);
+            h.run (150);
+            h.press (Cmd::RecPlay, 1);
+            h.run (1);
+            expect (h.engine.getPending (1) == LooperEngine::Pending::FinishRecord, "second track ends on a bar");
+            h.run (500);
+            const int len1 = h.track (1).getLength();
+            expect (len1 > 0 && (len1 % len <= 2 || len - len1 % len <= 2), "second loop = whole bars of the first (" + juce::String (len1) + " / " + juce::String (len) + ")");
+            expectWithinAbsoluteError (h.engine.getCurrentBpm(), want, 1.0e-6, "tempo kept");
+        }
+
+        beginTest ("Free first loop: Rec > Stop, a long take picks more bars, a fixed loop length sets exactly that many bars");
+        {
+            Harness h;
+            freeSetup (h);
+            h.press (Cmd::RecPlay, 0);
+            h.run (1000);                                  // 10 s
+            h.press (Cmd::Stop, 0);
+            h.run (1);
+            expect (h.track (0).getState() == State::Stopped, "STOP ends and stops at once");
+            expectEquals (h.track (0).getLength(), 1000 * kBlock);
+            // 10 s: 4 bars = 96 BPM (2 bars = 48, 8 bars = 192)
+            expectWithinAbsoluteError (h.engine.getCurrentBpm(), 96.0, 1.0e-6);
+
+            Harness f;
+            freeSetup (f);
+            f.trackSettings[0].measures = 2;               // loop length 2 bars
+            f.press (Cmd::RecPlay, 0);
+            f.run (300);                                   // 3 s, pressed before the 2 bars at 120 BPM (4 s)
+            f.press (Cmd::RecPlay, 0);
+            f.run (1);
+            expectEquals (f.track (0).getLength(), 300 * kBlock, "ends on the press");
+            expectWithinAbsoluteError (f.engine.getCurrentBpm(), 2 * 4.0 * 60.0 / 3.0, 1.0e-6, "exactly 2 bars: 160 BPM");
+        }
+
+        beginTest ("Free first loop: the parameter shows the tempo rounded, the engine keeps it exact; a later tempo change wins");
+        {
+            Harness h;
+            freeSetup (h);
+            h.press (Cmd::RecPlay, 0);
+            h.run (220);
+            h.press (Cmd::RecPlay, 0);
+            h.run (1);
+            const double exact = 4.0 * 60.0 / 2.2;
+            h.global.internalTempo = std::round (exact * 10.0) / 10.0;     // the parameter (0.1 BPM steps)
+            h.run (5);
+            expectWithinAbsoluteError (h.engine.getCurrentBpm(), exact, 1.0e-6, "exact while the parameter shows it");
+            h.global.internalTempo = 90.0;
+            h.run (2);
+            expectWithinAbsoluteError (h.engine.getCurrentBpm(), 90.0, 1.0e-6, "the user's tempo afterwards");
+        }
+
+        beginTest ("Unchanged: metronome on, host transport playing, another loop, setting off - the first recording ends on the grid");
+        {
+            for (int c = 0; c < 4; ++c)
+            {
+                const juce::String what = c == 0 ? "metronome" : c == 1 ? "host transport" : c == 2 ? "another loop" : "setting off";
+                Harness h;
+                freeSetup (h);
+                int t = 0;
+                if (c == 0)
+                    h.engine.setMetronome (true, 0.5f, false);
+                if (c == 1)
+                {
+                    h.global.syncToHost = true;
+                    h.time.hostPlaying = true;
+                    h.time.hostTempo = true;
+                    h.time.ppq = 0.0;
+                }
+                if (c == 2)
+                {
+                    h.global.quantize = Quantize::Off;
+                    h.press (Cmd::RecPlay, 0);
+                    h.run (100);
+                    h.press (Cmd::RecPlay, 0);
+                    h.run (1);
+                    h.global.quantize = Quantize::Measure;
+                    t = 1;
+                }
+                if (c == 3)
+                    h.global.freeFirstLoop = false;
+                h.run (3);
+                h.press (Cmd::RecPlay, t);
+                h.run (1);
+                if (h.engine.getPending (t) == LooperEngine::Pending::Record)
+                    h.run (400);
+                expect (h.track (t).getState() == State::Recording, what + ": recording");
+                expect (! h.engine.isFreeRecording (t), what + ": not free");
+                h.run (90);
+                h.press (Cmd::RecPlay, t);
+                h.run (1);
+                expect (h.engine.getPending (t) == LooperEngine::Pending::FinishRecord, what + ": waits for the bar");
+                expectWithinAbsoluteError (h.engine.getCurrentBpm(), 120.0, 1.0e-9, what + ": tempo unchanged");
+                expectEquals (h.engine.takeFreeLoopTempo(), 0.0, what + ": no tempo handed out");
+            }
+        }
+    }
+};
+
+static FreeFirstLoopTests freeFirstLoopTests;
+

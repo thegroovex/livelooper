@@ -193,6 +193,62 @@ bool LooperEngine::anythingNeedsClock() const noexcept
     return false;
 }
 
+bool LooperEngine::freeFirstLoopNow (int t) const noexcept
+{
+    // v1.7: free first loop - no other loop, the looper's own clock (no host transport / tempo, no Link), no metronome
+    // or rhythm: nothing to line up with, so the recording ends on the press and its length sets the tempo
+    if (! global.freeFirstLoop || global.quantize == Quantize::Off || hostDriven || tempoFromHost || rhythmOn || metronomeOn)
+        return false;
+    for (int i = 0; i < kNumTracks; ++i)
+        if (i != t && (! tracks[(size_t) i].isEmpty() || pending[(size_t) i].type != Pending::None))
+            return false;
+    return true;
+}
+
+void LooperEngine::finishFreeRecording (int t, bool thenStop) noexcept
+{
+    auto& tr = tracks[(size_t) t];
+    tr.finishRecording (thenStop ? RecAction::RecPlay : global.recAction);       // exactly on the press: no wait, no trim
+    if (thenStop)
+        tr.stop (false);
+    const int len = tr.getLength();
+    if (tr.isEmpty() || len <= 0)
+        return;
+    const double seconds = len / sampleRate;
+    const auto bpmFor = [&] (int bars) { return bars * measurePpq * 60.0 / seconds; };
+    int bars = freeBars[(size_t) t];
+    if (bars > 0)
+    {
+        // a fixed loop length: exactly that many bars (halved / doubled only if the tempo would be out of range)
+        while (bpmFor (bars) > 300.0 && bars > 1) bars /= 2;
+        while (bpmFor (bars) < 40.0) bars *= 2;
+    }
+    else
+    {
+        // the bar count whose tempo is nearest the middle of 70 - 160 BPM (geometric middle, about 106)
+        const double mid = std::sqrt (70.0 * 160.0);
+        double best = 1.0e9;
+        for (int b = 1; b <= 64; b *= 2)
+        {
+            const double d = std::abs (std::log (bpmFor (b) / mid));
+            if (d < best) { best = d; bars = b; }
+        }
+    }
+    const double newBpm = std::clamp (bpmFor (bars), 40.0, 300.0);
+    tempoOverride = newBpm;
+    tempoOverrideAwaiting = true;
+    freeLoopTempo.store (newBpm);
+    bpm = newBpm;
+    ppqPerSample = bpm / (60.0 * sampleRate);
+    samplesPerPpq = 1.0 / ppqPerSample;
+    // the clock starts again at the loop start: bar 1, beat 1 is where the loop begins - later tracks, the metronome,
+    // the rhythm and quantize line up with it
+    internalPpq = blockPpq = 0.0;
+    internalRunning = running = true;
+    tr.retime (samplesPerPpq, blockPpq);
+    tr.setTempoRatio (1.0);
+}
+
 void LooperEngine::ensureClockRunning() noexcept
 {
     if (running)
@@ -211,6 +267,16 @@ void LooperEngine::finishRecordingQuantized (int t, bool thenStop) noexcept
     auto& tr = tracks[(size_t) t];
     auto& pa = pending[(size_t) t];
     const auto next = thenStop ? RecAction::RecPlay : global.recAction;
+
+    if (freeRec[(size_t) t])
+    {
+        freeRec[(size_t) t] = false;
+        if (freeFirstLoopNow (t))
+        {
+            finishFreeRecording (t, thenStop);
+            return;
+        }
+    }
 
     if (global.quantize == Quantize::Off || ! running)
     {
@@ -288,9 +354,10 @@ void LooperEngine::trackRecPlay (int t) noexcept
                 pa = { Pending::AutoRecord, 0.0 };   // waits for the input to exceed the threshold
                 return;
             }
+            const bool free = freeFirstLoopNow (t);
             if (! running)
                 ensureClockRunning();
-            else if (global.quantize != Quantize::Off)
+            else if (global.quantize != Quantize::Off && ! free)
             {
                 const double target = nextBoundary (gridPpq());
                 if (target - blockPpq > 1.0e-6)
@@ -300,6 +367,8 @@ void LooperEngine::trackRecPlay (int t) noexcept
                 }
             }
             tr.startRecording (blockPpq, samplesPerPpq, autoFinishSamples (t), global.recAction);
+            freeRec[(size_t) t] = free;
+            freeBars[(size_t) t] = recLengthBars[(size_t) t] > 0 ? recLengthBars[(size_t) t] : tr.getSettings().measures;
             recLengthBars[(size_t) t] = 0;
             break;
         }
@@ -364,6 +433,8 @@ void LooperEngine::executePending (int t) noexcept
         case Pending::AutoRecord:
         case Pending::Record:
             tr.startRecording (blockPpq, samplesPerPpq, autoFinishSamples (t), global.recAction);
+            freeRec[(size_t) t] = freeFirstLoopNow (t);
+            freeBars[(size_t) t] = recLengthBars[(size_t) t] > 0 ? recLengthBars[(size_t) t] : tr.getSettings().measures;
             recLengthBars[(size_t) t] = 0;
             break;
         case Pending::FinishRecord:
@@ -543,6 +614,7 @@ void LooperEngine::executeCommand (const QueuedCommand& c) noexcept
                 const auto& pa = pending[(size_t) t];
                 if (tr.getState() == LoopTrack::State::Recording && pa.type == Pending::None)
                 {
+                    freeBars[(size_t) t] = c.arg;
                     const int samples = (int) std::llround (c.arg * measurePpq * samplesPerPpq);
                     if (tr.setRecordingSpan (samples))
                         finishRecordingQuantized (t, false);     // already longer: ends at the next boundary
@@ -750,6 +822,19 @@ void LooperEngine::processChunk (const float* inL, const float* inR, float* outL
     float* cueR = extra.cueR != nullptr ? extra.cueR + offset : nullptr;
     // ---------------------------------------------------------------- timeline
     bpm = (global.syncToHost && time.bpm > 0.0) ? time.bpm : global.internalTempo;
+    tempoFromHost = global.syncToHost && time.hostTempo;
+    if (tempoOverride > 0.0)
+    {
+        // v1.7 free first loop: its exact tempo until the parameter shows it (rounded to 0.1 BPM); a later change wins
+        if (tempoFromHost || (global.syncToHost && time.hostPlaying))
+            tempoOverride = 0.0;
+        else if (std::abs (bpm - tempoOverride) <= 0.051)
+            tempoOverrideAwaiting = false;
+        else if (! tempoOverrideAwaiting)
+            tempoOverride = 0.0;
+        if (tempoOverride > 0.0)
+            bpm = tempoOverride;
+    }
     bpm = std::clamp (bpm, 20.0, 400.0);
     const int num = std::max (1, time.numerator);
     const int den = std::max (1, time.denominator);

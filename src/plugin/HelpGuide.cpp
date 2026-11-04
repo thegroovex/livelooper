@@ -64,7 +64,7 @@ namespace
                 "Each card: state, length, waveform, the big REC / PLAY / DUB pad, level and STOP.",
                 "The performance FX strip: filter, beat FX, punch, master, echo, repeat, stutter, fill, ALL START / STOP and capture.",
                 "Switch views with a click in the view switcher (FULL - LIVE - LIVE - FX - PERFORM) in the header of every view - on the full surface under the logo - or SHIFT + MASTER on Push 1. MIDI learn: host parameters View, Live View, Live View FX Bar. Esc or EXIT LIVE returns.",
-                "SETUP > Display > Open Live view (fullscreen): a borderless window kept on top over the whole screen - handy on a second monitor. On a MacBook Pro the content stays below the notch." }, {} },
+                "SETUP > Display > Open Live view (fullscreen): a borderless window kept on top over the whole screen - handy on a second monitor. On a MacBook Pro the content stays below the notch. \"Open the views fullscreen\" (same place): every view switch opens fullscreen." }, {} },
             { "Performance view", "help-perform.png",
               { "PERFORM in the view switcher (or View = Performance, SHIFT + MASTER on Push 1) opens the FX-focused stage view.",
                 "On top a compact track row: state, length, REC / PLAY / DUB pad, level and STOP - mini waveforms only when waveforms are switched on.",
