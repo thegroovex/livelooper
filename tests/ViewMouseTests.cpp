@@ -342,6 +342,14 @@ public:
                         + (fitsOnScreen (100, screen) ? juce::String() : juce::String (" - editor at 75 %")));
         }
 
+       #if ! JUCE_LINUX
+        // the real mouse pointer out of the way (bottom right corner of the user area, outside the editor at the top
+        // left): on the Windows runner it sat over the editor and the OS's own mouse-move (no button) arrived while
+        // a test press was held - JUCE took it as the release, outside the chip, so the press-and-hold test never switched
+        if (! screen.isEmpty())
+            juce::Desktop::setMousePosition (screen.getBottomRight() - juce::Point<int> (2, 2));
+       #endif
+
         beginTest ("Full view: the view switcher in the header is clickable and selects every view (host parameter View)");
         {
             MouseTempFolder tmp;
@@ -634,6 +642,10 @@ public:
             e->setMouseLogEnabled (true);
             expect (e->isMouseLogEnabled() && logFile.existsAsFile(), "log file started");
 
+           #if ! JUCE_LINUX
+            if (! screen.isEmpty())
+                juce::Desktop::setMousePosition (screen.getBottomRight() - juce::Point<int> (2, 2));     // see above
+           #endif
             // press on the LIVE chip and keep the button down: nothing switches yet
             auto& vs = e->getViewSwitcher();
             expect (vs.getPeer() != nullptr);
