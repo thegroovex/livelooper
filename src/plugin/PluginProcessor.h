@@ -5,13 +5,27 @@
 #include "engine/MidiMap.h"
 #include "KeyMap.h"
 #include "LinkSync.h"
+#include "PerformanceRecorder.h"
+#include "SoundPacks.h"
+#include "MidiFeedback.h"
+#include "AutoBackup.h"
+#include "engine/LatencyMeasure.h"
+#include "engine/Velocity.h"
 
+#include <juce_audio_devices/juce_audio_devices.h>
 #include <juce_audio_formats/juce_audio_formats.h>
 #include <juce_audio_processors/juce_audio_processors.h>
 
 namespace livelooper
 {
 namespace push { class PushDevice; }
+namespace controllers { class GridControllerDevice; }   // v1.6
+namespace ko2 { class Device; }                         // v1.6 K.O. II
+
+/** v1.6: colours a track can get (Push encoder page "Colour", GUI strip, pad colours). -1 = the default look. */
+struct TrackColour { const char* name; int padBright; int padDim; juce::uint32 argb; };
+inline constexpr int kNumTrackColours = 12;
+const TrackColour& getTrackColourInfo (int index) noexcept;
 
 /**
     The plug-in: owns the parameters (APVTS), the MIDI-learn map and the engine.
@@ -110,7 +124,237 @@ public:
         MIDI mapping, keyboard mapping and the cue routing stay with the app, not the set. */
     bool saveSet (const juce::File& file);
     bool loadSet (const juce::File& file, juce::String& error);
+    /** The set as XML (LIVELOOPER_SET, loops as FLAC inside) / loads such XML. */
+    std::unique_ptr<juce::XmlElement> createSetXml();
+    bool loadSetXml (std::unique_ptr<juce::XmlElement> xml, juce::String& error);
     static constexpr const char* kSetExtension = ".llset";
+
+    //============================================================================== v1.6 features (branch v1.6-wip)
+    /** Performance recorder: the master mix as WAV into PerformanceRecorder::getFolder().
+        Also switched by the host parameter "perf_rec". */
+    bool startPerformanceRecording();
+    juce::File stopPerformanceRecording();
+    bool isPerformanceRecording() const noexcept { return recorder.isRecording(); }
+    double getPerformanceRecordingSeconds() const noexcept { return recorder.getElapsedSeconds(); }
+    PerformanceRecorder& getRecorder() noexcept { return recorder; }
+    /** Set to true by the "clip_export" parameter; the editor (or the timer) takes it. */
+    bool takeClipExportRequest() noexcept { return clipExportRequested.exchange (false); }
+    /** Saves the set with all audio as one shared file (.livelooper container). */
+    bool saveSetContainer (const juce::File& file);
+    bool loadSetContainer (const juce::File& file, juce::String& error);
+    static constexpr const char* kContainerExtension = ".livelooper";
+    /** Demo set: running groove + pre-recorded loops (embedded, self-made, CC0). */
+    bool loadDemoSet();
+    /** Empty set: every loop cleared, settings back to the defaults. */
+    void loadEmptySet();
+    /** Grid controller templates (Launchpad, APC mini, Launchkey); null in tests. */
+    controllers::GridControllerDevice* getGridControllers() noexcept { return gridControllers.get(); }
+    void createGridControllers();
+    /** Called from the timer when the user switches perf_rec; also notifies listeners. */
+    std::function<void (const juce::File&)> onRecordingFinished;
+    // ---- end v1.6 features
+    //============================================================================== v1.7 auto backup + crash recovery
+    /** What the editor tells the user after a start (a small notice, never a modal dialog). */
+    struct BackupNotice
+    {
+        enum class Kind { None, Restored, Offer };
+        Kind kind = Kind::None;     // Restored: standalone after a crash; Offer: plug-in, newer backup than the project
+        juce::File file;
+        juce::Time time;
+    };
+    BackupNotice takeBackupNotice();
+    bool hasBackupNotice() const noexcept { return backupNotice.kind != BackupNotice::Kind::None; }
+    const BackupNotice& peekBackupNotice() const noexcept { return backupNotice; }
+    /** Tests / screenshots: show a notice, or present this instance as the app (SETUP rows of the app). */
+    void postBackupNoticeForTests (const BackupNotice& n) { backupNotice = n; }
+    void markStandaloneForTests() noexcept { standaloneSession = true; }
+    /** Tests: leave the session like a crash would (marker stays, nothing written). */
+    void simulateCrashForTests();
+    AutoBackup& getAutoBackup() noexcept { return *autoBackup; }
+    /** This instance's backup folder (standalone or plugin-<instance id>). */
+    juce::File getBackupFolder() const;
+    juce::String getInstanceId() const { return instanceId; }
+    /** Standalone app, once after the window exists: crash check (restores the newest backup after a
+        crash), "Auto load last session", crash marker. */
+    void startStandaloneSession();
+    bool isStandaloneSession() const noexcept { return standaloneSession; }
+    /** Ends the session cleanly: standalone writes the last state (for auto load), the marker goes. */
+    void endBackupSession();
+    /** Loads a backup (the current set is backed up first when it changed). */
+    bool restoreBackup (const juce::File& file, juce::String& error);
+    /** Starts with an empty set instead of the restored backup (the backups stay). */
+    void startEmptyAfterRestore();
+    /** Reads SETUP > Auto backup (on / off, interval) from the app settings. */
+    void applyBackupSettings();
+    /** Cheap fingerprint of the set (settings + loops), unchanged = no backup. */
+    juce::uint64 computeBackupSignature();
+    /** Tests: run the backup logic although no host / app is around (wrapperType undefined). */
+    void enableBackupsForTests (bool on) { backupsForTests = on; }
+    /** Called from the timer (about twice a second); public for tests. */
+    void backupTick (juce::int64 nowMs);
+    /** Plug-in session: marker + folder (normally 1.5 s after creation; public for tests). */
+    void beginPluginBackupSession();
+
+    //============================================================================== v1.7 latency compensation
+    /** Round-trip latency measurement (SETUP > Audio > Measure latency, host parameter lat_measure). */
+    LatencyMeasure& getLatencyMeasure() noexcept { return latencyMeasure; }
+    void startLatencyMeasurement();
+    /** Standalone app: the audio device in use (identifies the stored measurement) and its reported
+        round trip (input + output latency + two buffers) in samples. */
+    void setAudioDeviceInfo (const juce::String& deviceKey, int reportedRoundTripSamples);
+    /** Key of the current device ("standalone: ..." or "plugin: <host>"): measurements are stored per key. */
+    juce::String getAudioDeviceKey() const;
+    /** Stored measurement for the current device in ms (-1 = none). */
+    double getMeasuredLatencyMs() const;
+    void setMeasuredLatencyMs (double ms);
+    void clearMeasuredLatency();
+    /** What the device reports (standalone; 0 in a plug-in: the formats give plug-ins no device latency). */
+    int getReportedLatencySamples() const noexcept { return reportedLatency.load(); }
+    /** Base of the compensation before the manual offset: 0 measured, 1 reported, 2 K.O. II offset, 3 none. */
+    int getLatencySource() const;
+    /** Compensation used for every recording / overdub / capture (samples, 0 when switched off). */
+    int getLatencyCompensationSamples() const;
+    /** Manual offset (host parameter lat_offset) in ms. */
+    float getLatencyOffsetMs() const noexcept;
+    void setLatencyOffsetMs (float ms);
+    bool isLatencyCompensationOn() const noexcept;
+    /** Message thread (timer): finishes a measurement, stores it, updates the engine. Returns true when
+        a measurement finished in this call. Public for tests. */
+    bool updateLatency();
+    static juce::String latencySettingsKey (const juce::String& deviceKey);
+
+    //============================================================================== v1.7 views
+    /** 0 = Full, 1 = Live, 2 = Live without FX (from live_view + live_fx), 3 = Performance (live_view on + View = Performance). */
+    int getView() const noexcept;
+    /** Sets the view selector, live_view and live_fx together (Push SHIFT + MASTER, tests). */
+    void setView (int view);
+    /** Keeps the selector (view) and live_view / live_fx consistent: whichever changed last wins.
+        Called from the timer (message thread); public for the tests. */
+    void syncViews();
+
+    //============================================================================== v1.7 controllers
+    enum class VelocitySource { Push = 0, Ko2, Midi };
+    velocity::Curve getVelocityCurve (VelocitySource s) const noexcept;
+    void setVelocityCurve (VelocitySource s, velocity::Curve c);
+    /** Generic MIDI feedback (experimental): output device (identifier, saved), profile values. */
+    bool isMidiFeedbackOn() const noexcept;
+    juce::String getMidiFeedbackOutput() const;
+    void setMidiFeedbackOutput (const juce::String& identifier);
+    MidiFeedback::Profile getMidiFeedbackProfile() const;
+    void setMidiFeedbackProfile (const MidiFeedback::Profile& p);
+    /** The feedback items for the current MIDI-learn table (state of every learned control). */
+    std::vector<MidiFeedback::Item> buildMidiFeedbackItems() const;
+    /** Renders the changed feedback messages (tests call it directly; the timer sends them). */
+    void renderMidiFeedback (std::vector<juce::MidiMessage>& out, bool full);
+    /** Push 1 display: loop progress bars instead of the state words (host parameter push_progress). */
+    bool isPushProgressShown() const noexcept;
+
+    //============================================================================== v1.6 K.O. II + controller audio
+    /** The K.O. II on its USB MIDI port (null in unit tests until createKo2Device()). */
+    ko2::Device* getKo2Device() noexcept { return ko2Device.get(); }
+    void createKo2Device();
+    bool isKo2Connected() const noexcept;
+    /** Role from the host parameter ctl_audio_mode: 0 = controller only, 1 = record K.O. II. */
+    int  getControllerAudioMode() const noexcept;
+    void setControllerAudioMode (int mode);
+    /** SETUP > Controllers > K.O. II (saved for all instances): control groups (bits A=1 .. D=8, -1 = default
+        of the role), send clock, MIDI channel (0 = any), latency offset in ms (-1 = automatic). */
+    int  getKo2Groups() const;
+    void setKo2Groups (int bits);
+    bool getKo2ClockOut() const;
+    void setKo2ClockOut (bool on);
+    int  getKo2Channel() const;
+    void setKo2Channel (int ch);
+    int  getKo2OffsetMs() const;
+    void setKo2OffsetMs (int ms);
+    /** Offset actually used (automatic = reported input latency + one block). */
+    int  getKo2EffectiveOffsetSamples() const;
+    /** Record K.O. II (standalone): where livelooper's output goes - 0 = the computer (default:
+        metronome and loops are not recorded again), 1 = the K.O. II (they come back on its input). */
+    int  getKo2AudioOutput() const;
+    void setKo2AudioOutput (int where);
+    /** Punch FX hold ramp (host parameter pfx_hold_ramp): 0 off, 1 = 1 beat, 2 = 2 beats, 3 = 1 bar. */
+    int  getPunchHoldRamp() const noexcept;
+    void setPunchHoldRamp (int index);
+    /** Live punch FX amount of the held K.O. II pads (hold ramp / pressure), -1 while none is held. */
+    float getKo2LivePunchAmount() const noexcept;
+    /** Resample: records capture-length bars of the input into the first empty track, starting on a bar.
+        Returns the track, -1 when no track is free. Also the host parameter ko2_resample. */
+    int  performKo2Resample();
+    int  getResampleTrack() const noexcept { return resampleTrack; }
+    /** Short messages for the editor (toasts): "No free track" ... taken once. */
+    juce::String takeControllerNotice();
+    void postControllerNotice (const juce::String& text);
+    /** Standalone app: switch the audio device to / from the K.O. II (record = role 1 and connected). */
+    std::function<void (bool recordFromKo2)> onControllerAudioChanged;
+    /** Tests / screenshots: a simulated K.O. II / Push (no hardware). */
+    void simulateControllers (bool ko2, bool push);
+    bool isPushConnected() const noexcept;
+    push::PushDevice* getPushDevice() noexcept { return pushDevice.get(); }
+    /** Track colours (-1 = default), saved with the state and sets. */
+    int  getTrackColour (int track) const noexcept { return trackColours[(size_t) juce::jlimit (0, kNumTracks - 1, track)].load(); }
+    void setTrackColour (int track, int colour) noexcept
+    {
+        if (juce::isPositiveAndBelow (track, kNumTracks))
+            trackColours[(size_t) track].store (juce::jlimit (-1, kNumTrackColours - 1, colour));
+    }
+    //============================================================================== v1.6 rhythm (branch v1.6-rhythm)
+    /** BEATS: the 16 user pattern slots ("User 1 .. 16" in the pattern selector), saved with the set. */
+    BeatPatternBank& getUserPatterns() noexcept { return userPatterns; }
+    juce::String getUserPatternName (int slot) const;
+    void setUserPatternName (int slot, const juce::String& name);
+    void storeUserPattern (int slot, const BeatPattern& p, const juce::String& name);
+    int  getBeatsEditSlot() const noexcept { return beatsEditSlot; }
+    void setBeatsEditSlot (int slot) noexcept { beatsEditSlot = juce::jlimit (0, BeatPatternBank::kNumSlots - 1, slot); }
+    /** Plays user slot 'slot' (sets the pattern parameter; the switch follows PATTERN SWITCH). */
+    void selectUserPattern (int slot);
+    /** The slot BEATS edits: when a preset plays, it is copied into the edit slot first and that slot plays. */
+    int  prepareEditSlot();
+    /** Names for the UI: kit choice (pack slots show their pack kit), pattern choice (user slots their name),
+        voice of the current kit ("Conga"). Localised. */
+    juce::String getKitDisplayName (int kitIndex) const;
+    juce::String getPatternDisplayName (int patternIndex) const;
+    juce::String getVoiceDisplayName (int voice) const;
+    int  getCurrentKit() const noexcept;
+    int  getCurrentPattern() const noexcept;
+    /** Sound packs: rescans the packs folder / imports a pack folder or .zip (message thread). */
+    void refreshSoundPacks();
+    bool importSoundPack (const juce::File& folderOrZip, juce::String& error);
+    /** v1.6 beat library: a beat with its name, steps, velocities, length, swing and row mixer
+        (level / pitch / mute / solo) as a .llpattern file - in Music/livelooper/Patterns or anywhere. */
+    SoundPacks::BeatSettings captureBeatSettings() const;
+    void applyBeatSettings (const SoundPacks::BeatSettings& s);
+    /** Saves user slot 'slot' (target empty = into the library under 'name'); returns the file or empty. */
+    juce::File saveBeat (int slot, const juce::String& name, const juce::File& target = {});
+    /** The slot a loaded beat goes to: the edit slot when it is empty (or replaceCurrent), otherwise the first
+        free slot; when all 16 are used, the edit slot. */
+    int  slotForLoading (bool replaceCurrent) const;
+    /** Loads a beat into 'slot' (steps + name + swing / mixer when saved), makes it the edit slot and plays it. */
+    void loadBeat (const SoundPacks::NamedPattern& beat, int slot);
+    bool loadBeatFile (const juce::File& file, int slot, juce::String& error);
+    /** Host parameters "Next / Previous Library Beat": steps through the library (wraps around). The first
+        step picks a slot with slotForLoading(false); later steps reuse it while it still holds that beat.
+        Returns the index in the library, -1 when it is empty. */
+    int  browseLibraryBeat (int delta);
+    int  takeBeatLibraryRequest() noexcept { return beatLibRequest.exchange (0); }
+    /** v1.6 BEATS: the user's own sample on a row (drag & drop or "Load sample..."). It replaces the row's
+        voice in every kit until the row is reset; level / pitch / mute / solo of the row still apply.
+        The audio (mono, at most kMaxRowSampleSeconds) is saved with the set and the plug-in state, the
+        original path too. Message thread. */
+    static constexpr double kMaxRowSampleSeconds = 10.0;
+    bool loadRowSample (int row, const juce::File& file, juce::String& error);
+    /** Same from audio already in memory (state / set restore, tests). */
+    bool setRowSampleAudio (int row, const juce::AudioBuffer<float>& audio, double sampleRate,
+                            const juce::String& name, const juce::File& file);
+    void clearRowSample (int row);
+    bool hasRowSample (int row) const noexcept;
+    juce::String getRowSampleName (int row) const;
+    juce::File getRowSampleFile (int row) const;
+    /** File types the rows accept (wildcard of the audio formats this build reads). */
+    static juce::String getRowSampleWildcard();
+    static bool isRowSampleFile (const juce::File& f);
+    int  getRowSampleVersion() const noexcept { return rowSampleVersion; }
+    const DrumBank* getCurrentDrumBank() const noexcept { return currentBank.get(); }
 
     //============================================================================== AudioProcessor
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
@@ -177,6 +421,10 @@ public:
     double getMaxLoopSeconds() const noexcept { return maxLoopSeconds; }
     void setMaxLoopSeconds (double seconds);
     bool getSaveLoopsWithProject() const noexcept { return saveLoops; }
+    /** v1.7 free first loop (SETUP > Looper, remembered on this computer, default on): with no other loop, the
+        looper's own clock and no metronome / rhythm the first recording ends on the press and sets the tempo. */
+    bool getFreeFirstLoop() const noexcept { return freeFirstLoop.load(); }
+    void setFreeFirstLoop (bool on);
     void setSaveLoopsWithProject (bool s) noexcept { saveLoops = s; }
 
     // for tests: process MIDI learn/mapping as if it came from the host
@@ -194,6 +442,7 @@ private:
         int scene = -1;
         int arg = 0;            // extra command argument (copy: -1 = first empty track)
         int octave = 0;         // v1.4: octave up / down trigger (changes the pitch parameter)
+        int special = 0;        // v1.6: 1 = clip export, 2 / 3 = next / previous library beat (message thread)
         bool last = false;
         std::atomic<bool> needsReset { false };
     };
@@ -275,6 +524,34 @@ private:
     std::atomic<float>* metroOn {}; std::atomic<float>* metroLevel {}; std::atomic<float>* metroAccent {};
     std::atomic<float>* linkOn {}; std::atomic<float>* linkStartStop {};
     std::atomic<float>* rhythmGroove {}; std::atomic<float>* rhythmFills {};
+    // ---- v1.6 rhythm (branch v1.6-rhythm)
+    std::atomic<float>* rhythmVariation {}; std::atomic<float>* rhythmFill {}; std::atomic<float>* beatSwitch {};
+    std::atomic<float>* drumsBfx {}; std::atomic<float>* drumsRepeat {};
+    std::array<std::atomic<float>*, params::kNumBeatRows> beatMute {}, beatSolo {}, beatVol {}, beatPitch {};
+    BeatPatternBank userPatterns;
+    std::array<juce::String, BeatPatternBank::kNumSlots> userPatternNames;
+    int beatsEditSlot = 0;
+    std::atomic<int> beatLibRequest { 0 };       // v1.6: +n / -n library steps requested by the host parameters
+    int browseSlot = -1, browseIndex = -1;       // v1.6: where library browsing loads to, and what it loaded
+    BeatPattern browseLoaded;
+    std::shared_ptr<const DrumBank> currentBank;
+    std::vector<std::shared_ptr<const DrumBank>> retiredBanks;   // kept alive while hits may still play
+    int soundPackVersion = -1;
+    struct RowSample
+    {
+        juce::String name;
+        juce::File file;
+        juce::MemoryBlock flac;          // mono FLAC as saved with the set
+        DrumBank::Sample sample;
+    };
+    std::array<RowSample, params::kNumBeatRows> rowSamples;
+    int rowSampleVersion = 0;
+    void writeRowSamples (juce::XmlElement& root) const;
+    void readRowSamples (const juce::XmlElement& root);
+    void writeBeatsState (juce::XmlElement& root) const;
+    void readBeatsState (const juce::XmlElement& root);
+    void updateDrumBank();
+    // ---- end v1.6 rhythm
     std::unique_ptr<LinkSync> link;
     std::atomic<LinkSync*> linkPtr { nullptr };
     std::atomic<bool> linkDriving { false };
@@ -296,7 +573,66 @@ private:
     std::atomic<int> lastScene { -1 };
     std::atomic<bool> sceneStoreDone { false };
     std::unique_ptr<push::PushDevice> pushDevice;
+    // v1.6 punch FX / send FX / K.O. II
+    std::atomic<float>* sfxType {}; std::atomic<float>* sfxX {}; std::atomic<float>* sfxY {}; std::atomic<float>* sfxLevel {};
+    std::array<std::atomic<float>*, params::kNumPunchHolds> pfxHold {};
+    std::atomic<float>* pfxAmount {}; std::atomic<float>* pfxX {}; std::atomic<float>* pfxY {};
+    std::atomic<float>* pfxTarget {}; std::atomic<float>* pfxLatch {}; std::atomic<float>* ctlAudioMode {};
+    std::atomic<float>* pfxHoldRamp {};
+    std::array<bool, params::kNumPunchHolds> pfxLast {}, pfxLatched {};
+    std::unique_ptr<ko2::Device> ko2Device;
+    std::atomic<bool> resampleRequested { false };
+    int resampleTrack = -1;
+    int lastAudioRecord = -1;
+    std::array<int, kNumTracks> lastTrackState {};
+    std::array<std::atomic<int>, kNumTracks> trackColours {};
+    juce::StringArray controllerNotices;
+    juce::CriticalSection noticeLock;
+    void updateControllers();
     bool pushEnabledSetting = true;
+
+    // v1.7 auto backup
+    std::unique_ptr<AutoBackup> autoBackup;
+    juce::String instanceId;
+    BackupNotice backupNotice;
+    bool backupSessionStarted = false, standaloneSession = false, backupsForTests = false;
+    bool baselineIsNewest = false;       // standalone: the session started from the newest backup
+    juce::int64 createdMs = 0;
+    int backupTickCounter = 0;
+    std::unique_ptr<juce::InterProcessLock> standaloneLock;
+    void initBackup();
+    void shutdownBackup();
+    void adoptInstanceId (const juce::String& id, juce::int64 hostSavedMs);
+    std::unique_ptr<juce::XmlElement> createSetXmlWithoutAudio (std::vector<StoredLoop>& loops);
+    static bool writeSetContainer (juce::XmlElement& xml, const std::vector<StoredLoop>& rawLoops, double tempoBpm,
+                                   const juce::File& target);
+
+    // v1.7 latency + controllers
+    LatencyMeasure latencyMeasure;
+    juce::AudioBuffer<float> measureScratch;
+    std::atomic<bool> latencyMeasureRequested { false };
+    std::atomic<int> reportedLatency { 0 };
+    std::atomic<int> compensationSamples { 0 };
+    juce::String audioDeviceKey;
+    mutable juce::CriticalSection deviceKeyLock;
+    std::atomic<float>* latComp {}; std::atomic<float>* latOffset {};
+    std::atomic<float>* velPush {}; std::atomic<float>* velKo2 {}; std::atomic<float>* velMidi {};
+    std::atomic<float>* midiFb {}; std::atomic<float>* pushProgress {};
+    MidiFeedback midiFeedback;
+    std::unique_ptr<juce::MidiOutput> feedbackOut;
+    juce::String feedbackOutId;
+    int feedbackFullCounter = 0;
+    void initV17();
+    void processV17 (const float* inL, const float* inR, juce::AudioBuffer<float>& buffer, int numSamples) noexcept;
+    void timerV17();
+    int syncedView = -1, syncedLive = -1, syncedFx = -1;     // v1.7 views: last values seen by syncViews()
+    double cachedMeasuredMs = -2.0;      // -2 = not read yet
+    // v1.6 features
+    PerformanceRecorder recorder;
+    std::unique_ptr<controllers::GridControllerDevice> gridControllers;
+    std::atomic<float>* perfRecParam {};
+    std::atomic<bool> clipExportRequested { false };
+    void updatePerformanceRecorder();
 
     juce::Array<juce::RangedAudioParameter*> paramList;
     juce::HashMap<juce::String, int> paramIndexById;
@@ -314,6 +650,8 @@ private:
     std::array<double, 4> tapIntervals {};
     int numTapIntervals = 0;
     std::atomic<float> pendingTapTempo { 0.0f };
+    static bool loadFreeFirstLoopSetting();
+    std::atomic<bool> freeFirstLoop { loadFreeFirstLoopSetting() };     // v1.7 SETUP > Looper > Free first loop
     std::atomic<int> midiActivity { 0 };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LiveLooperProcessor)

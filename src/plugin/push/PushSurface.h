@@ -1,6 +1,7 @@
 #pragma once
 
 #include "PushProtocol.h"
+#include "engine/RhythmGenerator.h"
 
 #include <array>
 #include <functional>
@@ -46,14 +47,33 @@ namespace push
     ADD TRACK = beat FX while held, LEFT / RIGHT = beat fraction, REPEAT = beat repeat while
     held (SHIFT: latch), ACCENT = stutter while held (SHIFT: latch), REPEAT or ACCENT held +
     touch strip = repeat / stutter rate 1/2 (bottom) .. 1/32 (top), FIXED LENGTH = capture
-    length 1 .. 32 bars (SHIFT: shorter), SHIFT + METRONOME = Ableton Link on / off,
+    length 1 .. 32 bars (SHIFT: shorter; on release, when nothing else was pressed), SHIFT + METRONOME = Ableton Link on / off,
     SHIFT + TAP TEMPO = metronome click on / off.
+
+    v1.6 rhythm: SCALES = STEP mode (step sequencer for the drums): the pad rows are the eight
+    voices of the kit (bottom = kick), the columns 8 steps; LEFT / RIGHT = previous / next 8
+    steps, UP / DOWN = previous / next pattern (switches quantised), pad = step on / off (pad
+    velocity = step velocity, SHIFT + pad = accent), DELETE + pad = clear the row, MUTE / SOLO +
+    pad or the top / lower button row = row mute / solo, encoders = row level (SHIFT: pitch).
+    Editing a built-in groove copies it into a free user slot first.
+
+    v1.7 loop length (every mode): hold FIXED LENGTH + pad in a track's column = that track's loop
+    length (rows 3 - 8 from the bottom = AUTO, 1, 2, 4, 8, 16 bars; rows 1 - 2 = select the track),
+    hold FIXED LENGTH + track encoder = step it. The display shows the eight lengths while the button is
+    held; its LED is lit when the selected track has a length other than AUTO. Released on its own,
+    FIXED LENGTH still steps the capture length. In every mode: IN = FILL
+    while held (back to the groove on the next downbeat), OUT = drums through the beat FX on / off
+    (SHIFT + OUT: drums through beat repeat / stutter).
 */
 class PushSurface
 {
 public:
-    enum class Mode { Loop, FxPad };
-    enum class EncoderMode { Volume, Pan, Pitch, Feedback, Fx, BeatFx };
+    enum class Mode { Loop, FxPad, Step };
+    enum class EncoderMode { Volume, Pan, Pitch, Feedback, Fx, BeatFx, Colour };   // Colour: v1.6 track colours
+    /** v1.6 what the XY pad (FX PAD mode) plays: an FX slot (top buttons) or, with SHIFT + top buttons 1 - 8,
+        beat FX, colour FX, beat repeat, stutter or one of the punch FX (buttons 5 - 8 = pages of three,
+        press again for the next one of the page). */
+    enum class XyKind { Slot, BeatFx, ColorFx, Repeat, Stutter, Punch };
     enum class StripMode { TapeStop, Filter, RepeatRate, StutterRate };
 
     /** Timing of the gestures (milliseconds). */
@@ -62,6 +82,10 @@ public:
     static constexpr juce::uint32 kFootHoldMs = 1000;      // footswitch hold = clear
     static constexpr juce::uint32 kNoticeMs = 1500;        // short messages on display line 4
     static constexpr juce::uint32 kMeterIntervalMs = 40;   // meter lines at most 25 times per second
+    static constexpr juce::uint32 kEncoderDoubleTapMs = 400; // v1.6: two touches of a track encoder = next page
+    static constexpr int kChopThreshold = 16;               // v1.6: pad pressure that starts the chop
+    /** v1.6 free pads (5 tracks): top right = beat flash, the one below = set recording. */
+    static constexpr int kBeatPadRow = 7, kRecPadRow = 6, kFreePadColumn = 7;
 
     explicit PushSurface (LiveLooperProcessor& p);
 
@@ -78,12 +102,30 @@ public:
     EncoderMode getEncoderMode() const noexcept  { return encoderMode; }
     int getSelectedTrack() const noexcept        { return selectedTrack; }
     int getFxTarget() const noexcept             { return fxTarget; }
+    XyKind getXyKind() const noexcept            { return xyKind; }
+    int getXyPunch() const noexcept              { return xyPunch; }
+    /** v1.6 the track whose loop is chopped by pad pressure (-1 = none) and the rate index (1/4 .. 1/32). */
+    int getChopTrack() const noexcept            { return chopTrack; }
+    /** v1.6: true during the first half of every beat while the timeline runs (LED blinking in time). */
+    bool beatPhaseOn (double duty = 0.5) const;
+    /** v1.6 the 8 encoder pages a double touch cycles through (Volume, Pan, Pitch, Feedback, Colour). */
+    static EncoderMode nextTrackPage (EncoderMode m) noexcept;
+    /** Text of the XY selection for the display ("Punch: Tape Stop"). */
+    juce::String xySelectionText() const;
+    /** v1.6: CC value of a button as last rendered (-1 = never) - tests / Controller GUI. */
+    int getButtonState (int cc) const noexcept { return juce::isPositiveAndBelow (cc, 128) ? ccState[(size_t) cc] : -1; }
     bool areMetersShown() const noexcept         { return metersShown; }
     StripMode getStripMode() const noexcept      { return stripMode; }
     bool isStripTouched() const noexcept         { return stripTouched; }
     int getPadColour (int row, int column) const noexcept { return padState[(size_t) (row * kGridSize + column)]; }
     juce::String getDisplayLine (int line) const { return displayState[(size_t) juce::jlimit (0, kDisplayLines - 1, line)]; }
     juce::String getNotice() const;
+    /** v1.7: FIXED LENGTH is held (loop length gesture). */
+    bool isLengthHeld() const noexcept          { return lengthHeld; }
+    /** v1.7: loop length choice of a track (index into kMeasureChoices, 0 = AUTO). */
+    int getTrackLengthChoice (int track) const;
+    /** v1.6 STEP mode: first step shown on the pads (multiple of 8). */
+    int getStepPage() const noexcept { return stepPage; }
 
     /** Text of the four display lines as they should be now. */
     std::array<juce::String, kDisplayLines> buildDisplay() const;
@@ -105,6 +147,12 @@ private:
     float getParam (const juce::String& paramId) const;
     void toggleParam (const juce::String& paramId);
     void fxPadTouch (int row, int column);
+    void xyApply (int row, int column, bool first);
+    void xyPressure (float pressure);
+    void xyRelease();
+    void handleLoopPressure (int track, int value);
+    void endChop();
+    void handleEncoderTouch (int encoder, bool touched);
     void fxPadReleaseAll();
     juce::String fxParamId (const char* name) const;
     void selectTrack (int t);
@@ -112,11 +160,28 @@ private:
     juce::uint32 now() const { return clock ? clock() : juce::Time::getMillisecondCounter(); }
     bool isTrackMuted (int t) const;
     juce::String meterColumn (int t, int width) const;
+public:
+    /** v1.7: display column with the state letter and the loop progress as a bar (Push 1 bar characters). */
+    juce::String progressColumn (int t, int width) const;
+    /** v1.7: amount of the punch FX held / the XY pad played (0 .. 1) and its label; -1 when nothing plays. */
+    float activeAmount (juce::String& label) const;
+private:
 
     int trackPadColour (int track, int row, bool blinkOn) const;
+    // v1.7 loop length gesture (FIXED LENGTH held)
+    void setTrackLengthChoice (int track, int choice);
+    void handleLengthPad (int row, int column);
+    int lengthPadColour (int row, int column, bool blinkOn) const;
     /** first encoder of the master section (master level, tempo), -1 when the encoders are all in use */
     int masterColumn() const;
     int fxPadColour (int row, int column) const;
+    // v1.6 STEP mode
+    void handleStepPad (int row, int column, int velocity);
+    bool handleStepButton (int number);
+    int  stepPadColour (int row, int column, bool blinkOn) const;
+    BeatPattern stepView() const;
+    int  stepPlayingCell (const BeatPattern& p) const;
+    std::array<juce::String, kDisplayLines> buildStepDisplay() const;
 
     LiveLooperProcessor& proc;
     std::function<juce::uint32()> clock;
@@ -124,9 +189,18 @@ private:
     EncoderMode encoderMode = EncoderMode::Volume;
     int selectedTrack = 0;
     int fxTarget = 0;               // 0 .. 3 input FX A - D, 4 .. 7 track FX A - D
+    XyKind xyKind = XyKind::Slot;   // v1.6
+    int xyPunch = 0;                // v1.6: punch FX on the XY pad (0 .. 11)
+    struct XySnapshot { float a = 0, b = 0, c = 0; std::array<float, 8> knobs {}; } xySnapshot;
+    int chopTrack = -1;             // v1.6 pad pressure chop
+    float chopPrevTarget = 0.0f, chopPrevRate = 0.0f;
+    int lastLoopPadTrack = -1;
+    std::array<juce::uint32, 8> encoderTouchAt {};
     bool shift = false, deleteHeld = false, muteHeld = false;
     bool selectHeld = false, soloHeld = false, duplicateHeld = false;
     bool repeatHeld = false, accentHeld = false;     // v1.5: REPEAT / ACCENT buttons held
+    bool lengthHeld = false, lengthUsed = false, lengthShift = false;   // v1.7 FIXED LENGTH held / used for a length
+    juce::uint64 lengthPads = 0;                     // v1.7 pads pressed during the length gesture (releases swallowed)
 
     struct FxSnapshot { bool active = false; float on = 0, p1 = 0, p2 = 0, mix = 0; };
     FxSnapshot fxSnapshot;
@@ -154,6 +228,9 @@ private:
     juce::String notice;
     juce::uint32 noticeUntil = 0;
 
+    int stepPage = 0;               // v1.6 STEP mode: page of 8 steps
+    BeatPattern stepCache;          // pattern shown on the pads (taken once per render)
+    int stepCachePlaying = -1;
     std::array<int, 64> padState {};
     std::array<int, 128> ccState {};
     std::array<juce::String, kDisplayLines> displayState;

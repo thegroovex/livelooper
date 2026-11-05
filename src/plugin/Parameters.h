@@ -2,6 +2,7 @@
 
 #include "engine/BeatFx.h"
 #include "engine/Effects.h"
+#include "engine/PunchFx.h"
 #include "engine/MidiMap.h"
 
 #include <juce_audio_processors/juce_audio_processors.h>
@@ -110,6 +111,79 @@ inline const juce::String gLinkOn       { "link_on" };
 inline const juce::String gLinkStartStop{ "link_startstop" };
 inline const juce::String gRhythmGroove { "rhythm_groove" };
 inline const juce::String gRhythmFills  { "rhythm_fills" };
+// ---- v1.6 features (branch v1.6-wip: loop tricks, performance recorder, clip export) -- appended
+inline constexpr const char* kHalfSpeed = "halfspeed";  // trigger: loop at half speed (x2 length), quantized
+inline constexpr const char* kDblSpeed  = "dblspeed";   // trigger: loop at double speed (played twice), quantized
+inline constexpr const char* kRevLoop   = "revloop";    // trigger: reverse the recorded audio, quantized
+inline const juce::String gPerfRec      { "perf_rec" };     // toggle: performance recorder (master mix to WAV)
+inline const juce::String gClipExport   { "clip_export" };  // trigger: 9:16 clip of the last 20 s / the recording
+// ---- end v1.6 features
+// ---- v1.6 rhythm (branch v1.6-rhythm): kits, BEATS step sequencer, fill on demand, drum FX routing
+inline const juce::String gRhythmVariation { "rhythm_variation" };   // 0 .. 1: sample / accent variation
+inline const juce::String gRhythmFill   { "rhythm_fill" };          // momentary: fill while held
+inline const juce::String gBeatSwitch   { "beat_switch" };          // pattern change: immediately / beat / bar
+inline const juce::String gDrumsBfx     { "drums_bfx" };            // drums through the beat FX
+inline const juce::String gDrumsRepeat  { "drums_repeat" };         // drums through beat repeat / stutter
+inline constexpr int kNumBeatRows = 8;
+/** "beat_mute1" .. "beat_mute8", "beat_solo1".., "beat_vol1".., "beat_pitch1".. (row = kit voice) */
+juce::String beatRowId (const char* what, int row);
+inline constexpr const char* kBeatMute  = "beat_mute";
+inline constexpr const char* kBeatSolo  = "beat_solo";
+inline constexpr const char* kBeatVol   = "beat_vol";
+inline constexpr const char* kBeatPitch = "beat_pitch";
+juce::StringArray beatSwitchChoices();
+// ---- end v1.6 rhythm
+// ---- v1.6 beat library (appended after the rhythm block): step through the saved beats (Music/livelooper/Patterns)
+inline const juce::String gBeatLibNext { "beat_lib_next" };   // trigger: next beat of the library
+inline const juce::String gBeatLibPrev { "beat_lib_prev" };   // trigger: previous beat of the library
+
+// ---- v1.6 punch FX / send FX / controller audio (appended after the beat library; ids never change)
+inline const juce::String gSfxType      { "sfx_type" };       // send FX type (Off, Delay, Reverb, ...)
+inline const juce::String gSfxX         { "sfx_x" };
+inline const juce::String gSfxY         { "sfx_y" };
+inline const juce::String gSfxLevel     { "sfx_level" };      // send amount from the loop bus
+inline constexpr int kNumPunchHolds = 12;
+inline constexpr const char* kPunchHold = "pfx_hold";         // "pfx_hold1" .. "pfx_hold12": momentary
+juce::String punchHoldId (int index);                         // 0 .. 11
+inline const juce::String gPfxAmount    { "pfx_amount" };     // pressure / velocity write it
+inline const juce::String gPfxX         { "pfx_x" };
+inline const juce::String gPfxY         { "pfx_y" };
+inline const juce::String gPfxTarget    { "pfx_target" };     // Loops, Input, Master, Drums
+inline const juce::String gPfxLatch     { "pfx_latch" };      // on: a press switches a punch FX on / off
+inline const juce::String gCtlAudioMode { "ctl_audio_mode" }; // Controller only / Record controller audio (K.O. II)
+inline const juce::String gKo2Resample  { "ko2_resample" };   // trigger: resample the controller's pattern into a free track
+juce::StringArray sendFxChoices();
+juce::StringArray punchTargetChoices();
+juce::StringArray ctlAudioModeChoices();
+// ---- v1.6 punch pads without pressure (appended, id 489): hold a pad = the amount rises to 100 %
+inline const juce::String gPfxHoldRamp  { "pfx_hold_ramp" };  // Off, 1 beat, 2 beats (default), 1 bar
+juce::StringArray holdRampChoices();
+// ---- end v1.6 punch FX
+// ---- v1.7 (appended after pfx_hold_ramp, ids 490 - 497; ids never change)
+inline const juce::String gLatComp      { "lat_comp" };       // latency compensation on / off (default on)
+inline const juce::String gLatOffset    { "lat_offset" };     // manual offset -50 .. +50 ms (added to the measured value)
+inline const juce::String gLatMeasure   { "lat_measure" };    // trigger: measure the round trip (loopback ping)
+inline const juce::String gVelPush      { "vel_push" };       // velocity curve Push 1 pads: Soft, Normal, Hard, Fixed
+inline const juce::String gVelKo2       { "vel_ko2" };        // velocity curve K.O. II pads
+inline const juce::String gVelMidi      { "vel_midi" };       // velocity curve of learned MIDI notes
+inline const juce::String gMidiFeedback { "midi_fb" };        // generic MIDI feedback (experimental) on / off
+inline const juce::String gPushProgress { "push_progress" };  // Push 1 display: loop progress bars (default on)
+juce::StringArray velocityCurveChoices();
+// ---- v1.7 display (appended, ids 498 - 501): Live view, stage mode, colour theme, waveforms
+inline const juce::String gLiveView     { "live_view" };      // on: the Live view (big track cards) instead of the full surface
+inline const juce::String gStageMode    { "stage_mode" };     // high contrast, larger type
+inline const juce::String gUiTheme      { "ui_theme" };       // Dark (default), Light
+inline const juce::String gWaveforms    { "waveforms" };      // large waveforms in the track displays (default off)
+juce::StringArray themeChoices();
+// ---- v1.7 views (appended, ids 502 - 503): Live view FX bar, view selector
+inline const juce::String gLiveFx       { "live_fx" };        // Live view: Performance FX bar shown (default on; off = taller cards)
+inline const juce::String gView         { "view" };           // Full, Live, Live without FX, Performance (drives live_view + live_fx)
+juce::StringArray viewChoices();
+inline constexpr int kNumViews = 4;
+inline constexpr int kPerformanceView = 3;                    // the 4th choice (live_view on, live_fx unchanged)
+// ---- end v1.7
+inline constexpr int kNumParameters = 503;
+
 inline constexpr int kNumScenes = 8;
 inline constexpr int kCaptureBars[] = { 1, 2, 4, 8, 16, 32 };   // 16 / 32 since 1.5 (appended)
 inline constexpr int kNumCaptureChoices = 6;

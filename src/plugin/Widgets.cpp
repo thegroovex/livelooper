@@ -73,6 +73,64 @@ void LLButton::mouseDown (const juce::MouseEvent& e)
         juce::TextButton::mouseDown (e);
 }
 
+//============================================================================== v1.6 record button
+juce::String RecordButton::formatTime (double seconds)
+{
+    const int s = (int) juce::jlimit (0.0, 359999.0, std::isfinite (seconds) ? seconds : 0.0);
+    return s >= 3600 ? juce::String::formatted ("%d:%02d:%02d", s / 3600, (s / 60) % 60, s % 60)
+                     : juce::String::formatted ("%02d:%02d", s / 60, s % 60);
+}
+
+void RecordButton::setBeatPhase (double phase)
+{
+    const bool on = ! getToggleState() || (phase - std::floor (phase)) < 0.5;
+    if (on != lit)
+    {
+        lit = on;
+        repaint();
+    }
+}
+
+void RecordButton::setElapsedSeconds (double seconds)
+{
+    const auto t = getToggleState() ? formatTime (seconds) : juce::String();
+    if (t != timeText)
+    {
+        timeText = t;
+        repaint();
+    }
+}
+
+void RecordButton::paintButton (juce::Graphics& g, bool over, bool down)
+{
+    const auto b = getLocalBounds().toFloat();
+    const float d = juce::jmin (b.getHeight(), 30.0f) - 2.0f;
+    const auto circle = juce::Rectangle<float> (b.getRight() - d - 1.0f, b.getCentreY() - d * 0.5f, d, d);
+    const bool on = getToggleState();
+    const juce::Colour red (0xffff3b3b);
+
+    // ring
+    g.setColour (juce::Colour (0xff2a2d33));
+    g.fillEllipse (circle);
+    g.setColour (on ? red.withAlpha (0.9f) : juce::Colour (0xff4a4e57).brighter (over ? 0.3f : 0.0f));
+    g.drawEllipse (circle.reduced (0.75f), 1.5f);
+    // the red dot: dim when idle, bright (with a glow) on the beat while recording
+    const auto dot = circle.reduced (d * 0.2f);
+    if (on && lit)
+    {
+        g.setColour (red.withAlpha (0.35f));
+        g.fillEllipse (dot.expanded (d * 0.12f));
+    }
+    g.setColour (on ? (lit ? red : red.darker (0.9f)) : red.darker (over ? 0.15f : 0.35f));
+    g.fillEllipse (down ? dot.reduced (1.0f) : dot);
+
+    // caption left of the circle: REC, while recording the elapsed time
+    auto text = b.withRight (circle.getX() - 6.0f);
+    g.setFont (LooperLookAndFeel::font (12.0f, true));
+    g.setColour (on ? red : colours::textDim.withAlpha (over ? 1.0f : 0.8f));
+    g.drawText (on ? tr ("REC") + " " + timeText : tr ("REC"), text, juce::Justification::centredRight);
+}
+
 MomentaryButton::MomentaryButton (APVTS& state, const juce::String& paramId, const juce::String& text, juce::Colour led)
     : LLButton (text, led), param (state.getParameter (paramId))
 {
@@ -168,7 +226,7 @@ void Knob::resized()
 void Knob::paint (juce::Graphics& g)
 {
     g.setColour (colours::textDim);
-    g.setFont (LooperLookAndFeel::font (11.0f, true));
+    g.setFont (LooperLookAndFeel::font (10.5f, true));
     g.drawFittedText (i18n::upper (tr (caption)), getLocalBounds().removeFromBottom (16), juce::Justification::centred, 1);
 }
 
@@ -195,7 +253,7 @@ void RecPlayButton::paint (juce::Graphics& g)
     const auto pending = (LooperEngine::Pending) st.pending.load();
     const float progress = st.progress.load();
 
-    juce::Colour colour = colours::textDim.withAlpha (0.25f);
+    juce::Colour colour = colours::track (track);
     bool active = false, fullRing = false, dimRing = false;
 
     switch (state)
@@ -223,67 +281,123 @@ void RecPlayButton::paint (juce::Graphics& g)
     const float size = juce::jmin (bounds.getWidth(), bounds.getHeight());
     const auto area = juce::Rectangle<float> (size, size).withCentre (bounds.getCentre());
     const auto centre = area.getCentre();
-    const float outerR = size * 0.5f - 2.0f;
-    const float ringR = outerR - 5.0f;
+    const float outerR = size * 0.5f - 6.0f;
+    const float ringR = outerR - 7.0f;
+    const float padR = ringR - 10.0f;
 
-    // bezel
-    g.setColour (juce::Colour (0xff101113));
-    g.fillEllipse (area.reduced (1.0f));
+    // static parts (shadow, bezel, pad body with its lighting) are cached per look
+    const bool lit = active && state != LoopTrack::State::Empty;
+    const juce::Colour padColour = lit ? colour : colours::track (track);
+    const auto key = juce::String ((int) size) + "/" + juce::String::toHexString ((int) padColour.getARGB()) + (lit ? "L" : "") + (pressed ? "P" : "") + "/" + juce::String (theme::version());
+    if (key != cacheKey || cache.isNull())
+    {
+        cacheKey = key;
+        const float sc = 2.0f;        // rendered at 2x: stays sharp when the window is enlarged
+        cache = juce::Image (juce::Image::ARGB, juce::roundToInt (size * sc), juce::roundToInt (size * sc), true);
+        juce::Graphics cg (cache);
+        cg.addTransform (juce::AffineTransform::scale (sc));
+        const juce::Point<float> c (size * 0.5f, size * 0.5f);
+        // drop shadow
+        juce::ColourGradient sh (juce::Colours::black.withAlpha (theme::isLight() ? 0.25f : 0.6f), c.x, c.y + outerR * 0.15f, juce::Colours::black.withAlpha (0.0f), c.x, c.y + outerR + 6.0f, true);
+        cg.setGradientFill (sh);
+        cg.fillEllipse (c.x - outerR - 5.0f, c.y - outerR + 1.0f, (outerR + 5.0f) * 2.0f, (outerR + 6.0f) * 2.0f);
+        // bezel: machined ring, lit from above
+        juce::ColourGradient bez (theme::pick (0xff3a3c44, 0xffffffff), c.x, c.y - outerR, theme::pick (0xff0c0d10, 0xffb9bdc6), c.x, c.y + outerR, false);
+        cg.setGradientFill (bez);
+        cg.fillEllipse (c.x - outerR, c.y - outerR, outerR * 2.0f, outerR * 2.0f);
+        cg.setColour (theme::pick (0xff0b0c0e, 0xffd5d8df));
+        cg.fillEllipse (c.x - outerR + 2.5f, c.y - outerR + 2.5f, (outerR - 2.5f) * 2.0f, (outerR - 2.5f) * 2.0f);
+        // pad recess
+        cg.setColour (theme::pick (0xff000000, 0xffa9aeb8));
+        cg.fillEllipse (c.x - padR - 3.0f, c.y - padR - 2.0f, (padR + 3.0f) * 2.0f, (padR + 3.0f) * 2.0f);
+        // the pad: soft silicone, tinted by the track colour (idle) or glowing in the state colour
+        const auto base = lit ? padColour : (theme::isLight() ? padColour.withMultipliedSaturation (0.45f).withMultipliedBrightness (0.62f)
+                                                              : padColour.withMultipliedSaturation (0.55f).withMultipliedBrightness (0.42f));
+        juce::ColourGradient body (base.brighter (lit ? 0.35f : 0.25f), c.x - padR * 0.35f, c.y - padR * 0.55f,
+                                   base.darker (lit ? 0.55f : 0.8f), c.x + padR * 0.4f, c.y + padR, true);
+        if (pressed)
+            body.multiplyOpacity (0.85f);
+        cg.setGradientFill (body);
+        cg.fillEllipse (c.x - padR, c.y - padR, padR * 2.0f, padR * 2.0f);
+        // inner shadow at the bottom edge, specular highlight on top
+        juce::ColourGradient innerSh (juce::Colours::black.withAlpha (0.0f), c.x, c.y + padR * 0.3f, juce::Colours::black.withAlpha (0.45f), c.x, c.y + padR, false);
+        cg.setGradientFill (innerSh);
+        cg.fillEllipse (c.x - padR, c.y - padR, padR * 2.0f, padR * 2.0f);
+        if (! pressed)
+        {
+            juce::ColourGradient spec (juce::Colours::white.withAlpha (lit ? 0.42f : 0.22f), c.x, c.y - padR,
+                                       juce::Colours::white.withAlpha (0.0f), c.x, c.y - padR * 0.1f, false);
+            cg.setGradientFill (spec);
+            cg.fillEllipse (c.x - padR * 0.66f, c.y - padR * 0.94f, padR * 1.32f, padR * 0.8f);
+        }
+        cg.setColour (juce::Colours::white.withAlpha (0.10f));
+        cg.drawEllipse (c.x - padR, c.y - padR, padR * 2.0f, padR * 2.0f, 1.0f);
+    }
+    g.setOpacity (1.0f);
+    g.drawImage (cache, area, juce::RectanglePlacement::stretchToFit);
 
-    // LED ring: 24 segments
+    // glow of a lit pad
+    if (lit)
+    {
+        juce::ColourGradient glow (colour.withAlpha (0.0f), centre.x, centre.y, colour.withAlpha (0.0f), centre.x, centre.y + outerR + 4.0f, true);
+        glow.addColour (0.72, colour.withAlpha (0.0f));
+        glow.addColour (0.86, colour.withAlpha (0.22f));
+        g.setGradientFill (glow);
+        g.fillEllipse (area.reduced (1.0f));
+    }
+
+    // LED ring: 24 segments with a soft glow
     constexpr int numSegments = 24;
-    const int lit = (int) std::floor (progress * numSegments + 0.0001f);
+    const int litSeg = (int) std::floor (progress * numSegments + 0.0001f);
     for (int i = 0; i < numSegments; ++i)
     {
-        const float a0 = juce::MathConstants<float>::twoPi * (float) i / numSegments + 0.04f;
-        const float a1 = juce::MathConstants<float>::twoPi * (float) (i + 1) / numSegments - 0.04f;
+        const float a0 = juce::MathConstants<float>::twoPi * (float) i / numSegments + 0.05f;
+        const float a1 = juce::MathConstants<float>::twoPi * (float) (i + 1) / numSegments - 0.05f;
         juce::Path seg;
         seg.addCentredArc (centre.x, centre.y, ringR, ringR, 0.0f, a0, a1, true);
 
-        juce::Colour c = juce::Colour (0xff2b2e33);
+        juce::Colour c = theme::pick (0xff24262c, 0xffc4c8d0);
+        bool on = false;
         if (state != LoopTrack::State::Empty || pending != LooperEngine::Pending::None)
         {
-            if (fullRing)       c = active || pending == LooperEngine::Pending::None ? colour : colour.withAlpha (0.25f);
+            if (fullRing)       { c = active || pending == LooperEngine::Pending::None ? colour : colour.withAlpha (0.25f); on = c.getAlpha() > 200; }
             else if (dimRing)   c = colour.withAlpha (0.3f);
-            else if (active)    c = (i <= lit) ? colour : colour.withAlpha (0.18f);
+            else if (active)    { on = i <= litSeg; c = on ? colour : colour.withAlpha (0.16f); }
         }
         if (fullRing && ! active && pending != LooperEngine::Pending::None)
+        {
             c = colour.withAlpha (0.2f);
+            on = false;
+        }
+        if (on)
+        {
+            g.setColour (c.withAlpha (0.28f));
+            g.strokePath (seg, juce::PathStrokeType (11.0f, juce::PathStrokeType::curved, juce::PathStrokeType::butt));
+        }
         g.setColour (c);
-        g.strokePath (seg, juce::PathStrokeType (5.0f, juce::PathStrokeType::curved, juce::PathStrokeType::butt));
+        g.strokePath (seg, juce::PathStrokeType (5.5f, juce::PathStrokeType::curved, juce::PathStrokeType::butt));
     }
 
-    // rubber pad
-    const float padR = ringR - 8.0f;
-    juce::ColourGradient pad (juce::Colour (pressed ? 0xff2a2d31 : 0xff464b52), centre.x, centre.y - padR,
-                              juce::Colour (0xff1f2125), centre.x, centre.y + padR, false);
-    g.setGradientFill (pad);
-    g.fillEllipse (centre.x - padR, centre.y - padR, padR * 2.0f, padR * 2.0f);
-    if (active && state != LoopTrack::State::Empty)
-    {
-        g.setColour (colour.withAlpha (0.18f));
-        g.fillEllipse (centre.x - padR, centre.y - padR, padR * 2.0f, padR * 2.0f);
-    }
-    g.setColour (juce::Colours::black.withAlpha (0.8f));
-    g.drawEllipse (centre.x - padR, centre.y - padR, padR * 2.0f, padR * 2.0f, 1.2f);
-
-    // legend
-    g.setColour (colours::text.withAlpha (0.85f));
-    g.setFont (LooperLookAndFeel::font (padR * 0.24f, true));
-    g.drawText (tr ("REC"), juce::Rectangle<float> (centre.x - padR, centre.y - padR * 0.55f, padR * 2.0f, padR * 0.4f),
+    // legend: what the next press does
+    g.setColour (juce::Colours::white.withAlpha (lit ? 0.95f : 0.75f));
+    g.setFont (LooperLookAndFeel::font (padR * 0.25f, true));
+    g.drawText (tr ("REC"), juce::Rectangle<float> (centre.x - padR, centre.y - padR * 0.5f, padR * 2.0f, padR * 0.4f),
                 juce::Justification::centred);
-    g.setColour (colours::red);
-    g.fillEllipse (centre.x - padR * 0.32f, centre.y - padR * 0.02f, padR * 0.2f, padR * 0.2f);
+    g.setColour (lit ? juce::Colours::white : colours::red);
+    g.fillEllipse (centre.x - padR * 0.30f, centre.y - padR * 0.02f, padR * 0.19f, padR * 0.19f);
     juce::Path tri;
-    tri.addTriangle (centre.x + padR * 0.08f, centre.y - padR * 0.02f, centre.x + padR * 0.08f, centre.y + padR * 0.18f,
-                     centre.x + padR * 0.28f, centre.y + padR * 0.08f);
-    g.setColour (colours::green);
+    tri.addTriangle (centre.x + padR * 0.08f, centre.y - padR * 0.02f, centre.x + padR * 0.08f, centre.y + padR * 0.17f,
+                     centre.x + padR * 0.27f, centre.y + padR * 0.075f);
+    g.setColour (lit ? juce::Colours::white : colours::green);
     g.fillPath (tri);
-    g.setColour (colours::text.withAlpha (0.6f));
-    g.setFont (LooperLookAndFeel::font (padR * 0.17f, true));
+    // stage mode: the second legend line is larger and brighter (readable from a distance)
+    const bool stage = theme::isStage();
+    g.setColour (juce::Colours::white.withAlpha (stage ? 0.95f : (lit ? 0.8f : 0.55f)));
+    g.setFont (LooperLookAndFeel::font (padR * (stage ? 0.19f : 0.15f), true));
     const bool recPlayMode = juce::roundToInt (proc.getState().getRawParameterValue (gRecAction)->load()) == 1;
-    g.drawText (tr (recPlayMode ? "PLAY / DUB" : "DUB / PLAY"), juce::Rectangle<float> (centre.x - padR, centre.y + padR * 0.25f, padR * 2.0f, padR * 0.3f),
-                juce::Justification::centred);
+    g.drawFittedText (tr (recPlayMode ? "PLAY / DUB" : "DUB / PLAY"),
+                      juce::Rectangle<float> (centre.x - padR * 0.8f, centre.y + padR * 0.26f, padR * 1.6f, padR * (stage ? 0.36f : 0.3f)).toNearestInt(),
+                      juce::Justification::centred, 1, 0.8f);
 }
 
 //============================================================================== StopButton
@@ -327,35 +441,48 @@ void StopButton::timerCallback()
 void StopButton::paint (juce::Graphics& g)
 {
     auto b = getLocalBounds().toFloat().reduced (2.0f);
-    juce::ColourGradient grad (juce::Colour (down ? 0xff2a2d31 : 0xff42464d), b.getX(), b.getY(),
-                               juce::Colour (0xff222428), b.getX(), b.getBottom(), false);
+    const float corner = juce::jmin (10.0f, b.getHeight() * 0.32f);
+    if (! down)
+        LooperLookAndFeel::drawSoftShadow (g, b, corner, 0.7f, 4.0f, 3.0f);
+    const bool light = theme::isLight();
+    juce::ColourGradient grad (juce::Colour (light ? (down ? 0xffdfe2e7 : 0xffffffff) : (down ? 0xff26272d : 0xff42444d)), b.getX(), b.getY(),
+                               juce::Colour (light ? 0xffe4e6eb : (down ? 0xff2c2d33 : 0xff26272d)), b.getX(), b.getBottom(), false);
     g.setGradientFill (grad);
-    g.fillRoundedRectangle (b, 6.0f);
-    g.setColour (juce::Colours::black);
-    g.drawRoundedRectangle (b, 6.0f, 1.0f);
+    g.fillRoundedRectangle (b, corner);
+    g.setColour (juce::Colours::black.withAlpha (light ? 0.18f : 0.7f));
+    g.drawRoundedRectangle (b, corner, 1.0f);
+    if (! down)
+    {
+        g.setColour (juce::Colours::white.withAlpha (0.18f));
+        g.drawLine (b.getX() + corner, b.getY() + 1.2f, b.getRight() - corner, b.getY() + 1.2f, 1.0f);
+    }
 
     if (keyHold > 0.0f && ! (down && ! cleared))
     {
         g.setColour (colours::red.withAlpha (0.35f));
-        g.fillRoundedRectangle (b.withWidth (b.getWidth() * juce::jmin (1.0f, keyHold)), 6.0f);
+        g.fillRoundedRectangle (b.withWidth (b.getWidth() * juce::jmin (1.0f, keyHold)), corner);
     }
     if (down && ! cleared)
     {
         const float held = juce::jlimit (0.0f, 1.0f, (float) (juce::Time::getMillisecondCounter() - downTime) / 1500.0f);
         g.setColour (colours::red.withAlpha (0.35f));
-        g.fillRoundedRectangle (b.withWidth (b.getWidth() * held), 6.0f);
+        g.fillRoundedRectangle (b.withWidth (b.getWidth() * held), corner);
     }
     if (cleared)
     {
         g.setColour (colours::red.withAlpha (0.5f));
-        g.fillRoundedRectangle (b, 6.0f);
+        g.fillRoundedRectangle (b, corner);
     }
 
+    const auto label = tr (cleared ? "CLEARED" : "STOP");
+    const auto f = LooperLookAndFeel::font (juce::jmin (15.0f, b.getHeight() * 0.40f), true);
+    const float s = b.getHeight() * 0.28f;
+    const float tw = juce::jmin (b.getWidth() - s - 24.0f, juce::GlyphArrangement::getStringWidth (f, label));
+    const float x0 = b.getCentreX() - (s + 8.0f + tw) * 0.5f;
     g.setColour (colours::text);
-    const float s = b.getHeight() * 0.32f;
-    g.fillRect (b.getX() + 12.0f, b.getCentreY() - s * 0.5f, s, s);
-    g.setFont (LooperLookAndFeel::font (b.getHeight() * 0.4f, true));
-    g.drawText (tr (cleared ? "CLEARED" : "STOP"), b.withTrimmedLeft (12.0f + s), juce::Justification::centred);
+    g.fillRoundedRectangle (x0, b.getCentreY() - s * 0.5f, s, s, 1.5f);
+    g.setFont (f);
+    g.drawFittedText (label, juce::Rectangle<float> (x0 + s + 8.0f, b.getY(), tw + 2.0f, b.getHeight()).toNearestInt(), juce::Justification::centredLeft, 1, 0.7f);
 }
 
 //============================================================================== meters
@@ -384,8 +511,8 @@ float MeterBallistics::toPosition (float gain) noexcept
 
 void drawMeterBar (juce::Graphics& g, juce::Rectangle<float> area, const MeterBallistics& m, bool vertical, juce::Colour base)
 {
-    g.setColour (juce::Colours::black.withAlpha (0.55f));
-    g.fillRect (area);
+    g.setColour (juce::Colours::black.withAlpha (0.6f));
+    g.fillRoundedRectangle (area, 1.5f);
     const float pos = MeterBallistics::toPosition (m.level);
     // v1.5: green up to -12 dB, yellow up to -3 dB, orange up to 0 dBFS, red above
     const float yellowPos = MeterBallistics::toPosition (juce::Decibels::decibelsToGain (-12.0f));
@@ -438,7 +565,7 @@ void Lcd::pushMasterMeter (float peakL, float peakR)
 
 juce::Rectangle<int> Lcd::getTempoArea() const
 {
-    auto content = getLocalBounds().toFloat().reduced (3.0f).reduced (10.0f, 4.0f);
+    auto content = getLocalBounds().toFloat().reduced (5.0f).reduced (3.0f, 0.0f).reduced (10.0f, 4.0f);
     content.removeFromTop (22.0f);   // master meter row with dB scale
     return content.removeFromLeft (content.getWidth() * 0.36f).toNearestInt();
 }
@@ -462,13 +589,59 @@ juce::String Lcd::getTooltip()
 void Lcd::paint (juce::Graphics& g)
 {
     auto b = getLocalBounds().toFloat();
-    g.setColour (juce::Colour (0xff0d0e10));
-    g.fillRoundedRectangle (b, 6.0f);
-    auto inner = b.reduced (3.0f);
-    juce::ColourGradient grad (colours::lcdBack.brighter (0.08f), inner.getX(), inner.getY(),
-                               colours::lcdBack, inner.getX(), inner.getBottom(), false);
-    g.setGradientFill (grad);
-    g.fillRoundedRectangle (inner, 4.0f);
+    auto inner = b.reduced (5.0f);
+    // bezel + recessed glass (static: cached at 2x)
+    if (bezel.isNull() || bezel.getWidth() != getWidth() * 2 || bezel.getHeight() != getHeight() * 2)
+    {
+        bezel = juce::Image (juce::Image::ARGB, getWidth() * 2, getHeight() * 2, true);
+        juce::Graphics cg (bezel);
+        cg.addTransform (juce::AffineTransform::scale (2.0f));
+        // machined bezel, lit from above
+        juce::ColourGradient bz (juce::Colour (0xff4a4c55), 0.0f, b.getY(), juce::Colour (0xff101115), 0.0f, b.getBottom(), false);
+        cg.setGradientFill (bz);
+        cg.fillRoundedRectangle (b, 12.0f);
+        cg.setColour (juce::Colours::black);
+        cg.fillRoundedRectangle (b.reduced (2.0f), 10.0f);
+        // the LCD: deep blue-black with a faint backlight in the middle
+        juce::ColourGradient lcd (juce::Colour (0xff0b2230), inner.getCentreX(), inner.getCentreY(),
+                                  juce::Colour (0xff030a0f), inner.getX(), inner.getY(), true);
+        cg.setGradientFill (lcd);
+        cg.fillRoundedRectangle (inner, 8.0f);
+        // scan lines
+        cg.setColour (juce::Colours::black.withAlpha (0.18f));
+        for (float y = inner.getY() + 1.0f; y < inner.getBottom(); y += 2.0f)
+            cg.fillRect (inner.getX() + 2.0f, y, inner.getWidth() - 4.0f, 0.5f);
+        // inner shadow along the top and left edge (the glass sits below the bezel)
+        juce::ColourGradient ish (juce::Colours::black.withAlpha (0.75f), 0.0f, inner.getY(), juce::Colours::black.withAlpha (0.0f), 0.0f, inner.getY() + 12.0f, false);
+        cg.setGradientFill (ish);
+        cg.fillRoundedRectangle (inner, 8.0f);
+        cg.setColour (juce::Colours::white.withAlpha (0.08f));
+        cg.drawRoundedRectangle (inner.reduced (0.5f), 8.0f, 1.0f);
+    }
+    if (glass.isNull() || glass.getWidth() != getWidth() * 2 || glass.getHeight() != getHeight() * 2)
+    {
+        glass = juce::Image (juce::Image::ARGB, getWidth() * 2, getHeight() * 2, true);
+        juce::Graphics cg (glass);
+        cg.addTransform (juce::AffineTransform::scale (2.0f));
+        // a diagonal reflection across the upper half of the glass
+        juce::Path refl;
+        refl.startNewSubPath (inner.getX(), inner.getY());
+        refl.lineTo (inner.getX() + inner.getWidth() * 0.62f, inner.getY());
+        refl.lineTo (inner.getX() + inner.getWidth() * 0.42f, inner.getY() + inner.getHeight() * 0.48f);
+        refl.lineTo (inner.getX(), inner.getY() + inner.getHeight() * 0.48f);
+        refl.closeSubPath();
+        juce::Path clip;
+        clip.addRoundedRectangle (inner, 8.0f);
+        cg.reduceClipRegion (clip);
+        juce::ColourGradient rg (juce::Colours::white.withAlpha (0.07f), inner.getX(), inner.getY(), juce::Colours::white.withAlpha (0.0f), inner.getX(), inner.getY() + inner.getHeight() * 0.5f, false);
+        cg.setGradientFill (rg);
+        cg.fillPath (refl);
+        cg.setColour (juce::Colours::white.withAlpha (0.10f));
+        cg.fillRect (inner.getX() + 10.0f, inner.getY() + 1.0f, inner.getWidth() - 20.0f, 1.0f);
+    }
+    g.setOpacity (1.0f);
+    g.drawImage (bezel, b, juce::RectanglePlacement::stretchToFit);
+    inner = inner.reduced (3.0f, 0.0f);
 
     auto content = inner.reduced (10.0f, 4.0f);
 
@@ -514,8 +687,12 @@ void Lcd::paint (juce::Graphics& g)
     if (hasBig)
     {
         auto bigArea = content.removeFromLeft (content.getWidth() * 0.36f);
-        g.setColour (accentColour);
         g.setFont (LooperLookAndFeel::font (juce::jmin (bigArea.getHeight() * 0.62f, 34.0f), true));
+        // LCD glow: the digits light the glass around them
+        g.setColour (accentColour.withAlpha (0.16f));
+        for (auto o : { juce::Point<int> (-1, 0), juce::Point<int> (1, 0), juce::Point<int> (0, -1), juce::Point<int> (0, 1), juce::Point<int> (2, 1), juce::Point<int> (-2, -1) })
+            g.drawFittedText (bigText, bigArea.toNearestInt().translated (o.x, o.y), juce::Justification::centredLeft, 1, 0.7f);
+        g.setColour (accentColour);
         g.drawFittedText (bigText, bigArea.toNearestInt(), juce::Justification::centredLeft, 1, 0.7f);
     }
 
@@ -531,8 +708,15 @@ void Lcd::paint (juce::Graphics& g)
 
     // MIDI activity
     const auto dot = juce::Rectangle<float> (7.0f, 7.0f).withPosition (inner.getRight() - 12.0f, inner.getY() + 5.0f);
+    if (midi)
+    {
+        g.setColour (colours::yellow.withAlpha (0.3f));
+        g.fillEllipse (dot.expanded (3.0f));
+    }
     g.setColour (midi ? colours::yellow : colours::lcdText.withAlpha (0.15f));
     g.fillEllipse (dot);
+    g.setOpacity (1.0f);
+    g.drawImage (glass, b, juce::RectanglePlacement::stretchToFit);
 }
 
 //============================================================================== FxSlot
@@ -553,16 +737,17 @@ FxSlot::FxSlot (APVTS& s, bool inputFx, int sl, std::function<void (bool, int)> 
 void FxSlot::resized()
 {
     auto b = getLocalBounds();
-    onButton.setBounds (b.removeFromTop (b.getHeight() - 20).reduced (4, 2));
+    onButton.setBounds (b.removeFromTop (b.getHeight() - 22).reduced (5, 3));
+    LooperLookAndFeel::setEmphasis (onButton, 2);
 }
 
 void FxSlot::paint (juce::Graphics& g)
 {
-    auto label = getLocalBounds().removeFromBottom (20).reduced (2, 1);
+    auto label = getLocalBounds().removeFromBottom (20).reduced (5, 1);
     if (selected)
     {
-        g.setColour ((input ? colours::cyan : colours::orange).withAlpha (0.2f));
-        g.fillRoundedRectangle (label.toFloat(), 3.0f);
+        g.setColour ((input ? colours::cyan : colours::orange).withAlpha (0.22f));
+        g.fillRoundedRectangle (label.toFloat(), label.getHeight() * 0.5f);
     }
     juce::String typeName = "?";
     if (auto* p = dynamic_cast<juce::AudioParameterChoice*> (state.getParameter (fxId (input, slot, kFxType))))
@@ -579,8 +764,225 @@ void FxSlot::mouseDown (const juce::MouseEvent&)
 }
 
 //============================================================================== TrackStrip
+//============================================================================== v1.7 loop length pill
+LoopLengthPill::LoopLengthPill (LiveLooperProcessor& p, int t) : proc (p), track (t)
+{
+    setParamId (*this, trackId (track, kMeasure));
+    setRepaintsOnMouseActivity (true);
+    setMouseCursor (juce::MouseCursor::PointingHandCursor);
+}
+
+int LoopLengthPill::getChoice() const
+{
+    auto* v = proc.getState().getRawParameterValue (trackId (track, kMeasure));
+    return v != nullptr ? juce::jlimit (0, (int) kMeasureChoices.size() - 1, juce::roundToInt (v->load())) : 0;
+}
+
+void LoopLengthPill::setChoice (int index)
+{
+    index = juce::jlimit (0, (int) kMeasureChoices.size() - 1, index);
+    if (auto* p = proc.getState().getParameter (trackId (track, kMeasure)))
+    {
+        p->beginChangeGesture();
+        p->setValueNotifyingHost (p->convertTo0to1 ((float) index));
+        p->endChangeGesture();
+    }
+    repaint();
+}
+
+juce::String LoopLengthPill::choiceText (int index)
+{
+    const int bars = kMeasureChoices[(size_t) juce::jlimit (0, (int) kMeasureChoices.size() - 1, index)];
+    if (bars <= 0)
+        return tr ("AUTO");
+    return tr (bars == 1 ? "%1 BAR" : "%1 BARS", juce::String (bars));
+}
+
+bool LoopLengthPill::isInactive() const
+{
+    const auto state = (LoopTrack::State) proc.getEngine().getTrackStatus (track).state.load();
+    return state != LoopTrack::State::Empty && state != LoopTrack::State::Recording;
+}
+
+juce::String LoopLengthPill::getText() const
+{
+    const auto& st = proc.getEngine().getTrackStatus (track);
+    const auto state = (LoopTrack::State) st.state.load();
+    const int rb = st.recBars.load();
+    if (rb > 0 && (state == LoopTrack::State::Empty || state == LoopTrack::State::Recording))
+        return tr (rb == 1 ? "%1 BAR" : "%1 BARS", juce::String (rb));
+    return choiceText (getChoice());
+}
+
+int LoopLengthPill::getPreferredWidth (int height) const
+{
+    const auto f = LooperLookAndFeel::font (large ? 12.5f : 10.0f, true);
+    float w = 0.0f;
+    // the widest text of both UI languages, so the layout stays put when the language changes
+    for (const auto& t : { juce::String ("16 BARS"), juce::String ("16 TAKTE"), juce::String ("AUTO"), choiceText ((int) kMeasureChoices.size() - 1) })
+        w = juce::jmax (w, juce::GlyphArrangement::getStringWidth (f, t));
+    return juce::roundToInt (w) + height + 6;      // text + loop symbol + padding
+}
+
+void LoopLengthPill::paint (juce::Graphics& g)
+{
+    const auto& st = proc.getEngine().getTrackStatus (track);
+    const auto state = (LoopTrack::State) st.state.load();
+    const int rb = st.recBars.load();
+    const bool recording = state == LoopTrack::State::Recording;
+    const bool fixedRec = recording && rb > 0;
+    const bool once = state == LoopTrack::State::Empty && rb > 0;
+    const bool inactive = isInactive();
+    const int choice = getChoice();
+    const bool fixed = choice > 0 || rb > 0;
+
+    auto r = getLocalBounds().toFloat().reduced (0.5f);
+    const float rad = r.getHeight() * 0.5f;
+    const float alpha = inactive ? 0.45f : 1.0f;
+    const auto accent = once ? colours::orange : (fixedRec ? colours::red : (fixed ? colours::orange : colours::textDim));
+
+    g.setColour (theme::pick (0xff0d0e11, 0xffdfe2e8).withAlpha (0.85f * alpha));
+    g.fillRoundedRectangle (r, rad);
+    if (fixedRec)
+    {
+        // progress of the fixed-length recording
+        const float prog = juce::jlimit (0.0f, 1.0f, st.progress.load());
+        juce::Graphics::ScopedSaveState ss (g);
+        juce::Path clip;
+        clip.addRoundedRectangle (r, rad);
+        g.reduceClipRegion (clip);
+        g.setColour (colours::red.withAlpha (0.35f));
+        g.fillRect (r.withWidth (r.getWidth() * prog));
+    }
+    else if (fixed && ! inactive)
+    {
+        g.setColour (accent.withAlpha (0.16f));
+        g.fillRoundedRectangle (r, rad);
+    }
+    const bool over = isMouseOver (true) && ! isMouseButtonDown();
+    g.setColour (accent.withAlpha ((fixed ? 0.85f : 0.45f) * alpha * (over ? 1.0f : 0.8f) + (over ? 0.1f : 0.0f)));
+    if (once)
+    {
+        // one-shot length: dashed outline
+        juce::Path outline;
+        outline.addRoundedRectangle (r, rad);
+        const float dash[] = { 3.0f, 2.0f };
+        juce::PathStrokeType (1.2f).createDashedStroke (outline, outline, dash, 2);
+        g.fillPath (outline);
+    }
+    else
+        g.drawRoundedRectangle (r, rad, over ? 1.4f : 1.0f);
+
+    // loop symbol: an open circle with an arrow head
+    const float d = r.getHeight() * 0.48f;
+    const auto icon = juce::Rectangle<float> (r.getX() + rad * 0.55f, r.getCentreY() - d * 0.5f, d, d);
+    const auto ink = (fixed ? accent : colours::text).withAlpha ((fixed ? 1.0f : 0.75f) * alpha);
+    {
+        juce::Path arc;
+        arc.addCentredArc (icon.getCentreX(), icon.getCentreY(), d * 0.5f, d * 0.5f, 0.0f,
+                           juce::MathConstants<float>::pi * 0.35f, juce::MathConstants<float>::pi * 2.0f, true);
+        g.setColour (ink);
+        g.strokePath (arc, juce::PathStrokeType (juce::jmax (1.1f, d * 0.14f), juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+        juce::Path head;
+        const float hx = icon.getCentreX(), hy = icon.getY(), a = d * 0.3f;
+        head.addTriangle (hx + a * 0.9f, hy, hx - a * 0.3f, hy - a * 0.75f, hx - a * 0.3f, hy + a * 0.75f);
+        g.fillPath (head);
+    }
+
+    g.setColour ((fixed ? colours::text : colours::text.withAlpha (0.8f)).withAlpha (alpha));
+    g.setFont (LooperLookAndFeel::font (large ? 12.5f : 10.0f, true));
+    auto text = r.withTrimmedLeft (icon.getRight() - r.getX() + 4.0f).withTrimmedRight (rad * 0.6f);
+    g.drawFittedText (getText(), text.toNearestInt(), juce::Justification::centred, 1, 0.75f);
+}
+
+void LoopLengthPill::refresh()
+{
+    const auto& st = proc.getEngine().getTrackStatus (track);
+    const auto state = st.state.load();
+    juce::String key;
+    key << getChoice() << '/' << state << '/' << st.recBars.load() << '/' << (i18n::isGerman() ? 1 : 0);
+    if (state == (int) LoopTrack::State::Recording && st.recBars.load() > 0)
+        key << '/' << juce::roundToInt (st.progress.load() * 100.0f);
+    if (key != shownKey)
+    {
+        shownKey = key;
+        repaint();
+    }
+}
+
+void LoopLengthPill::mouseDown (const juce::MouseEvent& e)
+{
+    dragged = false;
+    if (handleMidiRightClick (*this, e))
+    {
+        dragged = true;           // no menu on the release of a right-click
+        return;
+    }
+    dragStartChoice = getChoice();
+    dragStartY = e.getPosition().y;
+}
+
+void LoopLengthPill::mouseDrag (const juce::MouseEvent& e)
+{
+    if (e.mods.isPopupMenu())
+        return;
+    const int dy = dragStartY - e.getPosition().y;
+    if (! dragged && std::abs (dy) < 5)
+        return;
+    dragged = true;
+    const int c = juce::jlimit (0, (int) kMeasureChoices.size() - 1, dragStartChoice + dy / 14);
+    if (c != getChoice())
+        setChoice (c);
+}
+
+void LoopLengthPill::mouseUp (const juce::MouseEvent& e)
+{
+    if (dragged || e.mods.isPopupMenu() || ! getLocalBounds().contains (e.getPosition()))
+        return;
+    juce::PopupMenu m;
+    m.addSectionHeader (tr ("Loop length - track %1", juce::String (track + 1)));
+    const int cur = getChoice();
+    for (int i = 0; i < (int) kMeasureChoices.size(); ++i)
+    {
+        const int bars = kMeasureChoices[(size_t) i];
+        m.addItem (i + 1, bars <= 0 ? tr ("Auto (ends with the next press)") : (bars == 1 ? tr ("1 bar") : tr ("%1 bars", juce::String (bars))),
+                   true, i == cur);
+    }
+    if (isInactive())
+    {
+        m.addSeparator();
+        m.addItem (-1, tr ("Applies to the next new recording (after CLEAR)"), false, false);
+    }
+    juce::Component::SafePointer<LoopLengthPill> safe (this);
+    m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (this), [safe] (int r) {
+        if (safe != nullptr && r > 0)
+            safe->setChoice (r - 1);
+    });
+}
+
+void LoopLengthPill::mouseWheelMove (const juce::MouseEvent&, const juce::MouseWheelDetails& w)
+{
+    wheelAcc += (std::abs (w.deltaY) > std::abs (w.deltaX) ? w.deltaY : -w.deltaX) * (w.isReversed ? -1.0f : 1.0f);
+    if (std::abs (wheelAcc) < 0.12f)
+        return;
+    setChoice (getChoice() + (wheelAcc > 0.0f ? 1 : -1));
+    wheelAcc = 0.0f;
+}
+
+juce::String LoopLengthPill::getTooltip()
+{
+    juce::String t = tr ("Loop length: the first recording ends by itself after this many bars (AUTO = ends with your next press). Click: choose, scroll / drag: change, right-click: MIDI learn");
+    const auto& st = proc.getEngine().getTrackStatus (track);
+    const auto state = (LoopTrack::State) st.state.load();
+    if (st.recBars.load() > 0 && state == LoopTrack::State::Empty)
+        t << "\n" << tr ("Next recording only: %1 (set on the controller); the setting stays %2", getText(), choiceText (getChoice()));
+    else if (isInactive())
+        t << "\n" << tr ("The track holds a loop: the length applies to the next new recording (after CLEAR)");
+    return t;
+}
+
 TrackStrip::TrackStrip (LiveLooperProcessor& p, int t)
-    : proc (p), track (t), recPlay (p, t), stop (p, t)
+    : proc (p), track (t), recPlay (p, t), stop (p, t), lengthPill (p, t)
 {
     auto& st = proc.getState();
     for (auto* b : { &reverse, &oneShot, &fx })
@@ -630,14 +1032,29 @@ TrackStrip::TrackStrip (LiveLooperProcessor& p, int t)
 
     addAndMakeVisible (recPlay);
     addAndMakeVisible (stop);
+    addAndMakeVisible (lengthPill);     // v1.7
 }
+
+bool TrackStrip::showWaveforms = false;    // v1.7: SETUP > Display > Show waveforms (default off)
+bool TrackStrip::layersWanted = false;
+bool TrackStrip::showMeters = true;     // v1.6 final: IN / OUT meters by default (SETUP can hide them)
 
 void TrackStrip::resized()
 {
-    auto b = getLocalBounds().reduced (8, 6);
-    ledArea = b.removeFromTop (24).removeFromRight (16).withSizeKeepingCentre (10, 10).translated (0, -2);   // clip LED in the title row
-    lcdArea = b.removeFromTop (66);
-    b.removeFromTop (6);
+    // v1.6 final: the classic order - display, REV / 1SHOT / FX, fader + meter + PAN / COLOR + UNDO / REDO / SETUP,
+    // the big REC / PLAY pad, STOP at the bottom
+    auto b = getLocalBounds().reduced (10, 8);
+    auto title = b.removeFromTop (26);
+    ledArea = title.removeFromRight (16).withSizeKeepingCentre (10, 10);
+    {
+        // v1.7 loop length pill between the track name and the LED
+        title.removeFromRight (4);
+        const int ph = 20;
+        const int pw = juce::jmin (lengthPill.getPreferredWidth (ph), title.getWidth() - 70);
+        lengthPill.setBounds (title.removeFromRight (pw).withSizeKeepingCentre (pw, ph));
+    }
+    lcdArea = b.removeFromTop (60);
+    b.removeFromTop (8);
 
     auto row = b.removeFromTop (24);
     const int bw = row.getWidth() / 3;
@@ -646,43 +1063,49 @@ void TrackStrip::resized()
     fx.setBounds (row.reduced (2, 0));
     b.removeFromTop (8);
 
-    auto mid = b.removeFromTop (150);
-    level.setBounds (mid.removeFromLeft (38));
-    meterArea = mid.removeFromLeft (12).withTrimmedTop (6).withTrimmedBottom (16);   // stereo meter + IN / OUT caption
-    mid.removeFromLeft (4);
+    auto mix = b.removeFromTop (juce::jmin (136, b.getHeight() * 42 / 100));
+    level.setBounds (mix.removeFromLeft (30));
+    if (showMeters)
+        meterArea = mix.removeFromLeft (12).withTrimmedTop (6).withTrimmedBottom (16);   // stereo meter + IN / OUT caption
+    else
+        meterArea = {};
+    mix.removeFromLeft (6);
     {
-        // v1.5: PAN and the track's COLOR FX knob side by side
-        auto knobs = mid.removeFromTop (48);
-        pan.setBounds (knobs.removeFromLeft (knobs.getWidth() / 2).withSizeKeepingCentre (46, 46));
-        color.setBounds (knobs.withSizeKeepingCentre (46, 46));
+        auto knobs = mix.removeFromTop (44);
+        const int k = juce::jmin (44, knobs.getWidth() / 2);
+        pan.setBounds (knobs.removeFromLeft (knobs.getWidth() / 2).withSizeKeepingCentre (k, k));
+        color.setBounds (knobs.withSizeKeepingCentre (k, k));
     }
-    mid.removeFromTop (14);                           // "PAN" / "COLOR" captions
-    mid.removeFromTop (6);
-    undo.setBounds (mid.removeFromTop (24).reduced (0, 1));
-    mid.removeFromTop (3);
-    redo.setBounds (mid.removeFromTop (24).reduced (0, 1));
-    mid.removeFromTop (3);
-    settings.setBounds (mid.removeFromTop (24).reduced (0, 1));
+    mix.removeFromTop (14);                           // "PAN" / "COLOR" captions
+    const int bh = juce::jmin (24, (mix.getHeight() - 6) / 3);
+    const int gap = (mix.getHeight() - 3 * bh) / 3;
+    mix.removeFromTop (gap);
+    undo.setBounds (mix.removeFromTop (bh));
+    mix.removeFromTop (gap);
+    redo.setBounds (mix.removeFromTop (bh));
+    mix.removeFromTop (gap);
+    settings.setBounds (mix.removeFromTop (bh));
+    for (auto* btn : { &undo, &redo, &settings })
+        LooperLookAndFeel::setEmphasis (*btn, 0);
 
-    b.removeFromTop (6);
-    stop.setBounds (b.removeFromBottom (34));
-    b.removeFromBottom (4);
+    b.removeFromTop (8);
+    stop.setBounds (b.removeFromBottom (38));
+    b.removeFromBottom (6);
     recPlay.setBounds (b);
 }
 
 void TrackStrip::paint (juce::Graphics& g)
 {
-    auto b = getLocalBounds().toFloat().reduced (2.0f);
-    g.setColour (colours::section);
-    g.fillRoundedRectangle (b, 8.0f);
-    g.setColour (colours::sectionEdge);
-    g.drawRoundedRectangle (b, 8.0f, 1.0f);
-
-    // title
-    g.setColour (colours::text);
-    g.setFont (LooperLookAndFeel::font (15.0f, true));
-    g.drawText (tr ("TRACK %1", juce::String (track + 1)), getLocalBounds().reduced (12, 6).removeFromTop (22),
-                juce::Justification::centredLeft);
+    // the glass panel behind the strip is part of the editor's cached surface
+    // title with the track colour
+    {
+        auto t = getLocalBounds().reduced (10, 8).removeFromTop (26).toFloat();
+        g.setColour (colours::track (track));
+        g.fillRoundedRectangle (t.getX() + 1.0f, t.getCentreY() - 6.0f, 4.0f, 12.0f, 2.0f);
+        g.setColour (colours::text);
+        g.setFont (LooperLookAndFeel::font (15.0f, true));
+        g.drawText (tr ("TRACK %1", juce::String (track + 1)), t.withTrimmedLeft (12.0f).withRight ((float) lengthPill.getX() - 3.0f), juce::Justification::centredLeft);
+    }
 
     // mini LCD
     const auto& st = proc.getEngine().getTrackStatus (track);
@@ -715,67 +1138,111 @@ void TrackStrip::paint (juce::Graphics& g)
     }
 
     auto lcd = lcdArea.toFloat();
-    g.setColour (colours::lcdBack);
-    g.fillRoundedRectangle (lcd, 4.0f);
-    g.setColour (juce::Colours::black);
-    g.drawRoundedRectangle (lcd, 4.0f, 1.0f);
-    auto text = lcd.reduced (7.0f, 4.0f);
-    g.setColour (stateColour);
-    g.setFont (LooperLookAndFeel::font (15.0f, true));
-    g.drawText (tr (stateText), text.removeFromTop (18.0f), juce::Justification::centredLeft);
-    g.setColour (colours::lcdText.withAlpha (0.8f));
-    g.setFont (LooperLookAndFeel::font (12.0f, true));
-    auto line2 = text.removeFromTop (15.0f);
-    g.drawText (lengthText, line2, juce::Justification::centredLeft);
-    g.drawText (tr ("LVL %1", juce::String (juce::roundToInt (level.getValue() * 100.0))), line2, juce::Justification::centredRight);
-
-    const float prog = state == LoopTrack::State::Empty ? 0.0f : juce::jlimit (0.0f, 1.0f, st.progress.load());
-    auto waveArea = text.removeFromBottom (juce::jmin (22.0f, text.getHeight()));
-    if (waveValid)
     {
-        // waveform overview: played part bright, the rest dimmed, play head line
-        const float w = waveArea.getWidth() / (float) kWaveBins;
-        const float mid = waveArea.getCentreY();
-        const bool recording = state == LoopTrack::State::Recording;
-        for (int i = 0; i < kWaveBins; ++i)
-        {
-            const float v = std::sqrt (juce::jlimit (0.0f, 1.0f, wave[(size_t) i]));   // sqrt: quiet parts stay visible
-            const float h = juce::jmax (1.0f, v * waveArea.getHeight() * 0.5f);
-            const bool played = recording || ((float) i + 0.5f) / (float) kWaveBins <= prog;
-            g.setColour (stateColour.withAlpha (played ? 0.95f : 0.35f));
-            g.fillRect (waveArea.getX() + w * (float) i, mid - h, juce::jmax (1.0f, w - 0.6f), h * 2.0f);
-        }
-        const float ghost = st.ghostProgress.load();
-        if (state == LoopTrack::State::Stopped && ghost >= 0.0f)
-        {
-            // ghost play head: where the stopped loop would be now, so it can be started on cue
-            g.setColour (colours::text.withAlpha (0.45f));
-            const float x = waveArea.getX() + waveArea.getWidth() * juce::jlimit (0.0f, 1.0f, ghost);
-            for (float y = waveArea.getY(); y < waveArea.getBottom(); y += 4.0f)
-                g.fillRect (x - 0.5f, y, 1.0f, 2.0f);
-        }
-        else if (! recording && state != LoopTrack::State::Empty)
-        {
-            g.setColour (colours::text);
-            g.fillRect (waveArea.getX() + waveArea.getWidth() * prog - 0.75f, waveArea.getY(), 1.5f, waveArea.getHeight());
-        }
+        // recessed glass display
+        juce::ColourGradient bz (juce::Colour (0xff3e4049), 0.0f, lcd.getY(), juce::Colour (0xff0e0f12), 0.0f, lcd.getBottom(), false);
+        g.setGradientFill (bz);
+        g.fillRoundedRectangle (lcd, 9.0f);
+        const auto in = lcd.reduced (2.0f);
+        juce::ColourGradient lg (juce::Colour (0xff0a1f2b), in.getCentreX(), in.getCentreY(), juce::Colour (0xff03090d), in.getX(), in.getY(), true);
+        g.setGradientFill (lg);
+        g.fillRoundedRectangle (in, 7.5f);
+        juce::ColourGradient ish (juce::Colours::black.withAlpha (0.7f), 0.0f, in.getY(), juce::Colours::black.withAlpha (0.0f), 0.0f, in.getY() + 8.0f, false);
+        g.setGradientFill (ish);
+        g.fillRoundedRectangle (in, 7.5f);
+    }
+    if (showWaveforms)
+    {
+        // v1.7 "Show waveforms": compact header (state, length, level), a tall waveform in the track colour
+        auto text = lcd.reduced (9.0f, 5.0f);
+        auto head = text.removeFromTop (16.0f);
+        g.setFont (LooperLookAndFeel::font (14.5f, true));
+        g.setColour (stateColour);
+        g.drawText (tr (stateText), head, juce::Justification::centredLeft);
+        g.setColour (colours::lcdText.withAlpha (0.8f));
+        g.setFont (LooperLookAndFeel::font (10.5f, true));
+        const auto right = (state == LoopTrack::State::Empty || lengthText == "--" ? juce::String ("-") : lengthText)
+                           + "   " + tr ("LVL %1", juce::String (juce::roundToInt (level.getValue() * 100.0)));
+        g.drawText (right, head.withTrimmedLeft (g.getCurrentFont().getHeight() * 3.0f), juce::Justification::centredRight);
+        text.removeFromTop (2.0f);
+        LoopWaveform wf;
+        wf.peaks = wave.data();
+        wf.layer = layerValid ? layer.data() : nullptr;
+        wf.numBins = kWaveBins;
+        wf.valid = waveValid && state != LoopTrack::State::Empty;
+        wf.progress = state == LoopTrack::State::Empty ? 0.0f : juce::jlimit (0.0f, 1.0f, st.progress.load());
+        wf.ghost = st.ghostProgress.load();
+        wf.state = state;
+        wf.colour = colours::track (track);
+        wf.draw (g, text);
     }
     else
     {
-        auto bar = waveArea.withSizeKeepingCentre (waveArea.getWidth(), 4.0f);
-        g.setColour (colours::lcdText.withAlpha (0.15f));
-        g.fillRect (bar);
+        auto text = lcd.reduced (9.0f, 5.0f);
+        g.setFont (LooperLookAndFeel::font (16.5f, true));
+        if (state != LoopTrack::State::Empty || pending != LooperEngine::Pending::None)
+        {
+            g.setColour (stateColour.withAlpha (0.18f));
+            g.drawText (tr (stateText), text.withHeight (18.0f).translated (1.0f, 0.0f), juce::Justification::centredLeft);
+            g.drawText (tr (stateText), text.withHeight (18.0f).translated (-1.0f, 0.0f), juce::Justification::centredLeft);
+        }
         g.setColour (stateColour);
-        g.fillRect (bar.withWidth (bar.getWidth() * prog));
+        g.drawText (tr (stateText), text.removeFromTop (18.0f), juce::Justification::centredLeft);
+        g.setColour (colours::lcdText.withAlpha (0.8f));
+        g.setFont (LooperLookAndFeel::font (11.5f, true));
+        auto line2 = text.removeFromTop (14.0f);
+        g.drawText (lengthText, line2, juce::Justification::centredLeft);
+        g.drawText (tr ("LVL %1", juce::String (juce::roundToInt (level.getValue() * 100.0))), line2, juce::Justification::centredRight);
+
+        const float prog = state == LoopTrack::State::Empty ? 0.0f : juce::jlimit (0.0f, 1.0f, st.progress.load());
+        auto waveArea = text.removeFromBottom (juce::jmin (18.0f, text.getHeight()));
+        if (waveValid)
+        {
+            // waveform overview: played part bright, the rest dimmed, play head line
+            const float w = waveArea.getWidth() / (float) kWaveBins;
+            const float mid = waveArea.getCentreY();
+            const bool recording = state == LoopTrack::State::Recording;
+            for (int i = 0; i < kWaveBins; ++i)
+            {
+                const float v = std::sqrt (juce::jlimit (0.0f, 1.0f, wave[(size_t) i]));   // sqrt: quiet parts stay visible
+                const float h = juce::jmax (1.0f, v * waveArea.getHeight() * 0.5f);
+                const bool played = recording || ((float) i + 0.5f) / (float) kWaveBins <= prog;
+                g.setColour (stateColour.withAlpha (played ? 0.95f : 0.35f));
+                g.fillRect (waveArea.getX() + w * (float) i, mid - h, juce::jmax (1.0f, w - 0.6f), h * 2.0f);
+            }
+            const float ghost = st.ghostProgress.load();
+            if (state == LoopTrack::State::Stopped && ghost >= 0.0f)
+            {
+                // ghost play head: where the stopped loop would be now, so it can be started on cue
+                g.setColour (juce::Colours::white.withAlpha (0.45f));     // the display is dark in every theme
+                const float x = waveArea.getX() + waveArea.getWidth() * juce::jlimit (0.0f, 1.0f, ghost);
+                for (float y = waveArea.getY(); y < waveArea.getBottom(); y += 4.0f)
+                    g.fillRect (x - 0.5f, y, 1.0f, 2.0f);
+            }
+            else if (! recording && state != LoopTrack::State::Empty)
+            {
+                g.setColour (juce::Colours::white);
+                g.fillRect (waveArea.getX() + waveArea.getWidth() * prog - 0.75f, waveArea.getY(), 1.5f, waveArea.getHeight());
+            }
+        }
+        else
+        {
+            auto bar = waveArea.withSizeKeepingCentre (waveArea.getWidth(), 4.0f);
+            g.setColour (colours::lcdText.withAlpha (0.15f));
+            g.fillRect (bar);
+            g.setColour (stateColour);
+            g.fillRect (bar.withWidth (bar.getWidth() * prog));
+        }
     }
 
     // captions
     g.setColour (colours::textDim);
-    g.setFont (LooperLookAndFeel::font (11.0f, true));
-    g.drawText (tr ("PAN"), pan.getBounds().translated (0, pan.getHeight() - 2).withHeight (14), juce::Justification::centred);
-    g.drawText (tr ("COLOR"), color.getBounds().translated (0, color.getHeight() - 2).withHeight (14).expanded (6, 0), juce::Justification::centred);
+    g.setFont (LooperLookAndFeel::font (10.0f, true));
+    g.drawText (tr ("PAN"), pan.getBounds().translated (0, pan.getHeight() - 1).withHeight (13), juce::Justification::centred);
+    g.drawText (tr ("COLOR"), color.getBounds().translated (0, color.getHeight() - 1).withHeight (13).expanded (8, 0), juce::Justification::centred);
 
-    // stereo meter next to the fader: input while recording / overdubbing, output otherwise
+    // stereo meter next to the fader (optional, SETUP): input while recording / overdubbing, output otherwise
+    if (showMeters && ! meterArea.isEmpty())
     {
         auto m = meterArea.toFloat();
         const float bw = (m.getWidth() - 2.0f) * 0.5f;
@@ -791,7 +1258,7 @@ void TrackStrip::paint (juce::Graphics& g)
     // clip LED: green = the track holds a loop, red = first recording, blinking = waiting
     {
         auto led = ledArea.toFloat();
-        juce::Colour c = juce::Colour (0xff2b2e33);
+        juce::Colour c = theme::pick (0xff2b2e33, 0xffc4c8d0);
         bool lit = false;
         if (state == LoopTrack::State::Recording)                           { c = colours::red; lit = true; }
         else if (state != LoopTrack::State::Empty)                          { c = colours::green; lit = true; }
@@ -859,11 +1326,67 @@ void TrackStrip::refresh (bool blinkPhase)
         auto& tr = eng.getTrack (track);
         const int span = tr.getRecordingSpan();
         waveValid = tr.getWaveform (wave.data(), kWaveBins, span);
+        // v1.7: the last overdub layer, computed here on the message thread from the two loop layers
+        layerValid = waveValid && (showWaveforms || layersWanted) && tr.getOverdubLayer (layer.data(), kWaveBins);
     }
 
     repaint (lcdArea);
     repaint (ledArea.expanded (4));
-    repaint (meterArea.expanded (8, 0).withBottom (meterArea.getBottom() + 14));
+    lengthPill.refresh();
+    if (showMeters && ! meterArea.isEmpty())
+        repaint (meterArea.expanded (8, 0).withBottom (meterArea.getBottom() + 14));
+}
+
+//============================================================================== LoopWaveform (v1.7)
+void LoopWaveform::draw (juce::Graphics& g, juce::Rectangle<float> r) const
+{
+    const bool recording = state == LoopTrack::State::Recording;
+    const bool stopped = state == LoopTrack::State::Stopped;
+    g.setColour (colours::lcdText.withAlpha (0.10f));
+    g.fillRect (r.getX(), r.getCentreY() - 0.5f, r.getWidth(), 1.0f);
+    if (! valid || peaks == nullptr || numBins <= 0)
+    {
+        g.setColour (colours::lcdText.withAlpha (0.35f));
+        g.setFont (LooperLookAndFeel::font (juce::jlimit (9.0f, 13.0f, r.getHeight() * 0.3f), true));
+        g.drawText (i18n::tr ("NO LOOP"), r, juce::Justification::centred);
+        return;
+    }
+    const float bw = r.getWidth() / (float) numBins;
+    const float mid = r.getCentreY(), half = r.getHeight() * 0.48f;
+    const auto layerColour = colour.interpolatedWith (juce::Colours::white, 0.65f);
+    for (int i = 0; i < numBins; ++i)
+    {
+        const float v = std::sqrt (juce::jlimit (0.0f, 1.0f, peaks[i]));        // sqrt: quiet parts stay visible
+        const float h = juce::jmax (1.0f, v * half);
+        const bool played = recording || ((float) i + 0.5f) / (float) numBins <= progress;
+        const float x = r.getX() + bw * (float) i, w = juce::jmax (1.0f, bw - 0.6f);
+        g.setColour (stopped ? colour.withAlpha (played ? 0.6f : 0.32f) : (played ? colour.brighter (0.25f) : colour.withAlpha (0.38f)));
+        g.fillRect (x, mid - h, w, h * 2.0f);
+        if (layer != nullptr && layer[i] > 1.0e-4f)
+        {
+            // the last overdub layer: a lighter tint inside the loop
+            const float h2 = juce::jmin (h, juce::jmax (1.0f, std::sqrt (juce::jlimit (0.0f, 1.0f, layer[i])) * half));
+            g.setColour (layerColour.withAlpha (stopped ? 0.45f : (played ? 0.95f : 0.45f)));
+            g.fillRect (x, mid - h2, w, h2 * 2.0f);
+        }
+    }
+    if (stopped)
+    {
+        if (ghost < 0.0f)
+            return;
+        // dashed play head: where the stopped loop would be now (start it on cue)
+        g.setColour (juce::Colours::white.withAlpha (0.55f));
+        const float x = r.getX() + r.getWidth() * juce::jlimit (0.0f, 1.0f, ghost);
+        for (float y = r.getY(); y < r.getBottom(); y += 4.0f + headWidth)
+            g.fillRect (x - headWidth * 0.4f, y, headWidth * 0.8f, 2.0f + headWidth * 0.5f);
+        return;
+    }
+    // white play head (at the right edge of the recording so far while recording)
+    const float x = r.getX() + r.getWidth() * (recording ? 1.0f : juce::jlimit (0.0f, 1.0f, progress));
+    g.setColour (juce::Colours::white.withAlpha (0.22f));
+    g.fillRect (x - headWidth * 1.4f, r.getY(), headWidth * 2.8f, r.getHeight());
+    g.setColour (juce::Colours::white);
+    g.fillRect (x - headWidth * 0.5f, r.getY(), headWidth, r.getHeight());
 }
 
 //============================================================================== TrackSettingsPanel
@@ -874,7 +1397,7 @@ TrackSettingsPanel::TrackSettingsPanel (LiveLooperProcessor& p, MidiMenuHost& ho
     const Def defs[] = {
         { kInput, "Input", inputChoices() }, { kStartMode, "Start", startModeChoices() },
         { kStopMode, "Stop", stopModeChoices() }, { kDubMode, "Dub mode", dubModeChoices() },
-        { kMeasure, "Measures", measureChoices() }, { kOutput, "Output", outputChoices() }
+        { kMeasure, "Loop length", measureChoices() }, { kOutput, "Output", outputChoices() }
     };
     for (const auto& [id, caption, choices] : defs)
     {

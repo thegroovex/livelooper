@@ -8,6 +8,14 @@
 #include "plugin/KeyMapEditor.h"
 #include "plugin/InfoWindows.h"
 #include "plugin/Parameters.h"
+#include "plugin/PerformanceRecorder.h"
+#include "plugin/SettingsPanel.h"
+#include "plugin/WelcomeScreen.h"
+#include "plugin/ControllerView.h"
+#include "plugin/controllers/Ko2.h"
+#include "plugin/AppSettings.h"
+#include "plugin/push/PushDevice.h"
+#include "plugin/push/PushSurface.h"
 
 using namespace livelooper;
 using namespace livelooper::params;
@@ -63,6 +71,7 @@ int main (int argc, char* argv[])
 
     LiveLooperProcessor proc;
     proc.prepareToPlay (48000.0, 512);
+    proc.markStandaloneForTests();      // v1.7: SETUP shows the app rows (auto load); no backups are written here
     auto set = [&proc] (const juce::String& id, float plain) {
         auto* p = proc.getState().getParameter (id);
         p->setValueNotifyingHost (p->convertTo0to1 (plain));
@@ -88,6 +97,7 @@ int main (int argc, char* argv[])
     set ("rhythm_on", 1.0f);
     set ("t3_level", 0.8f);
     set ("t2_pan", -0.3f);
+    set ("t5_measure", 3.0f);   // v1.7 loop length: track 5 (empty) records 4 bars
     press (proc, "scene1");     // store a scene: shows its LED in the footer
     runBlocks (proc, 1, 0.0f);
     proc.loadDefaultMidiMap();
@@ -112,9 +122,83 @@ int main (int argc, char* argv[])
         ed->showStatus ({});
         juce::MessageManager::getInstance()->runDispatchLoopUntil (200);
         save (*editor, outDir.getChildFile ("livelooper" + sfx + ".png"));
+        {
+            // v1.7 loop length: the top of the track strips (title row with the loop length pills, displays), 2x
+            auto img = editor->createComponentSnapshot ({ 12, 326, 904, 118 }, true, 2.0f);
+            const auto f = outDir.getChildFile ("livelooper-loop-length" + sfx + ".png");
+            f.deleteFile();
+            juce::FileOutputStream out (f);
+            juce::PNGImageFormat().writeImageToStream (img, out);
+            std::cout << "wrote " << f.getFullPathName() << std::endl;
+        }
+
+        // v1.6: the welcome screen (demo set / empty set)
+        {
+            ed->showWelcome (false);
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (150);
+            save (*editor, outDir.getChildFile ("livelooper-welcome" + sfx + ".png"));
+            if (auto* w = ed->getWelcome())
+                w->setVisible (false);
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
+        }
+        // v1.6: the SETUP window (System Settings style), two pages
+        {
+            for (const auto& [page, name] : { std::pair<const char*, const char*> { "Looper", "setup" }, std::pair<const char*, const char*> { "App", "setup-app" },
+                                                     std::pair<const char*, const char*> { "Audio", "setup-audio" } /* v1.7: latency */,
+                                                     std::pair<const char*, const char*> { "Sets", "setup-sets" } /* v1.7: auto backup */ })
+            {
+                auto panel = ed->createSettingsPanel();
+                if (auto* sp = dynamic_cast<SettingsPanel*> (panel.get()))
+                {
+                    sp->showPage (i18n::tr (page));
+                    juce::MessageManager::getInstance()->runDispatchLoopUntil (80);
+                    save (*sp, outDir.getChildFile (juce::String ("livelooper-") + name + sfx + ".png"));
+                }
+            }
+        }
+
+        // v1.6 rhythm: the BEATS page with the Boom Bap kit and a user pattern
+        {
+            set (gRhythmKit, 6.0f);
+            set (gRhythmPattern, (float) (RhythmGenerator::getNumPatterns() - 14));    // Boom Bap
+            ed->showBeatsPage (true);
+            if (auto* page = ed->getBeatsPage())
+            {
+                page->loadPreset (RhythmGenerator::getNumPatterns() - 14);
+                proc.setUserPatternName (page->getEditSlot(), "Boom Bap Flip");
+                page->setResolution (16, 2);
+                auto& bank = proc.getUserPatterns();
+                bank.setCell (page->getEditSlot(), RhythmGenerator::Snare, 7, 40);
+                bank.setCell (page->getEditSlot(), RhythmGenerator::Rim, 14, 96);
+                bank.setCell (page->getEditSlot(), RhythmGenerator::HatOpen, 15, 110);
+            }
+            set (beatRowId (kBeatMute, 6), 1.0f);
+            set (gDrumsBfx, 1.0f);
+            {
+                // an own sample on the snare row (shows its name under the voice)
+                juce::AudioBuffer<float> hit (1, 8000);
+                for (int i = 0; i < hit.getNumSamples(); ++i)
+                    hit.setSample (0, i, 0.5f * std::sin ((float) i * 0.05f) * std::exp (-(float) i / 1500.0f));
+                proc.setRowSampleAudio (1, hit, 44100.0, "Vinyl Snare 03", {});
+            }
+            for (int f = 0; f < 6; ++f)
+            {
+                runBlocks (proc, 3, 0.0f);
+                juce::MessageManager::getInstance()->runDispatchLoopUntil (40);
+            }
+            save (*editor, outDir.getChildFile ("livelooper-beats" + sfx + ".png"));
+            proc.clearRowSample (1);
+            ed->showBeatsPage (false);
+            set (beatRowId (kBeatMute, 6), 0.0f);
+            set (gDrumsBfx, 0.0f);
+            set (gRhythmKit, 0.0f);
+            set (gRhythmPattern, 1.0f);
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
+        }
 
         // v1.5 live performance: beat FX, colour FX, beat repeat latch, metronome and Link on
         set (gBfxOn, 1.0f);
+        ed->setFxTab (LiveLooperEditor::tabBeat);       // v1.6: the FX panel shows the beat FX
         set (gColorType, 1.0f);
         set (gRepeatLatch, 1.0f);
         set (gMetroOn, 1.0f);
@@ -126,7 +210,28 @@ int main (int argc, char* argv[])
             juce::MessageManager::getInstance()->runDispatchLoopUntil (60);
         }
         save (*editor, outDir.getChildFile ("livelooper-performance" + sfx + ".png"));
+
+        // v1.6 performance recorder: the round record button while it records (light on the beat)
+        {
+            const auto recDir = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("livelooper-screenshot-rec");
+            PerformanceRecorder::setFolder (recDir);
+            proc.startPerformanceRecording();
+            for (int f = 0; f < 8; ++f)
+            {
+                runBlocks (proc, 40, 0.3f);
+                juce::MessageManager::getInstance()->runDispatchLoopUntil (40);
+            }
+            auto& rec = ed->getPerfRecButton();
+            rec.setBeatPhase (0.1);          // light on for the picture
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (40);
+            save (*editor, outDir.getChildFile ("livelooper-recording" + sfx + ".png"));
+            proc.stopPerformanceRecording();
+            PerformanceRecorder::setFolder ({});
+            recDir.deleteRecursively();
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (60);
+        }
         set (gBfxOn, 0.0f);
+        ed->setFxTab (LiveLooperEditor::tabInput);
         set (gColorType, 0.0f);
         set (gRepeatLatch, 0.0f);
         set (gMetroOn, 0.0f);
@@ -135,13 +240,155 @@ int main (int argc, char* argv[])
         runBlocks (proc, 2, 0.0f);
         juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
 
+        // v1.6 punch FX tab (Tape Stop held, send FX reverb)
+        {
+            ed->setFxTab (LiveLooperEditor::tabPunch);
+            set (gSfxType, 2.0f);
+            set (gSfxLevel, 0.35f);
+            set (punchHoldId (4), 1.0f);
+            for (int f = 0; f < 4; ++f)
+            {
+                runBlocks (proc, 3, 0.4f);
+                juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+            }
+            save (*editor, outDir.getChildFile ("livelooper-punch-fx" + sfx + ".png"));
+            set (punchHoldId (4), 0.0f);
+            set (gSfxType, 0.0f);
+            ed->setFxTab (LiveLooperEditor::tabInput);
+            runBlocks (proc, 4, 0.0f);
+        }
+        // v1.6 K.O. II (simulated): header chip + the one-time question, SETUP > Controllers, Controller GUI
+        {
+            proc.simulateControllers (true, true);
+            ed->updateKo2Ui();
+            ed->showKo2Toast (true);
+            for (int f = 0; f < 4; ++f)
+            {
+                runBlocks (proc, 3, 0.3f);
+                juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+            }
+            save (*editor, outDir.getChildFile ("livelooper-ko2" + sfx + ".png"));
+            if (auto* t = ed->getKo2Toast())
+                t->setVisible (false);
+            {
+                auto panel = ed->createSettingsPanel();
+                if (auto* sp = dynamic_cast<SettingsPanel*> (panel.get()))
+                {
+                    sp->showPage (i18n::tr ("Controllers"));
+                    juce::MessageManager::getInstance()->runDispatchLoopUntil (80);
+                    save (*sp, outDir.getChildFile ("livelooper-setup-controllers" + sfx + ".png"));
+                    // the whole page (K.O. II audio output, hold to intensify, notes)
+                    const auto size = sp->getBounds();
+                    sp->setSize (size.getWidth(), 1900);   // 1.7: velocity curves, Push 1 display, MIDI feedback below K.O. II
+                    juce::MessageManager::getInstance()->runDispatchLoopUntil (80);
+                    save (*sp, outDir.getChildFile ("livelooper-setup-controllers-full" + sfx + ".png"));
+                    sp->setBounds (size);
+                }
+            }
+            appsettings::setValue ("gui.layout", "controller");
+            appsettings::setValue ("gui.controller", "ko2");
+            ed->updateKo2Ui();
+            if (auto* cv = ed->getControllerView())
+                cv->setKo2Page (0);
+            for (int f = 0; f < 4; ++f)
+            {
+                runBlocks (proc, 3, 0.3f);
+                juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+            }
+            save (*editor, outDir.getChildFile ("livelooper-controller-ko2" + sfx + ".png"));
+            // hold to intensify: a punch pad (group C) held for about a beat - live amount on the display
+            // and in the PUNCH FX title row of the standard surface
+            if (auto* dev = proc.getKo2Device())
+            {
+                const int note = ko2::noteFor (2, ko2::padNumberOffset (2));
+                dev->injectMessage (juce::MidiMessage::noteOn (1, note, (juce::uint8) 50));
+                if (auto* cv = ed->getControllerView())
+                    cv->setKo2Page (2);
+                for (int f = 0; f < 10; ++f)
+                {
+                    runBlocks (proc, 2, 0.3f);
+                    juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+                }
+                ed->updateKo2Ui();
+                juce::MessageManager::getInstance()->runDispatchLoopUntil (60);
+                save (*editor, outDir.getChildFile ("livelooper-ko2-hold" + sfx + ".png"));
+                appsettings::setValue ("gui.layout", "standard");
+                ed->updateKo2Ui();
+                for (int f = 0; f < 3; ++f)
+                {
+                    runBlocks (proc, 2, 0.3f);
+                    juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+                }
+                ed->updateKo2Ui();
+                juce::MessageManager::getInstance()->runDispatchLoopUntil (60);
+                save (*editor, outDir.getChildFile ("livelooper-punch-hold" + sfx + ".png"));
+                dev->injectMessage (juce::MidiMessage::noteOff (1, note));
+                appsettings::setValue ("gui.layout", "controller");
+                if (auto* cv = ed->getControllerView())
+                    cv->setKo2Page (0);
+                ed->updateKo2Ui();
+                juce::MessageManager::getInstance()->runDispatchLoopUntil (60);
+            }
+            appsettings::setValue ("gui.controller", "push");
+            ed->updateKo2Ui();
+            // v1.7: two loops playing (progress bars on display line 3), a held punch FX (amount bar on line 4)
+            const bool p1 = proc.getEngine().getTrack (0).isRunning(), p2 = proc.getEngine().getTrack (1).isRunning();
+            if (! p1) press (proc, "t1_recplay");
+            if (! p2) press (proc, "t2_recplay");
+            runBlocks (proc, 40, 0.0f);
+            set ("pfx_amount", 0.6f);
+            proc.getState().getParameter (punchHoldId (4))->setValueNotifyingHost (1.0f);
+            for (int f = 0; f < 4; ++f)
+            {
+                runBlocks (proc, 3, 0.3f);
+                juce::MessageManager::getInstance()->runDispatchLoopUntil (60);
+            }
+            save (*editor, outDir.getChildFile ("livelooper-controller-push" + sfx + ".png"));
+            proc.getState().getParameter (punchHoldId (4))->setValueNotifyingHost (0.0f);
+            if (auto* pd = proc.getPushDevice())
+            {
+                // v1.7 loop length: FIXED LENGTH held (pads / display show the eight lengths)
+                auto& surf = pd->getSurface();
+                surf.handleMidi (juce::MidiMessage::controllerEvent (1, push::cc::fixedLength, 127));
+                std::vector<juce::MidiMessage> discard;
+                surf.render (discard, false);
+                editor->repaint();
+                juce::MessageManager::getInstance()->runDispatchLoopUntil (80);
+                save (*editor, outDir.getChildFile ("livelooper-controller-push-length" + sfx + ".png"));
+                surf.handleMidi (juce::MidiMessage::controllerEvent (1, push::cc::fixedLength, 0));
+                surf.render (discard, false);
+            }
+            if (! p1) press (proc, "t1_stop");
+            if (! p2) press (proc, "t2_stop");
+            runBlocks (proc, 2, 0.0f);
+            appsettings::setValue ("gui.layout", "standard");
+            appsettings::setValue ("gui.controller", "ko2");
+            if (auto* cv = ed->getControllerView())
+                cv->setKo2Page (-1);
+            proc.simulateControllers (false, false);
+            ed->updateKo2Ui();
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (60);
+        }
+
         // in-app help (searchable user guide) and the about window
         {
             HelpComponent help;
             help.setLookAndFeel (&editor->getLookAndFeel());
-            help.setQuery ("Link");
+            // v1.6: the illustrated guide - Push 1 layout and the Loops page
+            const auto& secs = help.getSections();
+            auto find = [&secs] (const juce::String& title) { for (int i = 0; i < secs.size(); ++i) if (secs[i].title == title) return i; return 0; };
+            help.showSectionForTests (find (i18n::tr ("Push 1")));
             juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
             save (help, outDir.getChildFile ("livelooper-help" + sfx + ".png"));
+            help.showSectionForTests (find (i18n::tr ("Loops")));
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
+            save (help, outDir.getChildFile ("livelooper-help-loops" + sfx + ".png"));
+            help.showSectionForTests (find (i18n::tr ("K.O. II")));          // v1.6
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
+            save (help, outDir.getChildFile ("livelooper-help-ko2" + sfx + ".png"));
+            help.setQuery ("Link");
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
+            save (help, outDir.getChildFile ("livelooper-help-search" + sfx + ".png"));
             help.setLookAndFeel (nullptr);
         }
         {
@@ -150,6 +397,29 @@ int main (int argc, char* argv[])
             juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
             save (about, outDir.getChildFile ("livelooper-about" + sfx + ".png"));
             about.setLookAndFeel (nullptr);
+        }
+
+        // v1.7 auto backup: the notice after a crash (standalone: the newest backup was restored)
+        {
+            LiveLooperProcessor::BackupNotice n;
+            n.kind = LiveLooperProcessor::BackupNotice::Kind::Restored;
+            n.time = juce::Time::getCurrentTime() - juce::RelativeTime::minutes (3);
+            proc.postBackupNoticeForTests (n);
+            ed->updateBackupNotice();
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
+            if (auto* t = ed->getBackupToast())
+            {
+                const auto area = t->getBounds().expanded (24);
+                auto full = editor->createComponentSnapshot (editor->getLocalBounds(), true, 1.0f);
+                full.getClippedImage (area).createCopy();
+                juce::PNGImageFormat png;
+                const auto f = outDir.getChildFile ("livelooper-backup-notice" + sfx + ".png");
+                f.deleteFile();
+                juce::FileOutputStream out (f);
+                png.writeImageToStream (full.getClippedImage (area), out);
+            }
+            ed->pressBackupToastButton (-1);
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
         }
 
         ed->setLearnMode (true);
@@ -178,6 +448,147 @@ int main (int argc, char* argv[])
         panel.setLookAndFeel (&editor->getLookAndFeel());
         save (panel, outDir.getChildFile ("livelooper-track-setup" + sfx + ".png"), 2.0f);
         panel.setLookAndFeel (nullptr);
+    }
+
+    // v1.7 display: light theme, stage mode, waveforms, Live view, SETUP > Display (EN + DE)
+    {
+        auto setParam = [&proc] (const juce::String& id, float normalised) {
+            proc.getState().getParameter (id)->setValueNotifyingHost (normalised);
+        };
+        auto frames = [&proc] (int n) {
+            for (int f = 0; f < n; ++f)
+            {
+                runBlocks (proc, 1, 0.4f);
+                juce::MessageManager::getInstance()->runDispatchLoopUntil (40);
+            }
+        };
+        // the same set as the main picture (earlier pictures changed the track states):
+        // track 1 plays, track 2 overdubs (its overdub layer shows), track 3 stopped, track 4 records, track 5 empty
+        press (proc, gClearAll); runBlocks (proc, 40, 0.0f);
+        press (proc, "t1_recplay"); runBlocks (proc, 300, 0.4f);
+        press (proc, "t1_recplay"); runBlocks (proc, 60, 0.0f);
+        press (proc, "t2_recplay"); runBlocks (proc, 200, 0.3f);
+        press (proc, "t2_recplay"); runBlocks (proc, 20, 0.0f);
+        press (proc, "t2_recplay"); runBlocks (proc, 70, 0.2f);
+        press (proc, "t3_recplay"); runBlocks (proc, 150, 0.3f);
+        press (proc, "t3_recplay"); runBlocks (proc, 2, 0.0f);
+        press (proc, "t3_stop");    runBlocks (proc, 2, 0.0f);
+        press (proc, "t4_recplay"); runBlocks (proc, 40, 0.5f);
+        for (const auto& [language, suffix] : { std::pair<i18n::Language, const char*> { i18n::Language::English, "" },
+                                                std::pair<i18n::Language, const char*> { i18n::Language::German, "-de" } })
+        {
+            i18n::setSetting (language, false);
+            const juce::String sfx (suffix);
+            ed->showStatus ({});
+            setParam (gUiTheme, 1.0f);
+            frames (6);
+            save (*editor, outDir.getChildFile ("livelooper-light" + sfx + ".png"));
+            {
+                auto panel = ed->createSettingsPanel();
+                if (auto* sp = dynamic_cast<SettingsPanel*> (panel.get()))
+                {
+                    sp->showPage (i18n::tr ("Display"));
+                    juce::MessageManager::getInstance()->runDispatchLoopUntil (80);
+                    save (*sp, outDir.getChildFile ("livelooper-setup-display-light" + sfx + ".png"));
+                }
+            }
+            setParam (gUiTheme, 0.0f);
+            setParam (gStageMode, 1.0f);
+            frames (6);
+            save (*editor, outDir.getChildFile ("livelooper-stage" + sfx + ".png"));
+            setParam (gStageMode, 0.0f);
+            setParam (gWaveforms, 1.0f);
+            frames (6);
+            save (*editor, outDir.getChildFile ("livelooper-waveforms" + sfx + ".png"));
+            save (*editor, outDir.getChildFile ("livelooper-waveforms-2x" + sfx + ".png"), 2.0f);
+            setParam (gWaveforms, 0.0f);
+            setParam (gPfxAmount, 0.62f);
+            setParam (gLiveView, 1.0f);
+            frames (6);
+            save (*editor, outDir.getChildFile ("livelooper-live" + sfx + ".png"));
+            if (juce::SystemStats::getEnvironmentVariable ("LL_SHOT_CHECKS", {}).isNotEmpty())
+            {
+                // review only (not a docs image): MIDI learn frames over the Live view
+                ed->setLearnMode (true);
+                frames (4);
+                save (*editor, outDir.getChildFile ("check-live-learn" + sfx + ".png"));
+                ed->setLearnMode (false);
+            }
+            setParam (gStageMode, 1.0f);
+            frames (6);
+            save (*editor, outDir.getChildFile ("livelooper-live-stage" + sfx + ".png"));
+            setParam (gStageMode, 0.0f);
+            setParam (gUiTheme, 1.0f);
+            frames (6);
+            save (*editor, outDir.getChildFile ("livelooper-live-light" + sfx + ".png"));
+            setParam (gUiTheme, 0.0f);
+            {
+                // v1.7 Performance view (4th view): beat FX on, a punch FX held in the XY field
+                ed->setPerformView (true);
+                setParam (gBfxOn, 1.0f);
+                setParam (gPfxX, 0.72f);
+                setParam (gPfxY, 0.66f);
+                setParam (gPerfFilter, 0.2f);
+                setParam (punchHoldId (4), 1.0f);
+                frames (6);
+                save (*editor, outDir.getChildFile ("livelooper-perform" + sfx + ".png"));
+                if (juce::SystemStats::getEnvironmentVariable ("LL_SHOT_CHECKS", {}).isNotEmpty())
+                {
+                    // review only (not docs images): learn frames, light theme, stage mode, waveforms, 75 % / 200 %
+                    ed->setLearnMode (true);
+                    frames (4);
+                    save (*editor, outDir.getChildFile ("check-perform-learn" + sfx + ".png"));
+                    ed->setLearnMode (false);
+                    setParam (gUiTheme, 1.0f);
+                    frames (6);
+                    save (*editor, outDir.getChildFile ("check-perform-light" + sfx + ".png"));
+                    setParam (gUiTheme, 0.0f);
+                    setParam (gStageMode, 1.0f);
+                    frames (6);
+                    save (*editor, outDir.getChildFile ("check-perform-stage" + sfx + ".png"));
+                    setParam (gStageMode, 0.0f);
+                    setParam (gWaveforms, 1.0f);
+                    frames (6);
+                    save (*editor, outDir.getChildFile ("check-perform-waves" + sfx + ".png"));
+                    setParam (gWaveforms, 0.0f);
+                    ed->setGuiScale (75);
+                    frames (4);
+                    save (*editor, outDir.getChildFile ("check-perform-75" + sfx + ".png"));
+                    ed->setGuiScale (200);
+                    frames (4);
+                    save (*editor, outDir.getChildFile ("check-perform-200" + sfx + ".png"));
+                    ed->setGuiScale (100);
+                    frames (3);
+                }
+                setParam (punchHoldId (4), 0.0f);
+                setParam (gBfxOn, 0.0f);
+                setParam (gPerfFilter, 0.5f);
+                setParam (gView, 0.0f);
+                ed->setLiveView (false);
+                frames (3);
+            }
+            setParam (gLiveView, 0.0f);
+            frames (4);
+            {
+                auto panel = ed->createSettingsPanel();
+                if (auto* sp = dynamic_cast<SettingsPanel*> (panel.get()))
+                {
+                    sp->showPage (i18n::tr ("Display"));
+                    juce::MessageManager::getInstance()->runDispatchLoopUntil (80);
+                    save (*sp, outDir.getChildFile ("livelooper-setup-display" + sfx + ".png"));
+                }
+            }
+        }
+        // interface size 75 % (rendered at its real size)
+        ed->setGuiScale (75);
+        frames (3);
+        ed->showStatus ({});
+        frames (2);
+        save (*editor, outDir.getChildFile ("livelooper-size-75.png"));
+        ed->setGuiScale (100);
+        ed->showStatus ({});
+        frames (2);
+        i18n::setSetting (i18n::Language::English, false);
     }
 
     // optional 8 tracks

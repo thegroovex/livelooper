@@ -59,7 +59,13 @@ if(LIVELOOPER_WITH_LINK)
 endif()
 
 # ---------------------------------------------------------------- embedded resources (help, licences, logo, drum samples)
+file(GLOB LIVELOOPER_HELP_IMAGES ${CMAKE_CURRENT_SOURCE_DIR}/resources/help/*.png)
 file(GLOB LIVELOOPER_DRUM_SAMPLES ${CMAKE_CURRENT_SOURCE_DIR}/resources/drums/*.flac)
+# v1.6 features: demo set loops (self-made, CC0, tools/demo/make_demo_loops.py)
+set(LIVELOOPER_DEMO_LOOPS
+    ${CMAKE_CURRENT_SOURCE_DIR}/resources/demo/demo_bass.flac
+    ${CMAKE_CURRENT_SOURCE_DIR}/resources/demo/demo_keys.flac
+    ${CMAKE_CURRENT_SOURCE_DIR}/resources/demo/demo_arp.flac)
 set(_ll_help ${CMAKE_BINARY_DIR}/help)
 configure_file(docs/en/PUSH.md ${_ll_help}/PUSH-en.md COPYONLY)
 configure_file(docs/de/PUSH.md ${_ll_help}/PUSH-de.md COPYONLY)
@@ -79,8 +85,13 @@ juce_add_binary_data(livelooper_resources
         LICENSE
         THIRD-PARTY.md
         docs/brand/beattactics-logo-transparent.png
+        docs/brand/beattactics-icon.svg
         resources/livelooper-icon-256.png
-        ${LIVELOOPER_DRUM_SAMPLES})
+        ${LIVELOOPER_DRUM_SAMPLES}
+        ${LIVELOOPER_HELP_IMAGES}
+        ${LIVELOOPER_DEMO_LOOPS}
+        resources/fonts/Manrope-800.ttf
+        resources/fonts/Manrope-600.ttf)
 set_target_properties(livelooper_resources PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # ---------------------------------------------------------------- shared sources
@@ -99,27 +110,62 @@ set(LIVELOOPER_ENGINE_SOURCES
     src/engine/RhythmGenerator.cpp
     src/engine/MidiMap.cpp
     src/engine/Performance.cpp
-    src/engine/BeatFx.cpp)
+    src/engine/BeatFx.cpp
+    src/engine/PunchFx.cpp
+    src/engine/LatencyMeasure.cpp)
 set(LIVELOOPER_PLUGIN_SOURCES
     src/plugin/Localisation.cpp
     src/plugin/AppSettings.cpp
+    src/plugin/AutoBackup.cpp
     src/plugin/Updates.cpp
     src/plugin/InfoWindows.cpp
+    src/plugin/HelpGuide.cpp
+    src/plugin/SettingsPanel.cpp
     src/plugin/DrumSampleLoader.cpp
+    src/plugin/SoundPacks.cpp
     src/plugin/LinkSync.cpp
     src/plugin/KeyMap.cpp
     src/plugin/KeyMapEditor.cpp
     src/plugin/Parameters.cpp
     src/plugin/PluginProcessor.cpp
+    src/plugin/Processor17.cpp
+    src/plugin/Backup17.cpp
+    src/plugin/MidiFeedback.cpp
     src/plugin/PluginEditor.cpp
+    src/plugin/Editor17.cpp
+    src/plugin/EditorDisplay.cpp
+    src/plugin/EditorBackup.cpp
+    src/plugin/LiveView.cpp
+    src/plugin/PerformView.cpp
     src/plugin/LooperLookAndFeel.cpp
     src/plugin/Widgets.cpp
+    src/plugin/BeatsPage.cpp
     src/plugin/push/PushProtocol.cpp
     src/plugin/push/PushSurface.cpp
-    src/plugin/push/PushDevice.cpp)
+    src/plugin/push/PushDevice.cpp
+    # v1.6 features
+    src/plugin/PerformanceRecorder.cpp
+    src/plugin/Features16.cpp
+    src/plugin/ClipExport.cpp
+    src/plugin/VideoWriterWin.cpp
+    src/plugin/EditorFeatures16.cpp
+    src/plugin/EditorKo2.cpp
+    src/plugin/ControllerView.cpp
+    src/plugin/WelcomeScreen.cpp
+    src/plugin/controllers/GridControllers.cpp
+    src/plugin/controllers/Ko2.cpp)
+if(APPLE)
+    list(APPEND LIVELOOPER_PLUGIN_SOURCES src/plugin/VideoWriterMac.mm src/plugin/MouseLogMac.mm)
+endif()
 set(LIVELOOPER_DEFINES LIVELOOPER_VERSION="${PROJECT_VERSION}" JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_VST3_CAN_REPLACE_VST2=0 JUCE_DISPLAY_SPLASH_SCREEN=0
     ${LIVELOOPER_LINK_DEFINES})
 set(LIVELOOPER_MODULES juce::juce_audio_utils juce::juce_audio_formats juce::juce_gui_extra juce::juce_dsp juce::juce_cryptography livelooper_resources ${LIVELOOPER_LINK_TARGET})
+# v1.6 clip export: native video encoders
+if(APPLE)
+    list(APPEND LIVELOOPER_MODULES "-framework AVFoundation" "-framework CoreMedia" "-framework CoreVideo")
+elseif(WIN32)
+    list(APPEND LIVELOOPER_MODULES mfplat mfreadwrite mfuuid)
+endif()
 
 # ---------------------------------------------------------------- plugin
 set(LIVELOOPER_FORMATS VST3 Standalone)
@@ -163,8 +209,12 @@ target_link_libraries(livelooper
         ${LIVELOOPER_MODULES}
     PUBLIC
         juce::juce_recommended_config_flags
-        juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags)
+# LTO on by default (shipped builds); CI turns it off only for Linux push/PR test builds.
+option(LIVELOOPER_LTO "Link-time optimisation" ON)
+if(LIVELOOPER_LTO)
+    target_link_libraries(livelooper PUBLIC juce::juce_recommended_lto_flags)
+endif()
 
 # ---------------------------------------------------------------- tests
 if(LIVELOOPER_BUILD_TESTS)
@@ -189,11 +239,31 @@ if(LIVELOOPER_BUILD_TESTS)
         tests/BeatFxTests.cpp
         tests/Push15Tests.cpp
         tests/Settings15Tests.cpp
+        tests/Features16Tests.cpp
+        tests/Rhythm16Tests.cpp
+        tests/UiPolish16Tests.cpp
+        tests/Ko2Tests.cpp
+        tests/Push16Tests.cpp
+        tests/Ko2UiTests.cpp
+        tests/Ko2AudioTests.cpp
+        tests/V17Tests.cpp
+        tests/DisplayTests.cpp
+        tests/ViewMouseTests.cpp
+        tests/LoopLengthTests.cpp
+        tests/BackupTests.cpp
         ${LIVELOOPER_ENGINE_SOURCES} ${LIVELOOPER_PLUGIN_SOURCES})
     target_include_directories(livelooper_tests PRIVATE src ${LIVELOOPER_THIRD_PARTY_INCLUDES})
     target_compile_definitions(livelooper_tests PRIVATE ${LIVELOOPER_DEFINES} LIVELOOPER_NO_PLUGIN_ENTRY=1 JUCE_MODAL_LOOPS_PERMITTED=1)
     target_link_libraries(livelooper_tests PRIVATE ${LIVELOOPER_MODULES}
         juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
+    if(MSVC)
+        # symbols for the crash handler's stack trace in the CI log (/Z7: inside the objects, works with ccache)
+        target_compile_options(livelooper_tests PRIVATE /Z7)
+        target_link_options(livelooper_tests PRIVATE /DEBUG /OPT:REF /OPT:ICF)
+        # 8 MB main thread stack like Linux / macOS (Windows default 1 MB): the big test functions keep
+        # processors and engines on the stack (DisplayTests::runTest overflowed it, exception 0xc00000fd)
+        target_link_options(livelooper_tests PRIVATE /STACK:8388608)
+    endif()
     add_test(NAME unit_tests COMMAND livelooper_tests)
 
     # Loads the built VST3 through JUCE's plug-in hosting code and drives it like a DAW would

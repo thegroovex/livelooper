@@ -23,13 +23,27 @@ namespace
 
     std::shared_ptr<const DrumBank> load()
     {
-        auto bank = std::make_shared<DrumBank>();
+        const int numKits = RhythmGenerator::getNumKits();
+        std::vector<std::shared_ptr<DrumBank::Kit>> kits;
+        for (int k = 0; k < numKits; ++k)
+        {
+            auto kit = std::make_shared<DrumBank::Kit>();
+            kit->name = RhythmGenerator::getKitName (k);
+            for (int v = 0; v < DrumBank::kNumVoices; ++v)
+            {
+                kit->trim[(size_t) v] = RhythmGenerator::builtInTrim (k, v);
+                kit->voiceNames[(size_t) v] = RhythmGenerator::getKitVoiceName (k, v);
+            }
+            kit->room = RhythmGenerator::builtInRoom (k);
+            kit->fillStyle = RhythmGenerator::kitFillStyle (k);
+            kits.push_back (kit);
+        }
         juce::FlacAudioFormat flac;
         for (const auto& e : kEntries)
         {
             int size = 0;
             const char* data = findResource (e.file, size);
-            if (data == nullptr || e.kit < 0 || e.kit >= DrumBank::kNumKits || e.voice < 0 || e.voice >= DrumBank::kNumVoices)
+            if (data == nullptr || e.kit < 0 || e.kit >= numKits || e.voice < 0 || e.voice >= DrumBank::kNumVoices)
                 continue;
             std::unique_ptr<juce::AudioFormatReader> reader (
                 flac.createReaderFor (new juce::MemoryInputStream (data, (size_t) size, false), true));
@@ -42,8 +56,11 @@ namespace
             s.layer = e.layer;
             s.data.assign (buffer.getReadPointer (0), buffer.getReadPointer (0) + buffer.getNumSamples());
             s.data.push_back (0.0f);    // guard sample for the interpolation
-            bank->kits[(size_t) e.kit][(size_t) e.voice].push_back (std::move (s));
+            kits[(size_t) e.kit]->voices[(size_t) e.voice].push_back (std::move (s));
         }
+        auto bank = std::make_shared<DrumBank>();
+        for (auto& k : kits)
+            bank->kits.push_back (k);
         return bank;
     }
 }

@@ -6,7 +6,8 @@
 // - "Settings on start: default settings" starts without the last session's state,
 // - on macOS the microphone permission is asked for once and then remembered (see
 //   MacMicPermission.mm) - nothing else asks again,
-// - the audio device's output latency is passed on for Ableton Link.
+// - the audio device's output latency is passed on for Ableton Link,
+// - v1.7: the last session is loaded on start (auto backup, crash recovery - see AutoBackup.h).
 //
 // The storage location of the JUCE wrapper settings (audio device, last state) is unchanged,
 // so existing users keep their audio setup.
@@ -29,10 +30,16 @@
 #ifdef Component
  #undef Component
 #endif
+// ... and on macOS "Point" as "juce::Point", which breaks juce::Point in the editor headers (PluginEditor.h)
+#ifdef Point
+ #undef Point
+#endif
 
 #include "plugin/AppSettings.h"
 #include "plugin/Localisation.h"
 #include "plugin/PluginProcessor.h"
+#include "plugin/PluginEditor.h"
+#include "plugin/controllers/Ko2.h"
 
 namespace livelooper
 {
@@ -61,6 +68,15 @@ public:
         juce::Component::addAndMakeVisible (settingsButton);
         resized();
         startTimer (1000);
+        // v1.6 K.O. II "Record" role: audio input from the K.O. II (output stays on the computer), back on unplug
+        if (auto* p = dynamic_cast<LiveLooperProcessor*> (getAudioProcessor()))
+            p->onControllerAudioChanged = [this] (bool record) { switchKo2Audio (record); };
+    }
+
+    ~LooperWindow() override
+    {
+        if (auto* p = dynamic_cast<LiveLooperProcessor*> (getAudioProcessor()))
+            p->onControllerAudioChanged = nullptr;
     }
 
     void resized() override
@@ -68,7 +84,27 @@ public:
         StandaloneFilterWindow::resized();
         const auto font = juce::FontOptions (14.0f);
         const int w = juce::GlyphArrangement::getStringWidthInt (font, settingsButton.getButtonText()) + 28;
-        settingsButton.setBounds (8, 6, juce::jmax (120, w), juce::jmax (16, getTitleBarHeight() - 8));
+        settingsButton.setBounds (8, 6 + safeTopInset(), juce::jmax (120, w), juce::jmax (16, getTitleBarHeight() - 8));
+    }
+
+    /** v1.7 macOS fullscreen: title bar and editor below the camera housing (notch) when the window covers it;
+        the strip is filled with the window background. Other systems / windowed: unchanged. */
+    juce::BorderSize<int> getBorderThickness() const override
+    {
+        auto b = StandaloneFilterWindow::getBorderThickness();
+        b.setTop (b.getTop() + safeTopInset());
+        return b;
+    }
+
+private:
+    int safeTopInset() const
+    {
+       #if JUCE_MAC
+        if (isFullScreen() && isOnDesktop())
+            if (auto* d = juce::Desktop::getInstance().getDisplays().getDisplayForRect (getScreenBounds()))
+                return juce::jmax (0, d->totalArea.getY() + LiveLooperEditor::getFullscreenSafeInsets (d).getTop() - getScreenY());
+       #endif
+        return 0;
     }
 
 private:
@@ -106,6 +142,14 @@ private:
                 const double sr = dev->getCurrentSampleRate();
                 if (sr > 0.0)
                     p->setOutputLatencySeconds ((dev->getOutputLatencyInSamples() + dev->getCurrentBufferSizeSamples()) / sr);
+                // v1.7 latency compensation: measurements are stored per device (type, input, output, rate,
+                // buffer); the reported round trip is the fallback before a measurement
+                const auto setup = getDeviceManager().getAudioDeviceSetup();
+                const juce::String key = "standalone: " + dev->getTypeName() + " | " + setup.inputDeviceName + " | "
+                                       + setup.outputDeviceName + " | " + juce::String (juce::roundToInt (sr)) + " | "
+                                       + juce::String (dev->getCurrentBufferSizeSamples());
+                p->setAudioDeviceInfo (key, dev->getInputLatencyInSamples() + dev->getOutputLatencyInSamples()
+                                                + 2 * dev->getCurrentBufferSizeSamples());
             }
         if (settingsButton.getButtonText() != tr ("Audio/MIDI Settings"))
         {
@@ -114,7 +158,83 @@ private:
         }
     }
 
+    void switchKo2Audio (bool record)
+    {
+        // Record K.O. II: the K.O. II is the INPUT only. The output stays on the computer (the output
+        // used before), so the metronome and the loops are not sent into the K.O. II and recorded again
+        // from its USB input. Only "K.O. II audio output: K.O. II" (SETUP > Controllers) sends it there.
+        // Input and output may be different devices (CoreAudio combines them, WASAPI / DirectSound / ALSA
+        // open them side by side). Unplugged: input and output as before.
+        auto* p = dynamic_cast<LiveLooperProcessor*> (getAudioProcessor());
+        if (p == nullptr)
+            return;
+        auto& dm = getDeviceManager();
+        if (record)
+        {
+            const auto now = dm.getAudioDeviceSetup();
+            const auto mode = p->getKo2AudioOutput() == 1 ? ko2::AudioOutput::Ko2 : ko2::AudioOutput::Computer;
+            if (! switchedToKo2)
+                previousName = now.outputDeviceName;           // the computer's output before the switch
+            for (auto* type : dm.getAvailableDeviceTypes())
+            {
+                type->scanForDevices();
+                const auto ins = type->getDeviceNames (true), outs = type->getDeviceNames (false);
+                const auto route = ko2::chooseAudioRoute (ins, outs, previousName, type->getDefaultDeviceIndex (false), mode);
+                if (! route.ok)
+                    continue;
+                if (switchedToKo2 && dm.getCurrentAudioDeviceType() == type->getTypeName()
+                    && now.inputDeviceName == route.input && now.outputDeviceName == route.output)
+                    return;                                    // already like this
+                if (! switchedToKo2)
+                    previousAudio = dm.createStateXml();
+                dm.setCurrentAudioDeviceType (type->getTypeName(), true);
+                auto s = dm.getAudioDeviceSetup();
+                s.inputDeviceName = route.input;
+                s.outputDeviceName = route.output;
+                s.sampleRate = 48000.0;
+                s.bufferSize = 256;
+                s.useDefaultInputChannels = s.useDefaultOutputChannels = true;
+                if (dm.setAudioDeviceSetup (s, true).isNotEmpty())
+                {
+                    s.sampleRate = 0.0;          // the devices' own rate
+                    s.bufferSize = 0;
+                    dm.setAudioDeviceSetup (s, true);
+                }
+                switchedToKo2 = true;
+                // safe defaults: no input monitoring (the K.O. II plays on its own speaker / jack),
+                // every track records only the K.O. II's stereo input (no resampling of livelooper's output)
+                if (auto* mon = p->getState().getParameter (params::gMonitor))
+                    mon->setValueNotifyingHost (0.0f);
+                for (int t = 0; t < kNumTracks; ++t)
+                    if (auto* in = p->getState().getParameter (params::trackId (t, params::kInput)))
+                        in->setValueNotifyingHost (0.0f);
+                if (route.output.isEmpty())
+                    p->postControllerNotice (tr ("K.O. II: no other audio output found - metronome and loops are silent"));
+                else if (mode == ko2::AudioOutput::Ko2)
+                    p->postControllerNotice (tr ("K.O. II: output to the K.O. II - metronome and loops are recorded again"));
+                else
+                    p->postControllerNotice (tr ("K.O. II: input from the K.O. II, output on %1", route.output));
+                return;
+            }
+            p->postControllerNotice (tr ("No K.O. II audio device found - check the USB connection"));
+        }
+        else if (switchedToKo2)
+        {
+            switchedToKo2 = false;
+            if (previousAudio != nullptr)
+                dm.initialise (2, 2, previousAudio.get(), true);
+            else
+                dm.initialiseWithDefaultDevices (2, 2);
+            previousAudio.reset();
+            p->postControllerNotice (tr ("K.O. II: back to %1", dm.getAudioDeviceSetup().outputDeviceName.isNotEmpty()
+                                                                    ? dm.getAudioDeviceSetup().outputDeviceName : previousName));
+        }
+    }
+
     juce::TextButton settingsButton;
+    std::unique_ptr<juce::XmlElement> previousAudio;
+    juce::String previousName;
+    bool switchedToKo2 = false;
 };
 
 class LooperApp : public juce::JUCEApplication
@@ -189,6 +309,9 @@ private:
                                                      juce::LookAndFeel::getDefaultLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId),
                                                      std::move (holder));
         mainWindow->setVisible (true);
+        // v1.7: crash check (restores the newest backup after a crash), "Auto load last session", crash marker
+        if (auto* p = dynamic_cast<LiveLooperProcessor*> (mainWindow->pluginHolder->processor.get()))
+            p->startStandaloneSession();
 
        #if JUCE_MAC
         if (macMicrophonePermissionStatus() == 2)

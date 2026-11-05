@@ -254,6 +254,11 @@ void LoopTrack::finishRecording (RecAction next, int trimSamples)
     gainRampLeft = 0;
     state = State::Playing;
 
+    // v1.7: the audio arrived 'inputLatency' samples after it was played against the heard loop /
+    // timeline - play the loop that much earlier so it sits where it was played
+    if (inputLatency > 0 && length > inputLatency)
+        nudgeAlignment (inputLatency);
+
     if (next == RecAction::RecDub)
         startOverdub();
     else
@@ -378,12 +383,14 @@ bool LoopTrack::undo()
     if (state == State::Overdubbing)
         state = State::Playing;
 
-    if (undoKind == UndoKind::Length)
+    if (undoKind == UndoKind::Length || undoKind == UndoKind::Rewrite)
     {
+        if (undoKind == UndoKind::Rewrite)
+            flipTouchedChunks();
         std::swap (length, altLength);
         playPos = length > 0 ? playPos % length : 0;
         resetMap();
-        redoKind = UndoKind::Length;
+        redoKind = undoKind;
         undoKind = UndoKind::None;
         return true;
     }
@@ -412,14 +419,18 @@ bool LoopTrack::redo()
     if (redoKind == UndoKind::None)
         return false;
 
-    if (redoKind == UndoKind::Length)
+    if (redoKind == UndoKind::Length || redoKind == UndoKind::Rewrite)
     {
         if (altLength <= 0 || altLength > maxLength)
             return false;
+        if (state == State::Overdubbing)
+            state = State::Playing;
+        if (redoKind == UndoKind::Rewrite)
+            flipTouchedChunks();
         std::swap (length, altLength);
         playPos = playPos % length;
         resetMap();
-        undoKind = UndoKind::Length;
+        undoKind = redoKind;
         redoKind = UndoKind::None;
         return true;
     }
@@ -452,6 +463,16 @@ int LoopTrack::expectedPosition (double ppq) const noexcept
         return 0;
     const double samples = (ppq - anchorPpq) * recSamplesPerPpq;
     return (int) positiveModulo (std::round (samples), (double) length) % length;
+}
+
+void LoopTrack::nudgeAlignment (int samples) noexcept
+{
+    if (length <= 0 || samples == 0)
+        return;
+    samples = samples % length;
+    if (anchorValid && recSamplesPerPpq > 0.0)
+        anchorPpq -= (double) samples / recSamplesPerPpq;
+    playPos = (int) positiveModulo ((double) playPos + samples, (double) length) % length;
 }
 
 void LoopTrack::resyncToTimeline (double ppqNow)
@@ -628,6 +649,84 @@ bool LoopTrack::halve() noexcept
     return true;
 }
 
+//============================================================================== v1.6: loop tricks
+void LoopTrack::flipTouchedChunks() noexcept
+{
+    for (size_t c = 0; c < chunkTouched.size(); ++c)
+        if (chunkTouched[c] != 0)
+        {
+            chunkOwner[c] ^= 1;
+            recomputeChunkPeak (chunkOwner[c], c);
+        }
+}
+
+bool LoopTrack::applyTrick (Trick trick) noexcept
+{
+    if (trick == Trick::HalveLength)  return halve();
+    if (trick == Trick::DoubleLength) return multiply();
+    if (length < 2048 || state == State::Empty || state == State::Recording || state == State::Overdubbing)
+        return false;
+
+    const int oldLen = length;
+    int newLen = oldLen;
+    if (trick == Trick::HalfSpeed && (long long) oldLen * 2 <= maxLength)
+        newLen = oldLen * 2;
+
+    const auto lastChunk = (size_t) ((std::max (oldLen, newLen) - 1) >> kChunkShift);
+    if (lastChunk >= numChunks)
+        return false;
+
+    auto read = [this, oldLen] (int ch, double pos) noexcept
+    {
+        const int i0 = (int) pos;
+        const float frac = (float) (pos - (double) i0);
+        const float a = sampleAt (ch, i0 % oldLen);
+        const float b = sampleAt (ch, (i0 + 1) % oldLen);
+        return a + (b - a) * frac;
+    };
+
+    // the new audio goes into the other layer of every chunk; the current layer stays for UNDO
+    for (int i = 0; i < newLen; ++i)
+    {
+        const auto c = (size_t) (i >> kChunkShift);
+        const int dst = chunkOwner[c] ^ 1;
+        for (int ch = 0; ch < 2; ++ch)
+        {
+            float v = 0.0f;
+            switch (trick)
+            {
+                case Trick::HalfSpeed:   v = read (ch, (double) i * 0.5); break;
+                case Trick::DoubleSpeed:
+                {
+                    const int j = (int) (((long long) i * 2) % oldLen);
+                    v = 0.5f * (sampleAt (ch, j) + sampleAt (ch, (j + 1) % oldLen));   // 2:1 with a simple anti-alias average
+                    break;
+                }
+                case Trick::Reverse:     v = sampleAt (ch, oldLen - 1 - i); break;
+                default: break;
+            }
+            layers[dst][ch][(size_t) i] = v;
+        }
+    }
+
+    std::fill (chunkTouched.begin(), chunkTouched.end(), (uint8_t) 0);
+    for (size_t c = 0; c <= lastChunk; ++c)
+        chunkTouched[c] = 1;
+    flipTouchedChunks();
+
+    altLength = oldLen;
+    length = newLen;
+    if (trick == Trick::HalfSpeed && newLen != oldLen)
+        playPos = (int) (((long long) playPos * 2) % newLen);
+    else if (trick == Trick::Reverse)
+        playPos = std::clamp (oldLen - 1 - playPos, 0, newLen - 1);
+    playPos = std::clamp (playPos, 0, length - 1);
+    undoKind = UndoKind::Rewrite;
+    redoKind = UndoKind::None;
+    resetMap();
+    return true;
+}
+
 bool LoopTrack::copyFrom (const LoopTrack& src) noexcept
 {
     if (&src == this || state != State::Empty || src.length < 64 || src.state == State::Recording || src.length > maxLength)
@@ -788,14 +887,33 @@ void LoopTrack::process (const float* inL, const float* inR,
         {
             float il, ir;
             routeInput (inL[i], inR[i], il, ir);
+            const float fb = settings.feedback;
+            if (inputLatency > 0 && inputLatency < length)
+            {
+                // v1.7 latency compensation: this input was played while the loop was heard
+                // 'inputLatency' samples ago - write it there (the sample there is already played)
+                int wl = logical - inputLatency;
+                if (wl < 0) wl += length;
+                const int w = reverse ? (length - 1 - wl) : wl;
+                touchChunkForWrite (w);
+                const auto owner = chunkOwner[(size_t) (w >> kChunkShift)];
+                const float ol = layers[owner][0][(size_t) w], orr = layers[owner][1][(size_t) w];
+                const float nl = settings.dubMode == DubMode::Replace ? il : ol * fb + il;
+                const float nr = settings.dubMode == DubMode::Replace ? ir : orr * fb + ir;
+                layers[owner][0][(size_t) w] = nl;
+                layers[owner][1][(size_t) w] = nr;
+                notePeak (owner, w, nl, nr);
+            }
+            else
+            {
             touchChunkForWrite (index);
             const auto owner = chunkOwner[(size_t) (index >> kChunkShift)];
-            const float fb = settings.feedback;
             const float nl = settings.dubMode == DubMode::Replace ? il : l * fb + il;
             const float nr = settings.dubMode == DubMode::Replace ? ir : r * fb + ir;
             layers[owner][0][(size_t) index] = nl;
             layers[owner][1][(size_t) index] = nr;
             notePeak (owner, index, nl, nr);
+            }
             inPeakL = std::max (inPeakL, std::abs (il));
             inPeakR = std::max (inPeakR, std::abs (ir));
         }
@@ -886,6 +1004,44 @@ bool LoopTrack::getWaveform (float* bins, int numBins, int maxSpanSamples) const
     return true;
 }
 
+bool LoopTrack::getOverdubLayer (float* bins, int numBins) const noexcept
+{
+    std::fill (bins, bins + std::max (0, numBins), 0.0f);
+    const auto st = state;
+    const int len = length;
+    const bool hasLayer = st == State::Overdubbing || undoKind == UndoKind::Overdub;
+    if (! hasLayer || st == State::Empty || st == State::Recording || len <= 0 || numBins <= 0 || numChunks == 0)
+        return false;
+
+    constexpr int kStride = 8;     // display only: every 8th sample is plenty for a peak overview
+    const int usedChunks = std::min ((int) numChunks, (len + kChunkSize - 1) >> kChunkShift);
+    bool any = false;
+    for (int b = 0; b < numBins; ++b)
+    {
+        const int c0 = (int) ((long long) b * usedChunks / numBins);
+        const int c1 = std::max ((int) ((long long) (b + 1) * usedChunks / numBins), c0 + 1);
+        float m = 0.0f;
+        for (int c = c0; c < c1 && c < usedChunks; ++c)
+        {
+            if (chunkTouched[(size_t) c] == 0)
+                continue;
+            const int now = chunkOwner[(size_t) c] & 1, before = now ^ 1;
+            const int start = c << kChunkShift, end = std::min (len, start + kChunkSize);
+            for (int ch = 0; ch < 2; ++ch)
+            {
+                const float* a = layers[now][ch].data();
+                const float* p = layers[before][ch].data();
+                for (int i = start; i < end; i += kStride)
+                    m = std::max (m, std::abs (a[i] - p[i]));
+            }
+        }
+        const int dst = settings.reverse ? numBins - 1 - b : b;
+        bins[dst] = std::min (1.0f, m);
+        any = any || m > 1.0e-4f;
+    }
+    return any;
+}
+
 //==============================================================================
 void LoopTrack::readLoop (float* dstL, float* dstR) const noexcept
 {
@@ -894,6 +1050,20 @@ void LoopTrack::readLoop (float* dstL, float* dstR) const noexcept
         dstL[i] = sampleAt (0, i);
         dstR[i] = sampleAt (1, i);
     }
+}
+
+double LoopTrack::sparseChecksum (int points) const noexcept
+{
+    if (length <= 0 || points <= 0)
+        return 0.0;
+    const int n = std::min (points, length);
+    double sum = 0.0;
+    for (int k = 0; k < n; ++k)
+    {
+        const int i = (int) (((long long) k * length) / n);
+        sum += (double) sampleAt (0, i) * (k + 1) + (double) sampleAt (1, i) * (n + k + 1);
+    }
+    return sum;
 }
 
 void LoopTrack::loadLoop (const float* srcL, const float* srcR, int numSamples, double samplesPerPpq)

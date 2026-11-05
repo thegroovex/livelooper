@@ -20,7 +20,7 @@ Assigning:
 - Or switch on **MIDI LEARN** in the header: all assignable controls get a purple outline (already assigned ones show a dot). Click a control, move the controller, click the next control … click **MIDI LEARN** again to finish.
 - Removing: right-click → **Remove MIDI mapping**, or click the entry in the **MIDI MAP** menu.
 
-The controls in the track **SETUP** (Input, Start, Stop, Dub mode, Measures, Loop Sync, Clear) can be assigned by right-click as well.
+The controls in the track **SETUP** (Input, Start, Stop, Dub mode, Loop length, Loop Sync, Clear) and the **loop length pill** on every track strip (1.7) can be assigned by right-click as well.
 
 Assignments are saved with your DAW project.
 
@@ -32,7 +32,7 @@ Assignments are saved with your DAW project.
 | Switch | REV, 1SHOT, FX, Loop Sync, effect A–D on/off, RHYTHM, HOST SYNC | note-on toggles | rising edge toggles |
 | Selector | effect type, Quantize, pattern, start/stop/dub mode | note-on → next value | CC selects directly (0–127 across all values) |
 | Continuous | level, pan, effect parameters, tempo, fade, tape stop, performance filter | velocity sets the value | CC sets the value |
-| Held (since 1.4) | Slice 1–6 (loop cutting); since 1.5 Beat FX Hold, Beat Repeat Hold, Stutter Hold | on while the note is held, off with note-off | on while the CC is ≥ 64 |
+| Held (since 1.4) | Slice 1–6 (loop cutting); since 1.5 Beat FX Hold, Beat Repeat Hold, Stutter Hold; since 1.6 Fill (hold) | on while the note is held, off with note-off | on while the CC is ≥ 64 |
 
 The slice functions behave like the Push position pads: a short press jumps to that sixth of the loop (at the next 16th note) and stays there, a press held longer than ¼ s stutters and returns in sync on release. *Mute* and *Solo* are switches for MIDI (press = on, press again = off); the momentary mute / solo is a Push gesture.
 
@@ -67,10 +67,10 @@ Automation works too (in Live, e.g., in Arrangement view), for example to start 
 
 ## Parameter list
 
-400 parameters, names as shown in your DAW with the English interface (with the German interface they are localised, e.g. "S1 Pegel" instead of "T1 Level"; the internal IDs and your saved assignments stay the same):
+503 parameters, names as shown in your DAW with the English interface (with the German interface they are localised, e.g. "S1 Pegel" instead of "T1 Level"; the internal IDs and your saved assignments stay the same):
 
 **Per track (T1 … T5)** – 16 each:
-`Rec/Play`, `Stop`, `Clear`, `Undo`, `Redo` (buttons) · `Level`, `Pan` · `Reverse`, `One Shot`, `Loop Sync`, `Track FX` (switches) · `Input`, `Start Mode`, `Stop Mode`, `Dub Mode`, `Measures` (selectors)
+`Rec/Play`, `Stop`, `Clear`, `Undo`, `Redo` (buttons) · `Level`, `Pan` · `Reverse`, `One Shot`, `Loop Sync`, `Track FX` (switches) · `Input`, `Start Mode`, `Stop Mode`, `Dub Mode`, `Loop Length` (selectors; `Measures` before 1.7, ID `t1_measure` unchanged)
 
 **Global** – 16:
 `All Start/Stop`, `All Start`, `All Stop`, `Clear All`, `Tap Tempo` (buttons) · `Master Level`, `Input Monitor`, `Internal Tempo`, `Fade Time` · `Quantize`, `Rec Action`, `Rhythm Pattern`, `Drum Kit`, `Metronome Sound` (selectors) · `Sync to Host`, `Follow Transport`, `Rhythm On` (switches) · `Rhythm Level`, `Swing`, `Humanize`
@@ -80,12 +80,41 @@ Automation works too (in Live, e.g., in Arrangement view), for example to start 
 
 **Since 1.3** – per track: `Capture` (button), `Feedback`, `Ducking`, `Pitch`, `Output` (selector), `Follow Tempo` (switch); global: `Capture` (button), `Capture Bars`, `Auto Record`, `Auto Record Threshold`, `Ducking Source`, `Scene 1 … 8` (buttons), `Store Scene`. Tracks T1 … T8.
 
-**Since 1.4 (performance)** – per track, 15 more: `Slice 1 … 6` (held), `Back in Sync`, `Double Loop`, `Halve Loop`, `Octave Up`, `Octave Down`, `Copy to Empty Track` (buttons), `Mute`, `Solo` (switches), `Rec Length` (selector that fires once: `1 Bar` … `32 Bars` for the next or running first recording, then it goes back to `-`); global: `Tape Stop` (0 % = running, 100 % = the tape stands still; back to 0 % = spins up in sync), `Performance Filter` (−100 = low-pass closed, 0 = off, +100 = high-pass open).
+**Since 1.4 (performance)** – per track, 15 more: `Slice 1 … 6` (held), `Back in Sync`, `Double Loop`, `Halve Loop`, `Octave Up`, `Octave Down`, `Copy to Empty Track` (buttons), `Mute`, `Solo` (switches), `Loop Length Once` (*Rec Length* before 1.7, ID `t1_reclen` unchanged; selector that fires once: `1 Bar` … `32 Bars` for the next or running first recording, then it goes back to `-`); global: `Tape Stop` (0 % = running, 100 % = the tape stands still; back to 0 % = spins up in sync), `Performance Filter` (−100 = low-pass closed, 0 = off, +100 = high-pass open).
 
 **Since 1.5 (live performance FX, metronome, Link)** – 28 more, all appended (existing IDs, MIDI maps and automation are unchanged):
 - global: `Beat FX On` (switch), `Beat FX Hold` (held), `Beat FX Type` (16 types), `Beat FX Beat` (1/32 … 16), `Beat FX Level/Depth`, `Beat FX Channel` (Master, Loops, Input, Track 1 … 8) · `Color FX Type` (Filter, Dub Echo, Space, Crush, Noise, Sweep) · `Beat Repeat Hold` (held), `Beat Repeat Latch` (switch), `Beat Repeat Timing` (1/2 … 1/32) · `Stutter Hold` (held), `Stutter Latch` (switch), `Stutter Timing` (1/2 … 1/32) · `Metronome On`, `Metronome Accent` (switches), `Metronome Level` · `Link`, `Link Start/Stop Sync` (switches) · `Groove` (Straight, Natural, Laid Back, Pushed, Drunk, Drive), `Fills` (Off, Every 4 Bars, Every 8 Bars)
 - per track (T1 … T8): `Color FX` (−100 … +100, 0 = off)
 - `Capture Bars` now goes up to 16 and 32 bars.
+
+<!-- v1.6 features -->
+**Since 1.6 (loop tricks, performance recorder, clip export)** – 26 more, all appended (existing IDs, MIDI maps and automation are unchanged):
+- per track (T1 … T8): `Half Speed`, `Double Speed`, `Reverse Loop Audio` (buttons; quantized to the next beat / bar, undoable) – IDs `t1_halfspeed`, `t1_dblspeed`, `t1_revloop` …
+- global: `Performance Recorder` (switch: records the master mix as WAV while on, ID `perf_rec`), `Export 9:16 Clip` (button: vertical video of the last 20 seconds, ID `clip_export`)
+<!-- end v1.6 features -->
+
+**Since 1.6 (rhythm: kits, BEATS, fill, drum FX routing)** – 37 more, all appended:
+- `Drum Variation` (0 – 100 %), `Fill (hold)` (held: note on / off), `Pattern Switch` (Immediately, Next Beat, Next Bar) · `Drums through Beat FX`, `Drums through Repeat/Stutter` (switches)
+- BEATS rows 1 – 8 (= kit voices kick … tom): `Beat Row N Mute`, `Beat Row N Solo` (switches), `Beat Row N Level` (0 – 150 %), `Beat Row N Pitch` (±12 semitones)
+- `Drum Kit` has 8 more kits (House … Afro Latin) and the slots `Pack Kit 1 … 8`; `Rhythm Pattern` has 18 more grooves and the user slots `User 1 … 16` (BEATS) – new entries are appended at the end of these lists
+- IDs: `rhythm_variation`, `rhythm_fill`, `beat_switch`, `drums_bfx`, `drums_repeat`, `beat_mute1` … `beat_mute8`, `beat_solo1` …, `beat_vol1` …, `beat_pitch1` …
+
+**Since 1.6 (beat library)** – 2 more, appended after the rhythm parameters: `Next Library Beat`, `Previous Library Beat` (buttons: step through the beats saved with BEATS → SAVE; IDs `beat_lib_next`, `beat_lib_prev`).
+
+**Since 1.6 (punch FX, send FX, controller)** – 23 more, appended (parameters 466 – 488): `Send FX Type`, `Send FX X`, `Send FX Y`, `Send FX Amount` (IDs `sfx_type`, `sfx_x`, `sfx_y`, `sfx_level`), `Punch FX 1 … 12 (Hold)` (`pfx_hold1` … `pfx_hold12`, momentary: note on / off), `Punch FX Amount`, `Punch FX X`, `Punch FX Y`, `Punch FX Target`, `Punch FX Latch` (`pfx_amount`, `pfx_x`, `pfx_y`, `pfx_target`, `pfx_latch`), `Controller Audio` (`ctl_audio_mode`: controller only / record controller audio) and `Resample Controller Pattern` (`ko2_resample`, button). The names are generic; see KO2.md for the K.O. II. Note: the default MIDI map (channel 1, notes 36 – 67) overlaps the K.O. II's note range – the K.O. II does not need it (livelooper opens its port directly).
+
+**Since 1.6 (punch FX hold ramp)** – 1 more, appended (parameter 489): `Punch FX Hold Ramp` (`pfx_hold_ramp`: off / 1 beat / 2 beats (default) / 1 bar) – for pads that send no pressure (K.O. II): holding a punch pad raises the amount from the hit to 100 % over that time. MIDI-mappable like every parameter.
+
+**Since 1.7 (latency, velocity curves, MIDI feedback, Push 1 display)** – 8 more, appended (parameters 490 – 497): `Latency Compensation` (`lat_comp`, switch, on), `Latency Offset` (`lat_offset`, −50 … +50 ms), `Measure Latency` (`lat_measure`, button), `Push 1 Velocity Curve`, `Sampler Pad Velocity Curve` (the K.O. II curve; hosts see no device names), `MIDI Velocity Curve` (`vel_push`, `vel_ko2`, `vel_midi`: Soft / Normal (default) / Hard / Fixed), `MIDI Feedback (experimental)` (`midi_fb`, switch, off) and `Push 1 Loop Progress Bars` (`push_progress`, switch, on). The default of `Follow Transport` (`follow`) is **on** since 1.7 (the ID is unchanged; saved projects keep their value).
+
+**Since 1.7 (display)** – 4 more, appended (parameters 498 – 501): `Live View` (`live_view`, switch, off – the Live view with large track cards), `Stage Mode` (`stage_mode`, switch, off – high contrast, larger text), `Colour Theme` (`ui_theme`, Dark (default) / Light) and `Show Waveforms` (`waveforms`, switch, off – large waveforms in the track displays). Theme, stage mode and waveforms are also remembered on the computer (*SETUP → Display*).
+
+**Since 1.7 (views)** – 2 more, appended (parameters 502 – 503): `Live View FX Bar` (`live_fx`, switch, on – the performance FX strip in the Live view; off = taller cards) and `View` (`view`, choice Full / Live / Live without FX / Performance – sets *Live View* and *Live View FX Bar* together; on a note each press steps to the next view, a CC is split into four ranges: 0 – 21 Full, 22 – 63 Live, 64 – 105 Live without FX, 106 – 127 Performance). *Performance* (the FX-focused stage view, user guide section 47) was added as the 4th choice before 1.7 was released. The three stay in sync whichever you move. Push 1: SHIFT + MASTER steps through the same views.
+
+### Velocity curve and LED feedback for learned controls (1.7)
+
+- A note learned on a continuous parameter sets it to the note's velocity – through the **MIDI velocity curve** (*SETUP → Controllers → Velocity curves → MIDI (learned notes)*): Soft, Normal, Hard, Fixed.
+- **MIDI feedback (experimental)**: *SETUP → Controllers → MIDI feedback* sends the state of every learned control back to a chosen MIDI output (same channel and note / CC number; values for on / off / blink selectable, blink in time by default). Track REC / PLAY blinks while recording, lights while playing; switches light when on; knobs learned on a CC get their value. See the [user guide, section 42](USER-GUIDE.md#42-velocity-curves-and-midi-feedback-new-in-17).
 
 The internal parameter IDs (for developers and saved assignments) are e.g. `t1_recplay`, `t3_level`, `allstartstop`, `inB_type`, `trD_mix`, `bfx_type`, `brep_hold`, `t2_color`, `link_on`.
 

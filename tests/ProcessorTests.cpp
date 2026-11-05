@@ -75,9 +75,40 @@ public:
             expectEquals (unique.size(), ids.size());
             // 5 tracks x 16 + 17 global + 2 x 4 slots x 5
             expectEquals (ids.size(), 8 * (22 + 15) + (17 + 6 + 3 + params::kNumScenes + 2) + 40
-                                      + 7 + kNumTracks + 6 + 3 + 2 + 2);   // v1.5: beat FX + colour type, colour per track, repeat / stutter, metronome, Link   // 8 tracks x (22 + 15 since 1.4), global (+3 rhythm feel since 1.3, +2 tape stop / filter since 1.4), FX
+                                      + 7 + kNumTracks + 6 + 3 + 2 + 2
+                                      + kNumTracks * 3 + 2 /* v1.6 features: loop tricks, recorder, clip export */
+                                      + 5 + 4 * params::kNumBeatRows
+                                      + 2 /* v1.6 beat library: next / previous */
+                                      + 23 /* v1.6 punch FX (4 send + 12 holds + 5), controller audio mode, resample */
+                                      + 1 /* v1.6 punch FX hold ramp */
+                                      + 8 /* v1.7: latency comp / offset / measure, velocity curves x 3, MIDI feedback, Push 1 progress */
+                                      + 4 /* v1.7 display: Live view, stage mode, colour theme, waveforms */
+                                      + 2 /* v1.7 views: Live view FX bar, view selector */);   // v1.6 rhythm: variation, fill, switch, drum FX routing x 2, BEATS row mute / solo / level / pitch   // v1.5: beat FX + colour type, colour per track, repeat / stutter, metronome, Link   // 8 tracks x (22 + 15 since 1.4), global (+3 rhythm feel since 1.3, +2 tape stop / filter since 1.4), FX
             expectEquals (proc.getMidiMap().getNumParams(), ids.size(), "every parameter can be MIDI mapped");
             expect (ids.contains ("t3_recplay") && ids.contains ("allstartstop") && ids.contains ("trD_mix"));
+        }
+
+        beginTest ("v1.6 parameters are appended in a fixed order: 400 up to 1.5, features (26), rhythm (37), beat library (2)");
+        {
+            LiveLooperProcessor proc;
+            juce::StringArray ids;
+            for (auto* p : proc.getParameters())
+                ids.add (dynamic_cast<juce::RangedAudioParameter*> (p)->getParameterID());
+            expectEquals (ids.indexOf (params::trackId (0, params::kHalfSpeed)), 400, "features16 start at index 400");
+            expectEquals (ids.indexOf (params::gClipExport), 425, "features16 end at index 425");
+            expectEquals (ids.indexOf (params::gRhythmVariation), 426, "rhythm starts at index 426");
+            expectEquals (ids.indexOf (params::beatRowId (params::kBeatPitch, params::kNumBeatRows - 1)), 462, "rhythm ends at index 462");
+            expectEquals (ids.indexOf (params::gBeatLibNext), 463);
+            expectEquals (ids.indexOf (params::gBeatLibPrev), 464);
+            expectEquals (ids.indexOf (params::gSfxType), 465, "v1.6 punch FX block starts at index 465 (parameter 466)");
+            expectEquals (ids.indexOf (params::punchHoldId (0)), 469);
+            expectEquals (ids.indexOf (params::punchHoldId (11)), 480);
+            expectEquals (ids.indexOf (params::gPfxLatch), 485);
+            expectEquals (ids.indexOf (params::gCtlAudioMode), 486);
+            expectEquals (ids.indexOf (params::gKo2Resample), 487);
+            expectEquals (ids.indexOf (params::gPfxHoldRamp), 488, "v1.6 punch FX hold ramp appended (parameter 489)");
+            expectEquals (ids.size(), params::kNumParameters);
+            expectEquals (ids.size(), 503, "v1.7 appends 8 parameters (490..497) + 4 display parameters (498..501) + 2 view parameters (502..503)");
         }
 
         beginTest ("Trigger parameters drive the looper and reset themselves");

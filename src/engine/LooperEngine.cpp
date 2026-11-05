@@ -29,6 +29,7 @@ void LooperEngine::prepare (double newSampleRate, int maxBlockSize, double newMa
             tr.allocate (maxLen);      // keeps existing loops when only the block size changed
         pending[(size_t) t] = {};
         cutPending[(size_t) t] = {};
+        trickPending[(size_t) t] = {};
         stutterWanted[(size_t) t] = false;
         recLengthBars[(size_t) t] = 0;
     }
@@ -41,9 +42,15 @@ void LooperEngine::prepare (double newSampleRate, int maxBlockSize, double newMa
     metronome.prepare (sampleRate);
     beatFx.prepare (sampleRate, 12.0);
     beatRepeat.prepare (sampleRate, 6.0);
+    drumBeatFx.prepare (sampleRate, 12.0);
+    drumRepeat.prepare (sampleRate, 6.0);
+    punchFx.prepare (sampleRate, maxBlock);      // v1.6 punch FX / send FX
+    sendFx.prepare (sampleRate);
     for (auto& c : colorFx)
         c.prepare (sampleRate);
 
+    for (auto* v : { &drumL, &drumR })
+        v->assign ((size_t) maxBlock, 0.0f);
     for (auto* v : { &inProcL, &inProcR, &fxBusL, &fxBusR, &clickBuf, &kickBuf, &duckEnvBuf,
                      &tOutL, &tOutR, &tFxL, &tFxR, &resL, &resR, &loopBusL, &loopBusR })
         v->assign ((size_t) maxBlock, 0.0f);
@@ -84,6 +91,8 @@ void LooperEngine::reset()
     inputFx.reset();
     trackFx.reset();
     rhythm.reset();
+    drumBeatFx.reset();
+    drumRepeat.reset();
     tapeStop.reset();
     perfFilter.reset();
 }
@@ -184,6 +193,62 @@ bool LooperEngine::anythingNeedsClock() const noexcept
     return false;
 }
 
+bool LooperEngine::freeFirstLoopNow (int t) const noexcept
+{
+    // v1.7: free first loop - no other loop, the looper's own clock (no host transport / tempo, no Link), no metronome
+    // or rhythm: nothing to line up with, so the recording ends on the press and its length sets the tempo
+    if (! global.freeFirstLoop || global.quantize == Quantize::Off || hostDriven || tempoFromHost || rhythmOn || metronomeOn)
+        return false;
+    for (int i = 0; i < kNumTracks; ++i)
+        if (i != t && (! tracks[(size_t) i].isEmpty() || pending[(size_t) i].type != Pending::None))
+            return false;
+    return true;
+}
+
+void LooperEngine::finishFreeRecording (int t, bool thenStop) noexcept
+{
+    auto& tr = tracks[(size_t) t];
+    tr.finishRecording (thenStop ? RecAction::RecPlay : global.recAction);       // exactly on the press: no wait, no trim
+    if (thenStop)
+        tr.stop (false);
+    const int len = tr.getLength();
+    if (tr.isEmpty() || len <= 0)
+        return;
+    const double seconds = len / sampleRate;
+    const auto bpmFor = [&] (int bars) { return bars * measurePpq * 60.0 / seconds; };
+    int bars = freeBars[(size_t) t];
+    if (bars > 0)
+    {
+        // a fixed loop length: exactly that many bars (halved / doubled only if the tempo would be out of range)
+        while (bpmFor (bars) > 300.0 && bars > 1) bars /= 2;
+        while (bpmFor (bars) < 40.0) bars *= 2;
+    }
+    else
+    {
+        // the bar count whose tempo is nearest the middle of 70 - 160 BPM (geometric middle, about 106)
+        const double mid = std::sqrt (70.0 * 160.0);
+        double best = 1.0e9;
+        for (int b = 1; b <= 64; b *= 2)
+        {
+            const double d = std::abs (std::log (bpmFor (b) / mid));
+            if (d < best) { best = d; bars = b; }
+        }
+    }
+    const double newBpm = std::clamp (bpmFor (bars), 40.0, 300.0);
+    tempoOverride = newBpm;
+    tempoOverrideAwaiting = true;
+    freeLoopTempo.store (newBpm);
+    bpm = newBpm;
+    ppqPerSample = bpm / (60.0 * sampleRate);
+    samplesPerPpq = 1.0 / ppqPerSample;
+    // the clock starts again at the loop start: bar 1, beat 1 is where the loop begins - later tracks, the metronome,
+    // the rhythm and quantize line up with it
+    internalPpq = blockPpq = 0.0;
+    internalRunning = running = true;
+    tr.retime (samplesPerPpq, blockPpq);
+    tr.setTempoRatio (1.0);
+}
+
 void LooperEngine::ensureClockRunning() noexcept
 {
     if (running)
@@ -202,6 +267,16 @@ void LooperEngine::finishRecordingQuantized (int t, bool thenStop) noexcept
     auto& tr = tracks[(size_t) t];
     auto& pa = pending[(size_t) t];
     const auto next = thenStop ? RecAction::RecPlay : global.recAction;
+
+    if (freeRec[(size_t) t])
+    {
+        freeRec[(size_t) t] = false;
+        if (freeFirstLoopNow (t))
+        {
+            finishFreeRecording (t, thenStop);
+            return;
+        }
+    }
 
     if (global.quantize == Quantize::Off || ! running)
     {
@@ -279,9 +354,10 @@ void LooperEngine::trackRecPlay (int t) noexcept
                 pa = { Pending::AutoRecord, 0.0 };   // waits for the input to exceed the threshold
                 return;
             }
+            const bool free = freeFirstLoopNow (t);
             if (! running)
                 ensureClockRunning();
-            else if (global.quantize != Quantize::Off)
+            else if (global.quantize != Quantize::Off && ! free)
             {
                 const double target = nextBoundary (gridPpq());
                 if (target - blockPpq > 1.0e-6)
@@ -291,6 +367,8 @@ void LooperEngine::trackRecPlay (int t) noexcept
                 }
             }
             tr.startRecording (blockPpq, samplesPerPpq, autoFinishSamples (t), global.recAction);
+            freeRec[(size_t) t] = free;
+            freeBars[(size_t) t] = recLengthBars[(size_t) t] > 0 ? recLengthBars[(size_t) t] : tr.getSettings().measures;
             recLengthBars[(size_t) t] = 0;
             break;
         }
@@ -355,6 +433,8 @@ void LooperEngine::executePending (int t) noexcept
         case Pending::AutoRecord:
         case Pending::Record:
             tr.startRecording (blockPpq, samplesPerPpq, autoFinishSamples (t), global.recAction);
+            freeRec[(size_t) t] = freeFirstLoopNow (t);
+            freeBars[(size_t) t] = recLengthBars[(size_t) t] > 0 ? recLengthBars[(size_t) t] : tr.getSettings().measures;
             recLengthBars[(size_t) t] = 0;
             break;
         case Pending::FinishRecord:
@@ -386,6 +466,7 @@ void LooperEngine::executeCommand (const QueuedCommand& c) noexcept
             {
                 pending[(size_t) t].type = Pending::None;
                 cutPending[(size_t) t].active = false;
+                trickPending[(size_t) t].active = false;
                 stutterWanted[(size_t) t] = false;
                 recLengthBars[(size_t) t] = 0;
                 tracks[(size_t) t].clear();
@@ -450,6 +531,7 @@ void LooperEngine::executeCommand (const QueuedCommand& c) noexcept
             {
                 pending[(size_t) i].type = Pending::None;
                 cutPending[(size_t) i].active = false;
+                trickPending[(size_t) i].active = false;
                 stutterWanted[(size_t) i] = false;
                 recLengthBars[(size_t) i] = 0;
                 tracks[(size_t) i].clear();
@@ -532,6 +614,7 @@ void LooperEngine::executeCommand (const QueuedCommand& c) noexcept
                 const auto& pa = pending[(size_t) t];
                 if (tr.getState() == LoopTrack::State::Recording && pa.type == Pending::None)
                 {
+                    freeBars[(size_t) t] = c.arg;
                     const int samples = (int) std::llround (c.arg * measurePpq * samplesPerPpq);
                     if (tr.setRecordingSpan (samples))
                         finishRecordingQuantized (t, false);     // already longer: ends at the next boundary
@@ -540,7 +623,37 @@ void LooperEngine::executeCommand (const QueuedCommand& c) noexcept
                     recLengthBars[(size_t) t] = c.arg;           // used when the (pending) recording starts
             }
             break;
+
+        // ---------------------------------------------------------------- v1.6
+        case Command::LoopTrick:
+            if (validTrack && c.arg >= 0 && c.arg < (int) LoopTrack::Trick::NumTricks
+                && ! tracks[(size_t) t].isEmpty() && tracks[(size_t) t].getState() != LoopTrack::State::Recording)
+            {
+                const double grid = gridPpq();
+                const double target = (running && grid > 0.0) ? nextBoundary (grid) : blockPpq;
+                if (! running || grid <= 0.0 || target - blockPpq < 1.0e-6)
+                {
+                    const juce::SpinLock::ScopedTryLockType lock (trackLocks[(size_t) t]);
+                    if (lock.isLocked())
+                        executeTrick (t, c.arg);
+                }
+                else
+                    trickPending[(size_t) t] = { true, target, c.arg };
+            }
+            break;
     }
+}
+
+void LooperEngine::executeTrick (int t, int kind) noexcept
+{
+    auto& tr = tracks[(size_t) t];
+    trickPending[(size_t) t].active = false;
+    cutPending[(size_t) t].active = false;
+    stutterWanted[(size_t) t] = false;
+    if (tr.getState() == LoopTrack::State::Overdubbing)
+        tr.endOverdub();
+    if (tr.applyTrick ((LoopTrack::Trick) kind) && running && tr.hasAnchor())
+        tr.resyncToTimeline (blockPpq);
 }
 
 //==============================================================================
@@ -577,6 +690,8 @@ bool LooperEngine::captureInto (int t) noexcept
         ensureClockRunning();
     const double anchor = running ? prevBar - bars * measurePpq : 0.0;
     tr.loadLoopFromRing (ringL.data(), ringR.data(), ringSize, start, len, xfade, samplesPerPpq, anchor);
+    if (inputLatency > 0 && inputLatency < len)
+        tr.nudgeAlignment (inputLatency);      // v1.7: the captured input arrived late by the round trip
     tr.play (blockPpq, true);
     return true;
 }
@@ -630,7 +745,21 @@ void LooperEngine::processTrack (int t, const float* srcL, const float* srcR, in
             }
         }
 
-        const int segEnd = std::min (pendEnd, cutEnd);
+        // v1.6: quantized loop trick
+        const auto& tp = trickPending[(size_t) t];
+        int trickEnd = n;
+        if (tp.active)
+        {
+            if (! running)
+                trickEnd = done;
+            else
+            {
+                const double off = (tp.targetPpq - (chunkStartPpq + done * ppqPerSample)) * samplesPerPpq;
+                trickEnd = std::clamp (done + (int) std::ceil (off - 1.0e-6), done, n);
+            }
+        }
+
+        const int segEnd = std::min ({ pendEnd, cutEnd, trickEnd });
         if (segEnd > done)
             tr.process (srcL + done, srcR + done, tOutL.data() + done, tOutR.data() + done,
                         tFxL.data() + done, tFxR.data() + done, segEnd - done);
@@ -639,6 +768,13 @@ void LooperEngine::processTrack (int t, const float* srcL, const float* srcR, in
             break;
 
         bool acted = false;
+        if (trickPending[(size_t) t].active && trickEnd <= segEnd)
+        {
+            blockPpq = chunkStartPpq + segEnd * ppqPerSample;
+            executeTrick (t, trickPending[(size_t) t].kind);
+            blockPpq = chunkStartPpq;
+            acted = true;
+        }
         if (cutPending[(size_t) t].active && cutEnd <= segEnd)
         {
             executeCut (t, cutPending[(size_t) t].slice);
@@ -686,6 +822,19 @@ void LooperEngine::processChunk (const float* inL, const float* inR, float* outL
     float* cueR = extra.cueR != nullptr ? extra.cueR + offset : nullptr;
     // ---------------------------------------------------------------- timeline
     bpm = (global.syncToHost && time.bpm > 0.0) ? time.bpm : global.internalTempo;
+    tempoFromHost = global.syncToHost && time.hostTempo;
+    if (tempoOverride > 0.0)
+    {
+        // v1.7 free first loop: its exact tempo until the parameter shows it (rounded to 0.1 BPM); a later change wins
+        if (tempoFromHost || (global.syncToHost && time.hostPlaying))
+            tempoOverride = 0.0;
+        else if (std::abs (bpm - tempoOverride) <= 0.051)
+            tempoOverrideAwaiting = false;
+        else if (! tempoOverrideAwaiting)
+            tempoOverride = 0.0;
+        if (tempoOverride > 0.0)
+            bpm = tempoOverride;
+    }
     bpm = std::clamp (bpm, 20.0, 400.0);
     const int num = std::max (1, time.numerator);
     const int den = std::max (1, time.denominator);
@@ -771,6 +920,8 @@ void LooperEngine::processChunk (const float* inL, const float* inR, float* outL
     inputFx.process (inProcL.data(), inProcR.data(), n, blockPpq, ppqPerSample, bpm);
     if (fxTarget == (int) FxTarget::Input)
         applyPerformanceFx (inProcL.data(), inProcR.data(), n, fxPpq);
+    if (punchTarget == PunchTarget::Input)        // v1.6
+        punchFx.process (inProcL.data(), inProcR.data(), n, fxPpq, ppqPerSample);
 
     std::fill (outL, outL + n, 0.0f);
     std::fill (outR, outR + n, 0.0f);
@@ -795,8 +946,18 @@ void LooperEngine::processChunk (const float* inL, const float* inR, float* outL
     const double chunkStartPpq = blockPpq;
     std::fill (clickBuf.begin(), clickBuf.begin() + n, 0.0f);
     std::fill (kickBuf.begin(), kickBuf.begin() + n, 0.0f);
-    rhythm.process (clickBuf.data(), clickBuf.data(), n, chunkStartPpq, ppqPerSample,
+    std::fill (drumL.begin(), drumL.begin() + n, 0.0f);
+    rhythm.process (drumL.data(), drumL.data(), n, chunkStartPpq, ppqPerSample,
                     (int) std::lround (measurePpq), running && rhythmOn, kickBuf.data());
+    for (int i = 0; i < n; ++i)
+        drumR[(size_t) i] = drumL[(size_t) i] *= 0.5f;     // process() added to both pointers (same buffer)
+    // v1.6: the drums through beat repeat / stutter and / or the beat FX (switch per group, default dry)
+    if (drumsThroughRepeat)
+        drumRepeat.process (drumL.data(), drumR.data(), n, fxPpq, ppqPerSample);
+    if (drumsThroughBeatFx)
+        drumBeatFx.process (drumL.data(), drumR.data(), n, fxPpq, ppqPerSample);
+    if (punchTarget == PunchTarget::Drums)        // v1.6
+        punchFx.process (drumL.data(), drumR.data(), n, fxPpq, ppqPerSample);
     metronome.process (clickBuf.data(), clickBuf.data(), n, chunkStartPpq, ppqPerSample,
                        (int) std::lround (measurePpq), running && metronomeOn, nullptr);
     // process() adds to both pointers: they are the same buffer, so halve it again
@@ -917,27 +1078,38 @@ void LooperEngine::processChunk (const float* inL, const float* inR, float* outL
     perfFilter.process (loopBusL.data(), loopBusR.data(), n);
     if (fxTarget == (int) FxTarget::Loops)
         applyPerformanceFx (loopBusL.data(), loopBusR.data(), n, fxPpq);
+    // v1.6: punch FX on the loops, then the send FX on the loop bus ("Send Throw" pushes more into it)
+    if (punchTarget == PunchTarget::Loops)
+        punchFx.process (loopBusL.data(), loopBusR.data(), n, fxPpq, ppqPerSample);
+    sendFx.process (loopBusL.data(), loopBusR.data(), n, punchFx.getSendThrow());
 
     const float mon = global.monitorLevel;
     const float master = global.masterLevel;
-    if (fxTarget == (int) FxTarget::Master)
+    const bool monitorInBus = fxTarget == (int) FxTarget::Master || punchTarget == PunchTarget::Master;
+    if (monitorInBus)
     {
-        // v1.5: the master channel of the beat FX = loops + input monitor (the click stays dry)
         for (int i = 0; i < n; ++i)
         {
             loopBusL[(size_t) i] += inProcL[(size_t) i] * mon;
             loopBusR[(size_t) i] += inProcR[(size_t) i] * mon;
         }
+        if (punchTarget == PunchTarget::Master)
+            punchFx.process (loopBusL.data(), loopBusR.data(), n, fxPpq, ppqPerSample);
+    }
+    if (fxTarget == (int) FxTarget::Master)
+    {
+        // v1.5: the master channel of the beat FX = loops + input monitor (the click stays dry)
         applyPerformanceFx (loopBusL.data(), loopBusR.data(), n, fxPpq);
     }
-    const float monMix = fxTarget == (int) FxTarget::Master ? 0.0f : mon;
+    const float monMix = monitorInBus ? 0.0f : mon;
     float pl = 0.0f, pr = 0.0f, pc = 0.0f;
     for (int i = 0; i < n; ++i)
     {
         const float click = clickBuf[(size_t) i];
-        const float cm = clickToMain ? click : 0.0f;
-        outL[i] = (loopBusL[(size_t) i] + cm + inProcL[(size_t) i] * monMix) * master;
-        outR[i] = (loopBusR[(size_t) i] + cm + inProcR[(size_t) i] * monMix) * master;
+        const float cmL = clickToMain ? click + drumL[(size_t) i] : 0.0f;
+        const float cmR = clickToMain ? click + drumR[(size_t) i] : 0.0f;
+        outL[i] = (loopBusL[(size_t) i] + cmL + inProcL[(size_t) i] * monMix) * master;
+        outR[i] = (loopBusR[(size_t) i] + cmR + inProcR[(size_t) i] * monMix) * master;
         pl = std::max (pl, std::abs (outL[i]));
         pr = std::max (pr, std::abs (outR[i]));
     }
@@ -946,9 +1118,9 @@ void LooperEngine::processChunk (const float* inL, const float* inR, float* outL
         for (int i = 0; i < n; ++i)
         {
             const float c = clickToCue ? clickBuf[(size_t) i] : 0.0f;
-            cueL[i] = c;
-            cueR[i] = c;
-            pc = std::max (pc, std::abs (c));
+            cueL[i] = c + (clickToCue ? drumL[(size_t) i] : 0.0f);
+            cueR[i] = c + (clickToCue ? drumR[(size_t) i] : 0.0f);
+            pc = std::max (pc, std::max (std::abs (cueL[i]), std::abs (cueR[i])));
         }
     }
     if (pl > masterPeakL.load (std::memory_order_relaxed)) masterPeakL.store (pl, std::memory_order_relaxed);
@@ -996,7 +1168,16 @@ void LooperEngine::updateStatus() noexcept
         st.canRedo.store (tr.canRedo());
         st.stopping.store (tr.isStopping());
         st.recordingSpan.store (tr.getRecordingSpan() > 0);
+        {
+            // v1.7 loop length shown in the GUI / on Push
+            int rb = recLengthBars[(size_t) t];
+            const double barSamples = measurePpq * samplesPerPpq;
+            if (tr.getState() == LoopTrack::State::Recording && tr.getRecordingSpan() > 0 && barSamples > 0.0)
+                rb = std::max (1, (int) std::lround (tr.getRecordingSpan() / barSamples));
+            st.recBars.store (rb);
+        }
         st.cut.store (tr.isCut() || cutPending[(size_t) t].active);
+        st.pendingTrick.store (trickPending[(size_t) t].active ? trickPending[(size_t) t].kind : -1);   // v1.6
         float ghost = -1.0f;
         if (tr.getState() == LoopTrack::State::Stopped && running && tr.hasAnchor() && tr.getLength() > 0)
             ghost = (float) tr.expectedPosition (blockPpq) / (float) tr.getLength();

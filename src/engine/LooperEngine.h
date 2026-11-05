@@ -4,6 +4,7 @@
 #include "Effects.h"
 #include "LoopTrack.h"
 #include "Performance.h"
+#include "PunchFx.h"
 #include "RhythmGenerator.h"
 
 namespace livelooper
@@ -33,7 +34,9 @@ public:
         Multiply,         // per track: loop x 2
         Halve,            // per track: loop / 2
         Copy,             // per track: copy the loop to track arg (-1 = first empty track)
-        SetRecLength      // per track: arg = bars for the pending / running first recording
+        SetRecLength,     // per track: arg = bars for the pending / running first recording
+        // v1.6
+        LoopTrick         // per track: arg = LoopTrack::Trick, executed at the next quantize boundary
     };
     static constexpr int kNumSlices = 6;
 
@@ -59,6 +62,11 @@ public:
         std::atomic<bool>  recordingSpan { false };   // the running first recording has a fixed length
         std::atomic<bool>  cut { false };             // loop cutting / stutter active
         mutable std::atomic<float> displayMeter { 0.0f };   // peak for the Push display (taken with exchange)
+        // v1.6
+        std::atomic<int>   pendingTrick { -1 };       // loop trick waiting for the quantize boundary (-1 = none)
+        // v1.7 loop length: bars of the running fixed-length first recording, or the one-shot length
+        // ("Loop Length Once", Push REC pad + pad) waiting for the next recording; 0 = none
+        std::atomic<int>   recBars { 0 };
     };
 
     /** Extra outputs (all optional): cue pair for the rhythm, direct output pair per track. */
@@ -91,6 +99,15 @@ public:
         rhythm.setHumanize (humanize);
     }
     void setFollowHostTransport (bool f) noexcept               { followHostTransport = f; }
+    bool getFollowHostTransport() const noexcept                { return followHostTransport; }
+    /** v1.7: round-trip latency compensation for every recording, overdub and capture (samples). */
+    void setInputLatency (int samples) noexcept
+    {
+        inputLatency = samples < 0 ? 0 : samples;
+        for (auto& t : tracks)
+            t.setInputLatency (inputLatency);
+    }
+    int getInputLatency() const noexcept                         { return inputLatency; }
 
     // ---- v1.5 performance FX (audio thread, once per block)
     /** Beat FX + beat repeat / stutter on the target channel (FxTarget, Track1 + n = track n + 1).
@@ -100,6 +117,8 @@ public:
         beatFx.setSettings (s);
         fxTarget = std::clamp (target, 0, kNumFxTargets - 1);
         beatRepeat.set (repeatOn, repeatRate, stutter);
+        drumBeatFx.setSettings (s);                       // v1.6: the drums' own instances (same settings)
+        drumRepeat.set (repeatOn, repeatRate, stutter);
     }
     /** Colour FX: one type for all channels (like a DJ mixer), one knob per track (-1 .. 1). */
     void setColorFx (ColorFxType type, int track, float amount) noexcept
@@ -119,9 +138,33 @@ public:
     void setDrumBank (std::shared_ptr<const DrumBank> b) noexcept { rhythm.setDrumBank (std::move (b)); }
     void setRhythmGroove (int groove, int fills) noexcept { rhythm.setGroove (groove); rhythm.setFills (fills); }
     const RhythmGenerator& getRhythm() const noexcept { return rhythm; }
+
+    // ---- v1.6 rhythm (branch v1.6-rhythm): BEATS sequencer, fill on demand, drums through the FX
+    RhythmGenerator& getRhythmGenerator() noexcept { return rhythm; }
+    void setUserPatterns (const BeatPatternBank* b) noexcept { rhythm.setUserPatterns (b); }
+    void setDrumBankPointer (const DrumBank* b) noexcept  { rhythm.setDrumBankPointer (b); }
+    /** variation 0 .. 1, pattern switch quantize 0 = immediately, 1 = beat, 2 = bar, fill held */
+    void setRhythmExtras (float variation, int switchQuantize, bool fillHeld) noexcept
+    {
+        rhythm.setVariation (variation);
+        rhythm.setSwitchQuantize (switchQuantize);
+        rhythm.setFillHeld (fillHeld);
+    }
+    void setDrumVoiceMix (int voice, float level, float pitch, bool muted) noexcept { rhythm.setVoiceMix (voice, level, pitch, muted); }
+    /** Drums through the beat FX / through beat repeat + stutter (default off: the drums stay dry). */
+    void setDrumFxRouting (bool throughBeatFx, bool throughRepeat) noexcept { drumsThroughBeatFx = throughBeatFx; drumsThroughRepeat = throughRepeat; }
+    bool isDrumThroughBeatFx() const noexcept { return drumsThroughBeatFx; }
+    bool isDrumThroughRepeat() const noexcept { return drumsThroughRepeat; }
     const BeatFx& getBeatFx() const noexcept { return beatFx; }
     const BeatRepeat& getBeatRepeat() const noexcept { return beatRepeat; }
     int getFxTarget() const noexcept { return fxTarget; }
+
+    // ---- v1.6 punch FX (12 momentary effects) and send FX on the loop bus (audio thread, once per block)
+    void setPunchFx (const PunchFxSettings& s, PunchTarget target) noexcept { punchFx.setSettings (s); punchTarget = target; }
+    void setSendFx (const SendFxSettings& s) noexcept { sendFx.setSettings (s); }
+    const PunchFx& getPunchFx() const noexcept { return punchFx; }
+    const SendFx& getSendFx() const noexcept { return sendFx; }
+    PunchTarget getPunchTarget() const noexcept { return punchTarget; }
 
     // ---- commands (audio thread). Executed at the start of the next process() call.
     void queueCommand (Command c, int track = -1, int arg = 0) noexcept;
@@ -161,6 +204,11 @@ public:
     const TrackStatus& getTrackStatus (int t) const noexcept { return status[(size_t) t]; }
     double getTimelinePpq() const noexcept   { return statusPpq.load(); }
     double getCurrentBpm() const noexcept    { return statusBpm.load(); }
+    /** v1.7 free first loop: the tempo a free first recording set (exact BPM), once; 0 = none. The processor writes it
+        to the tempo parameter (message thread); the engine keeps the exact value while the parameter shows it rounded. */
+    double takeFreeLoopTempo() noexcept      { return freeLoopTempo.exchange (0.0); }
+    /** v1.7: the first recording of track t is a free first loop (ends on the press, sets the tempo). */
+    bool   isFreeRecording (int t) const noexcept { return freeRec[(size_t) t]; }
     bool   isTimelineRunning() const noexcept { return statusRunning.load(); }
     bool   isHostDriven() const noexcept     { return statusHost.load(); }
     double getMeasurePpq() const noexcept    { return statusMeasurePpq.load(); }
@@ -199,6 +247,11 @@ private:
     int autoFinishSamples (int t) const noexcept;
     void updateStatus() noexcept;
     void executeCut (int t, int slice) noexcept;
+    // v1.6 loop tricks
+    struct PendingTrick { bool active = false; double targetPpq = 0.0; int kind = 0; };
+    std::array<PendingTrick, kNumTracks> trickPending {};
+    /** Executes a loop trick; the track lock must be held. */
+    void executeTrick (int t, int kind) noexcept;
 
     double sampleRate = 44100.0;
     int maxBlock = 512;
@@ -217,7 +270,15 @@ private:
     bool metronomeOn = false;
     BeatFx beatFx;
     BeatRepeat beatRepeat;
+    // v1.6: the drums get their own beat FX / repeat with the same settings, so each group can be switched
+    BeatFx drumBeatFx;
+    BeatRepeat drumRepeat;
+    bool drumsThroughBeatFx = false, drumsThroughRepeat = false;
+    std::vector<float> drumL, drumR;
     int fxTarget = 0;
+    PunchFx punchFx;                       // v1.6
+    SendFx sendFx;
+    PunchTarget punchTarget = PunchTarget::Loops;
     std::array<ColorFx, kNumTracks> colorFx;
     std::array<float, kNumTracks> colorAmount {};
     ColorFxType colorType = ColorFxType::Filter;
@@ -227,11 +288,21 @@ private:
         beatRepeat.process (l, r, n, ppq, ppqPerSample);
         beatFx.process (l, r, n, ppq, ppqPerSample);
     }
-    bool followHostTransport = false;
+    bool followHostTransport = true;      // v1.7: on by default (a DAW stop stops the loops)
+    int inputLatency = 0;                 // v1.7
 
     std::array<PendingCut, kNumTracks> cutPending {};
     std::array<bool, kNumTracks> stutterWanted {};
     std::array<int, kNumTracks> recLengthBars {};
+    // v1.7 free first loop
+    std::array<bool, kNumTracks> freeRec {};          // the running first recording is free
+    std::array<int, kNumTracks> freeBars {};          // its fixed bar count (0 = picked from the length)
+    bool   tempoFromHost = false;                     // bpm of this block came from the host / Link
+    double tempoOverride = 0.0;                       // exact BPM set by a free first loop (0 = the parameter)
+    bool   tempoOverrideAwaiting = false;             // the parameter has not shown it yet
+    std::atomic<double> freeLoopTempo { 0.0 };
+    bool   freeFirstLoopNow (int t) const noexcept;
+    void   finishFreeRecording (int t, bool thenStop) noexcept;
     TapeStop tapeStop;
     PerformanceFilter perfFilter;
     std::vector<float> loopBusL, loopBusR;

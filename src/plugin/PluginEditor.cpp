@@ -1,7 +1,12 @@
 #include "PluginEditor.h"
+#include "ControllerView.h"
+#include "SoundPacks.h"
 #include "AppSettings.h"
 #include "InfoWindows.h"
 #include "Updates.h"
+#include "GuidedTour.h"   // v1.6
+#include "WelcomeScreen.h" // v1.6
+#include "SettingsPanel.h" // v1.6
 
 namespace livelooper
 {
@@ -10,20 +15,28 @@ using i18n::tr;
 
 namespace layout
 {
-    const juce::Rectangle<int> header       { 0, 0, 1180, 92 };
-    const juce::Rectangle<int> lcd          { 300, 9, 548, 76 };
-    const juce::Rectangle<int> inputFx      { 12, 100, 380, 122 };
-    const juce::Rectangle<int> fxEditor     { 400, 100, 380, 122 };
-    const juce::Rectangle<int> trackFx      { 788, 100, 380, 122 };
-    // v1.5 performance row
-    const juce::Rectangle<int> beatFx       { 12, 230, 470, 112 };
-    const juce::Rectangle<int> repeat       { 490, 230, 270, 112 };
-    const juce::Rectangle<int> colorFx      { 768, 230, 210, 112 };
-    const juce::Rectangle<int> metronome    { 986, 230, 182, 112 };
-    const juce::Rectangle<int> tracks       { 12, 350, 850, 446 };
-    const juce::Rectangle<int> rhythm       { 870, 350, 298, 190 };
-    const juce::Rectangle<int> masterPanel  { 870, 546, 298, 250 };
+    // v1.6 final: the classic arrangement (FX rows on top, tracks below, rhythm / master on the right) in the new glass look.
+    // x positions are for 5 tracks; with 6 - 8 tracks the FX rows stretch (fxX) and the right column moves right.
+    const juce::Rectangle<int> header       { 0, 0, 1180, 88 };
+    const juce::Rectangle<int> lcd          { 318, 10, 530, 72 };
+    constexpr int row1Y = 94, row1H = 112;          // INPUT FX | INPUT FX EDIT | TRACK FX | PUNCH FX
+    constexpr int row2Y = 212, row2H = 110;         // BEAT FX | REPEAT / STUTTER | COLOR FX | SEND FX | METRONOME
+    // column edges of the FX rows (5 tracks)
+    constexpr int inputX0 = 12,  inputX1 = 228;
+    constexpr int editX0 = 236,  editX1 = 544;
+    constexpr int trackX0 = 552, trackX1 = 768;
+    constexpr int punchX0 = 776, punchX1 = 1168;
+    constexpr int beatX0 = 12,   beatX1 = 384;
+    constexpr int repeatX0 = 392, repeatX1 = 590;
+    constexpr int colorX0 = 598, colorX1 = 768;
+    constexpr int sendX0 = 776,  sendX1 = 1000;
+    constexpr int metroX0 = 1008, metroX1 = 1168;
+    const juce::Rectangle<int> tracks       { 12, 328, 908, 470 };
+    const juce::Rectangle<int> rhythm       { 928, 328, 240, 206 };
+    const juce::Rectangle<int> masterPanel  { 928, 542, 240, 256 };
     const juce::Rectangle<int> footer       { 0, 804, 1180, 52 };
+    // BEATS page: covers the FX rows and the tracks
+    const juce::Rectangle<int> inputFx      { 12, row1Y, 216, row1H };
 }
 
 LiveLooperEditor::LiveLooperEditor (LiveLooperProcessor& p)
@@ -61,10 +74,41 @@ LiveLooperEditor::LiveLooperEditor (LiveLooperProcessor& p)
     mapBtn.setTooltip ("Show / remove MIDI assignments, load the default map");
     setupBtn.onClick = [this] { showSetupMenu(); };
     setupBtn.setTooltip ("Settings, sets, Link, updates, about, language");
-    helpBtn.onClick = [this] { showHelp(); };
-    helpBtn.setTooltip ("Help: every function explained (searchable)");
+    helpBtn.onClick = [this] { showHelpMenu(); };      // v1.6: help + guided tour
+    helpBtn.setTooltip ("Help: every function explained (searchable), guided tour");
     for (auto* b : { &learnBtn, &mapBtn, &setupBtn, &helpBtn })
+    {
+        LooperLookAndFeel::setEmphasis (*b, 0);
         surface.addAndMakeVisible (b);
+    }
+
+    // ---- v1.6 FX groups (tab buttons kept hidden; all groups are visible in the FX rows)
+    {
+        const char* names[] = { "INPUT FX", "TRACK FX", "BEAT FX", "REPEAT / STUTTER", "COLOR FX", "PUNCH FX" };
+        const juce::Colour leds[] = { colours::cyan, colours::orange, colours::orange, colours::red, colours::blue, colours::learn };
+        for (int i = 0; i < numFxTabs; ++i)
+        {
+            fxTabs[(size_t) i] = std::make_unique<FxTabButton> (names[i], leds[i]);
+            fxTabs[(size_t) i]->onClick = [this, i] { setFxTab (i); };
+            fxTabs[(size_t) i]->setTooltip ("Show this group of effects");
+            surface.addChildComponent (*fxTabs[(size_t) i]);     // v1.6 final: no tabs, all FX groups visible
+        }
+        auto anyOn = [this] (bool input) {
+            for (int sl = 0; sl < kNumFxSlots; ++sl)
+                if (proc.getState().getRawParameterValue (fxId (input, sl, kFxOn))->load() > 0.5f)
+                    return true;
+            return false;
+        };
+        auto param = [this] (const juce::String& id) { return proc.getState().getRawParameterValue (id)->load(); };
+        fxTabs[tabInput]->activeFn  = [anyOn] { return anyOn (true); };
+        fxTabs[tabTrack]->activeFn  = [anyOn] { return anyOn (false); };
+        fxTabs[tabBeat]->activeFn   = [param] { return param (gBfxOn) > 0.5f || param (gBfxHold) > 0.5f; };
+        fxTabs[tabRepeat]->activeFn = [param] { return param (gRepeatLatch) > 0.5f || param (gStutterLatch) > 0.5f
+                                                       || param (gRepeatHold) > 0.5f || param (gStutterHold) > 0.5f; };
+        fxTabs[tabColor]->activeFn  = [param] { return juce::roundToInt (param (gColorType)) != 0; };
+        fxTabs[tabPunch]->activeFn  = [this, param] { return proc.getEngine().getPunchFx().isActive() || (juce::roundToInt (param (gSfxType)) != 0 && param (gSfxLevel) > 0.01f); };
+    }
+    TrackStrip::showMeters = appsettings::getValue ("trackMeters") != "0";   // per-track IN / OUT meters: on by default
 
     // ---- v1.5 performance row: beat FX
     bfxType.setEnglishItems (beatFxChoices());
@@ -257,6 +301,32 @@ LiveLooperEditor::LiveLooperEditor (LiveLooperProcessor& p)
              master.get(), monitor.get(), fade.get(), &allStartStop, &clearAll, &capture })
         surface.addAndMakeVisible (c);
 
+    initFeatures16();      // v1.6
+    initKo2();             // v1.6 K.O. II / punch FX / Controller GUI
+    initDisplay();         // v1.7 theme, stage mode, waveforms, Live view
+    // v1.6 rhythm: BEATS page, FILL, drums through the performance FX
+    beatsBtn.onClick = [this] { showBeatsPage (! isBeatsPageVisible()); };
+    beatsBtn.setTooltip ("BEATS: step sequencer for the drums - build your own patterns");
+    surface.addAndMakeVisible (beatsBtn);
+    fillBtn = std::make_unique<MomentaryButton> (st, gRhythmFill, "FILL", colours::orange);
+    fillBtn->setTooltip ("Hold for a fill; on release the groove comes back on the next downbeat");
+    surface.addAndMakeVisible (*fillBtn);
+    drumsBfxBtn.setClickingTogglesState (true);
+    drumsBfxAtt = std::make_unique<APVTS::ButtonAttachment> (st, gDrumsBfx, drumsBfxBtn);
+    setParamId (drumsBfxBtn, gDrumsBfx);
+    drumsBfxBtn.setTooltip ("The drums go through the beat FX too (off: the drums stay dry)");
+    surface.addAndMakeVisible (drumsBfxBtn);
+    drumsRepBtn.setClickingTogglesState (true);
+    drumsRepAtt = std::make_unique<APVTS::ButtonAttachment> (st, gDrumsRepeat, drumsRepBtn);
+    setParamId (drumsRepBtn, gDrumsRepeat);
+    drumsRepBtn.setTooltip ("The drums go through beat repeat / stutter too (off: the drums stay dry)");
+    surface.addAndMakeVisible (drumsRepBtn);
+    beatsPage = std::make_unique<BeatsPage> (proc);
+    beatsPage->onClose = [this] { showBeatsPage (false); };
+    beatsPage->onStatus = [this] (const juce::String& t) { showStatus (t); };
+    surface.addChildComponent (*beatsPage);
+    rhythmKit.setTooltip ("Drum kit: the built-in kits and the sound-pack slots");
+
     surface.addChildComponent (overlay);
     tempo->slider.setTooltip ("Internal tempo - right-click to type in the BPM, or click the tempo on the display");
 
@@ -267,6 +337,8 @@ LiveLooperEditor::LiveLooperEditor (LiveLooperProcessor& p)
 
     setResizable (true, true);
     applyVisibleTracks();
+    if (guiScale != 100)   // v1.7: the remembered interface size
+        setSize (juce::roundToInt ((float) surfaceWidth() * (float) guiScale / 100.0f), juce::roundToInt ((float) kBaseHeight * (float) guiScale / 100.0f));
     updatePerformanceLabels();
     startTimerHz (30);
 
@@ -276,6 +348,7 @@ LiveLooperEditor::LiveLooperEditor (LiveLooperProcessor& p)
         if (safe == nullptr)
             return;
         safe->askStartupSettingsOnce();
+        safe->handleFirstRun();          // v1.6: demo set + guided tour on the very first start
         if (safe->proc.wrapperType != juce::AudioProcessor::wrapperType_Undefined && appsettings::getCheckUpdatesOnStart())
             safe->checkForUpdates (false);
     });
@@ -283,10 +356,18 @@ LiveLooperEditor::LiveLooperEditor (LiveLooperProcessor& p)
 
 LiveLooperEditor::~LiveLooperEditor()
 {
+    if (settingsWindow != nullptr)      // v1.6
+        delete settingsWindow.getComponent();
+    if (clipThread != nullptr)          // v1.6
+        clipThread->stopThread (10000);
+    proc.onRecordingFinished = nullptr;
     proc.cancelMidiLearn();
     proc.removeChangeListener (this);
     i18n::removeListener (this);
     stopTimer();
+    mouseLog.reset();                   // v1.7 mouse diagnostics (global mouse listener)
+    liveWindow.reset();                 // v1.7 fullscreen windows use the editor's look and feel
+    retiredStageWindow.reset();
     setLookAndFeel (nullptr);
 }
 
@@ -329,223 +410,428 @@ void LiveLooperEditor::layoutSurface()
     lcd.setBounds (layout::lcd.translated (dx / 2, 0));
     tempoEntry.setBounds (lcd.getBounds().getX() + lcd.getTempoArea().getX() - 4, lcd.getY() + 9,
                           lcd.getTempoArea().getWidth() - 14, lcd.getHeight() - 18);
-    learnBtn.setBounds (868 + dx, 28, 100, 36);
-    mapBtn.setBounds (974 + dx, 28, 86, 36);
-    setupBtn.setBounds (1066 + dx, 28, 64, 36);
-    helpBtn.setBounds (1136 + dx, 28, 32, 36);
+    // header buttons (quiet): MIDI LEARN, MIDI MAP, SETUP, ? - the round REC sits right below them
+    learnBtn.setBounds (874 + dx, 14, 98, 32);
+    mapBtn.setBounds (976 + dx, 14, 86, 32);
+    setupBtn.setBounds (1066 + dx, 14, 66, 32);
+    helpBtn.setBounds (1136 + dx, 14, 32, 32);
     layoutPerformanceRow (dx);
-
-    auto slotRow = [] (juce::Rectangle<int> panel) { return panel.reduced (8).withTrimmedTop (22); };
-    auto in = slotRow (layout::inputFx), tr = slotRow (layout::trackFx.translated (dx, 0));
-    const int sw = in.getWidth() / kNumFxSlots;
-    for (int s = 0; s < kNumFxSlots; ++s)
-    {
-        inputSlots[(size_t) s]->setBounds (in.removeFromLeft (sw));
-        trackSlots[(size_t) s]->setBounds (tr.removeFromLeft (sw));
-    }
-
-    auto ed = layout::fxEditor.translated (dx / 2, 0).reduced (8).withTrimmedTop (22);
-    fxType.setBounds (ed.removeFromLeft (120).withSizeKeepingCentre (116, 28));
-    const int kw = ed.getWidth() / 3;
-    fxP1->setBounds (ed.removeFromLeft (kw));
-    fxP2->setBounds (ed.removeFromLeft (kw));
-    fxMix->setBounds (ed);
+    layoutFeatures16 (dx);      // v1.6
+    layoutKo2 (dx);             // v1.6 K.O. II chip, toast, controller view
+    layoutRhythm16 (dx);
+    layoutDisplay (dx);         // v1.7 LIVE button, Live view
 
     auto tracks = layout::tracks.withWidth (layout::tracks.getWidth() + dx);
     const int visible = proc.getVisibleTracks();
     const int stripW = tracks.getWidth() / visible;
     for (int t = 0; t < visible; ++t)
-        strips[(size_t) t]->setBounds (tracks.removeFromLeft (stripW).reduced (2, 0));
+        strips[(size_t) t]->setBounds (tracks.removeFromLeft (stripW).reduced (3, 0));
 
-    auto rh = layout::rhythm.translated (dx, 0).reduced (10).withTrimmedTop (22);
-    auto row = rh.removeFromTop (32);
-    rhythmOn.setBounds (row.removeFromLeft (100).reduced (0, 2));
-    row.removeFromLeft (8);
-    rhythmPattern.setBounds (row.reduced (0, 3));
-    rh.removeFromTop (4);
-    row = rh.removeFromTop (30);
-    rhythmKit.setBounds (row.removeFromLeft (row.getWidth() * 3 / 5).reduced (0, 3));
-    row.removeFromLeft (8);
-    tap.setBounds (row.reduced (0, 2));
+    // RHYTHM (right column, narrow): RHYTHM + pattern | kit + TAP | LEVEL SWING FEEL TEMPO; FILL / BEATS in the title row
+    rhythmArea = layout::rhythm.translated (dx, 0);
+    auto rh = rhythmArea.reduced (12, 10).withTrimmedTop (28);
+    auto row = rh.removeFromTop (30);
+    rhythmOn.setBounds (row.removeFromLeft (94));
+    row.removeFromLeft (6);
+    rhythmPattern.setBounds (row);
+    rh.removeFromTop (6);
+    row = rh.removeFromTop (28);
+    tap.setBounds (row.removeFromRight (58));
+    row.removeFromRight (6);
+    rhythmKit.setBounds (row);
     rh.removeFromTop (4);
     row = rh;
     const int quarter = row.getWidth() / 4;
-    rhythmLevel->setBounds (row.removeFromLeft (quarter).reduced (2));
-    rhythmSwing->setBounds (row.removeFromLeft (quarter).reduced (2));
-    rhythmHuman->setBounds (row.removeFromLeft (quarter).reduced (2));
-    tempo->setBounds (row.reduced (2));
+    rhythmLevel->setBounds (row.removeFromLeft (quarter).reduced (1));
+    rhythmSwing->setBounds (row.removeFromLeft (quarter).reduced (1));
+    rhythmHuman->setBounds (row.removeFromLeft (quarter).reduced (1));
+    tempo->setBounds (row.reduced (1));
 
-    auto ms = layout::masterPanel.translated (dx, 0).reduced (10).withTrimmedTop (22);
-    row = ms.removeFromTop (32);
-    quantize.setBounds (row.removeFromLeft (row.getWidth() / 2).reduced (0, 3).withTrimmedRight (4));
-    sync.setBounds (row.reduced (0, 2).withTrimmedLeft (4));
+    // MASTER: quantize + HOST SYNC | MASTER INPUT FADE | ALL START / STOP | CAPTURE + CLEAR ALL
+    masterArea = layout::masterPanel.translated (dx, 0);
+    auto ms = masterArea.reduced (12, 10).withTrimmedTop (28);
+    row = ms.removeFromTop (30);
+    quantize.setBounds (row.removeFromLeft (row.getWidth() / 2).withTrimmedRight (3));
+    sync.setBounds (row.withTrimmedLeft (3));
     ms.removeFromTop (6);
-    row = ms.removeFromTop (84);
+    row = ms.removeFromTop (88);
     const int kn = row.getWidth() / 3;
-    master->setBounds (row.removeFromLeft (kn).reduced (4));
-    monitor->setBounds (row.removeFromLeft (kn).reduced (4));
-    fade->setBounds (row.reduced (4));
-    ms.removeFromTop (8);
+    master->setBounds (row.removeFromLeft (kn).reduced (2));
+    monitor->setBounds (row.removeFromLeft (kn).reduced (2));
+    fade->setBounds (row.reduced (2));
     {
-        auto bottom = ms.removeFromBottom (30).reduced (0, 1);
+        auto bottom = ms.removeFromBottom (30);
         capture.setBounds (bottom.removeFromLeft (bottom.getWidth() / 2).withTrimmedRight (3));
         clearAll.setBounds (bottom.withTrimmedLeft (3));
     }
-    ms.removeFromBottom (6);
+    ms.removeFromBottom (8);
+    ms.removeFromTop (6);
     allStartStop.setBounds (ms);
+    LooperLookAndFeel::setEmphasis (allStartStop, 2);
+    for (auto* b2 : { &capture, &clearAll, &tap, &sync })
+        LooperLookAndFeel::setEmphasis (*b2, 0);
 
     // scenes in the footer
-    auto sc = layout::footer.reduced (20, 12).withTrimmedLeft (64);
+    auto sc = layout::footer.reduced (20, 11).withTrimmedLeft (70);
     for (auto& b : sceneBtns)
     {
         b->setBounds (sc.removeFromLeft (34).reduced (1, 0));
-        sc.removeFromLeft (2);
+        sc.removeFromLeft (3);
     }
-    sc.removeFromLeft (4);
-    sceneStore.setBounds (sc.removeFromLeft (66).reduced (1, 0));
+    sc.removeFromLeft (6);
+    sceneStore.setBounds (sc.removeFromLeft (76).reduced (1, 0));
 
     overlay.setBounds (surface.getLocalBounds());
+    surfaceCacheKey = {};
+}
+
+void LiveLooperEditor::renderSurfaceCache()
+{
+    const int w = surfaceWidth(), h = kBaseHeight;
+    const float sc = 2.0f;        // 2x: sharp when the window is enlarged and on high-DPI screens
+    surfaceCache = juce::Image (juce::Image::RGB, juce::roundToInt ((float) w * sc), juce::roundToInt ((float) h * sc), false);
+    juce::Graphics g (surfaceCache);
+    g.addTransform (juce::AffineTransform::scale (sc));
+    const int dx = w - kBaseWidth;
+
+    // deep background with a faint brand glow behind the glass
+    const bool stageDark = theme::isStage() && ! theme::isLight();     // v1.7 themes
+    juce::ColourGradient bg (stageDark ? juce::Colour (0xff050506) : theme::pick (0xff1b1b21, 0xfff1f2f6), 0.0f, 0.0f,
+                             stageDark ? juce::Colour (0xff000000) : theme::pick (0xff0c0c10, 0xffdfe2e9), 0.0f, (float) h, false);
+    g.setGradientFill (bg);
+    g.fillAll();
+    auto glow = [&g] (float cx, float cy, float r, juce::Colour c, float a) {
+        juce::ColourGradient rg (c.withAlpha (a), cx, cy, c.withAlpha (0.0f), cx + r, cy, true);
+        g.setGradientFill (rg);
+        g.fillEllipse (cx - r, cy - r, r * 2.0f, r * 2.0f);
+    };
+    if (! stageDark)
+    {
+        glow (120.0f, 40.0f, 520.0f, colours::brand0, 0.10f);
+        glow ((float) w * 0.45f, (float) h + 80.0f, 620.0f, colours::brand1, 0.08f);
+        glow ((float) w - 80.0f, 160.0f, 560.0f, colours::brand2, 0.10f);
+    }
+
+    // logo: the classic "livelooper" wordmark with the coloured dots, quiet subtitle
+    {
+        const auto f = LooperLookAndFeel::font (34.0f, true);
+        const float tw = juce::GlyphArrangement::getStringWidth (f, "livelooper");
+        g.setColour (colours::text);
+        g.setFont (f);
+        g.drawText ("livelooper", juce::Rectangle<float> (22.0f, 12.0f, tw + 4.0f, 42.0f), juce::Justification::centredLeft);
+        const juce::Colour dots[] = { colours::red, colours::orange, colours::green, colours::cyan, colours::learn };
+        for (int i = 0; i < 5; ++i)
+        {
+            const float x = 22.0f + tw + 12.0f + (float) i * 16.0f;
+            g.setColour (dots[i].withAlpha (0.3f));
+            g.fillEllipse (x - 2.0f, 31.0f, 13.0f, 13.0f);
+            g.setColour (dots[i]);
+            g.fillEllipse (x, 33.0f, 9.0f, 9.0f);
+        }
+        g.setColour (colours::textDim);
+        g.setFont (LooperLookAndFeel::font (11.0f, true));
+        const auto sub = tr ("%1 TRACK LOOP STATION", juce::String (proc.getVisibleTracks()));
+        g.drawText (sub, 24, 47, 200, 16, juce::Justification::centredLeft);        // v1.7: 5 px up for the view switcher below
+        const auto sf = LooperLookAndFeel::font (11.0f, true);
+        g.setColour (colours::textDim.withAlpha (0.6f));
+        g.setFont (LooperLookAndFeel::font (9.5f));
+        g.drawText ("designed by groovex", 24 + juce::roundToInt (juce::GlyphArrangement::getStringWidth (sf, sub)) + 10, 47, 120, 16,
+                    juce::Justification::centredLeft);
+    }
+
+    auto title = [&g] (juce::Rectangle<int> r, const juce::String& text, juce::Colour accent)
+    {
+        g.setColour (accent);
+        g.fillRoundedRectangle ((float) r.getX() + 12.0f, (float) r.getY() + 13.0f, 4.0f, 12.0f, 2.0f);
+        g.setColour (colours::text);
+        g.setFont (LooperLookAndFeel::font (12.5f, true));
+        g.drawText (text, r.getX() + 22, r.getY() + 8, r.getWidth() - 34, 22, juce::Justification::centredLeft);
+    };
+
+    // tracks: the brightest glass, tinted with each track's colour
+    for (int t = 0; t < proc.getVisibleTracks(); ++t)
+        LooperLookAndFeel::drawGlassPanel (g, strips[(size_t) t]->getBounds().toFloat(), 14.0f, 2, colours::track (t));
+
+    // FX rows: every group visible at once
+    const auto fxEditTitle = tr (selectedInput ? "INPUT FX" : "TRACK FX") + " " + juce::String::charToString ((juce::juce_wchar) ('A' + selectedSlot))
+                             + "  " + tr ("EDIT");
+    struct P { juce::Rectangle<int> r; juce::String text; juce::Colour c; };
+    const P panels[] = {
+        { inputFxArea, tr ("INPUT FX"), colours::cyan },
+        { fxEditArea, fxEditTitle, selectedInput ? colours::cyan : colours::orange },
+        { trackFxArea, tr ("TRACK FX"), colours::orange },
+        { punchArea, tr ("PUNCH FX"), colours::learn },
+        { beatFxArea, tr ("BEAT FX"), colours::orange },
+        { repeatArea, tr ("REPEAT / STUTTER"), colours::red },
+        { colorArea, tr ("COLOR FX"), colours::blue },
+        { sendArea, tr ("SEND FX"), colours::learn },
+        { metroArea, tr ("METRONOME"), colours::yellow },
+    };
+    for (const auto& p : panels)
+    {
+        LooperLookAndFeel::drawGlassPanel (g, p.r.toFloat(), 14.0f, 1);
+        title (p.r, p.text, p.c);
+    }
+    // right column
+    LooperLookAndFeel::drawGlassPanel (g, rhythmArea.toFloat(), 14.0f, 1);
+    title (rhythmArea, tr ("RHYTHM"), colours::orange);
+    LooperLookAndFeel::drawGlassPanel (g, masterArea.toFloat(), 14.0f, 1);
+    title (masterArea, tr ("MASTER"), colours::green);
+
+    // footer: scenes, tips, version
+    const auto footer = layout::footer.withWidth (w).reduced (20, 12);
+    g.setColour (colours::text);
+    g.setFont (LooperLookAndFeel::font (12.0f, true));
+    g.drawText (tr ("SCENES"), footer.withWidth (66), juce::Justification::centredLeft);
+    g.setColour (colours::textDim.withAlpha (0.85f));
+    g.setFont (LooperLookAndFeel::font (11.5f));
+    g.drawFittedText (tr ("Right-click any control for MIDI learn   |   hold STOP to clear   |   drop audio files on a track to import"),
+                      footer.withTrimmedLeft (sceneStore.getRight() - footer.getX() + 18).withTrimmedRight (120),
+                      juce::Justification::centredLeft, 1, 0.6f);
+    g.drawText ("livelooper v" LIVELOOPER_VERSION, footer, juce::Justification::centredRight);
+    juce::ignoreUnused (dx);
 }
 
 void LiveLooperEditor::paintSurface (juce::Graphics& g)
 {
-    // brushed panel
-    const int dx = surfaceWidth() - kBaseWidth;
-    juce::ColourGradient grad (juce::Colour (0xff2b2e33), 0.0f, 0.0f, juce::Colour (0xff17191c), 0.0f, (float) kBaseHeight, false);
-    g.setGradientFill (grad);
-    g.fillAll();
-    g.setColour (juce::Colours::white.withAlpha (0.015f));
-    for (int y = 0; y < kBaseHeight; y += 3)
-        g.drawHorizontalLine (y, 0.0f, (float) surfaceWidth());
-
-    // logo
-    g.setColour (colours::text);
-    g.setFont (LooperLookAndFeel::font (34.0f, true));
-    g.drawText ("livelooper", 22, 14, 260, 40, juce::Justification::centredLeft);
-    g.setColour (colours::textDim);
-    g.setFont (LooperLookAndFeel::font (11.0f, true));
-    g.drawText (tr ("%1 TRACK LOOP STATION", juce::String (proc.getVisibleTracks())), 24, 50, 260, 16, juce::Justification::centredLeft);
-    const juce::Colour dots[] = { colours::red, colours::orange, colours::green, colours::cyan, colours::learn };
-    for (int i = 0; i < 5; ++i)
+    juce::String colourKey;          // v1.6: track colours tint the strip panels
+    for (int t = 0; t < proc.getVisibleTracks(); ++t)
+        colourKey << proc.getTrackColour (t) << ",";
+    const auto key = colourKey + juce::String (surfaceWidth()) + "/" + juce::String (proc.getVisibleTracks()) + "/" + (i18n::isGerman() ? "de" : "en")
+                     + "/" + juce::String (fxTab) + "/" + juce::String ((int) selectedInput) + juce::String (selectedSlot)
+                     + "/" + fxType.getBounds().toString() + strips[0]->getBounds().toString() + "/t" + juce::String (theme::version());
+    if (key != surfaceCacheKey || surfaceCache.isNull())
     {
-        g.setColour (dots[i]);
-        g.fillEllipse (196.0f + (float) i * 16.0f, 30.0f, 9.0f, 9.0f);
+        surfaceCacheKey = key;
+        renderSurfaceCache();
+    }
+    g.setOpacity (1.0f);
+    g.drawImage (surfaceCache, juce::Rectangle<float> (0.0f, 0.0f, (float) surfaceWidth(), (float) kBaseHeight));
+
+    // v1.6: held K.O. II punch pads - live amount (hold ramp / pressure) in the PUNCH FX title row
+    if (shownLivePunch >= 0.0f)
+    {
+        const auto r = livePunchBadgeArea().toFloat();
+        const auto font = LooperLookAndFeel::font (11.0f, true);
+        const auto text = tr ("HOLD") + " " + juce::String (juce::roundToInt (shownLivePunch * 100.0f)) + " %";
+        const float tw = (float) juce::GlyphArrangement::getStringWidthInt (font, text) + 8.0f;
+        if (r.getWidth() >= tw)
+        {
+            g.setColour (colours::learn);
+            g.setFont (font);
+            g.drawText (text, r.withWidth (tw), juce::Justification::centredLeft);
+            if (r.getWidth() - tw >= 16.0f)
+            {
+                const auto bar = r.withTrimmedLeft (tw).withSizeKeepingCentre (r.getWidth() - tw, 6.0f);
+                g.setColour (juce::Colours::white.withAlpha (0.10f));
+                g.fillRoundedRectangle (bar, 3.0f);
+                g.setColour (colours::learn);
+                g.fillRoundedRectangle (bar.withWidth (bar.getWidth() * juce::jlimit (0.0f, 1.0f, shownLivePunch)), 3.0f);
+            }
+        }
     }
 
-    auto section = [&g] (juce::Rectangle<int> r, const juce::String& title, juce::Colour accent)
-    {
-        g.setColour (colours::section.withAlpha (0.85f));
-        g.fillRoundedRectangle (r.toFloat(), 8.0f);
-        g.setColour (colours::sectionEdge);
-        g.drawRoundedRectangle (r.toFloat(), 8.0f, 1.0f);
-        g.setColour (accent);
-        g.fillRoundedRectangle ((float) r.getX() + 10.0f, (float) r.getY() + 11.0f, 4.0f, 12.0f, 2.0f);
-        g.setColour (colours::text);
-        g.setFont (LooperLookAndFeel::font (13.0f, true));
-        g.drawText (title, r.getX() + 20, r.getY() + 6, r.getWidth() - 30, 22, juce::Justification::centredLeft);
-    };
-
-    section (layout::inputFx, tr ("INPUT FX"), colours::cyan);
-    const auto fxTitle = tr (selectedInput ? "INPUT FX" : "TRACK FX") + " " + juce::String::charToString ((juce::juce_wchar) ('A' + selectedSlot))
-                         + "  " + tr ("EDIT");
-    section (layout::fxEditor.translated (dx / 2, 0), fxTitle, selectedInput ? colours::cyan : colours::orange);
-    section (layout::trackFx.translated (dx, 0), tr ("TRACK FX"), colours::orange);
-    section (beatFxArea, tr ("BEAT FX"), colours::orange);
-    section (repeatArea, tr ("BEAT REPEAT / STUTTER"), colours::red);
-    section (colorArea, tr ("COLOR FX"), colours::blue);
-    section (metroArea, tr ("METRONOME"), colours::yellow);
-    section (layout::rhythm.translated (dx, 0), tr ("RHYTHM"), colours::orange);
-    section (layout::masterPanel.translated (dx, 0), tr ("MASTER"), colours::green);
-
-    // footer: scenes, tips, version
-    const auto footer = layout::footer.withWidth (surfaceWidth()).reduced (20, 12);
-    g.setColour (colours::text);
-    g.setFont (LooperLookAndFeel::font (12.0f, true));
-    g.drawText (tr ("SCENES"), footer.withWidth (62), juce::Justification::centredLeft);
+    // scene LEDs: stored = dim, last recalled = bright
     const int last = proc.getLastScene();
     for (int i = 0; i < kNumScenes; ++i)
     {
-        // LED under each scene button: stored = dim, last recalled = bright
         const auto b = sceneBtns[(size_t) i]->getBounds();
-        g.setColour (proc.sceneIsStored (i) ? (i == last ? colours::yellow : colours::yellow.withAlpha (0.35f))
-                                            : juce::Colour (0xff2b2e33));
-        g.fillRect (b.getX() + 6, b.getBottom() + 2, b.getWidth() - 12, 3);
+        const bool stored = proc.sceneIsStored (i);
+        const auto c = stored ? (i == last ? colours::yellow : colours::yellow.withAlpha (0.35f)) : theme::pick (0xff2b2d33, 0xffc4c8d0);
+        if (stored && i == last)
+        {
+            g.setColour (colours::yellow.withAlpha (0.25f));
+            g.fillRoundedRectangle ((float) b.getX() + 4.0f, (float) b.getBottom() + 1.0f, (float) b.getWidth() - 8.0f, 5.0f, 2.5f);
+        }
+        g.setColour (c);
+        g.fillRoundedRectangle ((float) b.getX() + 7.0f, (float) b.getBottom() + 2.0f, (float) b.getWidth() - 14.0f, 3.0f, 1.5f);
     }
-    g.setColour (colours::textDim);
-    g.setFont (LooperLookAndFeel::font (12.0f));
-    g.drawFittedText (tr ("Right-click any control for MIDI learn   |   hold STOP to clear   |   drop audio files on a track to import"),
-                      footer.withTrimmedLeft (sceneStore.getRight() - footer.getX() + 18).withTrimmedRight (130),
-                      juce::Justification::centredLeft, 1, 0.6f);
-    g.drawText ("livelooper v" LIVELOOPER_VERSION, footer, juce::Justification::centredRight);
+}
+
+void LiveLooperEditor::FxTabButton::paintButton (juce::Graphics& g, bool over, bool down)
+{
+    // a segment of a glass segmented control: the selected one is lit
+    auto& lf = getLookAndFeel();
+    lf.drawButtonBackground (g, *this, {}, over, down);
+    auto r = getLocalBounds();
+    const bool active = activeFn && activeFn();
+    const auto led = juce::Colour ((juce::uint32) (juce::int64) getProperties()["ledColour"]);
+    if (active)
+    {
+        const auto dot = juce::Rectangle<float> (7.0f, 7.0f).withCentre ({ (float) r.getX() + 12.0f, (float) r.getCentreY() });
+        g.setColour (led.withAlpha (0.35f));
+        g.fillEllipse (dot.expanded (3.0f));
+        g.setColour (led);
+        g.fillEllipse (dot);
+    }
+    g.setFont (LooperLookAndFeel::font (12.0f, true));
+    g.setColour (getToggleState() ? juce::Colours::white : colours::textDim.brighter (over ? 0.5f : 0.2f));
+    g.drawFittedText (tr (getButtonText()), r.reduced (active ? 18 : 8, 0).withTrimmedLeft (active ? 4 : 0), juce::Justification::centred, 1, 0.7f);
+}
+
+void LiveLooperEditor::setFxTab (int tab)
+{
+    // v1.6 final: all FX groups are visible at once; this only remembers the focused group
+    fxTab = juce::jlimit (0, (int) numFxTabs - 1, tab);
+    for (int i = 0; i < numFxTabs; ++i)
+        fxTabs[(size_t) i]->setToggleState (i == fxTab, juce::dontSendNotification);
+}
+
+juce::Rectangle<int> LiveLooperEditor::getFxGroupArea (int group) const
+{
+    switch (group)
+    {
+        case tabInput:  return inputFxArea;
+        case tabTrack:  return trackFxArea;
+        case tabBeat:   return beatFxArea;
+        case tabRepeat: return repeatArea;
+        case tabColor:  return colorArea;
+        case tabPunch:  return punchArea.getUnion (sendArea);
+        default:        return fxPanelArea;
+    }
+}
+
+void LiveLooperEditor::layoutFxPanel (int dx)
+{
+    // two FX rows across the full width (classic arrangement); with 6 - 8 tracks every column stretches
+    const int w = kBaseWidth + dx;
+    auto fxX = [w] (int x) { return 12 + juce::roundToInt ((double) (x - 12) * (double) (w - 24) / (double) (kBaseWidth - 24)); };
+    auto panel = [fxX] (int x0, int x1, int y, int h) { return juce::Rectangle<int> (fxX (x0), y, fxX (x1) - fxX (x0), h); };
+    using namespace layout;
+    inputFxArea = panel (inputX0, inputX1, row1Y, row1H);
+    fxEditArea  = panel (editX0, editX1, row1Y, row1H);
+    trackFxArea = panel (trackX0, trackX1, row1Y, row1H);
+    punchArea   = panel (punchX0, punchX1, row1Y, row1H);
+    beatFxArea  = panel (beatX0, beatX1, row2Y, row2H);
+    repeatArea  = panel (repeatX0, repeatX1, row2Y, row2H);
+    colorArea   = panel (colorX0, colorX1, row2Y, row2H);
+    sendArea    = panel (sendX0, sendX1, row2Y, row2H);
+    metroArea   = panel (metroX0, metroX1, row2Y, row2H);
+    fxPanelArea = inputFxArea.getUnion (metroArea).getUnion (punchArea);
+    fxContentArea = fxPanelArea;
+
+    // content of a panel: below the title row; titleRow: the right part of the title row (small buttons / boxes)
+    auto content = [] (juce::Rectangle<int> r) { return r.reduced (12, 8).withTrimmedTop (26); };
+    auto titleRow = [] (juce::Rectangle<int> r) { return juce::Rectangle<int> (r.getX() + 12, r.getY() + 8, r.getWidth() - 24, 22); };
+
+    for (auto* comp : { (juce::Component*) &fxType, (juce::Component*) fxP1.get(), (juce::Component*) fxP2.get(), (juce::Component*) fxMix.get(),
+                        (juce::Component*) &bfxType, (juce::Component*) &bfxTarget, (juce::Component*) &beatDown, (juce::Component*) &beatUp,
+                        (juce::Component*) &bfxBeat, (juce::Component*) &bfxOn, (juce::Component*) bfxHold.get(), (juce::Component*) bfxDepth.get(),
+                        (juce::Component*) &drumsBfxBtn, (juce::Component*) repeatHold.get(), (juce::Component*) stutterHold.get(),
+                        (juce::Component*) &repeatRate, (juce::Component*) &stutterRate, (juce::Component*) &repeatLatch,
+                        (juce::Component*) &stutterLatch, (juce::Component*) &drumsRepBtn })
+        comp->setVisible (true);
+    for (int s = 0; s < kNumFxSlots; ++s)
+    {
+        inputSlots[(size_t) s]->setVisible (true);
+        trackSlots[(size_t) s]->setVisible (true);
+    }
+    for (auto& b : colorBtns)
+        b->setVisible (true);
+
+    // INPUT FX / TRACK FX: four slot pads each
+    {
+        auto in = content (inputFxArea), tr2 = content (trackFxArea);
+        const int sw = in.getWidth() / kNumFxSlots;
+        for (int s = 0; s < kNumFxSlots; ++s)
+        {
+            inputSlots[(size_t) s]->setBounds (in.removeFromLeft (sw));
+            trackSlots[(size_t) s]->setBounds (tr2.removeFromLeft (sw));
+        }
+    }
+
+    // EDIT: type | three knobs
+    {
+        auto ed = content (fxEditArea);
+        const int cw = juce::jmin (150, ed.getWidth() * 38 / 100);
+        fxType.setBounds (ed.removeFromLeft (cw).withSizeKeepingCentre (cw, 30));
+        ed.removeFromLeft (6);
+        const int kw = ed.getWidth() / 3;
+        fxP1->setBounds (ed.removeFromLeft (kw));
+        fxP2->setBounds (ed.removeFromLeft (kw));
+        fxMix->setBounds (ed);
+    }
+
+    // PUNCH FX: 4 x 3 pads | XY | AMOUNT; target + LATCH in the title row
+    layoutPunchTab (content (punchArea));
+
+    // BEAT FX: type / channel | beat fraction | level | ON / HOLD; DRUMS in the title row
+    {
+        drumsBfxBtn.setBounds (titleRow (beatFxArea).removeFromRight (64));
+        auto r = content (beatFxArea);
+        const int extra = r.getWidth() - 348;                 // > 0 with 6 - 8 tracks: wider boxes
+        auto col = r.removeFromLeft (106 + extra / 2);
+        bfxType.setBounds (col.removeFromTop (30).reduced (0, 1));
+        bfxTarget.setBounds (col.removeFromBottom (30).reduced (0, 1));
+        r.removeFromLeft (6);
+        col = r.removeFromLeft (100 + extra / 4);
+        {
+            auto rowB = col.removeFromTop (30);
+            beatDown.setBounds (rowB.removeFromLeft (22).reduced (0, 1));
+            beatUp.setBounds (rowB.removeFromRight (22).reduced (0, 1));
+            bfxBeat.setBounds (rowB.reduced (3, 1));
+        }
+        r.removeFromLeft (4);
+        auto onCol = r.removeFromRight (74);
+        bfxOn.setBounds (onCol.removeFromTop (34).reduced (0, 1));
+        bfxHold->setBounds (onCol.removeFromBottom (30).reduced (0, 1));
+        r.removeFromRight (4);
+        bfxDepth->setBounds (r.withSizeKeepingCentre (juce::jmin (64, r.getWidth()), r.getHeight()));
+        LooperLookAndFeel::setEmphasis (bfxOn, 2);
+    }
+
+    // BEAT REPEAT / STUTTER: two rows (HOLD | rate | LATCH); DRUMS in the title row
+    {
+        drumsRepBtn.setBounds (titleRow (repeatArea).removeFromRight (64));
+        auto r = content (repeatArea);
+        const int rowH = 30, gap = r.getHeight() - 2 * rowH;
+        for (int i = 0; i < 2; ++i)
+        {
+            auto rowR = r.removeFromTop (rowH);
+            auto& hold = i == 0 ? *repeatHold : *stutterHold;
+            auto& rate = i == 0 ? repeatRate : stutterRate;
+            auto& latch = i == 0 ? repeatLatch : stutterLatch;
+            const int unit = rowR.getWidth();
+            hold.setBounds (rowR.removeFromLeft (unit * 36 / 100).reduced (0, 1));
+            rowR.removeFromLeft (5);
+            latch.setBounds (rowR.removeFromRight (unit * 27 / 100).reduced (0, 1));
+            rowR.removeFromRight (5);
+            rate.setBounds (rowR.reduced (0, 2));
+            r.removeFromTop (gap);
+            LooperLookAndFeel::setEmphasis (hold, 2);
+        }
+    }
+
+    // COLOR FX: 3 x 2 type buttons
+    {
+        auto r = content (colorArea);
+        const int bw = r.getWidth() / 3;
+        const int rowH = 30, gap = r.getHeight() - 2 * rowH;
+        for (int i = 0; i < (int) colorBtns.size(); ++i)
+            colorBtns[(size_t) i]->setBounds (r.getX() + (i % 3) * bw + 2, r.getY() + (i / 3) * (rowH + gap), bw - 4, rowH);
+    }
+
+    // METRONOME: METRONOME / ACCENT / sound | LEVEL
+    {
+        auto m = content (metroArea);
+        metroLevel->setBounds (m.removeFromRight (juce::jmin (56, m.getWidth() / 3)));
+        m.removeFromRight (4);
+        const int h = (m.getHeight() - 6) / 3;
+        metroOn.setBounds (m.removeFromTop (h));
+        m.removeFromTop (3);
+        metroAccent.setBounds (m.removeFromTop (h));
+        m.removeFromTop (3);
+        clickSoundBox.setBounds (m.removeFromTop (h));
+        for (auto* b2 : { &metroOn, &metroAccent })
+            LooperLookAndFeel::setEmphasis (*b2, 0);
+    }
 }
 
 //============================================================================== v1.5 performance row
 void LiveLooperEditor::layoutPerformanceRow (int dx)
 {
-    // the extra width of 8 tracks goes to the beat FX block
-    beatFxArea = layout::beatFx.withWidth (layout::beatFx.getWidth() + dx);
-    repeatArea = layout::repeat.translated (dx, 0);
-    colorArea = layout::colorFx.translated (dx, 0);
-    metroArea = layout::metronome.translated (dx, 0);
-
-    auto inner = [] (juce::Rectangle<int> r) { return r.reduced (10, 8).withTrimmedTop (22); };
-
-    // beat FX: type / channel | beat fraction | level | on / hold
-    auto b = inner (beatFxArea);
-    // with 8 tracks the extra width widens the combo boxes instead of leaving a gap in the middle
-    auto col = b.removeFromLeft (150 + dx * 9 / 20);
-    bfxType.setBounds (col.removeFromTop (28).reduced (0, 1));
-    col.removeFromTop (6);
-    bfxTarget.setBounds (col.removeFromTop (28).reduced (0, 1));
-    b.removeFromLeft (10);
-    col = b.removeFromLeft (124 + dx / 4);
-    {
-        auto row = col.removeFromTop (28);
-        beatDown.setBounds (row.removeFromLeft (26).reduced (0, 1));
-        beatUp.setBounds (row.removeFromRight (26).reduced (0, 1));
-        bfxBeat.setBounds (row.reduced (3, 1));
-    }
-    b.removeFromLeft (6);
-    auto onCol = b.removeFromRight (92);
-    bfxOn.setBounds (onCol.removeFromTop (34).reduced (0, 1));
-    onCol.removeFromTop (6);
-    bfxHold->setBounds (onCol.removeFromTop (28).reduced (0, 1));
-    bfxDepth->setBounds (b.withSizeKeepingCentre (juce::jmin (90, b.getWidth()), b.getHeight()));
-
-    // beat repeat / stutter: two rows
-    auto r = inner (repeatArea);
-    for (int i = 0; i < 2; ++i)
-    {
-        auto row = r.removeFromTop (30);
-        auto& hold = i == 0 ? *repeatHold : *stutterHold;
-        auto& rate = i == 0 ? repeatRate : stutterRate;
-        auto& latch = i == 0 ? repeatLatch : stutterLatch;
-        hold.setBounds (row.removeFromLeft (92).reduced (0, 1));
-        row.removeFromLeft (6);
-        latch.setBounds (row.removeFromRight (66).reduced (0, 1));
-        row.removeFromRight (6);
-        rate.setBounds (row.reduced (0, 2));
-        r.removeFromTop (8);
-    }
-
-    // colour FX: 3 x 2 type buttons
-    auto cfx = inner (colorArea);
-    const int bw = cfx.getWidth() / 3;
-    for (int i = 0; i < (int) colorBtns.size(); ++i)
-    {
-        auto row = cfx.withHeight (30).translated (0, (i / 3) * 38);
-        colorBtns[(size_t) i]->setBounds (row.withX (cfx.getX() + (i % 3) * bw).withWidth (bw).reduced (2, 1));
-    }
-
-    // metronome: on / accent / sound | level
-    auto m = inner (metroArea);
-    auto left = m.removeFromLeft (98);
-    metroOn.setBounds (left.removeFromTop (26).reduced (0, 1));
-    left.removeFromTop (3);
-    metroAccent.setBounds (left.removeFromTop (24).reduced (0, 1));
-    left.removeFromTop (3);
-    clickSoundBox.setBounds (left.removeFromTop (24));
-    metroLevel->setBounds (m.reduced (2, 0));
+    // v1.6 final: input / track / punch FX in row 1, beat FX / repeat / colour / send FX / metronome in row 2
+    layoutFxPanel (dx);
 }
 
 void LiveLooperEditor::updatePerformanceLabels()
@@ -577,7 +863,9 @@ void LiveLooperEditor::selectFxSlot (bool inputFx, int slot)
         trackSlots[(size_t) s]->setSelected (! inputFx && s == slot);
     }
     updateFxEditorLabels();
-    surface.repaint (layout::fxEditor.translated ((surfaceWidth() - kBaseWidth) / 2, 0));
+    if (fxTabs[0] != nullptr)
+        setFxTab (inputFx ? tabInput : tabTrack);
+    surface.repaint (fxPanelArea);
 }
 
 void LiveLooperEditor::updateFxEditorLabels()
@@ -591,13 +879,23 @@ void LiveLooperEditor::updateFxEditorLabels()
 //==============================================================================
 void LiveLooperEditor::timerCallback()
 {
+    timerFeatures16();     // v1.6
+    timer17();             // v1.7
+    timerDisplay();        // v1.7 theme / Live view
+    updateKo2Ui();         // v1.6 K.O. II chip / toast / controller view / track colours
+    updateBackupNotice();  // v1.7 restored after a crash / newer backup than the project
+    refreshPatternNames();      // v1.6
     blinkCounter = (blinkCounter + 1) % 16;
     const bool blink = blinkCounter < 8;
     for (auto& s : strips)
         if (s->isVisible())
             s->refresh (blink);
     if (blinkCounter % 4 == 0)
+    {
         surface.repaint (layout::footer.withWidth (surfaceWidth()));
+        for (auto& t : fxTabs)
+            t->repaint();
+    }
     for (int s = 0; s < kNumFxSlots; ++s)
     {
         inputSlots[(size_t) s]->repaint();
@@ -634,6 +932,8 @@ void LiveLooperEditor::timerCallback()
         float ml = 0.0f, mr = 0.0f;
         proc.getEngine().takeMasterMeter (ml, mr);
         lcd.pushMasterMeter (ml, mr);
+        perfMeterL = ml;        // v1.7 Performance view (MASTER meter)
+        perfMeterR = mr;
     }
 
     if (keyClear.track >= 0)
@@ -761,6 +1061,22 @@ void LiveLooperEditor::updateKeyboardFocusPolicy()
 
 bool LiveLooperEditor::keyPressed (const juce::KeyPress& key)
 {
+    // v1.7: Esc leaves the Live view; Ctrl / Cmd + and - change the interface size (Ctrl / Cmd 0 = 100 %)
+    if (key == juce::KeyPress::escapeKey && isStageViewShown() && ! tempoEntry.isVisible())
+    {
+        if (learnMode)
+            setLearnMode (false);       // v1.7: Esc ends MIDI learn first (the view stays)
+        else
+            setLiveView (false);
+        return true;
+    }
+    if (key.getModifiers().isCommandDown() && ! key.getModifiers().isAltDown())
+    {
+        const int code = key.getKeyCode();
+        if (code == '+' || code == '=' || code == juce::KeyPress::numberPadAdd)  { stepGuiScale (1); return true; }
+        if (code == '-' || code == '_' || code == juce::KeyPress::numberPadSubtract) { stepGuiScale (-1); return true; }
+        if (code == '0' || code == juce::KeyPress::numberPad0) { setGuiScale (100); return true; }
+    }
     if (! proc.isKeyboardControlActive() || tempoEntry.isVisible())
         return false;
     const auto action = proc.getKeyMap().getActionFor (key);
@@ -895,7 +1211,8 @@ void LiveLooperEditor::setLearnMode (bool on)
         proc.cancelMidiLearn();
     overlay.setVisible (on);
     overlay.toFront (false);
-    learnBtn.toFront (false);
+    if (! isStageViewShown())
+        learnBtn.toFront (false);       // v1.7: not over the Live view (it comes back on top when the Live view closes)
     learnBtn.setToggleState (on, juce::dontSendNotification);
 }
 
@@ -904,6 +1221,15 @@ void LiveLooperEditor::collectMappables (juce::Component& parent, juce::Array<ju
     for (auto* c : parent.getChildren())
     {
         if (! c->isVisible() || c == &overlay)
+            continue;
+        // v1.6: controls hidden under the BEATS page are not offered for MIDI learn
+        if (&parent == &surface && isBeatsPageVisible() && c != beatsPage.get() && beatsPage->getBounds().contains (c->getBounds()))
+            continue;
+        // v1.7: while the Live view covers the surface only its own controls (pads, STOP, level, loop length
+        // pills, FX strip) are learnable - the hidden strips behind it get no frames
+        if (&parent == &surface && isLiveViewShown() && c != liveView.get())
+            continue;
+        if (&parent == &surface && isPerformViewShown() && c != perfView.get())     // v1.7 Performance view: the same
             continue;
         if (getParamId (*c).isNotEmpty())
             out.add (c);
@@ -937,6 +1263,26 @@ void LiveLooperEditor::LearnOverlay::paint (juce::Graphics& g)
             g.fillEllipse (r.getRight() - 7.0f, r.getY() - 1.0f, 8.0f, 8.0f);
         }
     }
+
+    // v1.7 views: over the Live / Performance view the MIDI LEARN button of the header is hidden, so the overlay
+    // brings its own way out (before, every click there only picked a learn target and no control reacted)
+    if (editor.isStageViewShown())
+    {
+        const auto r = editor.learnDoneArea().toFloat();
+        g.setGradientFill (LooperLookAndFeel::brandGradient (r));
+        g.fillRoundedRectangle (r, r.getHeight() * 0.5f);
+        g.setColour (juce::Colours::white.withAlpha (0.35f));
+        g.drawRoundedRectangle (r.reduced (0.5f), r.getHeight() * 0.5f, 1.0f);
+        g.setColour (juce::Colours::white);
+        g.setFont (LooperLookAndFeel::font (12.0f, true));
+        g.drawFittedText (i18n::upper (tr ("MIDI LEARN - DONE")), r.toNearestInt().reduced (8, 0), juce::Justification::centred, 1, 0.7f);
+    }
+}
+
+juce::Rectangle<int> LiveLooperEditor::learnDoneArea() const
+{
+    // top centre of the Live / Performance view, above its transport display
+    return { surface.getWidth() / 2 - 120, 2, 240, 26 };
 }
 
 void LiveLooperEditor::LearnOverlay::mouseDown (const juce::MouseEvent& e)
@@ -946,7 +1292,7 @@ void LiveLooperEditor::LearnOverlay::mouseDown (const juce::MouseEvent& e)
     auto* hit = editor.surface.getComponentAt (pos);
     setInterceptsMouseClicks (true, false);
 
-    if (hit == &editor.learnBtn)
+    if (hit == &editor.learnBtn || (editor.isStageViewShown() && editor.learnDoneArea().contains (pos.roundToInt())))
     {
         editor.setLearnMode (false);
         return;
@@ -1056,6 +1402,44 @@ void LiveLooperEditor::showMidiMapMenu()
 
 void LiveLooperEditor::showSetupMenu()
 {
+    // v1.6: SETUP opens a settings window (sidebar + grouped rows, generated from the menu below)
+    showSettingsWindow();
+}
+
+std::unique_ptr<juce::Component> LiveLooperEditor::createSettingsPanel (const juce::String& pageName)
+{
+    juce::Component::SafePointer<LiveLooperEditor> safe (this);
+    auto panel = std::make_unique<SettingsPanel> (
+        [safe] (juce::Array<int>& toggles) { return safe != nullptr ? safe->buildSetupMenu (toggles) : juce::PopupMenu(); },
+        [safe] (int r) { if (safe != nullptr) safe->handleSetupResult (r); });
+    panel->setLookAndFeel (&lookAndFeel);
+    if (pageName.isNotEmpty())
+        panel->showPage (pageName);
+    return panel;
+}
+
+void LiveLooperEditor::showSettingsWindow()
+{
+    if (settingsWindow != nullptr)
+    {
+        settingsWindow->toFront (true);
+        return;
+    }
+    juce::DialogWindow::LaunchOptions o;
+    o.dialogTitle = tr ("livelooper setup");
+    o.dialogBackgroundColour = theme::pick (0xff131318, 0xfff2f3f6);
+    o.content.setOwned (createSettingsPanel().release());
+    o.componentToCentreAround = this;
+    o.escapeKeyTriggersCloseButton = true;
+    o.useNativeTitleBar = true;
+    o.resizable = true;
+    settingsWindow = o.launchAsync();
+    if (settingsWindow != nullptr)
+        settingsWindow->setResizeLimits (640, 420, 1600, 1400);
+}
+
+juce::PopupMenu LiveLooperEditor::buildSetupMenu (juce::Array<int>& toggles)
+{
     auto& st = proc.getState();
     auto* recAction = dynamic_cast<juce::AudioParameterChoice*> (st.getParameter (gRecAction));
     auto* follow = dynamic_cast<juce::AudioParameterBool*> (st.getParameter (gFollow));
@@ -1151,7 +1535,7 @@ void LiveLooperEditor::showSetupMenu()
     juce::PopupMenu pushMenu;
     if (proc.isPushAvailable())
     {
-        pushMenu.addItem (140, tr ("Control from Ableton Push (User port)"), true, proc.isPushEnabled());
+        pushMenu.addItem (140, tr ("Control from Push 1 (User port)"), true, proc.isPushEnabled());
         pushMenu.addItem (149, proc.getPushStatus(), false);
         pushMenu.addSeparator();
         pushMenu.addItem (148, tr ("Press USER on Push to switch between your DAW and livelooper"), false);
@@ -1194,184 +1578,248 @@ void LiveLooperEditor::showSetupMenu()
                                      : "Plug-in: downloaded and prepared, you install it with your DAW closed"), false);
 
     juce::PopupMenu menu;
-    menu.addSectionHeader (tr ("livelooper setup"));
+    // ---- Sets
+    menu.addSectionHeader (tr ("Sets"));
     menu.addItem (8, tr ("Save set ..."));
     menu.addItem (9, tr ("Load set ..."));
     menu.addSubMenu (tr ("Last used sets"), recentMenu);
+    addBackupMenu (menu, toggles);    // v1.7 auto backup
     menu.addItem (10, tr ("Export stems (one WAV per track) ..."));
-    menu.addSeparator();
+    addFeatures16Menu (menu, 0);      // v1.6: shared set, welcome, demo / empty set
+    // ---- Looper
+    menu.addSectionHeader (tr ("Looper"));
     menu.addSubMenu (tr ("Tracks"), tracksMenu);
+    menu.addItem (450, tr ("Track meters"), true, TrackStrip::showMeters);
+    menu.addSubMenu (tr ("Record action"), rec);
+    menu.addItem (451, tr ("Free first loop (no other loop, no metronome / rhythm, host stopped: ends on the press and sets the tempo)"), true, proc.getFreeFirstLoop());
+    menu.addSubMenu (tr ("Maximum loop length"), memory);
     menu.addSubMenu (tr ("Capture length"), captureMenu);
     menu.addSubMenu (tr ("Auto record"), autoRecMenu);
     menu.addSubMenu (tr ("Ducking source"), duckMenu);
-    if (proc.hasCueOutput())
-        menu.addSubMenu (tr ("Direct track outputs"), directMenu);
-    if (proc.isPushAvailable())
-        menu.addSubMenu (tr ("Ableton Push"), pushMenu);
-    menu.addSeparator();
-    menu.addSubMenu (tr ("Record action"), rec);
     menu.addItem (3, tr ("Follow host transport (start / stop with the host)"), true, follow->get());
-    menu.addSubMenu (tr ("Maximum loop length"), memory);
     menu.addItem (4, tr ("Save loops with the project"), true, proc.getSaveLoopsWithProject());
+    menu.addItem (7, tr ("Type in tempo (BPM) ..."));
+    // ---- Rhythm
+    menu.addSectionHeader (tr ("Rhythm"));
     menu.addSubMenu (tr ("Metronome sound"), click);
     menu.addSubMenu (tr ("Rhythm groove"), grooveMenu);
     menu.addSubMenu (tr ("Rhythm fills"), fillsMenu);
+    // ---- Recording
+    menu.addSectionHeader (tr ("Recording"));
+    addFeatures16Menu (menu, 1);      // v1.6: performance recorder, clip export
+    // ---- Audio (v1.7: always - latency measurement / compensation)
+    menu.addSectionHeader (tr ("Audio"));
+    addLatencyMenu (menu, toggles);
     if (proc.hasCueOutput())
+    {
         menu.addSubMenu (tr ("Cue output (click / rhythm)"), cue);
+        menu.addSubMenu (tr ("Direct track outputs"), directMenu);
+    }
+    // ---- Controllers
+    menu.addSectionHeader (tr ("Controllers"));
+    if (proc.isPushAvailable())
+        menu.addSubMenu (tr ("Push 1"), pushMenu);
     if (proc.isKeyboardControlAvailable())
     {
-        menu.addSeparator();
         menu.addItem (5, tr ("Computer keyboard control"), true, proc.getKeyMap().isEnabled());
         menu.addItem (6, tr ("Keyboard mapping ..."));
     }
-    menu.addItem (7, tr ("Type in tempo (BPM) ..."));
-    menu.addSeparator();
+    addControllerMenu (menu, toggles);  // v1.6: K.O. II, Controller GUI
+    addController17Menu (menu, toggles);  // v1.7: velocity curves, Push 1 display, MIDI feedback
+    addFeatures16Menu (menu, 2);      // v1.6: controller templates
+    // ---- Sync
+    menu.addSectionHeader (tr ("Display"));      // v1.7
+    addDisplayMenu (menu, toggles);
+    menu.addSectionHeader (tr ("Sync"));
     menu.addSubMenu (tr ("Ableton Link"), linkMenu);
+    // ---- App
+    menu.addSectionHeader (tr ("App"));
+    menu.addSubMenu ("Language / Sprache", language);
     menu.addSubMenu (tr ("Settings on start"), startMenu);
     menu.addSubMenu (tr ("Updates"), updateMenu);
-    menu.addSubMenu ("Language / Sprache", language);
-    menu.addSeparator();
     menu.addItem (430, tr ("Help ..."));
+    addFeatures16Menu (menu, 3);      // v1.6: guided tour
     menu.addItem (431, tr ("About livelooper ..."));
 
-    juce::Component::SafePointer<LiveLooperEditor> safe (this);
-    menu.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&setupBtn),
-                        [safe, recAction, follow, lengths, clickSound, captureBars, autoRec, autoRecThresh, duckSource, thresholds,
-                         recent, linkOn, linkStartStop, groove, fills] (int r) {
-        if (safe == nullptr || r == 0)
+    toggles.addArray ({ 3, 4, 5, 120, 140, 400, 401, 421, 422, 450, 451 });
+    toggles.addArray ({ -410, -411, -100, -101, -1, -2 });     // radio groups (shown as pop-ups even when nothing is ticked)
+    return menu;
+}
+
+void LiveLooperEditor::handleSetupResult (int r)
+{
+    if (r == 0)
+        return;
+    if (handleFeatures16Menu (r))      // v1.6
+        return;
+    if (handleControllerMenu (r))      // v1.6 K.O. II / Controller GUI
+        return;
+    if (handleDisplayMenu (r))         // v1.7 display
+        return;
+    if (handleBackupMenu (r))          // v1.7 auto backup
+        return;
+    if (handle17Menu (r))              // v1.7 latency, velocity curves, MIDI feedback
+        return;
+    auto& st = proc.getState();
+    auto* recAction = dynamic_cast<juce::AudioParameterChoice*> (st.getParameter (gRecAction));
+    auto* follow = dynamic_cast<juce::AudioParameterBool*> (st.getParameter (gFollow));
+    const int lengths[] = { 30, 60, 120, 240, 480 };
+    auto* clickSound = dynamic_cast<juce::AudioParameterChoice*> (st.getParameter (gClickSound));
+    auto* groove = dynamic_cast<juce::AudioParameterChoice*> (st.getParameter (gRhythmGroove));
+    auto* fills = dynamic_cast<juce::AudioParameterChoice*> (st.getParameter (gRhythmFills));
+    auto* captureBars = dynamic_cast<juce::AudioParameterChoice*> (st.getParameter (gCaptureBars));
+    auto* autoRec = dynamic_cast<juce::AudioParameterBool*> (st.getParameter (gAutoRec));
+    auto* autoRecThresh = dynamic_cast<juce::AudioParameterFloat*> (st.getParameter (gAutoRecThresh));
+    auto* duckSource = dynamic_cast<juce::AudioParameterChoice*> (st.getParameter (gDuckSource));
+    const std::array<int, 5> thresholds { -50, -40, -30, -20, -12 };
+    const auto recent = appsettings::getRecentSets();
+    auto* linkOn = dynamic_cast<juce::AudioParameterBool*> (st.getParameter (gLinkOn));
+    auto* linkStartStop = dynamic_cast<juce::AudioParameterBool*> (st.getParameter (gLinkStartStop));
+    if (r == 451)
+    {
+        proc.setFreeFirstLoop (! proc.getFreeFirstLoop());
+        return;
+    }
+    if (r == 450)
+    {
+        TrackStrip::showMeters = ! TrackStrip::showMeters;
+        appsettings::setValue ("trackMeters", TrackStrip::showMeters ? "1" : "0");
+        for (auto& s : strips)
+            s->resized();
+        surface.repaint();
+        return;
+    }
+    auto setParam = [] (juce::RangedAudioParameter* p, float plain) {
+        p->beginChangeGesture();
+        p->setValueNotifyingHost (p->convertTo0to1 (plain));
+        p->endChangeGesture();
+    };
+    // ---- v1.5
+    if (r >= 500 && r < 500 + groove->choices.size())
+    {
+        setParam (groove, (float) (r - 500));
+        showStatus (tr ("GROOVE: %1", i18n::upper (tr (grooveChoices()[r - 500]))));
+        return;
+    }
+    if (r >= 520 && r < 520 + fills->choices.size())
+    {
+        setParam (fills, (float) (r - 520));
+        showStatus (tr ("FILLS: %1", i18n::upper (tr (fillChoices()[r - 520]))));
+        return;
+    }
+    if (r >= 300 && r < 300 + recent.size())
+    {
+        loadSetFile (juce::File (recent[r - 300]));
+        return;
+    }
+    switch (r)
+    {
+        case 299: appsettings::clearRecentSets(); return;
+        case 400:
+            setParam (linkOn, linkOn->get() ? 0.0f : 1.0f);
+            showStatus (tr (linkOn->get() ? "LINK ON" : "LINK OFF"));
             return;
-        auto setParam = [] (juce::RangedAudioParameter* p, float plain) {
-            p->beginChangeGesture();
-            p->setValueNotifyingHost (p->convertTo0to1 (plain));
-            p->endChangeGesture();
-        };
-        // ---- v1.5
-        if (r >= 500 && r < 500 + groove->choices.size())
-        {
-            setParam (groove, (float) (r - 500));
-            safe->showStatus (tr ("GROOVE: %1", i18n::upper (tr (grooveChoices()[r - 500]))));
+        case 401: setParam (linkStartStop, linkStartStop->get() ? 0.0f : 1.0f); return;
+        case 410: appsettings::setStartupMode (appsettings::StartupMode::LastSettings); return;
+        case 411: appsettings::setStartupMode (appsettings::StartupMode::Defaults); return;
+        case 412:
+            proc.applyDefaultSettings();
+            showStatus (tr ("SETTINGS RESET TO DEFAULTS"));
             return;
-        }
-        if (r >= 520 && r < 520 + fills->choices.size())
-        {
-            setParam (fills, (float) (r - 520));
-            safe->showStatus (tr ("FILLS: %1", i18n::upper (tr (fillChoices()[r - 520]))));
-            return;
-        }
-        if (r >= 300 && r < 300 + recent.size())
-        {
-            safe->loadSetFile (juce::File (recent[r - 300]));
-            return;
-        }
-        switch (r)
-        {
-            case 299: appsettings::clearRecentSets(); return;
-            case 400:
-                setParam (linkOn, linkOn->get() ? 0.0f : 1.0f);
-                safe->showStatus (tr (linkOn->get() ? "LINK ON" : "LINK OFF"));
-                return;
-            case 401: setParam (linkStartStop, linkStartStop->get() ? 0.0f : 1.0f); return;
-            case 410: appsettings::setStartupMode (appsettings::StartupMode::LastSettings); return;
-            case 411: appsettings::setStartupMode (appsettings::StartupMode::Defaults); return;
-            case 412:
-                safe->proc.applyDefaultSettings();
-                safe->showStatus (tr ("SETTINGS RESET TO DEFAULTS"));
-                return;
-            case 420: safe->checkForUpdates (true); return;
-            case 421: appsettings::setCheckUpdatesOnStart (! appsettings::getCheckUpdatesOnStart()); return;
-            case 422: appsettings::setAutoInstallUpdates (! appsettings::getAutoInstallUpdates()); return;
-            case 430: safe->showHelp(); return;
-            case 431: safe->showAbout(); return;
-            default: break;
-        }
-        if (r == 10)
-        {
-            safe->exportStems();
-            return;
-        }
-        if (r == 100 || r == 101)
-        {
-            safe->proc.setVisibleTracks (r == 100 ? 5 : 8);
-            return;
-        }
-        if (r >= 110 && r < 110 + kNumCaptureChoices)
-        {
-            setParam (captureBars, (float) (r - 110));
-            return;
-        }
-        if (r == 120)
-        {
-            setParam (autoRec, autoRec->get() ? 0.0f : 1.0f);
-            safe->showStatus (tr (autoRec->get() ? "AUTO REC ON" : "AUTO REC OFF"));
-            return;
-        }
-        if (r >= 121 && r <= 125)
-        {
-            setParam (autoRecThresh, (float) thresholds[(size_t) (r - 121)]);
-            return;
-        }
-        if (r == 140)
-        {
-            safe->proc.setPushEnabled (! safe->proc.isPushEnabled());
-            return;
-        }
-        if (r >= 130 && r < 132)
-        {
-            setParam (duckSource, (float) (r - 130));
-            return;
-        }
-        if (r >= 200 && r < 200 + kNumTracks * 10)
-        {
-            safe->proc.setTrackOutputPair ((r - 200) / 10, (r - 200) % 10);
-            return;
-        }
-        if (r == 1 || r == 2)
-            recAction->setValueNotifyingHost (recAction->convertTo0to1 ((float) (r - 1)));
-        else if (r == 3)
-            follow->setValueNotifyingHost (follow->get() ? 0.0f : 1.0f);
-        else if (r == 4)
-            safe->proc.setSaveLoopsWithProject (! safe->proc.getSaveLoopsWithProject());
-        else if (r == 5)
-        {
-            auto& km = safe->proc.getKeyMap();
-            km.setEnabled (! km.isEnabled());
-            safe->showStatus (tr (km.isEnabled() ? "KEYBOARD CONTROL ON" : "KEYBOARD CONTROL OFF"));
-            if (km.isEnabled())
-                safe->grabKeyboardFocus();
-        }
-        else if (r == 6)
-            KeyMapEditor::show (safe->proc, *safe);
-        else if (r == 7)
-            safe->showTempoEntry();
-        else if (r == 8)
-            safe->saveSet();
-        else if (r == 9)
-            safe->loadSet();
-        else if (r >= 40 && r < 40 + clickSound->choices.size())
-        {
-            clickSound->beginChangeGesture();
-            clickSound->setValueNotifyingHost (clickSound->convertTo0to1 ((float) (r - 40)));
-            clickSound->endChangeGesture();
-            safe->showStatus (tr ("METRONOME: %1", i18n::upper (tr (clickSoundChoices()[r - 40]))));
-        }
-        else if (r >= 50 && r <= 50 + LiveLooperProcessor::kNumCuePairs)
-        {
-            safe->proc.setCuePair (r - 50);
-            safe->showStatus (tr ("CUE: %1", i18n::upper (LiveLooperProcessor::getCuePairName (r - 50))));
-        }
-        else if (r >= 60 && r <= 62)
-            safe->proc.setClickRoute ((ClickRoute) (r - 60));
-        else if (r >= 20 && r < 25)
-        {
-            safe->proc.setMaxLoopSeconds (lengths[r - 20]);
-            safe->showStatus (tr ("MAX LOOP LENGTH %1 S", juce::String (lengths[r - 20])));
-        }
-        else if (r >= 30 && r <= 32)
-        {
-            i18n::setSetting ((i18n::Language) (r - 30));
-            safe->showStatus (tr ("LANGUAGE: ENGLISH"));
-        }
-    });
+        case 420: checkForUpdates (true); return;
+        case 421: appsettings::setCheckUpdatesOnStart (! appsettings::getCheckUpdatesOnStart()); return;
+        case 422: appsettings::setAutoInstallUpdates (! appsettings::getAutoInstallUpdates()); return;
+        case 430: showHelp(); return;
+        case 431: showAbout(); return;
+        default: break;
+    }
+    if (r == 10)
+    {
+        exportStems();
+        return;
+    }
+    if (r == 100 || r == 101)
+    {
+        proc.setVisibleTracks (r == 100 ? 5 : 8);
+        return;
+    }
+    if (r >= 110 && r < 110 + kNumCaptureChoices)
+    {
+        setParam (captureBars, (float) (r - 110));
+        return;
+    }
+    if (r == 120)
+    {
+        setParam (autoRec, autoRec->get() ? 0.0f : 1.0f);
+        showStatus (tr (autoRec->get() ? "AUTO REC ON" : "AUTO REC OFF"));
+        return;
+    }
+    if (r >= 121 && r <= 125)
+    {
+        setParam (autoRecThresh, (float) thresholds[(size_t) (r - 121)]);
+        return;
+    }
+    if (r == 140)
+    {
+        proc.setPushEnabled (! proc.isPushEnabled());
+        return;
+    }
+    if (r >= 130 && r < 132)
+    {
+        setParam (duckSource, (float) (r - 130));
+        return;
+    }
+    if (r >= 200 && r < 200 + kNumTracks * 10)
+    {
+        proc.setTrackOutputPair ((r - 200) / 10, (r - 200) % 10);
+        return;
+    }
+    if (r == 1 || r == 2)
+        recAction->setValueNotifyingHost (recAction->convertTo0to1 ((float) (r - 1)));
+    else if (r == 3)
+        follow->setValueNotifyingHost (follow->get() ? 0.0f : 1.0f);
+    else if (r == 4)
+        proc.setSaveLoopsWithProject (! proc.getSaveLoopsWithProject());
+    else if (r == 5)
+    {
+        auto& km = proc.getKeyMap();
+        km.setEnabled (! km.isEnabled());
+        showStatus (tr (km.isEnabled() ? "KEYBOARD CONTROL ON" : "KEYBOARD CONTROL OFF"));
+        if (km.isEnabled())
+            grabKeyboardFocus();
+    }
+    else if (r == 6)
+        KeyMapEditor::show (proc, *this);
+    else if (r == 7)
+        showTempoEntry();
+    else if (r == 8)
+        saveSet();
+    else if (r == 9)
+        loadSet();
+    else if (r >= 40 && r < 40 + clickSound->choices.size())
+    {
+        clickSound->beginChangeGesture();
+        clickSound->setValueNotifyingHost (clickSound->convertTo0to1 ((float) (r - 40)));
+        clickSound->endChangeGesture();
+        showStatus (tr ("METRONOME: %1", i18n::upper (tr (clickSoundChoices()[r - 40]))));
+    }
+    else if (r >= 50 && r <= 50 + LiveLooperProcessor::kNumCuePairs)
+    {
+        proc.setCuePair (r - 50);
+        showStatus (tr ("CUE: %1", i18n::upper (LiveLooperProcessor::getCuePairName (r - 50))));
+    }
+    else if (r >= 60 && r <= 62)
+        proc.setClickRoute ((ClickRoute) (r - 60));
+    else if (r >= 20 && r < 25)
+    {
+        proc.setMaxLoopSeconds (lengths[r - 20]);
+        showStatus (tr ("MAX LOOP LENGTH %1 S", juce::String (lengths[r - 20])));
+    }
+    else if (r >= 30 && r <= 32)
+    {
+        i18n::setSetting ((i18n::Language) (r - 30));
+        showStatus (tr ("LANGUAGE: ENGLISH"));
+    }
 }
 
 //============================================================================== stems
@@ -1411,7 +1859,7 @@ void LiveLooperEditor::saveSet()
 void LiveLooperEditor::loadSet()
 {
     const auto dir = juce::File::getSpecialLocation (juce::File::userMusicDirectory);
-    chooser = std::make_unique<juce::FileChooser> (tr ("Load set"), dir, "*.llset");
+    chooser = std::make_unique<juce::FileChooser> (tr ("Load set"), dir, "*.llset;*.livelooper");
     juce::Component::SafePointer<LiveLooperEditor> safe (this);
     chooser->launchAsync (juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
                           [safe] (const juce::FileChooser& fc) {
@@ -1477,14 +1925,14 @@ bool LiveLooperEditor::isInterestedInFileDrag (const juce::StringArray& files)
         if (juce::File (f).isAChildOf (LiveLooperProcessor::getDragExportFolder()))
             return false;
     for (const auto& f : files)
-        if (juce::File (f).hasFileExtension ("wav;aif;aiff;flac;ogg;mp3;llset"))
+        if (juce::File (f).hasFileExtension ("wav;aif;aiff;flac;ogg;mp3;llset;livelooper"))
             return true;
     return false;
 }
 
 void LiveLooperEditor::filesDropped (const juce::StringArray& files, int x, int y)
 {
-    if (juce::File (files[0]).hasFileExtension ("llset"))
+    if (juce::File (files[0]).hasFileExtension ("llset;livelooper"))
     {
         loadSetFile (juce::File (files[0]));
         return;
@@ -1545,5 +1993,50 @@ void LiveLooperEditor::checkForUpdates (bool userInitiated)
         if (safe != nullptr)
             safe->showStatus (message);
     });
+}
+//============================================================================== v1.6 rhythm (branch v1.6-rhythm)
+void LiveLooperEditor::layoutRhythm16 (int dx)
+{
+    // header buttons: BEATS + FILL in the rhythm panel, DRUMS in the beat FX and beat repeat panels
+    // (DRUMS buttons: in the title rows of the BEAT FX and REPEAT / STUTTER panels, see layoutFxPanel)
+    const auto rh = layout::rhythm.translated (dx, 0);
+    beatsBtn.setBounds (rh.getRight() - 12 - 60, rh.getY() + 8, 60, 22);
+    fillBtn->setBounds (rh.getRight() - 12 - 60 - 6 - 50, rh.getY() + 8, 50, 22);
+    if (beatsPage != nullptr)
+        beatsPage->setBounds (juce::Rectangle<int> (12, layout::row1Y, surfaceWidth() - 24,
+                                                    layout::tracks.getBottom() - layout::row1Y));
+}
+
+void LiveLooperEditor::showBeatsPage (bool show)
+{
+    if (beatsPage == nullptr)
+        return;
+    beatsPage->setVisible (show);
+    if (show)
+        beatsPage->toFront (false);
+    overlay.toFront (false);
+    beatsBtn.setToggleState (show, juce::dontSendNotification);
+}
+
+void LiveLooperEditor::refreshPatternNames()
+{
+    // the pattern / kit selectors show the names of the user patterns and the sound-pack kits
+    const int v = proc.getUserPatterns().getVersion() * 31 + SoundPacks::get().getVersion() * 7 + (i18n::isGerman() ? 1 : 0);
+    if (v == lastPatternNamesVersion && blinkCounter % 15 != 0)
+        return;
+    lastPatternNamesVersion = v;
+    const int presets = RhythmGenerator::getNumPatterns();
+    for (int i = presets; i < rhythmPattern.getNumItems(); ++i)
+    {
+        const auto name = proc.getPatternDisplayName (i);
+        if (rhythmPattern.getItemText (i) != name)
+            rhythmPattern.changeItemText (i + 1, name);
+    }
+    for (int k = RhythmGenerator::getNumKits(); k < rhythmKit.getNumItems(); ++k)
+    {
+        const auto name = proc.getKitDisplayName (k);
+        if (rhythmKit.getItemText (k) != name)
+            rhythmKit.changeItemText (k + 1, name);
+    }
 }
 } // namespace livelooper

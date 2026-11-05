@@ -55,15 +55,45 @@ Version 1.0 (`third_party/link/modules/asio-standalone/LICENSE_1_0.txt`).
 
 ## Drum samples
 
-Every drum sample of the built-in kits (Studio, 808, 909 Style, Lo-Fi) comes from a source
-released under **CC0 1.0** or into the **public domain**; the file `resources/drums/SOURCES.md`
+Every drum sample of the built-in kits (Studio, 808, 909 Style, Lo-Fi and, since 1.6, House,
+Techno, Boom Bap, Trap, Breaks, Rock, Disco, Afro Latin) is a real recording from a source released
+under **CC0 1.0** or into the **public domain**: VCSL (Versilian Studios), the TR-808 set by Michael
+Fischer, the TR-707 set of fluid-music/open-drums, the freesound.org samples shipped with Sonic Pi,
+LinnDrum LM-2 (oramics/sampled) and, since 1.6, the sfzinstruments libraries Virtuosity Drums
+(Versilian Studios / Karoryfer Samples), Big Rusty Drums, Swirly Drums and Frankensnare (Karoryfer
+Samples) and Body Percussion. The file `resources/drums/SOURCES.md`
 lists every sample with its original file, source and license statement. The samples were
 converted, trimmed and normalised by `tools/samples/build_drum_samples.py`. The kit names
-describe a sound style and do not imply endorsement by any manufacturer. *Deutsch:* Alle
-Drum-Samples stammen aus Quellen unter CC0 1.0 oder sind gemeinfrei (Liste in
-`resources/drums/SOURCES.md`); die Kit-Namen beschreiben einen Klangstil.
+describe a sound style and do not imply endorsement by any manufacturer. Sound packs that users
+import carry their own licences. *Deutsch:* Alle
+Drum-Samples sind echte Aufnahmen aus Quellen unter CC0 1.0 oder gemeinfrei (Liste mit Datei,
+Quelle und Lizenz in `resources/drums/SOURCES.md`); die Kit-Namen beschreiben
+einen Klangstil. Sound-Packs von Nutzern bringen ihre eigenen Lizenzen mit.
+
+<!-- v1.6 features -->
+## Demo loops (since 1.6)
+
+The three loops of the demo set (`resources/demo/*.flac`, `presets/demo-set.livelooper`) are
+synthesised from scratch by `tools/demo/make_demo_loops.py` (no samples, no third-party audio)
+and released under **CC0 1.0** (public domain dedication). *Deutsch:* Die Demo-Loops sind selbst
+erzeugt und unter CC0 1.0 freigegeben.
+
+## Manrope font (since 1.6)
+
+The 9:16 clip export draws its titles with **Manrope** (`resources/fonts/Manrope-600.ttf`,
+`Manrope-800.ttf`), Copyright 2018 The Manrope Project Authors (https://github.com/sharanda/manrope),
+licensed under the **SIL Open Font License 1.1** (https://openfontlicense.org). The font is embedded
+unmodified; it may be bundled with software under any license. *Deutsch:* Die Schrift Manrope steht
+unter der SIL Open Font License 1.1.
+
+## Video encoding (since 1.6)
+
+The clip export uses the video encoders of the operating system (AVFoundation on macOS, Media
+Foundation on Windows). On Linux it can call an **ffmpeg** program that the user installed; ffmpeg
+is not part of livelooper and is not distributed with it.
+<!-- end v1.6 features -->
 
 ## Trademarks
 
-Ableton, Push, Link and all other product names mentioned are trademarks of their
+Ableton, Push, Link, Launchpad, Launchkey, APC and all other product names mentioned are trademarks of their
 respective owners; livelooper is not affiliated with or endorsed by them.

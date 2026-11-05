@@ -26,7 +26,9 @@ class LoopTrack
 {
 public:
     enum class State : int { Empty = 0, Recording, Playing, Overdubbing, Stopped };
-    enum class UndoKind : int { None = 0, Recording, Overdub, Length };
+    enum class UndoKind : int { None = 0, Recording, Overdub, Length, Rewrite };
+    /** v1.6 loop tricks: the loop audio is rewritten (undoable like an overdub). */
+    enum class Trick : int { HalfSpeed = 0, DoubleSpeed, Reverse, HalveLength, DoubleLength, NumTricks };
 
     static constexpr int kChunkShift = 9;
     static constexpr int kChunkSize  = 1 << kChunkShift;
@@ -83,6 +85,12 @@ public:
     bool multiply() noexcept;
     /** Halves the loop length (keeps the first half). Playing or stopped tracks only. Undoable. */
     bool halve() noexcept;
+    /** v1.6 loop tricks (audio thread). HalfSpeed: the loop plays at half speed, an octave lower,
+        and becomes twice as long (only the first half is kept when the memory is too short).
+        DoubleSpeed: twice as fast, an octave higher, played twice so the length stays.
+        Reverse: the recorded audio itself is reversed. HalveLength / DoubleLength = halve() /
+        multiply(). Playing or stopped tracks only; one UNDO restores the loop. */
+    bool applyTrick (Trick t) noexcept;
     /** Copies the loop of another track into this (empty) track; it ends up stopped, anchored like the source. */
     bool copyFrom (const LoopTrack& source) noexcept;
     /** Sets / changes the planned length of the running first recording. Returns true when the
@@ -91,7 +99,24 @@ public:
 
     /** Re-aligns the playback position with the timeline (after a transport jump). */
     void resyncToTimeline (double ppqNow);
+    /** v1.6 (K.O. II latency): plays the loop 'samples' earlier against the timeline, so audio that
+        arrived late (USB input latency) sits on the beat. Lock the track first. */
+    void nudgeAlignment (int samples) noexcept;
+    /** v1.7 latency compensation: round trip (output + input latency) in samples. A finished first
+        recording is moved by it (like nudgeAlignment), overdubs write the input that many samples
+        earlier into the loop, so everything played to the loop lands where it was heard. */
+    void setInputLatency (int samples) noexcept          { inputLatency = std::max (0, samples); }
+    int  getInputLatency() const noexcept                { return inputLatency; }
     void invalidateAnchor() noexcept                     { anchorValid = false; }
+    /** v1.7 free first loop: the loop's tempo is now samplesPerPpq; anchored so its current position sits at ppqNow. */
+    void retime (double samplesPerPpq, double ppqNow) noexcept
+    {
+        if (samplesPerPpq <= 0.0)
+            return;
+        recSamplesPerPpq = samplesPerPpq;
+        anchorPpq = ppqNow - (double) playPos / samplesPerPpq;
+        anchorValid = true;
+    }
 
     //============================================================================== processing
     /** Processes a block segment. out* receive the dry track signal (added), fx* receive the
@@ -129,6 +154,11 @@ public:
         audio thread). Fills numBins peak values 0..1 over the loop (or the recording so far,
         spread over maxSpanSamples when > 0). Returns false when there is nothing to show. */
     bool getWaveform (float* bins, int numBins, int maxSpanSamples = 0) const noexcept;
+    /** v1.7: the last overdub layer for the display (message thread, never the audio thread): per bin the
+        peak of what the current / last overdub changed (new minus previous layer, read from the two
+        preallocated layers in strides; nothing is stored or allocated). Older overdubs are merged into the
+        loop (the track keeps one undo level). Returns false when there is no undoable overdub layer. */
+    bool getOverdubLayer (float* bins, int numBins) const noexcept;
 
     /** Normalised playback/record position 0..1 (recording: grows with recorded length). */
     float getProgress() const noexcept;
@@ -136,6 +166,9 @@ public:
     //============================================================================== import / export (message thread, track locked)
     /** Copies the current loop (merged layers) into the destination (must hold getLength() samples). */
     void readLoop (float* dstL, float* dstR) const noexcept;
+    /** v1.7 auto backup: a cheap fingerprint of the loop audio (weighted sum of `points` evenly spaced
+        samples per channel). Changes when the loop is overdubbed, replaced, reversed in place ... */
+    double sparseChecksum (int points = 4096) const noexcept;
     /** Replaces the loop with the given audio; the track ends up stopped. */
     void loadLoop (const float* srcL, const float* srcR, int numSamples, double samplesPerPpq);
     /** Loads numSamples from a ring buffer starting at start (wrapping), crossfades the loop end
@@ -180,6 +213,7 @@ private:
             a.store (v, std::memory_order_relaxed);
     }
     void recomputeChunkPeak (int layer, size_t chunk) noexcept;
+    void flipTouchedChunks() noexcept;   // v1.6
     bool wantsStretch() const noexcept;
     /** Renders numSamples of stretched / pitched loop audio into stretchOutL/R. */
     void renderStretched (int numSamples) noexcept;
@@ -207,6 +241,7 @@ private:
     int    recPos = 0;
     int    playPos = 0;
     int    autoFinish = 0;
+    int    inputLatency = 0;                  // v1.7: round-trip latency compensation (samples)
     int    savedLength = 0;                   // for redo of an undone first recording
     double sampleRate = 44100.0;
     double recSamplesPerPpq = 0.0;

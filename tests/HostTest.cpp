@@ -89,7 +89,21 @@ int main (int argc, char* argv[])
     for (auto* p : plugin->getParameters())
         if (! p->getName (64).startsWith ("MIDI CC") && p->getName (64) != "Bypass")
             ++looperParams;
-    check (looperParams == 400, "400 looper parameters exposed (" + juce::String (looperParams) + ")");
+    // 400 up to 1.5, + 26 v1.6 features (loop tricks x 8 tracks, performance recorder, clip export)
+    // + 37 v1.6 rhythm (variation, fill, pattern switch, drum FX routing x 2, BEATS rows x 8 x 4)
+    // + 2 v1.6 beat library (next / previous library beat)
+    // + 23 v1.6 punch FX / send FX / controller (sfx_* x 4, pfx_hold1..12, pfx_* x 5, ctl_audio_mode, ko2_resample)
+    // + 1 v1.6 punch FX hold ramp (pfx_hold_ramp)
+    constexpr int kExpectedParams = 400
+                                  + 26    // v1.6 features
+                                  + 37    // v1.6 rhythm
+                                  + 2     // v1.6 beat library
+                                  + 23    // v1.6 punch FX, send FX, controller
+                                  + 1     // v1.6 punch FX hold ramp
+                                  + 8     // v1.7 latency (3), velocity curves (3), MIDI feedback, Push 1 progress bars
+                                  + 4     // v1.7 display: Live view, stage mode, colour theme, waveforms
+                                  + 2;    // v1.7 views: Live view FX bar, view selector
+    check (looperParams == kExpectedParams, juce::String (kExpectedParams) + " looper parameters exposed (" + juce::String (looperParams) + ")");
 
     plugin->enableAllBuses();
     plugin->setPlayConfigDetails (2, 2, 48000.0, 512);

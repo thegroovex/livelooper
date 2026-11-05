@@ -138,7 +138,7 @@ livelooper works the same way in every VST3/AU host. The short version is below;
 
 More in [MIDI.md](MIDI.md).
 
-**Tempo**: with **HOST SYNC** (default) livelooper follows Live's tempo, time signature and position. When the transport is stopped, an internal clock keeps counting at the host tempo – in Live as in any other DAW.
+**Tempo**: with **HOST SYNC** (default) livelooper follows Live's tempo, time signature and position. **Follow host transport** is on by default since 1.7: press stop in Live and livelooper stops its loops, press play and they start again in sync (switch it off under **SETUP → Looper** if livelooper should keep looping on an internal clock at the host tempo while the transport stands still) – in Live as in any other DAW.
 
 ## Standalone app
 
@@ -155,6 +155,14 @@ The standalone app can be played with the computer keyboard (1–5 REC/PLAY, Q�
 ## First start: settings and updates
 
 On the first start livelooper asks once whether it should start with the **last used settings** or the **default settings** (change it any time under **SETUP → Settings on start**). Updates: **SETUP → Updates** or the **About** window (**SETUP → About livelooper …**) check GitHub for a new version; the app can download and install it when you quit, plug-ins are prepared and installed with your DAW closed. Nothing is checked unless you switch it on.
+
+## First start: measure the latency (1.7)
+
+So that overdubs land exactly on the beat, measure your audio interface once: **SETUP → Audio → Latency → Measure latency …** – connect an output of your interface to an input with a cable (or hold a microphone close to the speaker) and click. It takes about 4 seconds; the result is stored per audio device, and *Latency compensation* is on by default. In a DAW measure inside the DAW, on the looper track with input monitoring on. Details: user guide, section 41.
+
+## Display: size, theme, stage mode (1.7)
+
+Too small or too large on your screen? **SETUP → Display → Interface size** (75 – 200 %, also Ctrl/Cmd + / −). There you also find the light theme, the high-contrast stage mode, large waveforms (off by default) and the Live view for the stage (user guide, sections 43 and 44).
 
 ## Language
 

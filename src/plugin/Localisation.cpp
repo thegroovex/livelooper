@@ -33,7 +33,7 @@ namespace
         { "REV", "R\xc3\x9c" "CKW." },
         { "1SHOT", "1SHOT" },
         { "FX", "FX" },
-        { "UNDO", "ZUR\xc3\x9c" "CK" },
+        { "UNDO", "UNDO" },
         { "REDO", "VOR" },
         { "LOOP SYNC", "LOOP-SYNC" },
         { "CLEAR", "L\xc3\x96SCHEN" },
@@ -176,10 +176,11 @@ namespace
         { "Studio", "Studio" },
         { "808", "808" },
         { "909", "909" },
-        { "Control from Ableton Push (User port)", "Steuerung mit Ableton Push (User-Port)" },
+        { "Control from Push 1 (User port)", "Steuerung mit Push 1 (User-Port)" },
         { "Press USER on Push to switch between your DAW and livelooper", "USER auf Push wechselt zwischen deiner DAW und livelooper" },
-        { "Ableton Push", "Ableton Push" },
+        { "Push 1", "Push 1" },
         { "Connected: %1", "Verbunden: %1" },
+        { "Connected", "Verbunden" },
         { "Push found, but its User port is in use (Windows: switch it off in your DAW's MIDI settings)", "Push gefunden, aber sein User-Port ist belegt (Windows: in den MIDI-Einstellungen deiner DAW ausschalten)" },
         { "No Push found", "Kein Push gefunden" },
         { "Push is controlled by another livelooper instance", "Push wird von einer anderen livelooper-Instanz gesteuert" },
@@ -306,6 +307,8 @@ namespace
 
         // ---------------------------------------------------------------- parameter names
         { "T%1 %2", "S%1 %2" },
+        { "Lvl %1", "Peg %1" },
+        { "Pit %1", "Ton %1" },
         { "Track %1", "Spur %1" },
         { "Global", "Global" },
         { "Input FX", "Eingangs-FX" },
@@ -530,6 +533,7 @@ namespace
         { "Load a saved state ...", "Gespeicherten Zustand laden ..." },
         { "Longer beat fraction", "L\xc3\xa4" "ngerer Notenwert" },
         { "METRONOME", "METRONOM" },
+        { "ACCENT", "BETONUNG" },
         { "Metronome on / off (independent of the rhythm)", "Metronom an / aus (unabh\xc3\xa4" "ngig vom Rhythmus)" },
         { "No access to the microphone", "Kein Zugriff auf das Mikrofon" },
         { "No sets used yet", "Noch keine Sets verwendet" },
@@ -620,6 +624,128 @@ namespace
         { "Automatic installation is not available on this platform", "Automatische Installation ist auf dieser Plattform nicht verf\xc3\xbc" "gbar" },
         { "No plug-ins found in the download", "Keine Plug-ins im Download gefunden" },
         { "Nothing downloaded yet", "Noch nichts heruntergeladen" },
+        // ---------------------------------------------------------------- v1.6 features (branch v1.6-wip)
+        { "Automatic (by MIDI port name)", "Automatisch (nach MIDI-Portname)" },
+        { "CLIP EXPORT FAILED: %1", "CLIP-EXPORT FEHLGESCHLAGEN: %1" },
+        { "CLIP FRAMES + WAV SAVED (NO VIDEO ENCODER): %1", "CLIP-EINZELBILDER + WAV GESPEICHERT (KEIN VIDEO-ENCODER): %1" },
+        { "CLIP SAVED: %1", "CLIP GESPEICHERT: %1" },
+        { "Choose recordings folder", "Ordner f\xc3\xbc" "r Aufnahmen w\xc3\xa4" "hlen" },
+        { "Choose recordings folder ...", "Ordner f\xc3\xbc" "r Aufnahmen w\xc3\xa4" "hlen ..." },
+        { "Clip export 9:16 (Reels, TikTok, Shorts)", "Clip-Export 9:16 (Reels, TikTok, Shorts)" },
+        { "Controller found, but its MIDI port is in use (Windows: switch it off in your DAW's MIDI settings)", "Controller gefunden, aber sein MIDI-Port ist belegt (Windows: in den MIDI-Einstellungen deiner DAW ausschalten)" },
+        { "Controller templates (grid controllers)", "Controller-Vorlagen (Grid-Controller)" },
+        { "Controller templates (grid controllers, experimental)", "Controller-Vorlagen (Grid-Controller, experimentell)" },
+        { "Experimental \xe2\x80\x93 untested on hardware, feedback welcome", "Experimentell \xe2\x80\x93 nicht auf Hardware getestet, Feedback willkommen" },
+        { "experimental", "experimentell" },
+        // v1.6 welcome screen
+        { "LOAD DEMO SET", "DEMO-SET LADEN" }, { "START WITH EMPTY SET", "MIT LEEREM SET STARTEN" }, { "CLOSE", "SCHLIESSEN" },
+        { "Welcome! How do you want to start?", "Willkommen! Wie m\xc3\xb6" "chtest du starten?" },
+        { "Demo set or empty set?", "Demo-Set oder leeres Set?" },
+        { "The demo set has a groove and three loops - press ALL START / STOP and you hear music. The empty set is a blank looper for your own first loop.",
+          "Das Demo-Set hat einen Groove und drei Loops - ALLE START / STOP dr\xc3\xbc" "cken und Musik l\xc3\xa4" "uft. Das leere Set ist ein unbespielter Looper f\xc3\xbc" "r deinen ersten eigenen Loop." },
+        { "The demo set replaces the current set - loops and settings. An empty set can be loaded any time: SETUP > Empty set (clear everything).",
+          "Das Demo-Set ersetzt das aktuelle Set - Loops und Einstellungen. Ein leeres Set kannst du jederzeit laden: SETUP > Leeres Set (alles l\xc3\xb6" "schen)." },
+        { "After your choice a short tour shows the five things to try first.",
+          "Nach deiner Wahl zeigt eine kurze Tour die f\xc3\xbc" "nf Dinge, die du zuerst ausprobieren solltest." },
+        { "A groove and three loops, ready to play - replaces the current set", "Ein Groove und drei Loops, spielbereit - ersetzt das aktuelle Set" },
+        { "A blank looper: every loop cleared, every setting back to its default", "Ein leerer Looper: alle Loops gel\xc3\xb6" "scht, alle Einstellungen auf Standard" },
+        { "Welcome / demo set ...", "Willkommen / Demo-Set ..." },
+        { "The demo set replaces the current set - your loops and settings are lost unless you saved them. Load the demo set?",
+          "Das Demo-Set ersetzt das aktuelle Set - deine Loops und Einstellungen gehen verloren, wenn du sie nicht gespeichert hast. Demo-Set laden?" },
+        { "All loops are cleared and every setting goes back to its default. Continue?",
+          "Alle Loops werden gel\xc3\xb6" "scht und alle Einstellungen auf Standard gesetzt. Weiter?" },
+        { "Clear everything", "Alles l\xc3\xb6" "schen" },
+        { "DEMO SET LOADED - PRESS ALL START / STOP", "DEMO-SET GELADEN - ALLE START / STOP DR\xc3\x9c" "CKEN" },
+        { "DEMO SET LOADED - INPUT MUTED - PRESS ALL START / STOP", "DEMO-SET GELADEN - EINGANG STUMM - ALLE START / STOP DR\xc3\x9c" "CKEN" },
+        { "EMPTY SET", "LEERES SET" },
+        { "EXPORTING 9:16 CLIP ...", "9:16-CLIP WIRD EXPORTIERT ..." },
+        { "Empty set (clear everything)", "Leeres Set (alles l\xc3\xb6" "schen)" },
+        { "Export the last 20 seconds as 9:16 video ...", "Die letzten 20 Sekunden als 9:16-Video exportieren ..." },
+        { "Export the last performance recording as 9:16 video ...", "Die letzte Performance-Aufnahme als 9:16-Video exportieren ..." },
+        { "Guided tour (60 seconds)", "Gef\xc3\xbc" "hrte Tour (60 Sekunden)" },
+        { "Help (every function, searchable) ...", "Hilfe (alle Funktionen, durchsuchbar) ..." },
+        { "Help: every function explained (searchable), guided tour", "Hilfe: alle Funktionen erkl\xc3\xa4" "rt (durchsuchbar), gef\xc3\xbc" "hrte Tour" },
+        { "Load demo set", "Demo-Set laden" },
+        { "Loop Tricks & Recorder", "Loop-Tricks & Recorder" },
+        { "NO PERFORMANCE RECORDING YET", "NOCH KEINE PERFORMANCE-AUFNAHME" },
+        { "NOTHING TO EXPORT YET - PLAY SOMETHING FIRST", "NOCH NICHTS ZU EXPORTIEREN - ERST ETWAS SPIELEN" },
+        { "No supported controller found", "Kein unterst\xc3\xbc" "tzter Controller gefunden" },
+        { "Performance recorder", "Performance-Recorder" },
+        { "Performance recorder: records everything livelooper plays (master mix) as a WAV file into %1", "Performance-Recorder: nimmt alles, was livelooper spielt (Master-Mix), als WAV-Datei auf - in %1" },
+        { "RECORDING FOLDER IS NOT WRITABLE", "AUFNAHME-ORDNER NICHT BESCHREIBBAR" },
+        { "RECORDING SAVED: %1", "AUFNAHME GESPEICHERT: %1" },
+        { "Recording the livelooper output - click to stop. File: %1", "Nimmt die livelooper-Ausgabe auf - Klick stoppt. Datei: %1" },
+        { "STEP %1 / %2", "SCHRITT %1 / %2" },
+        { "Save set to share", "Set zum Teilen speichern" },
+        { "Save set to share (.livelooper, one file with all audio) ...", "Set zum Teilen speichern (.livelooper, eine Datei mit allem Audio) ..." },
+        { "Show recordings folder", "Aufnahme-Ordner zeigen" },
+        { "Start performance recording", "Performance-Aufnahme starten" },
+        { "Stop performance recording", "Performance-Aufnahme stoppen" },
+        { "T%1 double speed", "S%1 doppelte Geschwindigkeit" },
+        { "T%1 half speed", "S%1 halbe Geschwindigkeit" },
+        { "T%1 loop reversed", "S%1 Loop umgedreht" },
+        { "The set is incomplete: %1 is missing.", "Das Set ist unvollst\xc3\xa4" "ndig: %1 fehlt." },
+        { "live loop performance", "Live-Loop-Performance" },
+        { "Half Speed", "Halbe Geschwindigkeit" },
+        { "Double Speed", "Doppelte Geschwindigkeit" },
+        { "Reverse Loop Audio", "Loop-Audio umdrehen" },
+        { "Performance Recorder", "Performance-Recorder" },
+        { "Export 9:16 Clip", "9:16-Clip exportieren" },
+        { "NEXT", "WEITER" },
+        { "BACK", "ZUR\xc3\x9c" "CK" },
+        { "SKIP TOUR", "TOUR \xc3\x9c" "BERSPRINGEN" },
+        { "DONE", "FERTIG" },
+        { "RECORD", "AUFNEHMEN" },
+        { "OVERDUB", "OVERDUB" },
+        { "GROOVE", "GROOVE" },
+        { "SCENE", "SZENE" },
+        { "Press REC/PLAY on a track and play something. Press it again: the loop closes and plays right away. The demo set already holds three loops - press ALL START / STOP to hear them.", "Dr\xc3\xbc" "ck REC/PLAY auf einer Spur und spiel etwas. Nochmal dr\xc3\xbc" "cken: Der Loop schlie\xc3\x9f" "t sich und l\xc3\xa4" "uft sofort. Das Demo-Set hat schon drei Loops - dr\xc3\xbc" "ck ALLE START / STOP, um sie zu h\xc3\xb6" "ren." },
+        { "Press REC/PLAY while the loop plays to record on top of it. Press it again to stop overdubbing. UNDO removes the last layer, REDO brings it back.", "Dr\xc3\xbc" "ck REC/PLAY, w\xc3\xa4" "hrend der Loop l\xc3\xa4" "uft, um dar\xc3\xbc" "ber aufzunehmen. Nochmal dr\xc3\xbc" "cken beendet den Overdub. UNDO entfernt die letzte Schicht, VOR holt sie wieder." },
+        { "RHYTHM starts a drum groove in time with your loops. Choose pattern and kit; SWING and FEEL make it feel played - BEATS lets you build your own patterns.", "RHYTHMUS startet einen Drum-Groove im Takt deiner Loops. W\xc3\xa4" "hle Pattern und Kit; SWING und FEEL machen ihn lebendig - mit BEATS baust du eigene Patterns." },
+        { "Pick a beat FX and press ON - or hold HOLD for a short effect. The FX channel decides where it works: master, loops, input or one track.", "W\xc3\xa4" "hle einen Beat-FX und dr\xc3\xbc" "ck ON - oder halte HOLD f\xc3\xbc" "r einen kurzen Effekt. Der FX-Kanal bestimmt, wo er wirkt: Master, Loops, Eingang oder eine Spur." },
+        { "Scenes remember which tracks play. Press STORE, then a scene button. Later that button starts exactly those tracks, in time. Have fun - the tour is always in the help menu (?).", "Szenen merken sich, welche Spuren laufen. Dr\xc3\xbc" "ck STORE, dann eine Szenen-Taste. Sp\xc3\xa4" "ter startet diese Taste genau diese Spuren, im Takt. Viel Spa\xc3\x9f" " - die Tour findest du jederzeit im Hilfe-Men\xc3\xbc" " (?)." },
+        { "Not enough audio for a clip yet.", "Noch nicht genug Audio f\xc3\xbc" "r einen Clip." },
+        { "The video encoder of the system failed - writing PNG frames instead.", "Der Video-Encoder des Systems ist fehlgeschlagen - stattdessen werden PNG-Einzelbilder geschrieben." },
+        { "Cancelled", "Abgebrochen" },
+        { "Blinks with the beat while recording. Right-click: MIDI learn.", "Blinkt beim Aufnehmen im Takt. Rechtsklick: MIDI-Learn." },
+        // ---------------------------------------------------------------- end v1.6 features
+    };
+
+    // ---------------------------------------------------------------- v1.6 rhythm (branch v1.6-rhythm)
+    // kits, BEATS step sequencer, fill on demand, drum FX routing, sound packs. Kept as its own
+    // table so it merges cleanly with other v1.6 work.
+    const char* const kGermanRhythm16[][2] = {
+#include "Localisation_Rhythm16.inc"
+    };
+
+    // v1.6 UI polish: help guide, SETUP window, FX tabs (generated by tools/i18n/ui16b_de.py)
+    const char* const kGermanUi16b[][2] = {
+#include "Localisation_UI16b.inc"
+    };
+
+    // v1.6 K.O. II, punch FX / send FX, Push 1 additions, Controller GUI (generated by tools/i18n/ko2_de.py)
+    const char* const kGermanKo2[][2] = {
+#include "Localisation_KO2.inc"
+    };
+
+    // v1.7 latency, velocity curves, MIDI feedback, Push 1 display (generated by tools/i18n/v17_de.py)
+    const char* const kGermanV17[][2] = {
+#include "Localisation_V17.inc"
+    };
+
+    // v1.7 loop length in the GUI and on Push 1 (generated by tools/i18n/looplen_de.py)
+    const char* const kGermanLoopLen[][2] = {
+#include "Localisation_LoopLen.inc"
+    };
+
+    // v1.7 auto backup and crash recovery (generated by tools/i18n/backup_de.py)
+    const char* const kGermanBackup[][2] = {
+#include "Localisation_Backup.inc"
+    };
+
+    // v1.7 in-app help pages (generated by tools/i18n/help17_de.py)
+    const char* const kGermanHelp17[][2] = {
+#include "Localisation_Help17.inc"
     };
 
     const std::map<juce::String, juce::String>& table()
@@ -627,6 +753,20 @@ namespace
         static const std::map<juce::String, juce::String> map = [] {
             std::map<juce::String, juce::String> m;
             for (const auto& entry : kGerman)
+                m.emplace (juce::String::fromUTF8 (entry[0]), juce::String::fromUTF8 (entry[1]));
+            for (const auto& entry : kGermanRhythm16)
+                m.emplace (juce::String::fromUTF8 (entry[0]), juce::String::fromUTF8 (entry[1]));
+            for (const auto& entry : kGermanUi16b)
+                m.emplace (juce::String::fromUTF8 (entry[0]), juce::String::fromUTF8 (entry[1]));
+            for (const auto& entry : kGermanKo2)
+                m.emplace (juce::String::fromUTF8 (entry[0]), juce::String::fromUTF8 (entry[1]));
+            for (const auto& entry : kGermanV17)
+                m.emplace (juce::String::fromUTF8 (entry[0]), juce::String::fromUTF8 (entry[1]));
+            for (const auto& entry : kGermanLoopLen)
+                m.emplace (juce::String::fromUTF8 (entry[0]), juce::String::fromUTF8 (entry[1]));
+            for (const auto& entry : kGermanBackup)
+                m.emplace (juce::String::fromUTF8 (entry[0]), juce::String::fromUTF8 (entry[1]));
+            for (const auto& entry : kGermanHelp17)
                 m.emplace (juce::String::fromUTF8 (entry[0]), juce::String::fromUTF8 (entry[1]));
             return m;
         }();

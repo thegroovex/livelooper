@@ -1,37 +1,186 @@
 // livelooper unit test runner.
 // Runs every juce::UnitTest registered in the test sources and returns the number of
 // failed tests as exit code (0 = all passed), so it can be used directly by CTest / CI.
+//
+//   livelooper_tests                 all test groups
+//   livelooper_tests <category>      only the groups of one category (engine, plugin, midi, livelooper)
+//   livelooper_tests --shard i/n     every n-th group (sorted by name), starting with the i-th (1-based);
+//                                    CI runs the n shards as parallel jobs, together they cover every group
+//   livelooper_tests --list          print the group names (sorted) and exit
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
+#include <algorithm>
+#include <iostream>
+
 #include "plugin/Localisation.h"
+
+namespace
+{
+    juce::Array<juce::UnitTest*> sortedTests()
+    {
+        juce::Array<juce::UnitTest*> tests (juce::UnitTest::getAllTests());
+        std::sort (tests.begin(), tests.end(),
+                   [] (const juce::UnitTest* a, const juce::UnitTest* b) { return a->getName() < b->getName(); });
+        return tests;
+    }
+
+    bool parseShard (const juce::String& s, int& index, int& count)
+    {
+        if (! s.containsChar ('/'))
+            return false;
+        index = s.upToFirstOccurrenceOf ("/", false, false).getIntValue();
+        count = s.fromFirstOccurrenceOf ("/", false, false).getIntValue();
+        return count > 0 && index >= 1 && index <= count;
+    }
+
+    // JUCE's runner logs through Logger::outputDebugString, which on Windows goes to
+    // OutputDebugString only (invisible in a console / CI log). Print to stdout and flush
+    // right away, so a crashing test group is named in the log before the process dies.
+    struct ConsoleRunner final : juce::UnitTestRunner
+    {
+        void logMessage (const juce::String& message) override
+        {
+            std::cout << message << std::endl;
+        }
+    };
+
+    // A crash (access violation, stack overflow, ...) names its stack in the log: with the CI's
+    // Windows build there is no debugger, ctest only reports "SegFault".
+    void crashHandler (void* info)
+    {
+        std::cout.flush();
+        std::cerr << "\n*** livelooper_tests crashed";
+       #if JUCE_WINDOWS
+        if (info != nullptr)    // EXCEPTION_POINTERS: the first member points at the EXCEPTION_RECORD (code first)
+            if (const auto* rec = *static_cast<const unsigned long* const*> (info))
+                std::cerr << " (exception 0x" << juce::String::toHexString ((juce::int64) *rec) << ")";
+       #else
+        juce::ignoreUnused (info);
+       #endif
+        std::cerr << ", stack:\n" << juce::SystemStats::getStackBacktrace() << std::endl;
+        std::cerr.flush();
+    }
+}
+
+#if JUCE_LINUX
+#include <dlfcn.h>
+
+/** xvfb without a window manager has no WM_PROTOCOLS / WM_DELETE_WINDOW ... atoms; JUCE sets WM_PROTOCOLS on every
+    window it creates without checking, which fails with BadAtom. The tests that open real windows (mouse clicks
+    through the window peer, fullscreen Live / Performance windows) create them first. The connection stays open
+    so the server keeps the atoms. */
+static void createWindowManagerAtoms()
+{
+    // libX11 loaded at run time like JUCE does (no X11 headers / link dependency)
+    void* lib = dlopen ("libX11.so.6", RTLD_NOW | RTLD_GLOBAL);
+    if (lib == nullptr)
+        return;
+    using OpenFn = void* (*) (const char*);
+    using InternFn = unsigned long (*) (void*, const char*, int);
+    using SyncFn = int (*) (void*, int);
+    auto open = reinterpret_cast<OpenFn> (dlsym (lib, "XOpenDisplay"));
+    auto intern = reinterpret_cast<InternFn> (dlsym (lib, "XInternAtom"));
+    auto sync = reinterpret_cast<SyncFn> (dlsym (lib, "XSync"));
+    if (open == nullptr || intern == nullptr || sync == nullptr)
+        return;
+    static void* keep = open (nullptr);
+    if (keep == nullptr)
+        return;
+    for (auto* name : { "WM_PROTOCOLS", "WM_TAKE_FOCUS", "WM_DELETE_WINDOW", "_NET_WM_PING", "WM_CHANGE_STATE", "WM_STATE",
+                              "_NET_WM_STATE", "_NET_WM_STATE_HIDDEN", "_NET_WM_STATE_MAXIMIZED_HORZ", "_NET_WM_STATE_MAXIMIZED_VERT" })
+        intern (keep, name, 0);
+    sync (keep, 0);
+}
+#endif
 
 int main (int argc, char* argv[])
 {
+    juce::SystemStats::setApplicationCrashHandler (crashHandler);
+   #if JUCE_LINUX
+    createWindowManagerAtoms();
+   #endif
     juce::ScopedJuceInitialiser_GUI gui;
 
     // tests expect the English texts unless they switch the language themselves (never saved)
     livelooper::i18n::setSetting (livelooper::i18n::Language::English, false);
 
-    juce::UnitTestRunner runner;
+    juce::String category, shardArg, nameFilter;
+    bool list = false;
+    for (int i = 1; i < argc; ++i)
+    {
+        const juce::String a (argv[i]);
+        if (a == "--shard" && i + 1 < argc)  shardArg = argv[++i];
+        else if (a.startsWith ("--shard="))  shardArg = a.fromFirstOccurrenceOf ("=", false, false);
+        else if (a == "--list")              list = true;
+        else if (a == "--name" && i + 1 < argc) nameFilter = argv[++i];   // groups whose name contains this text
+        else                                 category = a;
+    }
+
+    if (list)
+    {
+        for (auto* t : sortedTests())
+            std::cout << t->getName() << "  [" << t->getCategory() << "]\n";
+        return 0;
+    }
+
+    ConsoleRunner runner;
     runner.setAssertOnFailure (false);
     runner.setPassesAreLogged (false);
 
-    if (argc > 1)
-        runner.runTestsInCategory (argv[1]);
-    else
-        runner.runAllTests();
-
-    int failures = 0, passes = 0;
-    for (int i = 0; i < runner.getNumResults(); ++i)
+    int failures = 0, passes = 0, groups = 0;
+    const auto addResults = [&]
     {
-        const auto* r = runner.getResult (i);
-        failures += r->failures;
-        passes += r->passes;
+        for (int i = 0; i < runner.getNumResults(); ++i)
+        {
+            const auto* r = runner.getResult (i);
+            failures += r->failures;
+            passes += r->passes;
+        }
+        groups += runner.getNumResults();
+    };
+
+    if (nameFilter.isNotEmpty())
+    {
+        juce::Array<juce::UnitTest*> chosen;
+        for (auto* t : sortedTests())
+            if (t->getName().containsIgnoreCase (nameFilter))
+                chosen.add (t);
+        runner.runTests (chosen);
+        addResults();
+    }
+    else if (shardArg.isNotEmpty())
+    {
+        int index = 0, count = 0;
+        if (! parseShard (shardArg, index, count))
+        {
+            std::cerr << "invalid --shard value '" << shardArg << "' (expected i/n, 1 <= i <= n)\n";
+            return 2;
+        }
+
+        const auto all = sortedTests();
+        std::cout << "shard " << index << "/" << count << " of " << all.size() << " test groups\n";
+        for (int i = index - 1; i < all.size(); i += count)
+        {
+            // one group at a time, so every group's duration is logged (shard balancing)
+            const auto start = juce::Time::getMillisecondCounterHiRes();
+            runner.runTests ({ all[i] });
+            addResults();
+            std::cout << "  [" << juce::String ((juce::Time::getMillisecondCounterHiRes() - start) / 1000.0, 2)
+                      << " s] " << all[i]->getName() << std::endl;
+        }
+    }
+    else
+    {
+        if (category.isNotEmpty())
+            runner.runTestsInCategory (category);
+        else
+            runner.runAllTests();
+        addResults();
     }
 
     std::cout << "\n==============================\n"
-              << "livelooper tests: " << runner.getNumResults() << " groups, "
+              << "livelooper tests: " << groups << " groups, "
               << passes << " checks passed, " << failures << " failed\n"
               << "==============================" << std::endl;
     return failures == 0 ? 0 : 1;

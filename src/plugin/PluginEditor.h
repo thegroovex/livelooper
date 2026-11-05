@@ -2,6 +2,15 @@
 
 #include "Widgets.h"
 #include "KeyMapEditor.h"
+#include "BeatsPage.h"
+#include "LiveView.h"
+#include "PerformView.h"
+
+#include <optional>
+
+namespace livelooper { class GuidedTour;
+class WelcomeScreen;
+class ControllerView; }
 
 namespace livelooper
 {
@@ -47,6 +56,15 @@ public:
     bool isLearnMode() const noexcept { return learnMode; }
     void selectFxSlot (bool inputFx, int slot);
     void showStatus (const juce::String& text);
+    /** FX groups: 0 input FX, 1 track FX, 2 beat FX, 3 beat repeat / stutter, 4 colour FX, 5 punch FX + send FX.
+        v1.6 final layout: every group is visible at once in the two FX rows at the top (no tabs); the "tab" only
+        remembers the group last focused (slot selection, tour) - kept for MIDI / tests. */
+    enum FxTab { tabInput = 0, tabTrack, tabBeat, tabRepeat, tabColor, tabPunch, numFxTabs };
+    void setFxTab (int tab);
+    int getFxTab() const noexcept { return fxTab; }
+    /** Panel of an FX group in the FX rows (surface coordinates). */
+    juce::Rectangle<int> getFxGroupArea (int group) const;
+    juce::Rectangle<int> getRightColumnArea() const { return rhythmArea.getUnion (masterArea); }
 
     // computer keyboard (standalone app)
     bool keyPressed (const juce::KeyPress& key) override;
@@ -66,13 +84,237 @@ public:
     /** Checks a held clear key; called from the timer (public for tests). */
     void updateKeyClearHold (juce::uint32 now, bool keyStillDown);
 
+    //============================================================================== v1.6 features (branch v1.6-wip)
+    /** Guided tour (5 steps); shown once after the first start, always in the help menu. */
+    void startTour();
+    bool isTourVisible() const;
+    GuidedTour* getTour() noexcept { return tour.get(); }
+    /** First start: the welcome screen (demo set or empty set), then the tour - once (force: also in tests). */
+    void handleFirstRun (bool force = false);
+    /** v1.6 welcome screen (also SETUP > Welcome / demo set ...). */
+    void showWelcome (bool firstStart);
+    bool isWelcomeVisible() const noexcept;
+    WelcomeScreen* getWelcome() noexcept { return welcome.get(); }
+    /** What the welcome buttons do; asks first when the current set holds loops (confirm = false: tests skip the question). */
+    void chooseDemoSet (bool confirm = true);
+    void chooseEmptySet (bool confirm = true);
+    bool currentSetHasLoops() const;
+    /** 9:16 clip of the last 20 s (or the last performance recording) in the background. */
+    void exportClip (bool fromRecording);
+    bool isClipExportRunning() const noexcept { return clipThread != nullptr; }
+    void saveSharedSet();
+    /** part 0: sets, 1: recording / clip export, 2: controller templates, 3: guided tour. */
+    void addFeatures16Menu (juce::PopupMenu& menu, int part);
+    /** v1.6 SETUP: the menu structure (section headers = pages of the settings window) and its actions. */
+    juce::PopupMenu buildSetupMenu (juce::Array<int>& toggleIds);
+    void handleSetupResult (int result);
+    /** The settings window (Apple System Settings style); also used by the screenshot tool. */
+    std::unique_ptr<juce::Component> createSettingsPanel (const juce::String& page = {});
+    void showSettingsWindow();
+    bool handleFeatures16Menu (int result);
+    RecordButton& getPerfRecButton() noexcept { return perfRecBtn; }
+    // ---- end v1.6 features
+    // ---- v1.6 K.O. II, punch FX, Controller GUI (EditorKo2.cpp)
+    /** SETUP > Controllers > GUI: Standard / Controller (saved); the controller view shows only while a
+        K.O. II or Push 1 is connected. */
+    void setControllerGui (bool on);
+    bool isControllerGuiShown() const noexcept;
+    ControllerView* getControllerView() noexcept { return controllerView.get(); }
+    /** The header chip (visible only while a K.O. II is connected). */
+    juce::Component& getKo2Chip() noexcept { return *ko2Chip; }
+    /** One-time question when a K.O. II is plugged in (force: tests / screenshots). */
+    void showKo2Toast (bool force = false);
+    bool isKo2ToastVisible() const noexcept;
+    juce::Component* getKo2Toast() noexcept { return ko2Toast.get(); }
+    /** SETUP > Controllers: K.O. II and GUI groups / their actions (ids 700 - 799). */
+    void addControllerMenu (juce::PopupMenu& menu, juce::Array<int>& toggles);
+    bool handleControllerMenu (int result);
+    /** Punch FX tab: the punch FX the XY field plays (last pad clicked). */
+    int getSelectedPunch() const noexcept { return selectedPunch; }
+    void updateKo2Ui();          // timer (public for tests)
+    // ---- v1.6 rhythm (branch v1.6-rhythm): BEATS page
+    void showBeatsPage (bool show);
+    bool isBeatsPageVisible() const noexcept { return beatsPage != nullptr && beatsPage->isVisible(); }
+    BeatsPage* getBeatsPage() noexcept { return beatsPage.get(); }
+
+    // ---- v1.7 (Editor17.cpp): SETUP > Audio > Latency, SETUP > Controllers additions (ids 1700 - 1899)
+    void addLatencyMenu (juce::PopupMenu& menu, juce::Array<int>& toggles);
+    void addController17Menu (juce::PopupMenu& menu, juce::Array<int>& toggles);
+    bool handle17Menu (int result);
+
+    // ---- v1.7 display (EditorDisplay.cpp): theme, stage mode, interface size, waveforms, Live view (menu ids 1900 - 1949)
+    static constexpr int kGuiScales[5] = { 75, 100, 125, 150, 200 };
+    /** Interface size in percent of the base size (remembered on this computer). */
+    void setGuiScale (int percent);
+    int getGuiScale() const noexcept { return guiScale; }
+    /** Next / previous size of kGuiScales (Ctrl / Cmd + and -). */
+    void stepGuiScale (int direction);
+    /** Live view on / off (sets the host parameter "Live View"); fullscreen: in its own window covering the screen. */
+    void setLiveView (bool on, bool fullscreen = false);
+    bool isLiveViewShown() const noexcept;
+    bool isLiveFullscreen() const noexcept { return liveWindow != nullptr; }
+    LiveView* getLiveView() noexcept { return liveView.get(); }
+    LiveView* getFullscreenLiveView() noexcept { return fullscreenLive; }
+    /** v1.7 Performance view (4th choice of the host parameter View): shown over the surface or fullscreen. */
+    void setPerformView (bool on, bool fullscreen = false);
+    bool isPerformViewShown() const noexcept;
+    /** The Live view or the Performance view covers the surface. */
+    bool isStageViewShown() const noexcept { return isLiveViewShown() || isPerformViewShown(); }
+    PerformView* getPerformView() noexcept { return perfView.get(); }
+    PerformView* getFullscreenPerformView() noexcept { return fullscreenPerf; }
+    /** For tests: the controls the MIDI learn overlay frames right now, and whether it is in front of the Live view. */
+    juce::Array<juce::Component*> getLearnablesForTests() { juce::Array<juce::Component*> a; collectMappables (surface, a); return a; }
+    juce::Rectangle<int> getLearnDoneAreaForTests() const { return learnDoneArea(); }
+    juce::Component& getLearnOverlayForTests() noexcept { return overlay; }
+    bool isLearnOverlayInFrontForTests() const
+    {
+        return overlay.isVisible() && (liveView == nullptr || surface.getIndexOfChildComponent (&overlay) > surface.getIndexOfChildComponent (liveView.get()))
+                                   && (perfView == nullptr || surface.getIndexOfChildComponent (&overlay) > surface.getIndexOfChildComponent (perfView.get()));
+    }
+    juce::Button& getLiveButton() noexcept { return *liveBtn; }
+    /** v1.7 views: the view switcher in the header of the full surface (FULL . LIVE . LIVE - FX . PERFORM, host parameter View). */
+    ChoiceChips& getViewSwitcher() noexcept { return *viewChips; }
+    /** v1.7 fullscreen windows: the insets of the display area that is hidden or unsafe (macOS: the camera housing /
+        notch of MacBook Pro displays, from NSScreen.safeAreaInsets on macOS 12+; empty on other systems). */
+    static juce::BorderSize<int> getFullscreenSafeInsets (const juce::Displays::Display* display);
+    /** Tests: pretend the display has these safe area insets (any OS); empty optional = the real display. */
+    static void setSafeInsetsForTests (std::optional<juce::BorderSize<int>> insets);
+    /** The fullscreen window (Live / Performance view) or nullptr. */
+    juce::Component* getStageWindow() noexcept { return liveWindow.get(); }
+    void addDisplayMenu (juce::PopupMenu& menu, juce::Array<int>& toggles);
+    bool handleDisplayMenu (int result);
+    // v1.7 auto backup + crash recovery (EditorBackup.cpp)
+    void addBackupMenu (juce::PopupMenu& menu, juce::Array<int>& toggles);
+    bool handleBackupMenu (int result);
+    void showRestoreBackupMenu();
+    /** Shows the backup notice of the processor (after a crash) once; timer, public for tests. */
+    void updateBackupNotice();
+    juce::Component* getBackupToast() noexcept { return backupToast.get(); }
+    /** Tests: press a button of the notice (0 = first / main action, 1 = second). */
+    void pressBackupToastButton (int index);
+    /** Applies theme / stage mode / waveforms / Live view from the parameters (timer; public for tests). */
+    void applyDisplaySettings (bool force = false);
+    /** v1.7: "Open the views fullscreen" (SETUP > Display > Live view, remembered on this computer): every switch to
+        the Live, Live without FX or Performance view - whichever way it is made - opens the fullscreen window. */
+    void setViewsFullscreen (bool on);
+    bool getViewsFullscreen() const noexcept { return viewsFullscreen; }
+    /** Ends livelooper's modal components (SETUP window, dialogs, menus): a view is never left behind one (its
+        clicks would be swallowed by JUCE's modal check). Called whenever a view or fullscreen window is shown. */
+    void dismissModalDialogs();
+    /** The SETUP window while it is open (tests). */
+    juce::DialogWindow* getSettingsWindow() noexcept { return settingsWindow.getComponent(); }
+    /** v1.7 mouse diagnostics (developers only: the environment variable LIVELOOPER_MOUSE_LOG=1): every mouse-down
+        (target component, bounds, peer, windows on the desktop, modal / focus / mouse source state), presses the OS
+        saw that never reached a component, and the view switches are written to getMouseLogFile(). Default off. */
+    void setMouseLogEnabled (bool on);
+    bool isMouseLogEnabled() const noexcept { return mouseLog != nullptr; }
+    /** macOS: ~/Library/Logs/livelooper-mouse.log, other systems: livelooper-mouse.log in the temp folder. */
+    static juce::File getMouseLogFile();
+    /** Tests: write the log to this file instead (an empty File = the normal place). */
+    static void setMouseLogFileForTests (const juce::File& f);
+    /** One line in the mouse log (when it is on). */
+    void logMouseNote (const juce::String& text);
+
 private:
+    void initDisplay();
+    void layoutDisplay (int dx);
+    void timerDisplay();
+    std::unique_ptr<LiveView> liveView;
+    std::unique_ptr<LiveButton> liveBtn;
+    std::unique_ptr<ChoiceChips> viewChips;           // v1.7 view switcher in the header of the full surface
+    void selectViewFromSwitcher (int view);
+    /** Runs fn on the message thread once no mouse button is held any more (a view switch or a focus change while
+        the button is down left macOS with the press on a component / window that is gone). */
+    void runWhenMouseReleased (std::function<void()> fn, int tries = 0);
+    bool pendingViewFocus = false;                    // keyboard focus for the shown view, taken after the press
+    struct MouseLog;
+    std::unique_ptr<juce::Timer> mouseLog;            // v1.7 mouse diagnostics (MouseLog in EditorDisplay.cpp)
+    juce::String describeViewState() const;
+    std::unique_ptr<juce::Component> liveWindow;      // fullscreen Live view
+    std::unique_ptr<juce::Component> retiredStageWindow;   // closed fullscreen window, deleted after the event that closed it
+    LiveView* fullscreenLive = nullptr;
+    std::unique_ptr<PerformView> perfView;            // v1.7 Performance view
+    PerformView* fullscreenPerf = nullptr;
+    float perfMeterL = 0.0f, perfMeterR = 0.0f;       // main output meter for the Performance view
+    void openStageWindow (bool performance);
+    void closeStageWindow();
+    void updateStageWindow (bool stageOn, bool performance);
+    void raiseModalDialogsOverStageWindow();
+    bool viewsFullscreen = false;                     // SETUP > Display > Live view > Open the views fullscreen
+    bool fullscreenRequested = false;                 // SETUP > Display > Open ... (fullscreen), until the view is left
+    void wireStageView (LiveView& v);
+    void wireStageView (PerformView& v);
+    int guiScale = 100;
+    int shownDisplayState = -1;
+    bool shownLive = false;
+    void timer17();
+    int shownLatencyStatus = -1;
+    juce::Array<juce::MidiDeviceInfo> fbDevices;
+    // ---- v1.6 features
+    void initFeatures16();
+    void layoutFeatures16 (int dx);
+    void timerFeatures16();
+    void showHelpMenu();
+    RecordButton perfRecBtn;        // v1.6: round record button under MIDI LEARN / MIDI MAP / SETUP / ?
+    double recBlinkStartMs = 0.0, recBlinkBeat0 = 0.0;
+    std::unique_ptr<APVTS::ButtonAttachment> perfRecAtt;
+    std::unique_ptr<GuidedTour> tour;
+    juce::Component::SafePointer<juce::DialogWindow> settingsWindow;
+    std::unique_ptr<WelcomeScreen> welcome;
+    void closeWelcome (bool startTourAfter);
+    std::unique_ptr<juce::Thread> clipThread;
+    std::atomic<float> clipProgress { -1.0f };
+    // ---- end v1.6 features
+    // ---- v1.6 K.O. II / punch FX / Controller GUI
+    void initKo2();
+    void layoutKo2 (int dx);
+    void layoutPunchTab (juce::Rectangle<int> content);
+    void showKo2ChipMenu();
+    void applyKo2Choice (int choice, bool remember);     // 0 controller, 1 record, 2 ignore
+    std::array<std::unique_ptr<MomentaryButton>, 12> punchBtns;
+    std::unique_ptr<juce::MouseListener> punchSelectListener;
+    std::unique_ptr<Knob> pfxAmountKnob, sfxXKnob, sfxYKnob, sfxLevelKnob;
+    LLCombo pfxTargetBox, sfxTypeBox;
+    std::unique_ptr<APVTS::ComboBoxAttachment> pfxTargetAtt, sfxTypeAtt;
+    std::unique_ptr<LLButton> pfxLatchBtn;
+    std::unique_ptr<APVTS::ButtonAttachment> pfxLatchAtt;
+    std::unique_ptr<juce::Component> punchXY;
+    int selectedPunch = 0;
+    float shownLivePunch = -1.0f;       // v1.6 K.O. II hold ramp: live amount shown in the PUNCH FX title row
+    juce::Rectangle<int> livePunchBadgeArea() const;
+    std::unique_ptr<juce::Button> ko2Chip;
+    std::unique_ptr<juce::Component> ko2Toast;
+    std::unique_ptr<juce::Component> backupToast;     // v1.7
+    std::unique_ptr<juce::FileChooser> backupChooser;
+    std::unique_ptr<ControllerView> controllerView;
+    bool ko2WasConnected = false;
+    std::array<int, 8> shownTrackColours { -2, -2, -2, -2, -2, -2, -2, -2 };
+    juce::Rectangle<int> punchCaption, sendCaption;
+
     class Surface : public juce::Component
     {
     public:
         std::function<void (juce::Graphics&)> painter;
         void paint (juce::Graphics& g) override { if (painter) painter (g); }
     };
+
+    /** Segment of the FX panel's tab bar; a small LED shows that something in the group is on. */
+    class FxTabButton : public LLButton
+    {
+    public:
+        FxTabButton (const juce::String& text, juce::Colour led) : LLButton (text, led) {}
+        std::function<bool()> activeFn;
+        void paintButton (juce::Graphics& g, bool over, bool down) override;
+    };
+    std::array<std::unique_ptr<FxTabButton>, numFxTabs> fxTabs;
+    int fxTab = tabInput;
+    juce::Rectangle<int> fxPanelArea, fxContentArea, rhythmArea, masterArea;
+    juce::Rectangle<int> inputFxArea, fxEditArea, trackFxArea, punchArea, sendArea;   // v1.6 FX rows
+    void layoutFxPanel (int dx);
+    // cached static surface (background, glass panels, titles) - rebuilt only when the layout changes
+    juce::Image surfaceCache;
+    juce::String surfaceCacheKey;
+    void renderSurfaceCache();
 
     class LearnOverlay : public juce::Component
     {
@@ -104,6 +346,7 @@ private:
     void commitTempoEntry();
     void updateKeyboardFocusPolicy();
     void collectMappables (juce::Component& parent, juce::Array<juce::Component*>& out);
+    juce::Rectangle<int> learnDoneArea() const;     // v1.7: MIDI LEARN - DONE over the Live / Performance view
     juce::String paramName (const juce::String& id) const;
 
     LiveLooperProcessor& proc;
@@ -150,6 +393,17 @@ private:
     std::unique_ptr<APVTS::ButtonAttachment> rhythmOnAtt, syncAtt;
     std::unique_ptr<APVTS::ComboBoxAttachment> quantizeAtt, rhythmPatternAtt, rhythmKitAtt;
     std::unique_ptr<Knob> tempo, rhythmLevel, rhythmSwing, rhythmHuman, master, monitor, fade;
+
+    // ---- v1.6 rhythm (branch v1.6-rhythm)
+    std::unique_ptr<BeatsPage> beatsPage;
+    LLButton beatsBtn { "BEATS", colours::learn };
+    std::unique_ptr<MomentaryButton> fillBtn;
+    LLButton drumsBfxBtn { "DRUMS", colours::orange }, drumsRepBtn { "DRUMS", colours::red };
+    std::unique_ptr<APVTS::ButtonAttachment> drumsBfxAtt, drumsRepAtt;
+    int lastPatternNamesVersion = -1;
+    void layoutRhythm16 (int dx);
+    void refreshPatternNames();
+    // ---- end v1.6 rhythm
 
     juce::TextEditor tempoEntry;
     juce::Array<int> heldKeys;

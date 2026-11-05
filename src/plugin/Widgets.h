@@ -50,6 +50,24 @@ public:
     std::function<juce::String()> tooltipFn;
 };
 
+/** v1.6: the round record button of the performance recorder (header, under MIDI LEARN ...).
+    A red circle; while recording it blinks with the beat (setBeatPhase) and shows the time. */
+class RecordButton : public LLButton
+{
+public:
+    RecordButton() : LLButton ("REC", colours::red) { setClickingTogglesState (true); }
+    void paintButton (juce::Graphics& g, bool over, bool down) override;
+    /** 0 .. 1 within the current beat (the light is on in the first half). */
+    void setBeatPhase (double phase);
+    void setElapsedSeconds (double seconds);
+    bool isLit() const noexcept { return lit; }
+    juce::String getTimeText() const { return timeText; }
+    static juce::String formatTime (double seconds);
+private:
+    bool lit = true;
+    juce::String timeText;
+};
+
 /** v1.5: a button that holds a (momentary) parameter on while it is pressed - beat FX hold,
     beat repeat / stutter hold. The button lights while the parameter is on (also via MIDI). */
 class MomentaryButton : public LLButton, private juce::Timer
@@ -114,6 +132,8 @@ private:
     int track;
     bool blink = false;
     bool pressed = false;
+    juce::Image cache;            // shadow, bezel and pad body for the current look
+    juce::String cacheKey;
     void mouseUp (const juce::MouseEvent&) override { pressed = false; repaint(); }
 };
 
@@ -177,6 +197,7 @@ public:
 
 private:
     std::array<MeterBallistics, 2> master;
+    juce::Image bezel, glass;     // cached at 2x: bezel / recessed LCD and the reflection on top
     juce::String bigText;
     juce::StringArray lines;
     juce::Colour accentColour = colours::lcdText;
@@ -206,6 +227,68 @@ private:
 };
 
 //==============================================================================
+/** v1.7: a loop waveform in the track colour - played part brighter, the last overdub layer as a lighter
+    tint inside, white play head (dashed when stopped, at the right edge while recording), "NO LOOP" when
+    empty. Shared by the track displays and the Live view; the peaks come from the message thread. */
+struct LoopWaveform
+{
+    const float* peaks = nullptr;       // merged loop, 0..1 per bin (nullptr / valid = false: no loop)
+    const float* layer = nullptr;       // last overdub layer per bin, or nullptr
+    int numBins = 0;
+    bool valid = false;
+    float progress = 0.0f;              // play position 0..1
+    float ghost = -1.0f;                // stopped: where the loop would be now (-1 = none)
+    LoopTrack::State state = LoopTrack::State::Empty;
+    juce::Colour colour;
+    float headWidth = 2.0f;
+
+    void draw (juce::Graphics& g, juce::Rectangle<float> area) const;
+};
+
+//==============================================================================
+/** v1.7 loop length: a compact pill bound to the track's "Loop Length" parameter (kMeasure: AUTO, 1, 2,
+    4, 8, 16 bars - the first recording ends by itself after that many bars). Click = menu, mouse wheel /
+    vertical drag = step, right-click = MIDI learn. Dimmed while the track holds a loop (the length only
+    applies to the next new recording); while a fixed-length recording runs it fills with its progress,
+    and a one-shot length (Push REC pad + pad, "Loop Length Once") is shown in orange. */
+class LoopLengthPill : public juce::Component, public juce::SettableTooltipClient
+{
+public:
+    LoopLengthPill (LiveLooperProcessor& p, int track);
+    void paint (juce::Graphics& g) override;
+    void mouseDown (const juce::MouseEvent& e) override;
+    void mouseDrag (const juce::MouseEvent& e) override;
+    void mouseUp (const juce::MouseEvent& e) override;
+    void mouseWheelMove (const juce::MouseEvent& e, const juce::MouseWheelDetails& w) override;
+    juce::String getTooltip() override;
+    /** Polled by the owner's timer: repaints when something it shows changed. */
+    void refresh();
+    /** Larger type (Live view cards). */
+    void setLarge (bool l) { large = l; repaint(); }
+
+    /** Index into kMeasureChoices (0 = AUTO). */
+    int getChoice() const;
+    void setChoice (int index);
+    /** What the pill shows now ("AUTO", "4 BARS" ...), in the UI language. */
+    juce::String getText() const;
+    /** True while the track holds a loop (the setting waits for the next new recording). */
+    bool isInactive() const;
+    /** Text for a choice index (0 = AUTO). */
+    static juce::String choiceText (int index);
+    /** Preferred width for the current language at the given height. */
+    int getPreferredWidth (int height) const;
+
+private:
+    LiveLooperProcessor& proc;
+    int track;
+    bool large = false;
+    int dragStartChoice = 0, dragStartY = 0;
+    bool dragged = false;
+    juce::String shownKey;
+    float wheelAcc = 0.0f;
+};
+
+//==============================================================================
 /** One of the five track strips. */
 class TrackStrip : public juce::Component,
                    public juce::SettableTooltipClient
@@ -223,11 +306,21 @@ public:
     void refresh (bool blinkPhase);
     int getTrackIndex() const noexcept { return track; }
     StopButton& getStopButton() noexcept { return stop; }
+    LoopLengthPill& getLengthPill() noexcept { return lengthPill; }     // v1.7
     static constexpr int kWaveBins = 96;
     const std::array<float, kWaveBins>& getWaveform() const noexcept { return wave; }
     bool hasWaveform() const noexcept { return waveValid; }
+    /** v1.7: the last overdub layer (bins of the same size as the waveform), valid while undoable. */
+    const std::array<float, kWaveBins>& getOverdubLayer() const noexcept { return layer; }
+    bool hasOverdubLayer() const noexcept { return layerValid; }
+    /** v1.7: SETUP > Display > Show waveforms - large waveforms in the track displays (default off). */
+    static bool showWaveforms;
+    /** v1.7: the overdub layer is read only while some view shows it (track displays or the Live view). */
+    static bool layersWanted;
     const MeterBallistics& getMeter (int ch) const noexcept { return meter[(size_t) (ch & 1)]; }
     bool isMeteringInput() const noexcept { return meterInput; }
+    /** v1.6: level meters per track (SETUP > Looper > Track meters), on by default. */
+    static bool showMeters;
 
 private:
     LiveLooperProcessor& proc;
@@ -241,12 +334,15 @@ private:
     LLSlider color { juce::Slider::RotaryHorizontalVerticalDrag, colours::blue };
     RecPlayButton recPlay;
     StopButton stop;
+    LoopLengthPill lengthPill;          // v1.7 loop length in the title row
 
     std::unique_ptr<APVTS::ButtonAttachment> reverseAtt, oneShotAtt, fxAtt;
     std::unique_ptr<APVTS::SliderAttachment> levelAtt, panAtt, colorAtt;
 
     std::array<float, kWaveBins> wave {};
     bool waveValid = false;
+    std::array<float, kWaveBins> layer {};     // v1.7
+    bool layerValid = false;
     bool dragOutStarted = false;
     int waveCounter = 0;
     std::array<MeterBallistics, 2> meter;

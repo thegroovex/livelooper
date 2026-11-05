@@ -17,6 +17,16 @@ juce::String fxId (bool inputFx, int slot, const char* name)
     return juce::String (inputFx ? "in" : "tr") + juce::String::charToString ((juce::juce_wchar) ('A' + slot)) + "_" + name;
 }
 
+juce::String beatRowId (const char* what, int row)
+{
+    return juce::String (what) + juce::String (row + 1);
+}
+
+juce::String punchHoldId (int index)
+{
+    return juce::String (kPunchHold) + juce::String (index + 1);
+}
+
 juce::String sceneId (int scene)
 {
     return "scene" + juce::String (scene + 1);
@@ -24,7 +34,9 @@ juce::String sceneId (int scene)
 
 bool isTrigger (const juce::String& id)
 {
-    static const juce::StringArray globalTriggers { gAllStartStop, gAllStart, gAllStop, gClearAll, gTap, gCapture };
+    static const juce::StringArray globalTriggers { gAllStartStop, gAllStart, gAllStop, gClearAll, gTap, gCapture,
+                                                    gClipExport /* v1.6 */, gBeatLibNext, gBeatLibPrev, gKo2Resample,
+                                                    gLatMeasure /* v1.7 */ };
     if (globalTriggers.contains (id))
         return true;
     if (id.startsWith ("scene") && id.substring (5).containsOnly ("0123456789"))
@@ -33,15 +45,18 @@ bool isTrigger (const juce::String& id)
     {
         const auto name = id.substring (3);
         return name == kRecPlay || name == kStop || name == kClear || name == kUndo || name == kRedo || name == kCapture
-            || name == kCutSync || name == kDouble || name == kHalve || name == kOctUp || name == kOctDown || name == kCopy;
+            || name == kCutSync || name == kDouble || name == kHalve || name == kOctUp || name == kOctDown || name == kCopy
+            || name == kHalfSpeed || name == kDblSpeed || name == kRevLoop;     // v1.6
     }
     return false;
 }
 
 bool isMomentary (const juce::String& id)
 {
-    if (id == gBfxHold || id == gRepeatHold || id == gStutterHold)
+    if (id == gBfxHold || id == gRepeatHold || id == gStutterHold || id == gRhythmFill)
         return true;
+    if (id.startsWith (kPunchHold) && id.substring ((int) strlen (kPunchHold)).containsOnly ("0123456789"))
+        return true;       // v1.6 punch FX: on while held
     if (id.startsWithChar ('t') && id.length() > 3 && id[2] == '_')
     {
         const auto name = id.substring (3);
@@ -62,6 +77,20 @@ juce::StringArray captureBarsChoices() { return { "1", "2", "4", "8", "16", "32"
 juce::StringArray beatFractionChoices() { return { "1/32", "1/16", "1/8", "1/4", "1/2", "3/4", "1", "2", "4", "8", "16" }; }
 juce::StringArray repeatRateChoices() { return { "1/2", "1/4", "1/8", "1/16", "1/32" }; }
 juce::StringArray fillChoices() { return { "Off", "Every 4 Bars", "Every 8 Bars" }; }
+juce::StringArray beatSwitchChoices() { return { "Immediately", "Next Beat", "Next Bar" }; }   // v1.6
+juce::StringArray sendFxChoices()
+{
+    juce::StringArray s;
+    for (int i = 0; i < (int) SendFxType::NumTypes; ++i)
+        s.add (getSendFxName ((SendFxType) i));
+    return s;
+}
+juce::StringArray punchTargetChoices() { return { "Loops", "Input", "Master", "Drums" }; }
+juce::StringArray ctlAudioModeChoices() { return { "Controller only", "Record controller audio" }; }
+juce::StringArray holdRampChoices()     { return { "Off", "1 beat", "2 beats", "1 bar" }; }
+juce::StringArray velocityCurveChoices() { return { "Soft", "Normal", "Hard", "Fixed" }; }   // v1.7
+juce::StringArray themeChoices() { return { "Dark", "Light" }; }                                  // v1.7 display
+juce::StringArray viewChoices() { return { "Full", "Live", "Live without FX", "Performance" }; }      // v1.7 views (append-only)
 
 juce::StringArray grooveChoices()
 {
@@ -113,6 +142,8 @@ juce::StringArray kitChoices()
     juce::StringArray s;
     for (int i = 0; i < RhythmGenerator::getNumKits(); ++i)
         s.add (RhythmGenerator::getKitName (i));
+    for (int i = 0; i < RhythmGenerator::kNumPackKitSlots; ++i)   // v1.6: sound-pack slots
+        s.add ("Pack Kit " + juce::String (i + 1));
     return s;
 }
 
@@ -121,6 +152,8 @@ juce::StringArray rhythmChoices()
     juce::StringArray s;
     for (int i = 0; i < RhythmGenerator::getNumPatterns(); ++i)
         s.add (RhythmGenerator::getPatternName (i));
+    for (int i = 0; i < BeatPatternBank::kNumSlots; ++i)          // v1.6: BEATS user patterns
+        s.add ("User " + juce::String (i + 1));
     return s;
 }
 
@@ -139,14 +172,16 @@ namespace
         { kRecPlay, "Rec/Play" }, { kStop, "Stop" }, { kClear, "Clear" }, { kUndo, "Undo" }, { kRedo, "Redo" },
         { kLevel, "Level" }, { kPan, "Pan" }, { kReverse, "Reverse" }, { kOneShot, "One Shot" },
         { kLoopSync, "Loop Sync" }, { kTrackFx, "Track FX" }, { kInput, "Input" }, { kStartMode, "Start Mode" },
-        { kStopMode, "Stop Mode" }, { kDubMode, "Dub Mode" }, { kMeasure, "Measures" },
+        { kStopMode, "Stop Mode" }, { kDubMode, "Dub Mode" }, { kMeasure, "Loop Length" },
         { kCapture, "Capture" }, { kFeedback, "Feedback" }, { kDuck, "Ducking" }, { kOutput, "Output" },
         { kPitch, "Pitch" }, { kStretch, "Follow Tempo" },
         { "slice1", "Slice 1" }, { "slice2", "Slice 2" }, { "slice3", "Slice 3" }, { "slice4", "Slice 4" },
         { "slice5", "Slice 5" }, { "slice6", "Slice 6" }, { kCutSync, "Back in Sync" }, { kMute, "Mute" },
         { kSolo, "Solo" }, { kDouble, "Double Loop" }, { kHalve, "Halve Loop" }, { kOctUp, "Octave Up" },
-        { kOctDown, "Octave Down" }, { kCopy, "Copy to Empty Track" }, { kRecLen, "Rec Length" },
-        { kColor, "Color FX" }
+        { kOctDown, "Octave Down" }, { kCopy, "Copy to Empty Track" }, { kRecLen, "Loop Length Once" },
+        { kColor, "Color FX" },
+        // v1.6 features
+        { kHalfSpeed, "Half Speed" }, { kDblSpeed, "Double Speed" }, { kRevLoop, "Reverse Loop Audio" }
     };
     const std::pair<const char*, const char*> kFxNames[] = {
         { kFxOn, "On" }, { kFxType, "Type" }, { kFxP1, "Param 1" }, { kFxP2, "Param 2" }, { kFxMix, "Mix" }
@@ -168,7 +203,28 @@ namespace
         { "brep_rate", "Beat Repeat Timing" }, { "stut_hold", "Stutter Hold" }, { "stut_latch", "Stutter Latch" },
         { "stut_rate", "Stutter Timing" }, { "metro_on", "Metronome On" }, { "metro_level", "Metronome Level" },
         { "metro_accent", "Metronome Accent" }, { "link_on", "Link" }, { "link_startstop", "Link Start/Stop Sync" },
-        { "rhythm_groove", "Groove" }, { "rhythm_fills", "Fills" }
+        { "rhythm_groove", "Groove" }, { "rhythm_fills", "Fills" },
+        // v1.6 features
+        { "perf_rec", "Performance Recorder" }, { "clip_export", "Export 9:16 Clip" },
+        // v1.6 rhythm
+        { "rhythm_variation", "Drum Variation" }, { "rhythm_fill", "Fill (hold)" }, { "beat_switch", "Pattern Switch" },
+        { "drums_bfx", "Drums through Beat FX" }, { "drums_repeat", "Drums through Repeat/Stutter" },
+        // v1.6 beat library
+        { "beat_lib_next", "Next Library Beat" }, { "beat_lib_prev", "Previous Library Beat" },
+        // v1.6 punch FX / send FX / controller
+        { "sfx_type", "Send FX Type" }, { "sfx_x", "Send FX X" }, { "sfx_y", "Send FX Y" }, { "sfx_level", "Send FX Amount" },
+        { "pfx_amount", "Punch FX Amount" }, { "pfx_x", "Punch FX X" }, { "pfx_y", "Punch FX Y" },
+        { "pfx_target", "Punch FX Target" }, { "pfx_latch", "Punch FX Latch" },
+        { "ctl_audio_mode", "Controller Audio" }, { "ko2_resample", "Resample Controller Pattern" },
+        { "pfx_hold_ramp", "Punch FX Hold Ramp" },
+        // v1.7
+        { "lat_comp", "Latency Compensation" }, { "lat_offset", "Latency Offset" }, { "lat_measure", "Measure Latency" },
+        { "vel_push", "Push 1 Velocity Curve" }, { "vel_ko2", "Sampler Pad Velocity Curve" }, { "vel_midi", "MIDI Velocity Curve" },
+        { "midi_fb", "MIDI Feedback (experimental)" }, { "push_progress", "Push 1 Loop Progress Bars" },
+        // v1.7 display
+        { "live_view", "Live View" }, { "stage_mode", "Stage Mode" }, { "ui_theme", "Colour Theme" }, { "waveforms", "Show Waveforms" },
+        // v1.7 views
+        { "live_fx", "Live View FX Bar" }, { "view", "View" }
     };
 
     template <size_t N>
@@ -191,6 +247,14 @@ namespace
             return t (g);
         if (paramId.startsWith ("scene") && paramId.substring (5).containsOnly ("0123456789"))
             return t2 ("Scene %1", paramId.substring (5), {});
+        // v1.6 punch FX holds
+        if (paramId.startsWith (kPunchHold) && paramId.substring ((int) strlen (kPunchHold)).containsOnly ("0123456789"))
+            return t2 ("Punch FX %1 (Hold)", paramId.substring ((int) strlen (kPunchHold)), {});
+        // v1.6 BEATS rows
+        for (auto [prefix, text] : { std::pair<const char*, const char*> { kBeatMute, "Beat Row %1 Mute" }, { kBeatSolo, "Beat Row %1 Solo" },
+                                     { kBeatVol, "Beat Row %1 Level" }, { kBeatPitch, "Beat Row %1 Pitch" } })
+            if (paramId.startsWith (prefix) && paramId.substring ((int) strlen (prefix)).containsOnly ("0123456789"))
+                return t2 (text, paramId.substring ((int) strlen (prefix)), {});
 
         // track: "t1_level"
         if (paramId.length() > 3 && paramId[0] == 't' && paramId[2] == '_')
@@ -302,7 +366,7 @@ APVTS::ParameterLayout createLayout()
         group->addChild (choiceParam (gQuantize, localisedName (gQuantize), translated (quantizeChoices()), 2));
         group->addChild (choiceParam (gRecAction, localisedName (gRecAction), translated (recActionChoices()), 0));
         group->addChild (boolParam (gSync, localisedName (gSync), true));
-        group->addChild (boolParam (gFollow, localisedName (gFollow), false));
+        group->addChild (boolParam (gFollow, localisedName (gFollow), true));
         group->addChild (std::make_unique<juce::AudioParameterFloat> (
             PID { gTempo, 1 }, localisedName (gTempo), juce::NormalisableRange<float> (40.0f, 300.0f, 0.1f), 120.0f,
             juce::AudioParameterFloatAttributes().withLabel ("BPM")));
@@ -401,6 +465,112 @@ APVTS::ParameterLayout createLayout()
         group->addChild (b (gLinkStartStop, false));
         group->addChild (ch (gRhythmGroove, translated (grooveChoices()), 1));
         group->addChild (ch (gRhythmFills, translated (fillChoices()), 0));
+        layout.add (std::move (group));
+    }
+
+    // ---------------------------------------------------------------- v1.6 features (appended; ids never change)
+    // loop tricks per track, performance recorder, clip export
+    {
+        auto group = std::make_unique<juce::AudioProcessorParameterGroup> ("features16", i18n::tr ("Loop Tricks & Recorder"), "|");
+        for (int t = 0; t < kNumTracks; ++t)
+            for (auto* n : { kHalfSpeed, kDblSpeed, kRevLoop })
+                group->addChild (std::make_unique<juce::AudioParameterBool> (PID { trackId (t, n), 7 }, localisedName (trackId (t, n)), false));
+        group->addChild (std::make_unique<juce::AudioParameterBool> (PID { gPerfRec, 7 }, localisedName (gPerfRec), false));
+        group->addChild (std::make_unique<juce::AudioParameterBool> (PID { gClipExport, 7 }, localisedName (gClipExport), false));
+        layout.add (std::move (group));
+    }
+    // ---- end v1.6 features
+    // ---------------------------------------------------------------- v1.6 rhythm: BEATS, fill, drum FX routing (appended)
+    {
+        auto group = std::make_unique<juce::AudioProcessorParameterGroup> ("beats", i18n::tr ("Beats"), "|");
+        auto b = [] (const juce::String& id, bool def) { return std::make_unique<juce::AudioParameterBool> (PID { id, 7 }, localisedName (id), def); };
+        group->addChild (percentParam (gRhythmVariation, localisedName (gRhythmVariation), 1.0f, 0.5f, 7));
+        group->addChild (b (gRhythmFill, false));
+        group->addChild (std::make_unique<juce::AudioParameterChoice> (PID { gBeatSwitch, 7 }, localisedName (gBeatSwitch),
+                                                                       translated (beatSwitchChoices()), 2));
+        group->addChild (b (gDrumsBfx, false));
+        group->addChild (b (gDrumsRepeat, false));
+        for (int r = 0; r < kNumBeatRows; ++r)
+        {
+            group->addChild (b (beatRowId (kBeatMute, r), false));
+            group->addChild (b (beatRowId (kBeatSolo, r), false));
+            group->addChild (percentParam (beatRowId (kBeatVol, r), localisedName (beatRowId (kBeatVol, r)), 1.5f, 1.0f, 7));
+            group->addChild (std::make_unique<juce::AudioParameterFloat> (
+                PID { beatRowId (kBeatPitch, r), 7 }, localisedName (beatRowId (kBeatPitch, r)),
+                juce::NormalisableRange<float> (-12.0f, 12.0f, 1.0f), 0.0f,
+                juce::AudioParameterFloatAttributes()
+                    .withStringFromValueFunction ([] (float v, int) { const int st = juce::roundToInt (v); return (st > 0 ? "+" : "") + juce::String (st); })
+                    .withLabel ("st")));
+        }
+        layout.add (std::move (group));
+    }
+    // ---------------------------------------------------------------- v1.6 beat library (appended after the rhythm block)
+    {
+        auto group = std::make_unique<juce::AudioProcessorParameterGroup> ("beatlib", i18n::tr ("Beat Library"), "|");
+        for (const auto& id : { gBeatLibNext, gBeatLibPrev })
+            group->addChild (std::make_unique<juce::AudioParameterBool> (PID { id, 7 }, localisedName (id), false));
+        layout.add (std::move (group));
+    }
+
+    // ---------------------------------------------------------------- v1.6 punch FX, send FX, controller audio (appended)
+    {
+        auto group = std::make_unique<juce::AudioProcessorParameterGroup> ("punchfx", i18n::tr ("Punch FX"), "|");
+        auto pct = [] (const juce::String& id, float def) { return percentParam (id, localisedName (id), 1.0f, def, 8); };
+        group->addChild (std::make_unique<juce::AudioParameterChoice> (PID { gSfxType, 8 }, localisedName (gSfxType), translated (sendFxChoices()), 0));
+        group->addChild (pct (gSfxX, 0.5f));
+        group->addChild (pct (gSfxY, 0.5f));
+        group->addChild (pct (gSfxLevel, 0.3f));
+        for (int i = 0; i < kNumPunchHolds; ++i)
+            group->addChild (std::make_unique<juce::AudioParameterBool> (PID { punchHoldId (i), 8 }, localisedName (punchHoldId (i)), false));
+        group->addChild (pct (gPfxAmount, 0.7f));
+        group->addChild (pct (gPfxX, 0.5f));
+        group->addChild (pct (gPfxY, 0.5f));
+        group->addChild (std::make_unique<juce::AudioParameterChoice> (PID { gPfxTarget, 8 }, localisedName (gPfxTarget), translated (punchTargetChoices()), 0));
+        group->addChild (std::make_unique<juce::AudioParameterBool> (PID { gPfxLatch, 8 }, localisedName (gPfxLatch), false));
+        layout.add (std::move (group));
+    }
+    {
+        auto group = std::make_unique<juce::AudioProcessorParameterGroup> ("controller", i18n::tr ("Controller"), "|");
+        group->addChild (std::make_unique<juce::AudioParameterChoice> (PID { gCtlAudioMode, 8 }, localisedName (gCtlAudioMode), translated (ctlAudioModeChoices()), 0));
+        group->addChild (std::make_unique<juce::AudioParameterBool> (PID { gKo2Resample, 8 }, localisedName (gKo2Resample), false));
+        layout.add (std::move (group));
+    }
+    {
+        // v1.6 (appended): pads that send no pressure - holding one raises the punch FX amount to 100 %
+        auto group = std::make_unique<juce::AudioProcessorParameterGroup> ("punchramp", i18n::tr ("Punch FX Hold Ramp"), "|");
+        group->addChild (std::make_unique<juce::AudioParameterChoice> (PID { gPfxHoldRamp, 8 }, localisedName (gPfxHoldRamp), translated (holdRampChoices()), 2));
+        layout.add (std::move (group));
+    }
+    {
+        // v1.7 (appended): latency compensation, velocity curves, generic MIDI feedback, Push 1 display
+        auto group = std::make_unique<juce::AudioProcessorParameterGroup> ("v17", i18n::tr ("Latency & Controllers"), "|");
+        auto b = [] (const juce::String& id, bool def) { return std::make_unique<juce::AudioParameterBool> (PID { id, 9 }, localisedName (id), def); };
+        group->addChild (b (gLatComp, true));
+        group->addChild (std::make_unique<juce::AudioParameterFloat> (
+            PID { gLatOffset, 9 }, localisedName (gLatOffset), juce::NormalisableRange<float> (-50.0f, 50.0f, 0.1f), 0.0f,
+            juce::AudioParameterFloatAttributes().withLabel ("ms")));
+        group->addChild (b (gLatMeasure, false));
+        for (const auto& id : { gVelPush, gVelKo2, gVelMidi })
+            group->addChild (std::make_unique<juce::AudioParameterChoice> (PID { id, 9 }, localisedName (id), translated (velocityCurveChoices()), 1));
+        group->addChild (b (gMidiFeedback, false));
+        group->addChild (b (gPushProgress, true));
+        layout.add (std::move (group));
+    }
+    {
+        // v1.7 (appended): display - Live view, stage mode, colour theme, waveforms
+        auto group = std::make_unique<juce::AudioProcessorParameterGroup> ("display", i18n::tr ("Display"), "|");
+        auto b = [] (const juce::String& id) { return std::make_unique<juce::AudioParameterBool> (PID { id, 9 }, localisedName (id), false); };
+        group->addChild (b (gLiveView));
+        group->addChild (b (gStageMode));
+        group->addChild (std::make_unique<juce::AudioParameterChoice> (PID { gUiTheme, 9 }, localisedName (gUiTheme), translated (themeChoices()), 0));
+        group->addChild (b (gWaveforms));
+        layout.add (std::move (group));
+    }
+    {
+        // v1.7 (appended): views - Live view FX bar, view selector (Full / Live / Live without FX / Performance)
+        auto group = std::make_unique<juce::AudioProcessorParameterGroup> ("views", i18n::tr ("Views"), "|");
+        group->addChild (std::make_unique<juce::AudioParameterBool> (PID { gLiveFx, 9 }, localisedName (gLiveFx), true));
+        group->addChild (std::make_unique<juce::AudioParameterChoice> (PID { gView, 9 }, localisedName (gView), translated (viewChoices()), 0));
         layout.add (std::move (group));
     }
 

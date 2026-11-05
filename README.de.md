@@ -17,12 +17,12 @@
 - **Live-Performance zuerst.** Jede Funktion reagiert sofort, landet auf dem Schlag und hält die Musik nie an. Beim Spielen braucht nichts ein Menü.
 - **Spaß am Spielen.** Beat-FX, Beat Repeat und Stutter, Color-FX und ein Groove, der sich wie ein Drummer anfühlt, machen aus einem Loop eine Performance – drücken, halten, loslassen, und du bist wieder auf dem Schlag.
 - **Erforschen und spielen.** Halte fest, was du gerade improvisiert hast, leg mit dem XY-Pad einen Effekt darauf, verstimm es, dreh es um, lass es ausklingen wie ein Band – und behalte, was funktioniert.
-- **Hände an die Hardware.** Schließ einen Ableton Push an und livelooper übernimmt ihn – ohne Mapping. Jeder andere Controller funktioniert per MIDI Learn, alle 400 Funktionen sind zuweisbar.
+- **Hände an die Hardware.** Schließ einen Ableton Push an und livelooper übernimmt ihn – ohne Mapping. Jeder andere Controller funktioniert per MIDI Learn, alle 503 Funktionen sind zuweisbar.
 - **Deine Loops gehören in deinen Song.** Zieh einen Loop direkt aus livelooper auf eine Spur in deiner DAW, exportiere Stems oder behalte alles im Projekt gespeichert.
 
 ## Spielen mit Ableton Push
 
-![livelooper auf Ableton Push](docs/images/livelooper-live-push.jpg)
+![livelooper auf Push 1](docs/images/livelooper-push1.png)
 
 Push (ab Version 1) anschließen, **User** drücken – und livelooper macht daraus eine eigene Looper-Oberfläche – im Plug-in in jeder DAW und in der Standalone-App, denn livelooper spricht Push direkt über dessen User-Port an:
 
@@ -34,6 +34,7 @@ Push (ab Version 1) anschließen, **User** drücken – und livelooper macht dar
 - **Touchstrip** = Tape-Stopp, der synchron zurückspringt (SHIFT = Filter-Sweep), **Fußschalter** = REC/PLAY, doppelt STOP, halten LÖSCHEN
 - **FX-XY-Pad**: Das 8×8-Raster wird zum Performance-Pad – anfassen, schieben, fester drücken für mehr, loslassen, und es springt zurück
 - **Performance-FX (1.5)**: ADD EFFECT = Beat-FX an / aus, ADD TRACK = Beat-FX solange gehalten, LEFT / RIGHT = Schlag, BROWSE = Encoder für Typ, Schlag, Pegel, Kanal, Color-FX, Repeat- / Stutter-Timing; REPEAT / ACCENT = Beat Repeat / Stutter solange gehalten (SHIFT = Latch), dabei über den Touchstrip streichen für 1/2 … 1/32; FIXED LENGTH = Capture 1–32 Takte; SHIFT + METRONOME = Ableton Link
+- **Neu in 1.7**: **FIXED LENGTH** halten + Pad (Reihe 3 – 8 = AUTO … 16 Takte) oder Encoder = Loop-Länge einer Spur, **SHIFT + MASTER** = Ansicht umschalten (Voll / Live / Live ohne FX / Performance), Loop-Fortschrittsbalken und Punch-FX-Stärke im Display, Anschlagkurve für die Pads
 - **Display** mit Namen, Werten, Spurstatus, Tempo und Pegelanzeige
 
 Einrichtung und komplette Belegung: **[PUSH.md](docs/de/PUSH.md)**.
@@ -51,6 +52,47 @@ Einrichtung und komplette Belegung: **[PUSH.md](docs/de/PUSH.md)**.
 - **Loop-Cutting und Stottern**, **Stumm / Solo solange gehalten**, **Loop × 2 / halbieren**, **in eine andere Spur kopieren**, **Tape-Stopp** und ein **Performance-Filter** – alles musikalisch quantisiert, nichts hält je die Musik an
 - **Ableton Push**, **MIDI Learn** für jeden Controller (Rechtsklick auf ein Bedienelement) und **Computertastatur** in der Standalone-App
 
+<!-- v1.7 features -->
+**Neu in 1.7 (in Entwicklung)**
+
+![Live-Ansicht](docs/images/livelooper-live-de.png)
+
+- **Live-Ansicht** für die Bühne: eine große Karte pro Spur (Status, Länge, Wellenform, das große REC / PLAY / DUB-Pad, Pegel, STOP) und eine Performance-FX-Leiste – öffnen mit **LIVE** neben dem Logo, **SHIFT + MASTER** am Push 1 oder jedem MIDI-Regler; *Live-Ansicht öffnen (Vollbild)* zeigt sie in einem randlosen Fenster, immer im Vordergrund, über den ganzen Bildschirm (praktisch auf einem zweiten Monitor – kein gesperrter Kiosk-Modus)
+- **Performance-Ansicht** (1.7, die 4. Ansicht): eine kompakte Spur-Reihe und ein großer Performance-FX-Bereich – Punch-FX-Ziel, XY-Feld mit Stärke und Latch, bipolarer Filter, Beat FX, REPEAT / STUTTER / FILL mit Repeat-Rate, die 12 Punch-FX-Pads, Master, ALLE START / STOP und CAPTURE; umschalten mit der Ansichtsumschaltung (VOLL · LIVE · LIVE − FX · PERFORM), SHIFT + MASTER am Push 1 oder dem Host-Parameter *Ansicht*, auch im Vollbild
+- **Loop-Länge auf jeder Spur**: eine Pille neben dem Spurnamen – **AUTO** (dein nächster Druck beendet die Aufnahme) oder **1 · 2 · 4 · 8 · 16 Takte** (endet von selbst auf dem Taktstrich); anklicken, scrollen oder per MIDI Learn zuweisen, auch in der Live-Ansicht. Host-Parameter *Loop-Länge* und *Loop-Länge einmalig* (einmalig, bis 32 Takte). Am Push 1: **FIXED LENGTH** halten + Pad in Reihe 3 – 8 oder Spur-Encoder; FIXED LENGTH allein stellt weiter die Capture-Länge ein (beim Loslassen)
+- **Latenz messen und ausgleichen**: ein Klick misst die Roundtrip-Latenz deines Interfaces (Loopback-Ping), gespeichert pro Audiogerät; jede Aufnahme, jeder Overdub und jedes Capture landet auf dem Beat; manueller Versatz −50 … +50 ms
+- **Anzeige** (*SETUP → Anzeige*): helles und dunkles Farbschema, kontrastreicher **Bühnenmodus**, Oberflächengröße **75 – 200 %** (Strg/Cmd + / −), große Wellenformen mit Overdub-Schicht (anfangs aus)
+- **Anschlagkurven** (weich / normal / hart / fest) für Push 1, die Sampler-Pads und gelernte MIDI-Noten, **MIDI-Feedback** für leuchtende gelernte Bedienelemente (experimentell), **Push-1-Display-Balken** für Loop-Fortschritt und Punch-FX-Stärke
+- **Host-Transport folgen ist standardmäßig an**: stoppt deine DAW, stoppen auch die Loops (umschaltbar unter *SETUP → Looper*)
+- 14 neue Host-Parameter – insgesamt **503**, alle per MIDI steuerbar
+- **Automatische Sicherung und Absturz-Wiederherstellung**: das ganze Set (mit allen Loops) wird alle paar Minuten und nach jeder Aufnahme im Hintergrund gesichert – nur wenn sich etwas geändert hat, ohne den Ton zu stören; die App lädt beim Start die letzte Sitzung und stellt nach einem Absturz die neueste Sicherung wieder her; in einer DAW wird eine neuere Sicherung angeboten, nie stillschweigend übernommen (*SETUP → Sets → Automatische Sicherung*)
+<!-- end v1.7 features -->
+
+<!-- v1.6 features -->
+**Neu in 1.6 (in Entwicklung)**
+- **Willkommensbildschirm, Demo-Set und geführte Tour**: Beim ersten Start wählst du *Demo-Set* (ein Groove und drei Loops – ALLE START / STOP drücken und nach Sekunden läuft Musik) oder *leeres Set*; eine 60-Sekunden-Tour zeigt Aufnehmen, Overdub, Groove, Beat-FX und Szenen
+- **Loop-Tricks**: halbe und doppelte Geschwindigkeit, Loop-Audio umdrehen – quantisiert, rückgängig machbar, per MIDI zuweisbar, auf Push 1 mit SHIFT
+- **Performance-Recorder**: die gesamte livelooper-Ausgabe als WAV mit einer runden Aufnahmetaste (oben rechts, blinkt im Takt), mit Zeitanzeige
+- **Eigene Samples auf den BEATS-Zeilen**: beliebige Audiodatei auf eine Zeile ziehen (oder *Sample laden …*), mit einem Klick zurück zum Kit-Sample – wird mit dem Set gespeichert
+- **Clip-Export 9:16**: die letzten 20 Sekunden (oder eine Aufnahme) als gebrandetes Hochformat-Video für Reels, TikTok und Shorts
+- **Sets teilen**: eine `.livelooper`-Datei mit allem Audio, per Drag & Drop geöffnet – das Demo-Set liegt in [`presets`](presets/)
+- **Controller-Vorlagen** für Launchpad Mini MK3 / X, APC mini mk2 und die Pads von Launchkey MK3 / MK4 (automatisch erkannt, mit LED-Rückmeldung) – *experimentell – nicht auf Hardware getestet, Feedback willkommen*
+- **Unterstützte Controller**: Ableton Push 1 (volle Integration, ohne Mapping) und der Sampler K.O. II (*experimentell – bitte testen*): anschließen und loslegen als Controller (4 Pad-Seiten) oder aufnehmen, livelooper als Clock-Master, Pattern resamplen; Controller-Oberfläche für beide
+
+*Drums und BEATS*
+
+- **12 Drum-Kits**: Studio, 808, 909 Style, Lo-Fi plus House, Techno, Boom Bap, Trap, Breaks, Rock, Disco und Afro Latin – echte CC0-Aufnahmen (akustische Sets, Handpercussion, gesampelte Drumcomputer), jedes mit passenden Grooves (insgesamt 39) und eigenem Fill-Stil
+- **Lebendige Drums**: mehr Takes, Velocity-Layer, Round Robin über Layer hinweg, feine Tonhöhen- / Ausklang-Variation und Akzent-Kicks (VARIATION) – kein Maschinengewehr
+- **BEATS-Step-Sequencer**: 8 Instrumente × 16 oder 32 Schritte, 1 – 4 Takte, Dynamik / Akzent pro Schritt, stumm / solo / Pegel / Tonhöhe pro Zeile, Kopieren / Einfügen / leichte Variation, 16 User-Patterns pro Set plus Pattern-Bibliothek; Pattern-Wechsel auf den nächsten Schlag oder Takt
+- **FILL auf Knopfdruck**: FILL halten für einen Fill, loslassen und der Groove landet auf der nächsten Eins
+- **Drums durch Beat FX und Beat Repeat / Stutter** – ein Schalter pro Effektgruppe
+- **Sound-Packs**: Kits und Patterns importieren (Ordner oder Zip, offenes Format) – siehe [SOUND-PACKS.md](docs/de/SOUND-PACKS.md)
+- **Push-1-STEP-Modus**: die Pads als Step-Sequencer, FILL auf IN
+- **Punch-FX und Send-FX**: 12 schnelle Effekte zum Halten (Bandstopp, Beat-Repeat, Filter, Granular …), Druck oder Anschlagstärke = Stärke, dazu ein Send-Effekt auf den Loops
+- **Push-1-Ergänzungen**: Pad-Druck zerhackt einen Loop (1/4 – 1/32), alle FX auf dem XY-Pad, Beat-Blinker und Set-Aufnahme-Pad, Encoder doppelt berühren, Spurfarben
+- **Beat-Bibliothek**: SPEICHERN legt einen Beat unter seinem Namen ab (Schritte, Dynamik, Länge, Swing, Zeilen-Mixer), LADEN listet deine gespeicherten Beats oder öffnet eine Datei; mit den Host-Parametern *Nächster / Vorheriger Bibliotheks-Beat* blätterst du durch
+<!-- end v1.6 features -->
+
 **Live-Performance-FX (neu in 1.5)**
 - **Beat-FX** wie an einem DJ-Mixer: 16 taktsynchrone Effekte (Delay, Echo, Ping Pong, Spiral, Hall, Trans, Filter, Flanger, Phaser, Pitch, Roll, Slip Roll, Reverse Roll, Vinyl Brake, Helix, Noise) mit Schlagwert 1/32 … 16 Schläge, Pegel / Tiefe, ON oder HOLD, auf Master, Loops, Eingang oder einer Spur
 - **Beat Repeat und Stutter**: Halten (oder einrasten) wiederholt 1/2 … 1/32 Noten ab der nächsten Rasterlinie; die Musik läuft darunter weiter, Loslassen ist also immer im Takt
@@ -64,14 +106,17 @@ Einrichtung und komplette Belegung: **[PUSH.md](docs/de/PUSH.md)**.
 - **Rhythmus** mit aufgenommenen Drum-Samples (CC0 / gemeinfrei): 4 Kits (Studio, 808, 909 Style, Lo-Fi), 21 Patterns von Rock bis Trap, Dembow, UK Garage und Afro House, 6 Groove-Feels (gerade, natürlich, laid back, treibend, drunk, drive), automatische Fills alle 4 oder 8 Takte, Swing und Feel; Metronom mit 4 Klängen
 
 **Arbeiten mit deiner DAW**
-- **Synchron zur DAW**: Host-Tempo, Taktart und Transport – oder interne Clock mit Tap-Tempo / eingetipptem Tempo
+- **Synchron zur DAW**: Host-Tempo, Taktart und Transport (ein DAW-Stopp stoppt die Loops – seit 1.7 standardmäßig an, abschaltbar) – oder interne Clock mit Tap-Tempo / eingetipptem Tempo
+- **Latenz messen und ausgleichen** (1.7): ein Klick misst die Roundtrip-Latenz deines Interfaces (Loopback-Ping), gespeichert pro Audiogerät; jede Aufnahme, jeder Overdub und jedes Capture landet auf dem Beat
+- **Loop-Länge an jeder Spur** (1.7): AUTO oder 1 – 16 Takte direkt in der Spur und in der Live-Ansicht (Klick, Scrollen, MIDI-Learn); am Push 1 FIXED LENGTH halten + Pad oder Encoder
+- **Live-Ansicht, Performance-Ansicht, Farbschemas, Bühnenmodus** (1.7): Bühnenansichten (auch als randloses Vollbild-Fenster) – große Spur-Karten mit Performance-FX-Leiste oder eine kompakte Spur-Reihe mit großem Performance-FX-Bereich – helles und dunkles Farbschema, kontrastreicher Bühnenmodus, Oberflächengröße 75 – 200 %, große Wellenformen mit Overdub-Schicht
 - **Loops in die DAW ziehen**: Zieh die Wellenform einer Spur auf eine Audiospur oder in den Browser der DAW – eine WAV mit Tempo-Infos (ACID-Metadaten), die die meisten DAWs direkt ins Raster legen
 - **Stem-Export** mit Tempo-Metadaten, WAV-Export pro Spur, Audiodateien per Drag & Drop auf eine Spur importieren
 - **Direkte Spurausgänge** (Plug-in Multi-Out – jede Spur als eigener Ausgang in deiner DAW – oder Interface-Ausgänge in der Standalone-App), **Cue-Ausgang** für das Metronom
 - **Mit dem Projekt gespeichert**: Loops verlustfrei (FLAC, 24 Bit) im DAW-Projekt; komplette **Looper-Sets** als `.llset`-Datei
 - **Pegel und Wellenformen**: Stereo-Pegel pro Spur, Master-VU in dB im Display (grün / gelb / rot), Wellenform mit Abspielposition, Clip-LED
-- **Komfort**: Hilfe in der App (durchsuchbare Bedienungsanleitung), Info-Fenster mit Update-Prüfung, Start mit den zuletzt verwendeten oder den Standard-Einstellungen, Liste der zuletzt verwendeten Sets
-- **Alle 400 Funktionen** sind Host-Parameter für MIDI-Mapping und Automation deiner DAW
+- **Komfort**: Hilfe in der App (durchsuchbare Bedienungsanleitung), Info-Fenster mit Update-Prüfung, Start mit den zuletzt verwendeten oder den Standard-Einstellungen, Liste der zuletzt verwendeten Sets, **automatische Sicherung** mit Absturz-Wiederherstellung (1.7)
+- **Alle 503 Funktionen** sind Host-Parameter für MIDI-Mapping und Automation deiner DAW
 - **Deutsche und englische** Oberfläche (*SETUP → Language / Sprache*)
 
 ## Download
@@ -107,9 +152,12 @@ Alles Weitere steht in der **[Bedienungsanleitung](docs/de/BEDIENUNGSANLEITUNG.m
 |---|---|
 | [INSTALLATION.md](docs/de/INSTALLATION.md) | Download, Installer und manuelle Installation auf macOS und Windows, Gatekeeper / SmartScreen, Mikrofon-Freigabe, Einrichtung in deiner DAW |
 | [DAW-EINRICHTUNG.md](docs/de/DAW-EINRICHTUNG.md) | Das Plug-in in deiner DAW: Looper-Spur, Monitoring, Mikro/Gitarre und Software-Instrumente loopen, live zwischen Quellen wechseln, Audio herausholen, MIDI-Routing (Live, Bitwig, Cubase, Logic, Reaper, Studio One) |
-| [BEDIENUNGSANLEITUNG.md](docs/de/BEDIENUNGSANLEITUNG.md) | Oberfläche, alle Funktionen, Beat-FX, Beat Repeat / Stutter, Color-FX, Rhythmus, Link, Setup, Sprache |
+| [LIVE-PUSH-WORKFLOW.md](docs/de/LIVE-PUSH-WORKFLOW.md) | Schritt für Schritt: Ableton Live + Push 1 mit Keyboards, Gesang, Gitarre und Drums in einem livelooper, zweites MIDI-Keyboard spielt einen Synth |
+| [BEDIENUNGSANLEITUNG.md](docs/de/BEDIENUNGSANLEITUNG.md) | Oberfläche, alle Funktionen, Beat-FX, Beat Repeat / Stutter, Color-FX, Rhythmus, Link, Setup, Sprache, Latenz, Live-Ansicht, Performance-Ansicht, Anzeige, Loop-Länge, automatische Sicherung (1.7) |
 | [MIDI.md](docs/de/MIDI.md) | MIDI-Learn, MIDI-Mapping deiner DAW, Standard-Belegung, Parameterliste |
-| [PUSH.md](docs/de/PUSH.md) | Steuerung mit Ableton Push (in jeder DAW und standalone): Einrichtung, Pad-Belegung, Encoder, FX-XY-Pad, Performance-FX |
+| [PUSH.md](docs/de/PUSH.md) | Steuerung mit Ableton Push (in jeder DAW und standalone): Einrichtung, Pad-Belegung, Encoder, FX-XY-Pad, Performance-FX, STEP-Modus |
+| [KO2.md](docs/de/KO2.md) | K.O. II steuern (experimentell – bitte testen): Seiten, Rollen, Clock, Aufnahme, Testliste |
+| [SOUND-PACKS.md](docs/de/SOUND-PACKS.md) | Sound-Packs: Installation, Ordner-Aufbau, Pack- und Pattern-Format (zum Bauen und Verkaufen von Packs) |
 | [ENTWICKLUNG.md](docs/de/ENTWICKLUNG.md) | Bauen aus dem Quellcode, Architektur, Tests, CI, Übersetzungen |
 
 Englische Dokumentation: [docs/en](docs/en/).

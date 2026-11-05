@@ -6,21 +6,19 @@ livelooper is built as an **instrument for exploring and playing live**: every c
 
 ![Interface](../images/livelooper.png)
 
-The interface is laid out like a hardware looper:
+The interface keeps the classic arrangement: all effects at the top in two rows (everything visible at once, no tabs), the loop tracks below them – the largest part, each with its own colour, a big lit pad and its level meter – and the rhythm and master section in a narrow column on the right:
 
 | Area | Contents |
 |---|---|
-| Header | display (tempo, bar/beat, quantization, Link, master VU in dB, messages), **MIDI LEARN**, **MIDI MAP**, **SETUP**, **?** (help) |
-| INPUT FX (left) | four effect slots A–D for the input signal |
-| FX EDIT (centre) | effect type and knobs of the selected slot |
-| TRACK FX (right) | four effect slots A–D for the tracks with **FX** switched on |
-| Performance row (since 1.5) | **BEAT FX**, **BEAT REPEAT / STUTTER**, **COLOR FX**, **METRONOME** (sections 25–28) |
-| TRACK 1–5 (or 1–8) | the loop tracks (SETUP → Tracks) |
-| RHYTHM | drum machine, tempo, tap |
+| Header | **LIVE** next to the logo (Live view, section 43), below it the **view switcher** FULL · LIVE · LIVE − FX · PERFORM (section 43), display (tempo, bar/beat, quantization, Link, master VU in dB, messages), **MIDI LEARN**, **MIDI MAP**, **SETUP**, **?** (help), the round **REC** button (performance recorder) |
+| FX row 1 | **INPUT FX** A–D, **INPUT FX … EDIT** (type, two parameters, mix of the selected slot), **TRACK FX** A–D, **PUNCH FX** (sections 3, 39) |
+| FX row 2 | **BEAT FX**, **REPEAT / STUTTER**, **COLOR FX**, **SEND FX**, **METRONOME** (sections 25–28, 39) |
+| TRACK 1–5 (or 1–8) | the loop tracks (SETUP → Looper → Tracks), top to bottom: title row with the **loop length** pill (AUTO / 1–16 bars, section 45), display with state and waveform, REV / 1SHOT / FX, level fader with IN/OUT meter, PAN / COLOR, UNDO / REDO / SETUP, the big REC/PLAY pad, STOP |
+| RHYTHM | drum machine, tempo, tap, FILL, BEATS |
 | MASTER | quantization, host sync, levels, fade time, ALL START/STOP, CAPTURE, CLEAR ALL |
 | Footer | 8 scene buttons, STORE |
 
-Drag the bottom right corner to resize the window; the interface scales with it. Hover over any control to see a tooltip.
+Drag the bottom right corner to resize the window; the interface scales with it. Fixed sizes (75 – 200 %), a light theme, stage mode and large waveforms: *SETUP → Display* (section 44). Hover over any control to see a tooltip.
 
 ---
 
@@ -56,6 +54,7 @@ The LED ring shows the state and the position in the loop:
 | Control | Function |
 |---|---|
 | Display | state, length in bars, level, progress bar |
+| **Loop length** (pill next to *TRACK n*, new in 1.7) | **AUTO** or **1 · 2 · 4 · 8 · 16 BARS**: the first recording ends by itself after that many bars. Click = menu, mouse wheel / drag up or down = change, right-click = MIDI learn. Dimmed while the track holds a loop (it applies to the next new recording). See [section 45](#45-loop-length-new-in-17) |
 | **REV** | play the loop backwards (also while overdubbing) |
 | **1SHOT** | play the loop once, then stop |
 | **FX** | send the track through the track FX |
@@ -72,7 +71,7 @@ The LED ring shows the state and the position in the loop:
 | Start | Immediate · Fade In | playback starts immediately or fades in (fade time in MASTER) |
 | Stop | Immediate · Fade Out · Loop End | stop immediately, fade out, or stop at the end of the loop |
 | Dub mode | Overdub · Replace | add to or replace the loop while overdubbing |
-| Measures | Auto · 1 · 2 · 4 · 8 · 16 | Auto = length set by the second press; a fixed number = recording ends automatically after that many bars |
+| Loop length | Auto · 1 · 2 · 4 · 8 · 16 | Auto = length set by the second press; a fixed number = recording ends automatically after that many bars. The same setting as the loop length pill on the strip (called *Measures* before 1.7) |
 | LOOP SYNC | on/off | the loop stays locked to the bar grid: after jumping in the DAW's timeline or restarting it continues at the right spot |
 | CLEAR | | clear the track |
 | EXPORT WAV | | save the loop as a 24-bit WAV |
@@ -90,9 +89,11 @@ The LED ring shows the state and the position in the loop:
 
 **Retroactive ending**: if you press to end a recording up to 15 % of a grid step *after* the bar line, the loop still ends exactly on the bar line – whatever you played after the bar line is moved to the start of the loop (into the overdub). If you press too early, the looper simply waits for the bar line.
 
+**Free first loop** (SETUP → Looper, new in 1.7, on by default): when no other track holds a loop, neither metronome nor rhythm is on and the tempo is livelooper's own (standalone without Link, or HOST SYNC off – not while a host or Link sets the tempo), the first recording starts at once and **ends exactly on your press** – no waiting for the bar line. Its length sets the tempo: the loop becomes 1, 2, 4, 8 … bars (the count whose tempo is nearest 70 – 160 BPM; with a fixed loop length exactly that many bars), the TEMPO shows it and bar 1 starts with the loop, so later tracks, the metronome and quantize line up with it.
+
 **HOST SYNC** (on by default): tempo, time signature and position come from your DAW. When the host transport is stopped, an internal clock continues at the current host tempo as soon as a track records or plays. Without host sync the internal tempo applies (knob **TEMPO**, tap **TAP** several times in time, or click the tempo on the display and type it in – see section 11).
 
-**Follow host transport** (SETUP menu): loops start with your DAW's play button and stop with its stop button.
+**Follow host transport** (SETUP → Looper, **on by default since 1.7**): loops start with your DAW's play button and **stop with its stop button** – stopping the DAW stops livelooper. Switch it off if livelooper should keep looping on its internal clock while the DAW stands still. The standalone app has no host transport and is not affected; projects saved with an older version keep the setting they were saved with.
 
 Note: if the tempo changes after a loop was recorded, the loop is not time-stretched – it keeps playing at its original speed.
 
@@ -105,7 +106,7 @@ There are two effect banks with four slots each:
 - **INPUT FX** process the input signal – what you hear is also what gets recorded.
 - **TRACK FX** process all tracks that have **FX** switched on (a shared effect bus), without changing the recording.
 
-The **A/B/C/D** button switches the slot on and off and selects it for editing at the same time; clicking the effect name below it only selects it. In the **FX EDIT** area you set the type, two parameters and the mix. The slots of a bank are connected in series (A → B → C → D).
+Both banks sit in the first FX row at the top (**INPUT FX** left, **TRACK FX** right). The **A/B/C/D** pad switches the slot on and off and selects it for editing at the same time; clicking the effect name below it only selects it. Right next to the pads (**… EDIT**) you set the type, two parameters and the mix. The slots of a bank are connected in series (A → B → C → D).
 
 | Effect | P1 | P2 | Mix |
 |---|---|---|---|
@@ -153,6 +154,8 @@ The kit names describe a sound style; "909 Style" and "808" are not the original
 
 **Fills** (*SETUP → Rhythm fills*): *Off*, *Every 4 Bars* or *Every 8 Bars* – the drummer plays a short fill (snare / tom run) in the last beat before the next phrase.
 
+**Since 1.6:** 8 more style kits with matching grooves and fills, more lively kicks (VARIATION), the **BEATS** step sequencer for your own patterns, **FILL** on demand, the drums through beat FX / repeat if you like, and sound packs – see [Drums, BEATS and sound packs](#drums-beats-and-sound-packs-16).
+
 ---
 
 ## 5. MASTER
@@ -172,10 +175,14 @@ The kit names describe a sound style; "909 Style" and "808" are not the original
 
 ## 6. SETUP menu
 
+Since 1.6 **SETUP** opens a settings window in the style of the macOS System Settings: the pages on the left (**Sets**, **Looper**, **Rhythm**, **Recording**, **Audio**, **Controllers**, **Display**, **Sync**, **App**; since 1.7 the **Audio** page is always there – it holds the latency measurement – and **Display** holds theme, interface size, stage mode, waveforms and the Live view), grouped rows on the right – switches, pop-up menus and actions, with short notes underneath. Every entry below is on one of these pages.
+
+![SETUP](../images/livelooper-setup.png)
+
 | Entry | Meaning |
 |---|---|
 | Record action | "Rec > Dub > Play" (default) or "Rec > Play > Dub". The REC button legend ("DUB / PLAY" or "PLAY / DUB") and the bottom display line show the active mode. |
-| Follow host transport | loops start/stop with the host transport |
+| Follow host transport | loops start/stop with the host transport (on by default since 1.7) |
 | Maximum loop length | 30 · 60 · 120 · 240 · 480 seconds per track (determines memory use; existing loops are kept) |
 | Save loops with the project | store loops in the DAW project (on by default). Off = smaller projects, loops are gone after loading |
 | Computer keyboard control | standalone app only: keys on/off (section 10) |
@@ -183,7 +190,11 @@ The kit names describe a sound style; "909 Style" and "808" are not the original
 | Type in tempo (BPM) … | type the internal tempo (section 11) |
 | Language / Sprache | Automatic (system language) · English · Deutsch |
 | Last used sets | the last 10 sets you saved or loaded, one click to load (section 13) |
+| Auto backup | background backups of the whole set, interval, auto load of the last session (app), restore, backup folder (section 46) |
 | Capture length | 1 · 2 · 4 · 8 · 16 · 32 bars (section 16) |
+| Audio → Latency | measure latency, latency compensation (on), manual offset (section 41) |
+| Controllers → Velocity curves / Push 1 display / MIDI feedback | velocity curves per controller, loop progress bars on the Push 1 display, LED feedback for learned controls (section 42) |
+| Display | colour theme, interface size 75 – 200 %, stage mode, waveforms in the loop tracks, Live view (open fullscreen, open the views fullscreen, waveforms, performance FX strip = host parameter *Live View FX Bar*), *Open Performance view (fullscreen)*; views also with SHIFT + MASTER or the host parameter *View*, sections 43, 44, 47 |
 | Rhythm groove / Rhythm fills | feel and fills of the drum machine (section 4) |
 | Ableton Link | Link on / off, sync start / stop, number of peers (section 29) |
 | Settings on start | start with the last used or the default settings, reset now (section 31) |
@@ -255,7 +266,7 @@ Click the big tempo number on the display (or press **B**, or right-click the TE
 
 ## 12. Meters, waveform and clip LED
 
-- **Track meter** (stereo, next to the level fader): while a track records or overdubs it shows the **input** level (orange, caption **IN**), otherwise the track's **output** level (green, **OUT**). Yellow from -12 dB, red from -1 dB; the thin line holds the peak for about a second.
+- **Track meter** (stereo, next to the level fader; on by default – hide it with **SETUP → Looper → Track meters**): while a track records or overdubs it shows the **input** level (orange, caption **IN**), otherwise the track's **output** level (green, **OUT**). Yellow from -12 dB, red from -1 dB; the thin line holds the peak for about a second.
 - **Master VU** (since 1.5): the top row of the display (**MASTER**) shows the level of the main output in dBFS, left and right, on a scale from -60 to +6 dB, with the peak as a number on the right. Green up to -12 dB, yellow up to -3 dB, orange up to 0 dB, red above – keep the loud parts in the yellow.
 - **Waveform**: the track display shows an overview of the loop instead of a plain progress bar. The part already played is bright, a white line marks the play position. While recording, the waveform grows from left to right; overdubs and undo show up right away. Reversed tracks show the waveform mirrored.
 - **Clip LED** (top right of every track): off = empty, green = the track holds a loop, red = first recording, blinking red = waiting for the next bar to start recording.
@@ -352,7 +363,7 @@ New functions for playing live. They are host parameters (MIDI learn, your DAW's
 - **Double Loop**: the loop is duplicated (twice as long) – overdub a variation over the second half. **Halve Loop** keeps the first half. Both work on playing or stopped tracks and can be undone with UNDO.
 - **Octave Up / Down**: pitch +12 / −12 semitones.
 - **Copy to Empty Track**: copies the loop into the next empty track (stopped; when started it plays in sync with the original).
-- **Rec Length**: a fixed length (1 – 32 bars) for the next or the running first recording, without changing the track's Measures setting.
+- **Loop Length Once** (*Rec Length* before 1.7): a fixed length (1 – 32 bars) for the next or the running first recording only, without changing the track's loop length setting (see section 45).
 - **Tape Stop**: the loops slow down like a stopping tape machine; back at 0 % they spin up and continue in sync – the timeline never stops.
 - **Performance Filter**: a DJ-style filter on the loops (low-pass to the left, high-pass to the right, off in the middle).
 
@@ -360,7 +371,7 @@ New functions for playing live. They are host parameters (MIDI learn, your DAW's
 
 ![Performance row](../images/livelooper-performance.png)
 
-The **BEAT FX** block works like the beat FX section of a DJ mixer: one effect, locked to the beat, that you throw on and off while you play.
+The **BEAT FX** block (second FX row, left; **REPEAT / STUTTER** and **COLOR FX** are next to it) works like the beat FX section of a DJ mixer: one effect, locked to the beat, that you throw on and off while you play.
 
 | Control | Function |
 |---|---|
@@ -432,7 +443,7 @@ Joining a session never changes its tempo – livelooper takes over the tempo of
 
 ## 30. Help
 
-The **?** button (top right) or **SETUP → Help …** opens the help: this user guide, the Push guide and the MIDI guide in your language, split into sections, with a search field (e.g. *stutter*, *Link*, *capture*). Hover over any control for a short tooltip.
+The **?** button (top right) or **SETUP → App → Help …** opens the help. It starts with illustrated pages (since 1.6): **Welcome**, **Loops**, **FX**, **BEATS**, **Recording**, **Link**, since 1.7 **Loop length**, **Live view**, **Display**, **Latency**, **Controllers** and **Backup** (pictures of the real interface), **Push 1** (the whole controller with numbered buttons and what they do – with the 1.7 gestures SHIFT + MASTER and FIXED LENGTH held), **Push 1: STEP** and **K.O. II**. Below them follow this user guide, the Push guide, the MIDI guide and the installation guide in your language, split into sections, with a search field (e.g. *stutter*, *Link*, *capture*). Hover over any control for a short tooltip.
 
 ![Help](../images/livelooper-help.png)
 
@@ -445,6 +456,8 @@ On the first start livelooper asks once how it should start from then on:
 
 Change it any time under **SETUP → Settings on start**; *Reset all settings to the defaults now* resets the controls without clearing the loops. A DAW project always loads its own saved state.
 
+Since 1.7 the standalone app also loads **the whole last session, loops included** (*SETUP → Sets → Auto backup → Auto load last session on start*, on by default) – see section 46.
+
 ## 32. About and updates
 
 **SETUP → About livelooper …** shows the version (with build number, git hash and date), the license (AGPLv3) and the third-party notices. **Check for updates** asks GitHub for a newer release:
@@ -455,4 +468,374 @@ Change it any time under **SETUP → Settings on start**; *Reset all settings to
 *Check automatically on start* and *Install updates automatically* are off until you switch them on (also under **SETUP → Updates**).
 
 ![About](../images/livelooper-about.png)
+
+
+<!-- v1.6 features (branch v1.6-wip) -->
+## 33. Demo set and guided tour (new in 1.6)
+
+On the **very first start** livelooper shows its **welcome screen** and lets you choose how to start:
+
+- **LOAD DEMO SET** – a drum groove (100 BPM) and three short loops – bass, keys and an arpeggio – on tracks 1 – 3. Press **ALL START / STOP** and you hear music within seconds; try the scenes 1 and 2, the beat FX, the loop tricks. The loops are self-made for livelooper and free to use (CC0).
+- **START WITH EMPTY SET** – a blank looper for your own first loop.
+
+The note on the screen says it: **the demo set replaces the current set** (loops and settings), and an empty set can be loaded any time with **SETUP → Empty set (clear everything)**. After your choice the guided tour starts.
+
+![Welcome screen](../images/livelooper-welcome.png)
+
+The demo plays through your speakers, so it **starts with the input muted** (the **INPUT** knob in MASTER at 0) – no feedback from an open microphone. Recording still works; turn **INPUT** up to hear what you play.
+
+- **SETUP → Welcome / demo set …** shows the same screen any time (without the tour). **SETUP → Load demo set** loads the demo directly.
+- When the current set holds loops, livelooper **asks before** the demo set (or the empty set) replaces it.
+- A DAW project or a set you load is never replaced without your choice.
+
+Right after the first start a **guided tour** (about 60 seconds) shows the five things to try first: **Record → Overdub → Groove → Beat FX → Scene**. Each step highlights the control and explains it; **NEXT**, **BACK** or **SKIP TOUR**. Start it again any time from the help button **?** → *Guided tour (60 seconds)* or **SETUP → Guided tour**.
+
+## 34. Loop tricks (new in 1.6)
+
+Three tricks rewrite a track's loop – musically, on the next beat or bar (QUANTIZE), and **UNDO** brings the loop back exactly as it was:
+
+- **Half Speed**: the loop plays at half speed, an octave lower, and becomes twice as long (when the memory is too short, the first half is stretched over the old length).
+- **Double Speed**: twice as fast, an octave higher – played twice, so the length and the bar structure stay.
+- **Reverse Loop Audio**: the recorded audio itself is reversed. (The REV switch only plays the loop backwards; this trick turns the recording around, so you can overdub forwards over the reversed sound.)
+- **Double Loop / Halve Loop** (since 1.4) complete the set: loop × 2 (copy) and half length.
+
+All tricks are host parameters (*T1 Half Speed*, *T1 Double Speed*, *T1 Reverse Loop Audio* …) for MIDI learn and your DAW's MIDI mapping. On **Push 1**: SHIFT + OCTAVE DOWN = half speed, SHIFT + OCTAVE UP = double speed, SHIFT + the button of a track in the second row above the pads = reverse that track (see [PUSH.md](PUSH.md)). They work on playing or stopped tracks, not while a track records.
+
+## 35. Performance recorder (new in 1.6)
+
+The round red **record button** at the top right, directly below MIDI LEARN / MIDI MAP / SETUP / ?, records **everything livelooper plays** – the master mix, exactly what you hear on the main output – as a WAV file (stereo, 24 bit, the current sample rate). While it records, the red light **blinks in time with the beat** and the elapsed time shows next to it (*REC 02:13*); click again to stop. Right-click it for MIDI learn (parameter *Performance Recorder*). The file is named after date and time (`livelooper-2026-10-14_21-30-05.wav`).
+
+- Folder: **Music/livelooper/Recordings** – change it under **SETUP → Performance recorder → Choose recordings folder …**, open it with *Show recordings folder*.
+- Works in the standalone app and in the plug-in (in a DAW it records the looper's output on its track; the DAW's own recording is not needed).
+- Host parameter **Performance Recorder** (on / off) for MIDI learn – e.g. a footswitch – and automation. It is never switched on by loading a project.
+- The file is written in the background; nothing on the audio thread waits for the disk.
+
+## 36. Clip export 9:16 (new in 1.6)
+
+**SETUP → Clip export 9:16** turns the last moments of your performance into a vertical video for Reels, TikTok and Shorts:
+
+- *Export the last 20 seconds as 9:16 video …* – livelooper always keeps the last 30 seconds of its output in memory, so you can decide **after** a good moment.
+- *Export the last performance recording as 9:16 video …* – the last REC recording (up to 90 seconds from its start).
+
+The video is 1080 × 1920 pixels, 30 frames per second, H.264 + AAC (.mp4), with an animated waveform, play head, a moving level view, the time, the livelooper title and the BeatTactics brand. It is rendered in the background and saved in the recordings folder, plus a cover image (`…-cover.png`). Host parameter **Export 9:16 Clip** (a trigger) starts the export from a controller.
+
+How the video is encoded: on **macOS** with AVFoundation, on **Windows** with Media Foundation (both part of the operating system). On **Linux** livelooper uses an **ffmpeg** program installed on the system, if there is one. Without a video encoder the export writes a folder with `audio.wav`, the PNG frames, a cover image and `make-video.txt` with the ffmpeg command that turns them into a video.
+
+## 37. Sharing sets (new in 1.6)
+
+**SETUP → Save set to share (.livelooper, one file with all audio) …** writes the whole looper – loops, effects, rhythm, scenes, tempo – into **one file** with the extension `.livelooper`. Send it to a friend, put it in the cloud or on GitHub; it opens on Mac, Windows and Linux.
+
+- **Open**: SETUP → *Load set …* (shows `.livelooper` and `.llset` files) or **drag the file onto the livelooper window** (standalone app and plug-in).
+- Inside it is a normal ZIP archive: `set.xml` (settings), `audio/track1.flac` … (lossless loops), `info.json` (tempo, version) and a short README. Your MIDI mapping, keyboard mapping and audio routing stay with your computer, not with the set.
+- `.llset` files (one XML file, since 1.0) keep working.
+
+**Presets on GitHub**: the folder [`presets`](../../presets/) of the livelooper repository holds the demo set (`demo-set.livelooper`). To share your own: save it as `.livelooper`, check that every sound in it is yours or free to share, and open a pull request that adds it to `presets/` (or attach it to an issue).
+
+## 38. Controller templates (new in 1.6, experimental)
+
+> **Experimental – untested on hardware, feedback welcome.**
+
+
+Besides [Push 1](PUSH.md) and MIDI learn, livelooper has ready-made templates for popular grid controllers. Connect the controller and livelooper finds it by its MIDI port name; **SETUP → Controller templates** shows the status and lets you choose a template yourself (or switch the templates off). Supported: **Launchpad Mini MK3, Launchpad X, APC mini mk2** (and the first APC mini) and the pads of **Launchkey MK3 / MK4**. The templates follow the manufacturers' public programmer's references (note numbers, mode switch and LED colours checked against them) – **they are not yet tested on the hardware**; please report what does not work.
+
+8 × 8 grid (Launchpad, APC mini) – one column per track, rows from the top:
+
+| Row | Pad | With SHIFT |
+|---|---|---|
+| 1 | REC / PLAY (clip launch, record, overdub) | |
+| 2 | STOP | CLEAR |
+| 3 | UNDO | REDO |
+| 4 | MUTE | |
+| 5 | HALF SPEED | |
+| 6 | DOUBLE SPEED | |
+| 7 | REVERSE LOOP | |
+| 8 | LOOP × 2 | LOOP / 2 |
+
+- **Scene buttons** (Launchpad right column, APC mini scene buttons): scenes 1 – 8; with SHIFT the scene is stored.
+- **Function buttons** (Launchpad top row, APC mini track buttons from the left): ALL START / STOP, ALL STOP, CAPTURE, TAP, RHYTHM, METRONOME, performance recorder; the eighth Launchpad button (and SHIFT on the APC mini) is SHIFT.
+- **APC mini faders**: levels of tracks 1 – 8 (fader at the top = 100 %), the ninth fader is the master level.
+- **Launchkey pads** (DAW mode): upper row REC / PLAY, lower row STOP for tracks 1 – 8; the scene launch button (>) = ALL START / STOP, the button below = ALL STOP. The keys stay with your DAW.
+- **LEDs**: green = playing, red pulsing = recording, orange = overdub, yellow flashing = waits for the bar, dim yellow = stopped, dark = empty. Scenes: dim = stored, bright = last started.
+
+livelooper switches the controller into its programmer / DAW mode while it uses it and back when it lets go. Ports: Launchpad = its *MIDI* port (on Windows the second one, `MIDIIN2 (…)`), Launchkey = its *DAW* port (on Windows the second one), APC mini mk2 = its first port. **Windows**: a MIDI port can only be used by one program at a time – switch the controller off in your DAW's MIDI settings (as for Push).
+<!-- end v1.6 features -->
+---
+
+## 39. Punch FX and Send FX (new in 1.6)
+
+![Punch FX](../images/livelooper-punch-fx.png)
+
+The **PUNCH FX** panel (first FX row, right): twelve quick effects you **hold** while you play – like the
+punch-in effects of a pocket sampler. Several at once combine (LOW-PASS + HIGH-PASS = band-pass). Each one
+fades in and out in 5 ms, so nothing clicks.
+
+| # | Punch FX | AMOUNT does | X | Y |
+|---|---|---|---|---|
+| 1 | Pitch Scatter | how far the pitch may drop (0 … −12 semitones) | rate (1/32 … 1/4) | probability |
+| 2 | Slice Swap | how often a slice is swapped | slice size (1/4 … 2 beats) | how far back it reaches |
+| 3 | Grains | grain size | density | spray (position) |
+| 4 | Beat Repeat | repeat length 1/4 → 1/32 (harder = shorter), on the grid | gate | decay |
+| 5 | Tape Stop | how far the tape slows down | stop time | restart time |
+| 6 | Filter Wobble | LFO speed | depth | resonance |
+| 7 | Low-Pass | cutoff down | resonance | drive |
+| 8 | High-Pass | cutoff up | resonance | drive |
+| 9 | Send Throw | pushes the loops into the Send FX | – | – |
+| 10 | Tremolo | speed | depth | shape (sine ↔ square) |
+| 11 | Octave Drop | glides toward −12 semitones (X right: −24) | interval | glide time |
+| 12 | Decimator | bit + sample-rate reduction | bits | sample rate |
+
+- **Pads 1 – 12**: hold = on, release = off. **LATCH**: a press switches an effect on, the next press off.
+- **XY field**: hold the mouse to play the punch FX you clicked last, move for X / Y.
+- **AMOUNT**: how strong. On Push 1 the pad pressure sets it (XY pad, SHIFT + top buttons 5 – 8); on a pad
+  controller with velocity, the velocity. Pads without pressure (K.O. II, see [KO2.md](KO2.md)): the amount starts at
+  the hit and rises to 100 % while you hold the pad (*Punch FX Hold Ramp*: off / 1 beat / 2 beats / 1 bar); the
+  title row shows the live amount (*HOLD 83 %*).
+- **Target**: where they work – **Loops** (default), **Input**, **Master** (loops + input monitor) or **Drums**.
+
+**SEND FX** (second FX row, next to the metronome; the type is chosen in its title row): one send effect on the loops – **Delay** (X length, Y feedback),
+**Reverb** (length, colour), **Distortion** (drive, colour), **Chorus** (modulation, feedback), **Filter**
+(bipolar DJ filter: X left cuts highs, right cuts lows; Y resonance), **Compressor** (drive, speed). **SEND** =
+how much of the loops goes in. Changing the type starts it clean.
+
+Everything is a host parameter and MIDI-mappable: *Punch FX 1 … 12 (Hold)*, *Punch FX Amount / X / Y /
+Target / Latch*, *Send FX Type / X / Y / Amount*.
+
+## 40. Controller view and controllers (new in 1.6)
+
+![Controller view: Push 1](../images/livelooper-controller-push.png)
+
+With a supported controller connected (Ableton Push 1, K.O. II – experimental), *SETUP → Controllers →
+GUI* offers **Controller**: instead of the standard surface livelooper shows a drawing of the controller with
+the live looper state on its pads, buttons and display. Click a drawn pad or button to press it.
+*◀ Standard* goes back; unplugging the controller falls back to the standard surface automatically. Push 1:
+see [PUSH.md](PUSH.md); K.O. II: see [KO2.md](KO2.md).
+
+![SETUP > Controllers](../images/livelooper-setup-controllers.png)
+
+## 41. Latency measurement and compensation (new in 1.7)
+
+![SETUP > Audio > Latency](../images/livelooper-setup-audio.png)
+
+Every audio interface delays the sound twice: on the way out (you hear the loop a little late) and on the way back in (what you play arrives a little late). Without compensation every overdub lands a few milliseconds behind the beat – and it adds up layer by layer. livelooper measures this **round trip** and moves **every** recording by it: first recordings, overdubs, captures (and resampling) – not only first recordings as before.
+
+**Measure** – *SETUP → Audio → Latency → Measure latency …* (or the host parameter *Measure Latency*, `lat_measure`, e.g. on a footswitch):
+
+1. Connect an output of your interface to an input with a **cable** (best), or hold a **microphone** close to the speaker. Turn the input up.
+2. Click *Measure latency …*. livelooper mutes everything, plays seven short clicks on the main output and listens on the input. It takes about 4 seconds.
+3. The result appears in ms and samples (*Measured: 11.6 ms (557 samples)*) and is **stored for this audio device** (device type, input, output, sample rate and buffer size) – change the device or the buffer and livelooper uses that device's own measurement.
+
+If nothing comes back, livelooper says so (*no ping detected – connect an output to an input with a cable, or hold a microphone to the speakers*). If the runs disagree by more than 1 ms (noisy room, microphone far away, other audio apps), the result is not stored (*unstable*). The value is the median of the runs, so one disturbed click does not matter.
+
+**Compensation** – *Latency compensation* (host parameter `lat_comp`, on by default) uses, in this order: the measurement of the current device; without one, what the audio device reports (input + output latency + two buffers – usually a good first guess, rarely exact); in *Record K.O. II* the K.O. II latency offset (see [KO2.md](KO2.md)). On top comes the **manual offset** (*SETUP → Audio → Latency → Manual offset*, or the host parameter *Latency Offset*, `lat_offset`, −50 … +50 ms, as a slider in your DAW and MIDI-mappable) – positive values move recordings earlier. *In use* shows what is applied right now.
+
+How it works: a finished first recording or capture plays the loop that much earlier against the beat; an overdub writes what you play that many samples earlier into the loop – exactly where you heard the loop when you played it.
+
+**In a DAW (plug-in):** plug-in formats give a plug-in no information about the audio device's latency, so livelooper cannot read it from the host. Measure **inside the DAW** instead: a cable from an interface output to the input of the looper track, input monitoring on, nothing else playing – the measurement then includes the DAW's own buffers. Stored per host. Your DAW's own *record latency compensation* only applies to clips the DAW records, not to the live input going through a plug-in, so the two never add up.
+
+## 42. Velocity curves and MIDI feedback (new in 1.7)
+
+![SETUP > Controllers: velocity curves, Push 1 display, MIDI feedback](../images/livelooper-setup-controllers-17.png)
+
+**Velocity curves** – *SETUP → Controllers → Velocity curves*, separately for **Push 1**, **K.O. II** and **MIDI (learned notes)** (host parameters `vel_push`, `vel_ko2`, `vel_midi`): *Soft* (light hits come out louder), *Normal*, *Hard* (you have to hit harder for full level), *Fixed* (every hit is full velocity). They change everything that uses the hit velocity: punch FX amount, step velocity in STEP mode, and parameters you learned on a note (a note sets a knob to its velocity).
+
+**MIDI feedback (experimental)** – *SETUP → Controllers → MIDI feedback*: for every control you MIDI-learned, livelooper sends the state back to a **MIDI output** you choose – a note-on (or CC) with the same channel and number. Most controllers light, dim or flash their pad / button LED depending on that value:
+
+| State | sent value (default) |
+|---|---|
+| on – track plays, switch on, scene active | *On value* (127; also 100, 64, 1) |
+| off – empty / stopped, switch off | *Off value* (0; also 1, 7) |
+| blink – recording, overdub, waiting for the bar, measuring | *Blink value*: livelooper blinks in time (default) or sends 2 / 3 / 64 |
+
+REC / PLAY learned on a pad: blinks while recording / overdubbing / waiting, lights while playing. STOP lights on a stopped track, UNDO / REDO when there is something to undo / redo, scene buttons on the last recalled scene. Knobs and faders learned on a CC get their current value (LED rings, motor faders). On / off with the host parameter *MIDI Feedback (experimental)* (`midi_fb`, off by default). Everything is sent again every few seconds, so a controller plugged in later catches up. On Windows the output must not be open in another program.
+
+## 43. Live view (new in 1.7)
+
+![Live view](../images/livelooper-live.png)
+
+The **Live view** is the surface for the stage: one large card per loop track and nothing else that could be hit by mistake. Open it with the **LIVE** button next to the logo, **LIVE** in the view switcher under the logo, the host parameter *Live View* (`live_view`, MIDI-mappable like every function), **SHIFT + MASTER** on Push 1 or *SETUP → Display → Live view → Open Live view (fullscreen)*. **Esc**, **EXIT LIVE** or LIVE again return to the full surface.
+
+| Area | Contents |
+|---|---|
+| Header | logo with the LIVE badge, **TAP**, **EXIT LIVE**, a large display: tempo (BPM), **bar . beat** and the beat dots (the first beat of the bar orange) |
+| Track cards (5 or 8) | state word (PLAY, DUB, REC, STOP, EMPTY, REC WAIT …), length in bars, loop position in %, the **waveform** with the play head, the big **REC / PLAY / DUB** pad with its LED ring, **LEVEL** (drag the bar; the meter runs behind the white level mark), **STOP** (hold 1.5 s = clear) |
+| PERFORMANCE FX | knobs **FILTER** (performance filter), **BEAT FX** (beat FX level), **PUNCH** (punch FX amount), **MASTER**; **ECHO …** (beat FX on / off, shows the beat FX type and beat fraction), **REPEAT** and **STUTTER** (while held), **FILL** (while held); the punch FX amount bar (the held punch FX with its live amount, otherwise the selected one); **ALL START / STOP**, **CAPTURE** |
+
+Every control in the Live view is the same function as on the full surface (right-click = MIDI learn). *SETUP → Display → Live view* switches the **waveforms in the track displays** (on by default; off = a loop position bar) and the **performance FX strip** (on; off = taller cards; since 1.7 also the host parameter *Live View FX Bar*, `live_fx`). *Open Live view (fullscreen)* opens it in its own borderless window that covers the whole screen and stays on top of other windows (Esc closes it) – handy on a second monitor or a laptop on stage. Opening a view from SETUP closes the SETUP window. Since 1.7 **Open the views fullscreen** (same place, remembered on this computer) makes every switch to the Live, Live without FX or Performance view open fullscreen – the LIVE button, the view switcher, the host parameters / MIDI and Push 1 alike; off (default) they open in the plug-in window. On a MacBook Pro with a notch the window keeps its content below the camera housing (the strip at the top is filled with the background; macOS 12 or later); on every Mac the content also stays clear of the menu bar and a visible Dock, which macOS keeps in front of all windows. It is not a locked kiosk mode: the operating system's own shortcuts (switching apps, the taskbar / Dock) keep working.
+
+**Switching views with Push 1 or MIDI.** There are four views: **Full** (the whole surface), **Live** (the Live view with the performance FX strip), **Live without FX** (the Live view with taller cards) and **Performance** (the FX-focused stage view, section 47). Every view has a **view switcher** in its header – on the full surface under the logo, in the Live view and the Performance view under their logo (FULL · LIVE · LIVE − FX · PERFORM): click a chip to switch (the view changes when you release the mouse button), right-click = MIDI learn of *View*. It works the same in the fullscreen windows.
+
+
+| Control | What it does |
+|---|---|
+| **SHIFT + MASTER** on Push 1 | steps Full → Live → Live without FX → Performance → Full (the display shows the new view) |
+| host parameter *View* (`view`, choice Full / Live / Live without FX / Performance) | MIDI learn on a **note / button**: each press steps to the next view; on a **CC / knob** the range is split into four: 0 – 21 Full, 22 – 63 Live, 64 – 105 Live without FX, 106 – 127 Performance |
+| host parameter *Live View* (`live_view`, switch) | Live view on / off (keeps the FX strip setting; it is also on in the Performance view – off returns to Full) |
+| host parameter *Live View FX Bar* (`live_fx`, switch) | performance FX strip on / off (also while the full surface is shown – it applies the next time the Live view opens) |
+
+The three parameters always agree: the LIVE button, Esc, EXIT LIVE and the SETUP menu move *View* as well, and *View* sets the other two. In the Performance view *Live View* is on and *Live View FX Bar* keeps its value; switching the FX bar there selects that Live view. The FX strip setting is remembered on this computer.
+
+Stage mode and the light theme apply to the Live view too:
+
+![Live view in stage mode](../images/livelooper-live-stage.png)
+
+## 44. Display: theme, interface size, stage mode, waveforms (new in 1.7)
+
+![SETUP > Display](../images/livelooper-setup-display.png)
+
+*SETUP → Display*:
+
+- **Colour theme** – *Dark* (default) or *Light*: the same glass look on light surfaces with dark text. The displays and the VU meters stay dark like real LCDs. Host parameter *Colour Theme* (`ui_theme`).
+
+![Light theme](../images/livelooper-light.png)
+
+- **Interface size** – 75 %, 100 %, 125 %, 150 % or 200 %, also with **Ctrl + / Ctrl −** (Mac: **Cmd + / Cmd −**, Ctrl / Cmd 0 = 100 %). Dragging the window corner still scales freely.
+- **Stage mode** – high contrast and larger text for dark stages and a screen further away: near-black panels with clear outlines, white text, larger captions (labels that would not fit keep their normal size). Host parameter *Stage Mode* (`stage_mode`).
+
+![Stage mode](../images/livelooper-stage.png)
+
+- **Show waveforms in the loop tracks** – off by default (the track displays show the state in large letters with a small waveform). On: a compact header (state, bars, level) and a large waveform in the track colour – the played part brighter, the last **overdub layer** as a lighter tint inside the loop (until you undo it; older overdubs are part of the loop), a white play head (dashed on a stopped track: where the loop would be now, at the right edge while recording), *NO LOOP* on an empty track. Host parameter *Show Waveforms* (`waveforms`).
+
+![Waveforms in the track displays](../images/livelooper-waveforms.png)
+
+Interface size, theme, stage mode and the waveform setting are remembered on this computer (a new livelooper starts with them; a project or set you load can bring its own values for the parameters). The waveforms are read on the user interface thread from the loop memory – the audio processing does no extra work and allocates nothing.
+
+## 45. Loop length (new in 1.7)
+
+![Loop length pill on the track strips](../images/livelooper-loop-length.png)
+
+Every track has **one** loop length: *how many bars the first recording lasts*. It sits as a small pill in the title row of each track strip (next to *TRACK n*) and on the cards of the Live view while the track is empty or recording.
+
+- **AUTO** (default): you end the first recording yourself with the next press (rounded by quantize).
+- **1 · 2 · 4 · 8 · 16 BARS** (orange): the recording ends by itself after that many bars – press REC and play, livelooper closes the loop on the bar line. While it records, the pill fills with the progress.
+- **Change it**: click the pill and choose, or turn the mouse wheel / drag up or down over it. Right-click = MIDI learn (like every control). It is the same setting as *Loop length* in the track SETUP and the host parameter **Loop Length** (`t1_measure` … `t8_measure`, unchanged IDs; *Measures* before 1.7), so DAW automation, MIDI mapping and controllers all change it.
+- **While the track holds a loop** the pill is dimmed: the length only matters for the next new recording (after CLEAR). You can still set it in advance.
+- **Just this once**: *Loop Length Once* (host parameter `t1_reclen` …, *Rec Length* before 1.7; on Push: hold the REC pad + a position pad) sets a length (1 – 32 bars) for the next or running recording only. The pill then shows that length with a dashed orange outline; the setting itself stays as it was.
+
+**Push 1:** hold **FIXED LENGTH** and press a pad in a track's column (rows 3 – 8 from the bottom = AUTO, 1, 2, 4, 8, 16 bars) or turn that track's encoder. The display shows the eight lengths while you hold the button; the FIXED LENGTH LED is lit when the selected track has a length other than AUTO. FIXED LENGTH pressed and released on its own still steps the capture length. Details: [Push](PUSH.md#loop-length-new-in-17).
+
+![Push 1: FIXED LENGTH held](../images/livelooper-controller-push-length.png)
+
+## 46. Auto backup and crash recovery (new in 1.7)
+
+livelooper saves your whole set in the background – the same `.livelooper` file as *Save set to share* (section 37): settings, FX, rhythm, every loop and the own samples of the BEATS rows, lossless as FLAC. If the computer, the DAW or livelooper crashes, the last minutes are not lost.
+
+- **When**: every 2 minutes (or 1, 5, 10 – *SETUP → Sets → Auto backup → Backup interval*) and a few seconds **after every recording or overdub**. Never while a track records or overdubs, and **only when something changed** – an untouched set writes nothing.
+- **Never in the way of the music**: the audio keeps playing while a backup is made; packing and writing the file run in the background. Every backup is written as a temporary file and then renamed, so a crash in the middle never leaves half a file. The **last 3 backups** are kept.
+- **Where**: in livelooper's app data folder, sub-folder `Backups` (macOS `~/Library/Application Support/livelooper/Backups`, Windows `%APPDATA%\livelooper\Backups`, Linux `~/.config/livelooper/Backups`) – the app in `standalone`, every plug-in instance in its own `plugin-…` folder. *Open backup folder* shows it.
+
+**Standalone app**
+
+- **Auto load last session on start** (on by default): livelooper starts with the set you had when you quit – loops included. Off: the app starts as before (*Settings on start*, section 31).
+- **After a crash** livelooper notices it on the next start and loads the **newest backup** automatically – even with auto load off. A short notice at the bottom right says so: **Keep** (or just play on – it closes by itself) or **Start empty** (an empty set; the backups stay and can be restored later).
+
+![Notice after a crash](../images/livelooper-backup-notice.png)
+
+**Plug-in in a DAW**
+
+- Your DAW restores the plug-in with the project as always – livelooper **never overrides the project silently**.
+- Only if livelooper was not closed properly last time **and** its newest backup is newer than the project (you played on after the last save), a notice offers **Restore backup** or **Keep project**. Without an answer the project stays; the backup can still be restored in SETUP.
+- Every instance finds its own backups again: its id travels in the project. Folders of instances that were not used for 30 days are removed.
+
+**SETUP → Sets → Auto backup**
+
+![SETUP → Sets](../images/livelooper-setup-sets.png)
+
+| Entry | Meaning |
+|---|---|
+| Auto backup | on (default) / off – the background backups |
+| Backup interval | every 1 · 2 (default) · 5 · 10 minutes; also after every recording |
+| Auto load last session on start | standalone app only, on by default |
+| Restore backup … | the backups of this livelooper (time, size) – or *Choose a backup file …*; the current set is backed up first, so restoring can be undone |
+| Open backup folder | shows the folder in the Finder / Explorer |
+
+These are settings of this computer (like *Updates* or *Settings on start*), not of a set or a project, so they are not host parameters and not MIDI-mappable: they are not played – a backup should never depend on a controller.
+
+## 47. Performance view (new in 1.7)
+
+![Performance view](../images/livelooper-perform.png)
+
+The **Performance view** is the fourth view, made for playing the effects on stage: a compact row of track cards on top and a large **PERFORMANCE FX** area. Open it with **PERFORM** in the view switcher (header of the full surface, the Live view and the Performance view), the host parameter *View* = *Performance* (MIDI learn: a note steps through the views, a CC selects by range), **SHIFT + MASTER** on Push 1 (Full → Live → Live without FX → Performance → Full) or *SETUP → Display → Live view → Open Performance view (fullscreen)*. **Esc** or **EXIT** return to the full surface.
+
+| Area | Contents (each one is an existing function – no new effects) |
+|---|---|
+| Header | logo with the PERFORM badge, the **view switcher** (FULL · LIVE · LIVE − FX · PERFORM = *View*), the display (tempo, bar . beat, beat dots), **TAP**, **EXIT** (Esc) |
+| Track row (5 or 8) | state word, loop length (the length pill while a track is empty / recording), **mini waveform** only when *SETUP → Display → Show waveforms in the loop tracks* is on (off by default – otherwise a loop position bar), REC / PLAY / DUB pad, **LEVEL**, **STOP** (hold = clear) |
+| TARGET | where the punch FX work: LOOPS, INPUT, MASTER, DRUMS (*Punch FX Target*) |
+| XY field | hold = the selected punch FX on, move = its X and Y (*Punch FX X / Y*; the X and Y captions name what they do and can be dragged); **PUNCH AMOUNT** (the live amount while a pad is held) and **LATCH** |
+| FILTER | the performance filter, bipolar: left = low-pass, right = high-pass, centre = off; **CENTER** or a double-click = off |
+| BEAT FX | the big button = beat FX on / off with type and beat (ECHO 1/8 …); type DELAY · ECHO · PING PONG · ROLL (all types on the full surface), beat 1/16 · 1/8 · 1/4 · 1/2 · 1, **LEVEL** (or DEPTH / PITCH, depending on the type), **HOLD** (beat FX only while held) |
+| REPEAT · STUTTER · FILL | beat repeat, stutter and drum fill while held; **REPEAT RATE** 1/2 … 1/32 (*Beat Repeat Timing*) |
+| PUNCH FX | the 12 punch FX pads (hold = on, velocity / pressure = amount; the active pad shows its amount) – a pad press also selects it for the XY field |
+| MASTER | master level with its value, the main output meter, **ALL START / STOP**, **CAPTURE** (the last bars – as set in *Capture Length* – become a loop) |
+
+**MIDI learn**: in MIDI LEARN mode every control of the Performance view gets its learn frame (the hidden surface behind it gets none), and a right-click on a control opens its learn menu – also in the fullscreen window, which passes it on to the editor. The chips of a row (view switcher, TARGET, beat FX type / beat, REPEAT RATE) learn their whole parameter. Interface size (75 – 200 %), the light theme and stage mode apply to the Performance view as well.
+
+## Drums, BEATS and sound packs (1.6)
+
+### Kits
+
+| Kit | Sound | Fill style |
+|---|---|---|
+| **Studio** | modern acoustic kit, now with more kick and snare takes | toms |
+| **808** | deep boom kick, crisp hats | toms |
+| **909 Style** | punchy house / techno | toms |
+| **Lo-Fi** | warm, dusty, soft top end | toms |
+| **House** | round electronic kick, real hand claps, crisp hats | clap roll |
+| **Techno** | driving, bright kick, metallic hats, electronic rim | kick roll |
+| **Boom Bap** | acoustic kit through a lo-fi microphone, 12-bit sampler crunch, finger snaps | snare roll |
+| **Trap** | long sub kick, snappy snare, crisp hats for rolls, layered clap | hi-hat rolls |
+| **Breaks** | acoustic kit with room microphones for jungle / drum & bass / big beat | breaks (snare chops) |
+| **Rock** | big acoustic kit: open 24" kick, rimshot snare, cross stick, floor tom | toms |
+| **Disco** | dry, damped 70s kit: muted snare, tight hats, tambourine | snare + open hat |
+| **Afro Latin** | real hand percussion: cajon kick, bongo, claves, shaker, tambourine, cowbell, cabasa, conga | conga runs |
+
+All style kits are real recordings released under CC0 (acoustic multi-sample kits from the sfzinstruments project, freesound.org samples, a sampled drum machine); nothing is synthesised. Every file and its source are listed in `resources/drums/SOURCES.md`. The voice names (e.g. *Conga* instead of *Tom* in Afro Latin) show on the BEATS page and on Push. The kit selector also lists **Pack Kit 1 … 8** for sound packs.
+
+New grooves (pattern selector): Deep House, Tech House, Peak Techno, Hypnotic Techno, Boom Bap, Boom Bap Swing, Trap Rolls, Trap Half Time, Jungle, Two Step, Big Beat, Rock Drive, Rock Half Time, Disco Hustle, Funk Groove, Son Clave, Afro Groove, Samba. Each of them brings its own fill; the older grooves use the fill of the kit.
+
+### More lively drums: VARIATION
+
+**VARIATION** (BEATS page, parameter *Drum Variation*, default 50 %) stops the "machine gun": on every hit livelooper chooses another take (never the same sample twice in a row), sometimes the neighbouring velocity layer, blends two takes, varies pitch (harder hits a little higher) and decay slightly and shapes the kick accents (strongest downbeat on the first bar of a 4-bar phrase, softer pickups). 0 % = every hit the same layer, as before 1.6. Kick, snare and hats profit most.
+
+### BEATS – the step sequencer
+
+Click **BEATS** in the rhythm panel. The page covers the looper until you click **LOOPER**.
+
+- **Rows** = the eight voices of the current kit (kick, snare, clap, closed hat, open hat, rim, shaker, tom).
+- **Steps**: 16 (16th notes) or 32 (32nd notes) per bar, **1 – 4 bars**; buttons **1 – 4** show a bar.
+- **Mouse**: click = step on / off (drag along the row to paint), **SHIFT** + click = accent, **ALT** + click = ghost note, **right-click** = next velocity (ghost → normal → accent), **mouse wheel** over a step = fine velocity. Bar height and brightness show the velocity, a white line marks accents.
+- **Own samples per row**: drop an audio file (WAV, AIFF, FLAC, MP3, Ogg – whatever your system reads) onto a row, or click the row name → **Load sample …**. The row then plays your sample instead of the kit voice – in every kit – and shows its name under the voice name. **Reset to kit sample** in the same menu goes back. Level, pitch, mute and solo of the row still apply; the sample is played as one shot (at most 10 s, mono, normalised). Own samples are saved with the project / plug-in state and in sets (a `.livelooper` file carries them as FLAC in `audio/`, together with the original path); a saved beat remembers which rows played which file and loads them again when the files are still there.
+- **Per row**: **M** mute, **S** solo, **LVL** level (0 – 150 %), **PITCH** ±12 semitones. These work on every pattern (also the built-in grooves) and are host parameters (*Beat Row 1 … 8 Mute / Solo / Level / Pitch*), so you can automate and MIDI-map them.
+- **Slot**: 16 user patterns per set, listed as **User 1 … 16** in the pattern selector (with their names). Type a name next to the slot.
+- **PLAY** plays the slot. Editing a slot also makes it play. When you open BEATS while a built-in groove plays, an empty slot starts as a copy of that groove.
+- **SAVE**: asks for a name and saves the beat in your **beat library** (`Music/livelooper/Patterns/<name>.llpattern`) – available in every set and project. A beat with the same name is replaced only after a question. **Save as file …** in the same dialog writes the `.llpattern` file anywhere (to share it).
+- **LOAD**: the list of your **saved beats** (library) comes first, then **Open file …** (a `.llpattern` file anywhere), the built-in grooves, sound-pack patterns and the other slots of this set. A beat goes into the **current slot when it is empty, otherwise into the next free slot** – nothing you built is overwritten (tick *Replace this slot* in the LOAD menu to load into the current slot instead). The slot then plays.
+- A saved beat keeps its **name, steps, velocities, steps per bar, length (bars), swing and the row mixer** (level, pitch, mute, solo of every row); loading it sets swing and the row mixer again. Older pattern files and sound-pack patterns have no swing / mixer – those stay as they are.
+- **Next / Previous Library Beat** (host parameters, MIDI learn): step through your library on stage – the beats load into one slot (a free one when the current slot holds your own edit) and play on the next beat / bar (PATTERN SWITCH).
+- **CLEAR**, **COPY** / **PASTE** (also between slots), **VARY**: a light variation (a few ghost notes, small velocity changes, maybe one kick pickup) – the groove stays.
+- **PATTERN SWITCH** (*Immediately*, *Next Beat*, *Next Bar* – default): when a new pattern (built-in or user, from the selector, BEATS, Push or automation) starts playing. Quantised switching keeps the groove in time.
+- Below the grid: RHYTHM on / off, GROOVE (micro-timing), FILLS (automatic), SWING, FEEL, VARIATION, LEVEL and the two DRUMS switches.
+
+The user patterns are saved with the project and in looper sets. The pattern selector is a host parameter, so pattern changes can be automated and MIDI-mapped.
+
+### FILL on demand
+
+Hold **FILL** (rhythm panel, BEATS page, Push **IN** button, or the host parameter *Fill (hold)* – MIDI note on / off): the drummer plays a fill in the style of the groove / kit as long as you hold it. Let go and the groove comes back **on the next downbeat** (bar line), with an accented kick and open hat. A short tap plays a fill up to the end of the bar.
+
+### Drums through beat FX and beat repeat / stutter
+
+Up to 1.5 the drums always stayed dry. Now there is a **DRUMS** switch in the BEAT FX panel and one in the BEAT REPEAT / STUTTER panel (also on the BEATS page and on Push **OUT** / **SHIFT + OUT**; host parameters *Drums through Beat FX*, *Drums through Repeat/Stutter*):
+
+- **off** (default) – as before: the drums are dry, the effect works on the chosen channel only.
+- **on** – the drums go through that effect as well, whatever channel is chosen (with the same type, beat, depth, timing, latch …). Each group has its own switch, so e.g. the drums can stutter while the beat FX only hits the loops.
+
+The metronome always stays dry.
+
+### Sound packs
+
+A sound pack (folder or `.zip` with a `livelooper-pack.json`, WAV / AIFF / FLAC samples and optional patterns) adds kits and patterns. **BEATS → IMPORT PACK** installs one, **PACKS** lists the installed packs, rescans the folder and opens the packs / user patterns folders. Each pack kit takes one of the slots **Pack Kit 1 … 8** in the kit selector. How to make packs: [SOUND-PACKS.md](SOUND-PACKS.md).
+
+### Push
+
+**SCALES** opens the STEP mode on Push (step sequencer on the pads), **IN** = FILL while held, **OUT** = drums through the beat FX (SHIFT: through repeat / stutter) – see [PUSH.md](PUSH.md#step-mode-and-fill-16).
 

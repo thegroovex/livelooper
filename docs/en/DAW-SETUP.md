@@ -137,6 +137,8 @@ When you perform, you want to jump between guitar, synth and voice without touch
 
 In other DAWs: arm or select the instrument track to play it (most DAWs send your keyboard to the armed or selected track) – the routing into the looper track stays the same.
 
+**Complete walkthrough:** Ableton Live + Push 1 with several instruments and a second keyboard → [LIVE-PUSH-WORKFLOW.md](LIVE-PUSH-WORKFLOW.md).
+
 **Tip – two controllers:** play your instruments from a **MIDI keyboard** and drive livelooper with **Push**. Hands on the keys, loops on the pads, nothing to switch.
 
 ---
@@ -200,3 +202,17 @@ There are two ways to play in time with other Link apps (another laptop, an iPad
 
 Start / stop sync is optional (*SETUP → Ableton Link → Sync start / stop with Link*). Joining a session never changes its tempo.
 
+
+<!-- v1.6 features -->
+## 9. Recording, clips and grid controllers in a DAW (since 1.6)
+
+- **Performance recorder**: the round red record button at the top right (below MIDI LEARN … ?) writes the looper's output (what leaves the plug-in on its main output) as a WAV file into *Music/livelooper/Recordings* – independent of your DAW's transport and recording. Mapped to a footswitch via the parameter *Performance Recorder* it starts and stops the recording hands-free. Direct track outputs are not part of the recording, only the main output.
+- **Clip export 9:16**: livelooper keeps the last 30 seconds of its output in memory, also in a DAW – *SETUP → Clip export 9:16* turns the last 20 seconds into a vertical video.
+- **Grid controllers** (Launchpad, APC mini, Launchkey pads – see the [user guide, section 38](USER-GUIDE.md#38-controller-templates-new-in-16)): livelooper opens the controller's MIDI port itself, like it does with Push. In the DAW, leave that port unused (no control surface / track input on it). On **Windows** a port can only be opened by one program – switch it off in the DAW's MIDI settings, otherwise livelooper shows *port in use*. With several livelooper instances only the first one drives the controller.
+- **Sets**: a `.livelooper` file holds a complete looper with all audio – drop it onto the plug-in window to load it into this instance (your DAW project then saves it as usual).
+<!-- end v1.6 features -->
+
+## 10. Transport and latency (since 1.7)
+
+- **Follow host transport is on by default**: press stop in your DAW and livelooper stops its loops; press play and they start again in sync. Want livelooper to keep looping while the DAW stands still (e.g. jamming without the arrangement running)? Switch it off in *SETUP → Looper → Follow host transport* (host parameter *Follow Transport*). Projects saved with older versions keep their setting.
+- **Latency compensation**: plug-in formats do not tell a plug-in how late the audio device is, so livelooper cannot take that value from the DAW. Measure it once in the DAW: *SETUP → Audio → Latency → Measure latency …* with a cable from an interface output to the looper track's input (input monitoring on, nothing else playing). The result is stored per host and applies to every recording, overdub and capture; fine-tune with the host parameter *Latency Offset*. Details: [User Guide, section 41](USER-GUIDE.md#41-latency-measurement-and-compensation-new-in-17).
