@@ -139,6 +139,8 @@ public:
     bool     hasAnchor() const noexcept      { return anchorValid; }
     bool     canUndo() const noexcept        { return undoKind != UndoKind::None; }
     bool     canRedo() const noexcept        { return redoKind != UndoKind::None; }
+    /** v1.7.1: the next undo takes back the first recording - it empties the track (the keyboard asks for a hold). */
+    bool     undoEmptiesTrack() const noexcept { return undoKind == UndoKind::Recording; }
     float    getPeak() noexcept              { auto p = peak; peak = 0.0f; return p; }
     /** Level for the track meter: the input while recording / overdubbing, else the output.
         Returns and resets the peaks since the last call. */

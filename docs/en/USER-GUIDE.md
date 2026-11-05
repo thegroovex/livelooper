@@ -10,7 +10,7 @@ The interface keeps the classic arrangement: all effects at the top in two rows 
 
 | Area | Contents |
 |---|---|
-| Header | **LIVE** next to the logo (Live view, section 43), below it the **view switcher** FULL · LIVE · LIVE − FX · PERFORM (section 43), display (tempo, bar/beat, quantization, Link, master VU in dB, messages), **MIDI LEARN**, **MIDI MAP**, **SETUP**, **?** (help), the round **REC** button (performance recorder) |
+| Header | **LIVE** next to the logo (Live view, section 43), below it the **view switcher** FULL · LIVE · LIVE FX · PERFORM (section 43), display (tempo, bar/beat, quantization, Link, master VU in dB, messages), **MIDI LEARN**, **MIDI MAP**, **SETUP**, **?** (help), the round **REC** button (performance recorder) |
 | FX row 1 | **INPUT FX** A–D, **INPUT FX … EDIT** (type, two parameters, mix of the selected slot), **TRACK FX** A–D, **PUNCH FX** (sections 3, 39) |
 | FX row 2 | **BEAT FX**, **REPEAT / STUTTER**, **COLOR FX**, **SEND FX**, **METRONOME** (sections 25–28, 39) |
 | TRACK 1–5 (or 1–8) | the loop tracks (SETUP → Looper → Tracks), top to bottom: title row with the **loop length** pill (AUTO / 1–16 bars, section 45), display with state and waveform, REV / 1SHOT / FX, level fader with IN/OUT meter, PAN / COLOR, UNDO / REDO / SETUP, the big REC/PLAY pad, STOP |
@@ -241,7 +241,7 @@ Default mapping – one keyboard column per track:
 | **1 2 3 4 5** (6 7 8) | REC/PLAY of track 1–5 (6–8) |
 | **Q W E R T** (Y U I) | STOP track 1–5 (6–8) |
 | **Shift + Q … T** | CLEAR track 1–5 – **hold** the keys for 1.5 s, like the STOP button: the STOP button of the track fills red while you hold (also in the Live / Performance views); release earlier and nothing is cleared |
-| **A S D F G** (H J L) | UNDO track 1–5 (6–8) |
+| **A S D F G** (H J L) | UNDO track 1–5 (6–8) – *since 1.7.1:* an undo that would **empty the track** (it takes back the track's first recording) must be **held** 1.5 s like a clear (the UNDO button fills red); undo of an overdub, a length change or a loop trick stays instant |
 | **Shift + A … G** | REDO track 1–5 |
 | **Space** | ALL START / STOP |
 | **Shift + Backspace** | CLEAR ALL – **hold** the keys for 1.5 s (all STOP buttons fill red); release earlier and nothing is cleared. *Since 1.7.1: no question any more – the hold is the confirmation (Return / Space used to answer the question by accident)* |
@@ -252,7 +252,11 @@ Default mapping – one keyboard column per track:
 | **N** | next rhythm pattern |
 | **K** | next quantize setting |
 
-The display briefly shows which key did what (e.g. `KEY Q > T1 STOP`). Holding a key does not repeat it – except tempo up/down. A clear key's auto-repeat only keeps the hold going; releasing the key – or its Shift – before 1.5 s cancels the clear. Clearing by MIDI, Push, controllers or host automation is unchanged; the CLEAR ALL button on the surface still asks first.
+The display briefly shows which key did what (e.g. `KEY Q > T1 STOP`). Holding a key does not repeat it – except tempo up/down. A clear key's (or emptying undo key's) auto-repeat only keeps the hold going; releasing the key – or its Shift – before 1.5 s cancels it. Clearing and undoing by MIDI, Push, controllers, host automation or the mouse is unchanged; the CLEAR ALL button on the surface still asks first. *Since 1.7.1* the keys also work in the Live, Live FX and Performance views and in their fullscreen windows.
+
+The default keys at their buttons (generated from the default mapping):
+
+![Default computer keyboard keys](../images/livelooper-keymap.png)
 
 **Own key mapping:** *SETUP → Keyboard mapping …* lists every function (all track functions incl. reverse, one shot, loop sync and FX, all global functions, FX slots A–D, tempo). Click a function and press its new key – modifiers (Shift, Ctrl, Option, Cmd) count. A key that was already used moves to the new function. Esc cancels, right-click removes a key, **DEFAULTS** restores the table above, **REMOVE ALL** empties it, **KEYBOARD CONTROL** switches keyboard control on/off (also *SETUP → Computer keyboard control*). The mapping is saved together with the app's state.
 
@@ -657,18 +661,18 @@ The **Live view** is the surface for the stage: one large card per loop track an
 | Area | Contents |
 |---|---|
 | Header | logo with the LIVE badge, **TAP**, **EXIT LIVE**, a large display: tempo (BPM), **bar . beat** and the beat dots (the first beat of the bar orange) |
-| Track cards (5 or 8) | state word (PLAY, DUB, REC, STOP, EMPTY, REC WAIT …), length in bars, loop position in %, the **waveform** with the play head, the big **REC / PLAY / DUB** pad with its LED ring, **LEVEL** (drag the bar; the meter runs behind the white level mark), **STOP** (hold 1.5 s = clear) |
+| Track cards (5 or 8) | state word (PLAY, DUB, REC, STOP, EMPTY, REC WAIT …), length in bars, loop position in %, the **waveform** with the play head (since 1.7.1 with a subtle line at every bar), the big **REC / PLAY / DUB** pad with its LED ring, **LEVEL** (drag the bar; the meter runs behind the white level mark), **STOP** (hold 1.5 s = clear), the round **UNDO** (*since 1.7.1*: click = undo, **Shift + click = redo**, right-click = MIDI learn of the track's *Undo*; yellow while there is something to undo) |
 | PERFORMANCE FX | knobs **FILTER** (performance filter), **BEAT FX** (beat FX level), **PUNCH** (punch FX amount), **MASTER**; **ECHO …** (beat FX on / off, shows the beat FX type and beat fraction), **REPEAT** and **STUTTER** (while held), **FILL** (while held); the punch FX amount bar (the held punch FX with its live amount, otherwise the selected one); **ALL START / STOP**, **CAPTURE** |
 
-Every control in the Live view is the same function as on the full surface (right-click = MIDI learn). *SETUP → Display → Live view* switches the **waveforms in the track displays** (on by default; off = a loop position bar) and the **performance FX strip** (on; off = taller cards; since 1.7 also the host parameter *Live View FX Bar*, `live_fx`). *Open Live view (fullscreen)* opens it in its own borderless window that covers the whole screen and stays on top of other windows (Esc closes it) – handy on a second monitor or a laptop on stage. Opening a view from SETUP closes the SETUP window. Since 1.7 **Open the views fullscreen** (same place, remembered on this computer) makes every switch to the Live, Live without FX or Performance view open fullscreen – the LIVE button, the view switcher, the host parameters / MIDI and Push 1 alike; off (default) they open in the plug-in window. On a MacBook Pro with a notch the window keeps its content below the camera housing (the strip at the top is filled with the background; macOS 12 or later); on every Mac the content also stays clear of the menu bar and a visible Dock, which macOS keeps in front of all windows. It is not a locked kiosk mode: the operating system's own shortcuts (switching apps, the taskbar / Dock) keep working.
+Every control in the Live view is the same function as on the full surface (right-click = MIDI learn). *SETUP → Display → Live view* switches the **waveforms in the track displays** (on by default; off = a loop position bar) and the **performance FX strip** (on; off = taller cards; since 1.7 also the host parameter *Live View FX Bar*, `live_fx`). *Open Live view (fullscreen)* opens it in its own borderless window that covers the whole screen and stays on top of other windows (Esc closes it) – handy on a second monitor or a laptop on stage. Opening a view from SETUP closes the SETUP window. Since 1.7 **Open the views fullscreen** (same place, remembered on this computer) makes every switch to the Live, Live FX or Performance view open fullscreen – the LIVE button, the view switcher, the host parameters / MIDI and Push 1 alike; off (default) they open in the plug-in window. On a MacBook Pro with a notch the window keeps its content below the camera housing (the strip at the top is filled with the background; macOS 12 or later); on every Mac the content also stays clear of the menu bar and a visible Dock, which macOS keeps in front of all windows. It is not a locked kiosk mode: the operating system's own shortcuts (switching apps, the taskbar / Dock) keep working. *Since 1.7.1* the fullscreen cards (Live, Live FX and Performance) have a smaller display and use the space for **REVERSE**, **ONE SHOT** and **PITCH** of each track – the same track parameters as on the full surface (*Reverse*, *One Shot*, *Pitch*; right-click = MIDI learn), and the computer keyboard works in the fullscreen windows.
 
-**Switching views with Push 1 or MIDI.** There are four views: **Full** (the whole surface), **Live** (the Live view with the performance FX strip), **Live without FX** (the Live view with taller cards) and **Performance** (the FX-focused stage view, section 47). Every view has a **view switcher** in its header – on the full surface under the logo, in the Live view and the Performance view under their logo (FULL · LIVE · LIVE − FX · PERFORM): click a chip to switch (the view changes when you release the mouse button), right-click = MIDI learn of *View*. It works the same in the fullscreen windows.
+**Switching views with Push 1 or MIDI.** There are four views: **Full** (the whole surface), **Live** (the Live view without the FX strip, taller cards), **Live FX** (the Live view with the performance FX strip) and **Performance** (the FX-focused stage view, section 47). *1.7.1:* in 1.7.0 the switcher said LIVE for the view with the FX strip and LIVE − FX (meant as “minus FX”) for the one without – read the other way round; the names now match what you see, the parameter values are unchanged. Every view has a **view switcher** in its header – on the full surface under the logo, in the Live view and the Performance view under their logo (FULL · LIVE · LIVE FX · PERFORM): click a chip to switch (the view changes when you release the mouse button), right-click = MIDI learn of *View*. It works the same in the fullscreen windows.
 
 
 | Control | What it does |
 |---|---|
-| **SHIFT + MASTER** on Push 1 | steps Full → Live → Live without FX → Performance → Full (the display shows the new view) |
-| host parameter *View* (`view`, choice Full / Live / Live without FX / Performance) | MIDI learn on a **note / button**: each press steps to the next view; on a **CC / knob** the range is split into four: 0 – 21 Full, 22 – 63 Live, 64 – 105 Live without FX, 106 – 127 Performance |
+| **SHIFT + MASTER** on Push 1 | steps Full → Live → Live FX → Performance → Full (the display shows the new view) |
+| host parameter *View* (`view`, choices Full / Live FX / Live / Performance – the order of the values is unchanged since 1.7.0) | MIDI learn on a **note / button**: each press steps to the next view in the switcher's order (Full → Live → Live FX → Performance); on a **CC / knob** the range is split by value: 0 – 21 Full, 22 – 63 Live FX, 64 – 105 Live, 106 – 127 Performance |
 | host parameter *Live View* (`live_view`, switch) | Live view on / off (keeps the FX strip setting; it is also on in the Performance view – off returns to Full) |
 | host parameter *Live View FX Bar* (`live_fx`, switch) | performance FX strip on / off (also while the full surface is shown – it applies the next time the Live view opens) |
 
@@ -693,7 +697,7 @@ Stage mode and the light theme apply to the Live view too:
 
 ![Stage mode](../images/livelooper-stage.png)
 
-- **Show waveforms in the loop tracks** – off by default (the track displays show the state in large letters with a small waveform). On: a compact header (state, bars, level) and a large waveform in the track colour – the played part brighter, the last **overdub layer** as a lighter tint inside the loop (until you undo it; older overdubs are part of the loop), a white play head (dashed on a stopped track: where the loop would be now, at the right edge while recording), *NO LOOP* on an empty track. Host parameter *Show Waveforms* (`waveforms`).
+- **Show waveforms in the loop tracks** – off by default (the track displays show the state in large letters with a small waveform). On: a compact header (state, bars, level) and a large waveform in the track colour – the played part brighter, the last **overdub layer** as a lighter tint inside the loop (until you undo it; older overdubs are part of the loop), a white play head (dashed on a stopped track: where the loop would be now, at the right edge while recording), *NO LOOP* on an empty track; *since 1.7.1* a subtle line at every bar (a 4-bar loop shows 4 segments), in every theme. Host parameter *Show Waveforms* (`waveforms`).
 
 ![Waveforms in the track displays](../images/livelooper-waveforms.png)
 
@@ -754,14 +758,14 @@ These are settings of this computer (like *Updates* or *Settings on start*), not
 
 ![Performance view](../images/livelooper-perform.png)
 
-The **Performance view** is the fourth view, made for playing the effects on stage: a compact row of track cards on top and a large **PERFORMANCE FX** area. Open it with **PERFORM** in the view switcher (header of the full surface, the Live view and the Performance view), the host parameter *View* = *Performance* (MIDI learn: a note steps through the views, a CC selects by range), **SHIFT + MASTER** on Push 1 (Full → Live → Live without FX → Performance → Full) or *SETUP → Display → Live view → Open Performance view (fullscreen)*. **Esc** or **EXIT** return to the full surface.
+The **Performance view** is the fourth view, made for playing the effects on stage: a compact row of track cards on top and a large **PERFORMANCE FX** area. Open it with **PERFORM** in the view switcher (header of the full surface, the Live view and the Performance view), the host parameter *View* = *Performance* (MIDI learn: a note steps through the views, a CC selects by range), **SHIFT + MASTER** on Push 1 (Full → Live → Live FX → Performance → Full) or *SETUP → Display → Live view → Open Performance view (fullscreen)*. **Esc** or **EXIT** return to the full surface.
 
 | Area | Contents (each one is an existing function – no new effects) |
 |---|---|
-| Header | logo with the PERFORM badge, the **view switcher** (FULL · LIVE · LIVE − FX · PERFORM = *View*), the display (tempo, bar . beat, beat dots), **TAP**, **EXIT** (Esc) |
-| Track row (5 or 8) | state word, loop length (the length pill while a track is empty / recording), **mini waveform** only when *SETUP → Display → Show waveforms in the loop tracks* is on (off by default – otherwise a loop position bar), REC / PLAY / DUB pad, **LEVEL**, **STOP** (hold = clear) |
+| Header | logo with the PERFORM badge, the **view switcher** (FULL · LIVE · LIVE FX · PERFORM = *View*), the display (tempo, bar . beat, beat dots), **TAP**, **EXIT** (Esc) |
+| Track row (5 or 8) | state word, loop length (the length pill while a track is empty / recording), **mini waveform** only when *SETUP → Display → Show waveforms in the loop tracks* is on (off by default – otherwise a loop position bar), REC / PLAY / DUB pad, **LEVEL**, the round **UNDO** (*1.7.1*: Shift + click = redo; with 8 tracks in the title row) and **STOP** (hold = clear) |
 | TARGET | where the punch FX work: LOOPS, INPUT, MASTER, DRUMS (*Punch FX Target*) |
-| XY field | hold = the selected punch FX on, move = its X and Y (*Punch FX X / Y*; the X and Y captions name what they do and can be dragged); **PUNCH AMOUNT** (the live amount while a pad is held) and **LATCH** |
+| XY field | hold = the selected punch FX on, move = its X and Y (*Punch FX X / Y*; the X and Y captions name what they do and can be dragged); **PUNCH AMOUNT** (the live amount while a pad is held) and **LATCH**. *Since 1.7.1:* the trail is thicker and fades out smoothly over about 1.5 s; when you let go, the crosshair springs back to the centre and *Punch FX X / Y* return to neutral – with **LATCH** on, the position stays where you left it |
 | FILTER | the performance filter, bipolar: left = low-pass, right = high-pass, centre = off; **CENTER** or a double-click = off |
 | BEAT FX | the big button = beat FX on / off with type and beat (ECHO 1/8 …); type DELAY · ECHO · PING PONG · ROLL (all types on the full surface), beat 1/16 · 1/8 · 1/4 · 1/2 · 1, **LEVEL** (or DEPTH / PITCH, depending on the type), **HOLD** (beat FX only while held) |
 | REPEAT · STUTTER · FILL | beat repeat, stutter and drum fill while held; **REPEAT RATE** 1/2 … 1/32 (*Beat Repeat Timing*) |

@@ -162,6 +162,44 @@ private:
     juce::uint32 downTime = 0;
 };
 
+/** v1.7.1: an LLButton that shows the progress of a key held on the computer keyboard (red fill, like the
+    STOP button) - the UNDO button of a track strip while an emptying undo key is held. */
+class HoldLLButton : public LLButton
+{
+public:
+    using LLButton::LLButton;
+    void paintButton (juce::Graphics& g, bool over, bool down) override;
+    void setKeyHoldProgress (float p) { if (p != keyHold) { keyHold = p; repaint(); } }
+    float getKeyHoldProgress() const noexcept { return keyHold; }
+private:
+    float keyHold = 0.0f;
+};
+
+/** v1.7.1 views: the small round UNDO button of a track card in the Live / Live FX / Performance views.
+    Click = undo (the parameter t*_undo), Shift + click = redo (t*_redo) - the full view's UNDO / REDO in one
+    button; right-click = MIDI learn of the undo parameter. Lit while there is something to undo (dimmed
+    while only a redo is possible). Shows the red hold fill of an emptying undo held on the keyboard. */
+class UndoButton : public juce::Component, public juce::SettableTooltipClient
+{
+public:
+    UndoButton (LiveLooperProcessor& p, int track);
+    void paint (juce::Graphics& g) override;
+    void mouseDown (const juce::MouseEvent& e) override;
+    void mouseUp (const juce::MouseEvent& e) override;
+    void setKeyHoldProgress (float p) { if (p != keyHold) { keyHold = p; repaint(); } }
+    float getKeyHoldProgress() const noexcept { return keyHold; }
+    /** Polled by the owner's timer (undo / redo possible). */
+    void refresh();
+    int getTrack() const noexcept { return track; }
+    /** The action a click takes (tests): shift = redo. */
+    void click (bool shift);
+private:
+    LiveLooperProcessor& proc;
+    int track;
+    float keyHold = 0.0f;
+    bool down = false, canUndo = false, canRedo = false;
+};
+
 //==============================================================================
 /** Meter ballistics for the UI: fast attack, about 26 dB/s release, 1.2 s peak hold. */
 struct MeterBallistics
@@ -241,8 +279,13 @@ struct LoopWaveform
     LoopTrack::State state = LoopTrack::State::Empty;
     juce::Colour colour;
     float headWidth = 2.0f;
+    float bars = 0.0f;                  // v1.7.1: loop length in bars - a subtle line at every bar (0 = none)
 
     void draw (juce::Graphics& g, juce::Rectangle<float> area) const;
+    /** The bars of a track's finished loop (0 while empty / recording the first loop). */
+    static float barsOf (LiveLooperProcessor& proc, int track);
+    /** x positions (0..1) of the bar lines inside a loop of that many bars (none below 2 bars or above 64). */
+    static std::vector<float> barLines (float bars);
 };
 
 //==============================================================================
@@ -306,6 +349,7 @@ public:
     void refresh (bool blinkPhase);
     int getTrackIndex() const noexcept { return track; }
     StopButton& getStopButton() noexcept { return stop; }
+    HoldLLButton& getUndoButton() noexcept { return undo; }
     LoopLengthPill& getLengthPill() noexcept { return lengthPill; }     // v1.7
     static constexpr int kWaveBins = 96;
     const std::array<float, kWaveBins>& getWaveform() const noexcept { return wave; }
@@ -328,7 +372,8 @@ private:
     juce::Rectangle<int> lcdArea;
 
     LLButton reverse { "REV", colours::cyan }, oneShot { "1SHOT", colours::cyan }, fx { "FX", colours::orange };
-    LLButton undo { "UNDO", colours::yellow }, redo { "REDO", colours::yellow }, settings { "SETUP", colours::cyan };
+    HoldLLButton undo { "UNDO", colours::yellow };
+    LLButton redo { "REDO", colours::yellow }, settings { "SETUP", colours::cyan };
     LLSlider level { juce::Slider::LinearVertical, colours::green };
     LLSlider pan { juce::Slider::RotaryHorizontalVerticalDrag, colours::cyan };
     LLSlider color { juce::Slider::RotaryHorizontalVerticalDrag, colours::blue };

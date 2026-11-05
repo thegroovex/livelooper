@@ -73,15 +73,28 @@ public:
         const auto field = r.reduced (8.0f);
         const auto c = juce::Point<float> (field.getX() + x * field.getWidth(), field.getBottom() - y * field.getHeight());
         const bool on = proc.getEngine().getPunchFx().isOn (punch);
-        // trail of the last positions while held
+        // v1.7.1 trail: longer-lived and thicker, every segment fades out gradually with its age (glow + core,
+        // brand gradient from the oldest to the newest point)
         if (trail.size() > 1)
         {
-            juce::Path p;
-            p.startNewSubPath (trail.front());
+            const auto now = juce::Time::getMillisecondCounter();
             for (size_t i = 1; i < trail.size(); ++i)
-                p.lineTo (trail[i]);
-            g.setGradientFill (juce::ColourGradient (colours::brand0.withAlpha (0.0f), trail.front(), colours::brand1, trail.back(), false));
-            g.strokePath (p, juce::PathStrokeType (3.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+            {
+                const float age = (float) (now - trail[i].time) / (float) kTrailMs;
+                const float life = juce::jlimit (0.0f, 1.0f, 1.0f - age);
+                if (life <= 0.0f)
+                    continue;
+                const float fade = life * life * (3.0f - 2.0f * life);          // smoothstep: soft start and end
+                const float pos = (float) i / (float) (trail.size() - 1);
+                const auto col = pos < 0.5f ? colours::brand0.interpolatedWith (colours::brand1, pos * 2.0f)
+                                            : colours::brand1.interpolatedWith (colours::brand2, (pos - 0.5f) * 2.0f);
+                const juce::Line<float> seg (trail[i - 1].pos, trail[i].pos);
+                const float w = 3.0f + 5.0f * fade;
+                g.setColour (col.withAlpha (0.18f * fade));
+                g.drawLine (seg, w * 2.6f);
+                g.setColour (col.withAlpha (0.85f * fade));
+                g.drawLine (seg, w);
+            }
         }
         g.setColour (colours::brand1.withAlpha (on ? 0.8f : 0.45f));
         g.fillRect (c.x - 0.75f, r.getY() + 8.0f, 1.5f, r.getHeight() - 16.0f);
@@ -114,42 +127,93 @@ public:
     {
         if (e.mods.isPopupMenu())
             return;
-        trail.clear();
-        held = view.selectedPunch ? view.selectedPunch() : 0;
-        setParamNorm (view.proc, punchHoldId (held), 1.0f);
-        move (e);
+        press (e.position);
     }
-    void mouseDrag (const juce::MouseEvent& e) override { if (! e.mods.isPopupMenu()) move (e); }
+    void mouseDrag (const juce::MouseEvent& e) override { if (! e.mods.isPopupMenu()) drag (e.position); }
     void mouseUp (const juce::MouseEvent& e) override
     {
-        if (e.mods.isPopupMenu() || held < 0)
+        if (e.mods.isPopupMenu())
             return;
-        setParamNorm (view.proc, punchHoldId (held), 0.0f);
-        held = -1;
-    }
-    void fadeTrail()
-    {
-        if (held < 0 && ! trail.empty())
-        {
-            trail.erase (trail.begin(), trail.begin() + (std::ptrdiff_t) juce::jmin ((size_t) 3, trail.size()));
-            repaint();
-        }
+        release();
     }
 
-private:
-    void move (const juce::MouseEvent& e)
+    // the gestures (also for tests)
+    void press (juce::Point<float> pos)
     {
+        spring = false;
+        held = view.selectedPunch ? view.selectedPunch() : 0;
+        setParamNorm (view.proc, punchHoldId (held), 1.0f);
+        drag (pos);
+    }
+    void drag (juce::Point<float> pos)
+    {
+        if (held < 0)
+            return;
         const auto field = getLocalBounds().toFloat().reduced (9.0f);
-        setParamNorm (view.proc, gPfxX, juce::jlimit (0.0f, 1.0f, (e.position.x - field.getX()) / field.getWidth()));
-        setParamNorm (view.proc, gPfxY, juce::jlimit (0.0f, 1.0f, (field.getBottom() - e.position.y) / field.getHeight()));
-        trail.push_back (e.position);
-        if (trail.size() > 40)
+        setParamNorm (view.proc, gPfxX, juce::jlimit (0.0f, 1.0f, (pos.x - field.getX()) / field.getWidth()));
+        setParamNorm (view.proc, gPfxY, juce::jlimit (0.0f, 1.0f, (field.getBottom() - pos.y) / field.getHeight()));
+        trail.push_back ({ pos, juce::Time::getMillisecondCounter() });
+        if (trail.size() > kMaxTrail)
             trail.erase (trail.begin());
         repaint();
     }
+    void release()
+    {
+        if (held < 0)
+            return;
+        setParamNorm (view.proc, punchHoldId (held), 0.0f);
+        held = -1;
+        // v1.7.1: without LATCH the crosshair springs back to the centre and X / Y return to neutral with it;
+        // with LATCH (the punch FX stays on) the position is held
+        if (rawParam (view.proc, gPfxLatch) < 0.5f)
+        {
+            spring = true;
+            springStart = juce::Time::getMillisecondCounter();
+            springFrom = { rawParam (view.proc, gPfxX), rawParam (view.proc, gPfxY) };
+        }
+    }
+    /** Called at 30 Hz (the view's refresh): ages the trail, moves the spring. */
+    void tick (juce::uint32 now)
+    {
+        if (! trail.empty())
+        {
+            while (! trail.empty() && now - trail.front().time > kTrailMs)
+                trail.erase (trail.begin());
+            repaint();
+        }
+        if (spring)
+        {
+            const float p = juce::jlimit (0.0f, 1.0f, (float) (now - springStart) / (float) kSpringMs);
+            // a light spring: eases out with a small overshoot that settles
+            const float e = p >= 1.0f ? 1.0f : 1.0f - std::exp (-6.0f * p) * std::cos (p * 7.5f);
+            const float nx = neutral (gPfxX), ny = neutral (gPfxY);
+            setParamNorm (view.proc, gPfxX, juce::jlimit (0.0f, 1.0f, springFrom.x + (nx - springFrom.x) * e));
+            setParamNorm (view.proc, gPfxY, juce::jlimit (0.0f, 1.0f, springFrom.y + (ny - springFrom.y) * e));
+            if (p >= 1.0f)
+                spring = false;
+            repaint();
+        }
+    }
+    bool isSpringing() const noexcept { return spring; }
+    bool isHeld() const noexcept { return held >= 0; }
+    size_t getTrailSize() const noexcept { return trail.size(); }
+    static constexpr juce::uint32 kTrailMs = 1400, kSpringMs = 260;
+    static constexpr size_t kMaxTrail = 180;
+
+private:
+    float neutral (const juce::String& id) const
+    {
+        if (auto* p = view.proc.getState().getParameter (id))
+            return p->getDefaultValue();
+        return 0.5f;
+    }
+    struct TrailPoint { juce::Point<float> pos; juce::uint32 time; };
     PerformView& view;
-    std::vector<juce::Point<float>> trail;
+    std::vector<TrailPoint> trail;
     int held = -1;
+    bool spring = false;
+    juce::uint32 springStart = 0;
+    juce::Point<float> springFrom;
 };
 
 //============================================================================== X / Y captions (sliders)
@@ -224,8 +288,11 @@ PerformView::PerformView (LiveLooperProcessor& p, std::function<TrackStrip*(int)
         c.levelAtt = std::make_unique<APVTS::SliderAttachment> (st, trackId (t, kLevel), *c.level);
         setParamId (*c.level, trackId (t, kLevel));
         c.length = std::make_unique<LoopLengthPill> (proc, t);
+        c.undo = std::make_unique<UndoButton> (proc, t);
+        LiveView::makeTrackExtras (proc, t, c.reverse, c.oneShot, c.reverseAtt, c.oneShotAtt, c.pitch);
         for (juce::Component* comp : { (juce::Component*) c.length.get(), (juce::Component*) c.pad.get(),
-                                       (juce::Component*) c.stop.get(), (juce::Component*) c.level.get() })
+                                       (juce::Component*) c.stop.get(), (juce::Component*) c.level.get(), (juce::Component*) c.undo.get(),
+                                       (juce::Component*) c.reverse.get(), (juce::Component*) c.oneShot.get(), (juce::Component*) c.pitch.get() })
             addChildComponent (comp);
     }
 
@@ -358,6 +425,14 @@ PerformView::~PerformView()
 }
 
 juce::Component& PerformView::getXYPad() noexcept { return *xyPad; }
+void PerformView::xyPress (juce::Point<float> pos)   { xyPad->press (pos); }
+void PerformView::xyDrag (juce::Point<float> pos)    { xyPad->drag (pos); }
+void PerformView::xyRelease()                        { xyPad->release(); }
+void PerformView::xyTick (juce::uint32 now)          { xyPad->tick (now); }
+bool PerformView::isXYSpringing() const noexcept     { return xyPad->isSpringing(); }
+int PerformView::getXYTrailSize() const noexcept     { return (int) xyPad->getTrailSize(); }
+juce::uint32 PerformView::getXYTrailMs() noexcept    { return XYPad::kTrailMs; }
+juce::uint32 PerformView::getXYSpringMs() noexcept   { return XYPad::kSpringMs; }
 
 juce::String PerformView::beatFxText() const
 {
@@ -407,7 +482,9 @@ void PerformView::resized()
     b.removeFromTop (10);
 
     // compact track row
-    const int rowH = juce::jlimit (124, 172, getHeight() * 150 / 856);
+    // v1.7.1 fullscreen: taller cards with REVERSE / ONE SHOT / PITCH under a smaller display
+    const int extraH = fullscreenMode ? 62 : 0;
+    const int rowH = juce::jlimit (124, 172, getHeight() * 150 / 856) + extraH;
     auto row = b.removeFromTop (rowH);
     b.removeFromTop (kGap);
     numCards = proc.getVisibleTracks();
@@ -419,6 +496,9 @@ void PerformView::resized()
         c.pad->setVisible (shown);
         c.stop->setVisible (shown);
         c.level->setVisible (shown);
+        c.undo->setVisible (shown);
+        for (juce::Component* comp : { (juce::Component*) c.reverse.get(), (juce::Component*) c.oneShot.get(), (juce::Component*) c.pitch.get() })
+            comp->setVisible (shown && fullscreenMode);
         if (! shown)
         {
             c.length->setVisible (false);
@@ -429,6 +509,13 @@ void PerformView::resized()
         cards[(size_t) t] = card;
         auto inner = card.reduced (12, 10);
         c.title = inner.removeFromTop (20);
+        // v1.7.1: the round UNDO next to STOP; on narrow cards (8 tracks) at the right of the title row
+        const bool undoInTitle = inner.getWidth() < 200;
+        if (undoInTitle)
+        {
+            c.undo->setBounds (c.title.removeFromRight (24).withSizeKeepingCentre (24, 24));
+            c.title.removeFromRight (4);
+        }
         {
             auto title = c.title;
             const int ph = 18;
@@ -438,12 +525,29 @@ void PerformView::resized()
         inner.removeFromTop (5);
         auto bottom = inner.removeFromBottom (42);
         inner.removeFromBottom (6);
+        if (fullscreenMode)
+        {
+            // the display gives some of its height to the extras too (smaller waveform)
+            auto extras = inner.removeFromBottom (extraH + 4);
+            inner.removeFromBottom (6);
+            const int kw = juce::jmin (60, extras.getWidth() / 3);
+            c.pitch->setBounds (extras.removeFromRight (kw));
+            extras.removeFromRight (6);
+            const int bh = (extras.getHeight() - 6) / 2;
+            c.reverse->setBounds (extras.getX(), extras.getY(), extras.getWidth(), bh);
+            c.oneShot->setBounds (extras.getX(), extras.getBottom() - bh, extras.getWidth(), bh);
+        }
         c.display = inner;
         const int d = 40;
         c.pad->setBounds (bottom.removeFromLeft (d + 4).withSizeKeepingCentre (d + 4, d + 4));
         bottom.removeFromLeft (10);
         c.stop->setBounds (bottom.removeFromRight (34).withSizeKeepingCentre (34, 34));
-        bottom.removeFromRight (10);
+        if (! undoInTitle)
+        {
+            bottom.removeFromRight (6);
+            c.undo->setBounds (bottom.removeFromRight (32).withSizeKeepingCentre (32, 32));
+        }
+        bottom.removeFromRight (12);       // v1.7.1: room between the level value ("100 %") and the buttons
         auto lv = bottom.reduced (0, 3);
         c.levelCaption = lv.removeFromTop (14);
         c.level->setBounds (lv.withSizeKeepingCentre (lv.getWidth(), 18));
@@ -569,6 +673,7 @@ void PerformView::refresh (bool blinkPhase)
         repaint (c.display);
         repaint (c.levelCaption);
         repaint (c.title);
+        c.undo->refresh();
         const auto state = (LoopTrack::State) proc.getEngine().getTrackStatus (t).state.load();
         const bool want = state == LoopTrack::State::Empty || state == LoopTrack::State::Recording;
         if (c.length->isVisible() != want)
@@ -588,7 +693,7 @@ void PerformView::refresh (bool blinkPhase)
         pad->refresh();
     for (auto& pad : punchPads)
         pad->refresh();
-    xyPad->fadeTrail();
+    xyPad->tick (juce::Time::getMillisecondCounter());
     xyPad->repaint();
     xAxis->repaint();
     yAxis->repaint();
@@ -819,6 +924,7 @@ void PerformView::paintCard (juce::Graphics& g, int t)
         wf.state = state;
         wf.colour = col;
         wf.headWidth = 2.0f;
+        wf.bars = LoopWaveform::barsOf (proc, t);
         wf.draw (g, lt.reduced (0.0f, 3.0f));
     }
     else

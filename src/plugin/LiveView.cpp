@@ -82,12 +82,15 @@ float LiveView::drawLogo (juce::Graphics& g, juce::Point<float> p, const juce::S
 
 std::unique_ptr<ChoiceChips> LiveView::makeViewSwitcher (LiveLooperProcessor& proc)
 {
-    // FULL . LIVE . LIVE - FX . PERFORM = the choices of the host parameter View (Push 1: SHIFT + MASTER)
-    auto c = std::make_unique<ChoiceChips> (proc.getState(), gView, juce::StringArray { "FULL", "LIVE", "LIVE - FX", "PERFORM" });
+    // FULL . LIVE . LIVE FX . PERFORM = the choices 0, 2, 1, 3 of the host parameter View (Push 1: SHIFT + MASTER).
+    // v1.7.1: LIVE = without the FX bar, LIVE FX = with it (1.7.0 showed "LIVE" for the FX bar view and "LIVE - FX"
+    // - meant as "minus" - for the one without, read the other way round)
+    auto c = std::make_unique<ChoiceChips> (proc.getState(), gView, juce::StringArray { "FULL", "LIVE", "LIVE FX", "PERFORM" },
+                                            std::vector<int> { kViewOrder[0], kViewOrder[1], kViewOrder[2], kViewOrder[3] });
     c->setBrandStyle (true);
     c->setGrouped (true);
     c->onSelect = [&proc] (int v) { proc.setView (v); };
-    c->setTooltip (tr ("View: Full, Live, Live without FX, Performance - also SHIFT + MASTER on Push 1 or the host parameter View; Esc returns to the full surface"));
+    c->setTooltip (tr ("View: Full, Live, Live FX (with the performance FX bar), Performance - also SHIFT + MASTER on Push 1 or the host parameter View; Esc returns to the full surface"));
     return c;
 }
 
@@ -113,6 +116,11 @@ LiveView::LiveView (LiveLooperProcessor& p, std::function<TrackStrip*(int)> stri
         addChildComponent (*c.pad);
         addChildComponent (*c.stop);
         addChildComponent (*c.level);
+        c.undo = std::make_unique<UndoButton> (proc, t);
+        addChildComponent (*c.undo);
+        makeTrackExtras (proc, t, c.reverse, c.oneShot, c.reverseAtt, c.oneShotAtt, c.pitch);
+        for (juce::Component* comp : { (juce::Component*) c.reverse.get(), (juce::Component*) c.oneShot.get(), (juce::Component*) c.pitch.get() })
+            addChildComponent (comp);
     }
 
     exitBtn.onClick = [this] { if (onExit) onExit(); };
@@ -163,6 +171,40 @@ void LiveView::setShowWaveforms (bool on)
 {
     waveforms = on;
     repaint();
+}
+
+void LiveView::setFullscreenMode (bool on)
+{
+    if (fullscreenMode == on)
+        return;
+    fullscreenMode = on;
+    resized();
+    repaint();
+}
+
+void LiveView::makeTrackExtras (LiveLooperProcessor& proc, int t, std::unique_ptr<LLButton>& reverse, std::unique_ptr<LLButton>& oneShot,
+                                std::unique_ptr<APVTS::ButtonAttachment>& reverseAtt, std::unique_ptr<APVTS::ButtonAttachment>& oneShotAtt,
+                                std::unique_ptr<Knob>& pitch)
+{
+    // v1.7.1 fullscreen views: the strip's REV / 1SHOT and PITCH (the same host parameters, MIDI learn on right-click)
+    auto& st = proc.getState();
+    reverse = std::make_unique<LLButton> ("REVERSE", colours::cyan);
+    oneShot = std::make_unique<LLButton> ("ONE SHOT", colours::cyan);
+    for (auto* b : { reverse.get(), oneShot.get() })
+    {
+        b->setClickingTogglesState (true);
+        b->setWantsKeyboardFocus (false);
+    }
+    reverseAtt = std::make_unique<APVTS::ButtonAttachment> (st, trackId (t, kReverse), *reverse);
+    oneShotAtt = std::make_unique<APVTS::ButtonAttachment> (st, trackId (t, kOneShot), *oneShot);
+    setParamId (*reverse, trackId (t, kReverse));
+    setParamId (*oneShot, trackId (t, kOneShot));
+    reverse->setTooltip ("Reverse playback");
+    oneShot->setTooltip ("One shot: play once, then stop");
+    pitch = std::make_unique<Knob> (st, trackId (t, kPitch), "Pitch", colours::cyan);
+    pitch->slider.setDoubleClickReturnValue (true, 0.0);
+    pitch->slider.setTooltip ("Pitch in semitones (the length stays the same)");
+    pitch->slider.setWantsKeyboardFocus (false);
 }
 
 void LiveView::setShowFxStrip (bool on)
@@ -245,6 +287,9 @@ void LiveView::resized()
         c.pad->setVisible (shown);
         c.stop->setVisible (shown);
         c.level->setVisible (shown);
+        c.undo->setVisible (shown);
+        for (juce::Component* comp : { (juce::Component*) c.reverse.get(), (juce::Component*) c.oneShot.get(), (juce::Component*) c.pitch.get() })
+            comp->setVisible (shown && fullscreenMode);
         if (! shown)
             c.length->setVisible (false);
         if (! shown)
@@ -262,9 +307,30 @@ void LiveView::resized()
             const int pw = juce::jmin (c.length->getPreferredWidth (ph), title.getWidth() - 96);
             c.length->setBounds (title.removeFromRight (pw).withSizeKeepingCentre (pw, ph));
         }
-        c.display = inner.removeFromTop (juce::jlimit (120, 205, inner.getHeight() * 205 / 560));
+        if (fullscreenMode)
+        {
+            // v1.7.1 fullscreen: a smaller display, REVERSE / ONE SHOT and PITCH in the space below it
+            c.display = inner.removeFromTop (juce::jlimit (84, 140, inner.getHeight() * 130 / 560));
+            inner.removeFromTop (8);
+            auto extras = inner.removeFromTop (60);
+            const int kw = juce::jmin (64, extras.getWidth() / 3);
+            c.pitch->setBounds (extras.removeFromRight (kw));
+            extras.removeFromRight (6);
+            const auto buttons = extras.withSizeKeepingCentre (extras.getWidth(), juce::jmin (60, 64));
+            const int bh = (buttons.getHeight() - 6) / 2;
+            c.reverse->setBounds (buttons.getX(), buttons.getY(), buttons.getWidth(), bh);
+            c.oneShot->setBounds (buttons.getX(), buttons.getBottom() - bh, buttons.getWidth(), bh);
+        }
+        else
+            c.display = inner.removeFromTop (juce::jlimit (120, 205, inner.getHeight() * 205 / 560));
         inner.removeFromTop (8);
-        c.stop->setBounds (inner.removeFromBottom (48));
+        {
+            // v1.7.1: STOP and the round UNDO (Shift + click = redo) next to it
+            auto stopRow = inner.removeFromBottom (48);
+            c.undo->setBounds (stopRow.removeFromRight (48));
+            stopRow.removeFromRight (8);
+            c.stop->setBounds (stopRow);
+        }
         auto lv = inner.removeFromBottom (62).reduced (0, 8);
         c.levelCaption = lv.removeFromTop (16);
         c.level->setBounds (lv.withSizeKeepingCentre (lv.getWidth(), 20));
@@ -291,6 +357,7 @@ void LiveView::refresh (bool blinkPhase)
         }
         repaint (c.display);
         repaint (c.levelCaption);
+        c.undo->refresh();
         {
             // v1.7: the loop length matters until the first loop exists
             const auto& ts = proc.getEngine().getTrackStatus (t);
@@ -457,6 +524,7 @@ void LiveView::paintCard (juce::Graphics& g, int t)
         wf.state = state;
         wf.colour = col;
         wf.headWidth = 2.5f;
+        wf.bars = LoopWaveform::barsOf (proc, t);
         if (wf.valid)
             wf.draw (g, waveArea);
         else

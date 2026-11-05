@@ -83,7 +83,10 @@ public:
         auto-repeat only keeps the hold going. */
     static constexpr juce::uint32 kClearHoldMs = 1500;
     /** The track a held clear key is waiting for, -1 = none (also -1 while CLEAR ALL is held). */
-    int getPendingKeyClearTrack() const noexcept { return keyClear.all ? -1 : keyClear.track; }
+    int getPendingKeyClearTrack() const noexcept { return keyClear.all || keyClear.undo ? -1 : keyClear.track; }
+    /** v1.7.1: an UNDO key that would empty the track (it takes back the first recording) is held the same
+        1.5 s (red fill on the UNDO buttons); undo of an overdub / length change stays instant. -1 = none. */
+    int getPendingKeyUndoTrack() const noexcept { return keyClear.undo ? keyClear.track : -1; }
     bool isKeyClearAllPending() const noexcept { return keyClear.all; }
     bool isKeyClearPending() const noexcept { return keyClear.all || keyClear.track >= 0; }
     /** Checks a held clear key; called from the timer (public for tests). */
@@ -160,6 +163,8 @@ public:
     void setLiveView (bool on, bool fullscreen = false);
     bool isLiveViewShown() const noexcept;
     bool isLiveFullscreen() const noexcept { return liveWindow != nullptr; }
+    /** A track strip of the full surface (tests / screenshots). */
+    TrackStrip& getStrip (int track) noexcept { return *strips[(size_t) juce::jlimit (0, kNumTracks - 1, track)]; }
     LiveView* getLiveView() noexcept { return liveView.get(); }
     LiveView* getFullscreenLiveView() noexcept { return fullscreenLive; }
     /** v1.7 Performance view (4th choice of the host parameter View): shown over the surface or fullscreen. */
@@ -179,7 +184,7 @@ public:
                                    && (perfView == nullptr || surface.getIndexOfChildComponent (&overlay) > surface.getIndexOfChildComponent (perfView.get()));
     }
     juce::Button& getLiveButton() noexcept { return *liveBtn; }
-    /** v1.7 views: the view switcher in the header of the full surface (FULL . LIVE . LIVE - FX . PERFORM, host parameter View). */
+    /** v1.7 views: the view switcher in the header of the full surface (FULL . LIVE . LIVE FX . PERFORM, host parameter View). */
     ChoiceChips& getViewSwitcher() noexcept { return *viewChips; }
     /** v1.7 fullscreen windows: the insets of the display area that is hidden or unsafe (macOS: the camera housing /
         notch of MacBook Pro displays, from NSScreen.safeAreaInsets on macOS 12+; empty on other systems). */
@@ -206,7 +211,7 @@ public:
     /** Applies theme / stage mode / waveforms / Live view from the parameters (timer; public for tests). */
     void applyDisplaySettings (bool force = false);
     /** v1.7: "Open the views fullscreen" (SETUP > Display > Live view, remembered on this computer): every switch to
-        the Live, Live without FX or Performance view - whichever way it is made - opens the fullscreen window. */
+        the Live, Live FX or Performance view - whichever way it is made - opens the fullscreen window. */
     void setViewsFullscreen (bool on);
     bool getViewsFullscreen() const noexcept { return viewsFullscreen; }
     /** Ends livelooper's modal components (SETUP window, dialogs, menus): a view is never left behind one (its
@@ -418,8 +423,8 @@ private:
 
     juce::TextEditor tempoEntry;
     juce::Array<int> heldKeys;
-    struct KeyClear { int track = -1; bool all = false; int keyCode = 0; juce::ModifierKeys mods; juce::uint32 start = 0; } keyClear;
-    void startKeyClear (int track, bool all, const juce::KeyPress& key);
+    struct KeyClear { int track = -1; bool all = false; bool undo = false; int keyCode = 0; juce::ModifierKeys mods; juce::uint32 start = 0; } keyClear;
+    void startKeyClear (int track, bool all, const juce::KeyPress& key, bool undo = false);
     /** The red hold fill on the STOP buttons of the surface and of the Live / Performance views. */
     void setKeyClearProgress (float progress);
     int lastRecAction = -1;

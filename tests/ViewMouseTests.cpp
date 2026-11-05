@@ -14,6 +14,15 @@ using namespace livelooper::params;
 
 namespace
 {
+/** v1.7.1: the chip of a view in the switcher (FULL . LIVE . LIVE FX . PERFORM = views 0, 2, 1, 3). */
+int chipOf (int view)
+{
+    for (int i = 0; i < kNumViews; ++i)
+        if (params::kViewOrder[i] == view)
+            return i;
+    return 0;
+}
+
 struct MouseTempFolder
 {
     juce::File dir { juce::File::getSpecialLocation (juce::File::tempDirectory).getNonexistentChildFile ("ll_viewmouse", "") };
@@ -421,7 +430,10 @@ public:
                     }
                 }
                 pump (20);
-                expectEquals (proc.getView(), chip, "chip " + juce::String (chip) + " selects the view");
+                expectEquals (proc.getView(), kViewOrder[chip], "chip " + juce::String (chip) + " selects the view");
+                // v1.7.1 regression: LIVE shows no FX bar, LIVE FX shows it (the names were the wrong way round in 1.7.0)
+                if (chip == 1 || chip == 2)
+                    expect (e->getLiveView()->getFxStripArea().isEmpty() == (chip == 1), "chip " + vs.getChipText (chip) + ": FX bar");
                 expect (e->isLiveViewShown() == (chip == 1 || chip == 2), "Live view shown for chip " + juce::String (chip));
                 expect (e->isPerformViewShown() == (chip == 3), "Performance view shown for chip " + juce::String (chip));
             }
@@ -445,10 +457,10 @@ public:
 
             for (int view : { 1, 2, 3 })
             {
-                const juce::String name = view == 1 ? "Live" : (view == 2 ? "Live without FX" : "Performance");
+                const juce::String name = view == 1 ? "Live FX" : (view == 2 ? "Live (no FX bar)" : "Performance");
                 // switch with the mouse (header switcher of the full surface), like the user
                 auto& vs = e->getViewSwitcher();
-                expect (clickAt (vs, vs.getChipBounds (view).getCentre()), name);
+                expect (clickAt (vs, vs.getChipBounds (chipOf (view)).getCentre()), name);
                 pump (20);
                 expectEquals (proc.getView(), view, name + " selected by the header switcher");
                 juce::Component* root = view == 3 ? (juce::Component*) e->getPerformView() : (juce::Component*) e->getLiveView();
@@ -482,7 +494,7 @@ public:
                     break;
                 const juce::String name = juce::String (view == 1 ? "Live" : "Performance") + " at " + juce::String (bigSize) + " %";
                 auto& vs = e->getViewSwitcher();
-                expect (clickAt (vs, vs.getChipBounds (view).getCentre()), name);
+                expect (clickAt (vs, vs.getChipBounds (chipOf (view)).getCentre()), name);
                 pump (20);
                 expectEquals (proc.getView(), view, name + " selected");
                 juce::Component* root = view == 3 ? (juce::Component*) e->getPerformView() : (juce::Component*) e->getLiveView();
@@ -559,17 +571,17 @@ public:
             if (auto* lv = e->getFullscreenLiveView())
             {
                 clickEverything (*lv, "Live (fullscreen)", { &lv->getViewSwitcher(), &lv->getExitButton() });
-                // LIVE - FX with the switcher of the fullscreen window
+                // LIVE (without the FX bar, v1.7.1 name) with the switcher of the fullscreen window
                 auto& vs = lv->getViewSwitcher();
-                expect (desktopHit (vs, vs.getChipBounds (2).getCentre()) == &vs, "fullscreen switcher hit-test");
-                expect (clickAt (vs, vs.getChipBounds (2).getCentre()));
+                expect (desktopHit (vs, vs.getChipBounds (chipOf (2)).getCentre()) == &vs, "fullscreen switcher hit-test");
+                expect (clickAt (vs, vs.getChipBounds (chipOf (2)).getCentre()));
                 pump (30);
-                expectEquals (proc.getView(), 2, "fullscreen switcher: Live without FX");
+                expectEquals (proc.getView(), 2, "fullscreen switcher: Live (no FX bar)");
             }
             if (auto* lv = e->getFullscreenLiveView())
             {
                 expect (lv->getFxStripArea().isEmpty(), "no FX bar");
-                clickEverything (*lv, "Live without FX (fullscreen)", { &lv->getViewSwitcher(), &lv->getExitButton() });
+                clickEverything (*lv, "Live, no FX bar (fullscreen)", { &lv->getViewSwitcher(), &lv->getExitButton() });
                 auto& vs = lv->getViewSwitcher();
                 expect (clickAt (vs, vs.getChipBounds (3).getCentre()));
                 pump (30);
@@ -803,7 +815,7 @@ public:
                 {
                     const juce::String where = "header chip " + juce::String (view) + mode;
                     auto& vs = e->getViewSwitcher();
-                    expect (clickAt (vs, vs.getChipBounds (view).getCentre()), where);
+                    expect (clickAt (vs, vs.getChipBounds (chipOf (view)).getCentre()), where);
                     pump (40);
                     expectEquals (proc.getView(), view, where + ": view");
                     expect (e->isLiveFullscreen() == fs, where + ": fullscreen window " + (fs ? "visible" : "none"));
@@ -901,7 +913,7 @@ public:
             auto& vs = e->getViewSwitcher();
             expect (vs.getPeer() != nullptr);
             fallbackPoints = 0;
-            const auto pos = screenPointOf (vs, vs.getChipBounds (1).getCentre());
+            const auto pos = screenPointOf (vs, vs.getChipBounds (chipOf (1)).getCentre());
             mouseTime += 400;
             Press hold;
             expect (hold.down (vs, pos, mouseTime));

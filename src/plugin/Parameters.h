@@ -177,10 +177,23 @@ inline const juce::String gWaveforms    { "waveforms" };      // large waveforms
 juce::StringArray themeChoices();
 // ---- v1.7 views (appended, ids 502 - 503): Live view FX bar, view selector
 inline const juce::String gLiveFx       { "live_fx" };        // Live view: Performance FX bar shown (default on; off = taller cards)
-inline const juce::String gView         { "view" };           // Full, Live, Live without FX, Performance (drives live_view + live_fx)
+inline const juce::String gView         { "view" };           // Full, Live FX, Live, Performance (drives live_view + live_fx)
 juce::StringArray viewChoices();
 inline constexpr int kNumViews = 4;
+inline constexpr int kLiveFxView = 1;                         // the Live view WITH the performance FX bar (live_fx on)
+inline constexpr int kLivePlainView = 2;                      // the Live view without the FX bar, taller cards (live_fx off)
 inline constexpr int kPerformanceView = 3;                    // the 4th choice (live_view on, live_fx unchanged)
+/** v1.7.1: the views in the order they are shown and stepped (view switcher, Push SHIFT + MASTER, a MIDI note on
+    View): Full, Live, Live FX, Performance. The choice indices stay as in 1.7.0 (1 = with FX bar, 2 = without) -
+    only the names were wrong way round to read ("LIVE - FX" was read as "Live FX" but meant "Live minus FX"). */
+inline constexpr int kViewOrder[kNumViews] = { 0, kLivePlainView, kLiveFxView, kPerformanceView };
+inline int nextViewInOrder (int view) noexcept
+{
+    for (int i = 0; i < kNumViews; ++i)
+        if (kViewOrder[i] == view)
+            return kViewOrder[(i + 1) % kNumViews];
+    return 0;
+}
 // ---- end v1.7
 inline constexpr int kNumParameters = 503;
 

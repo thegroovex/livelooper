@@ -123,11 +123,21 @@ public:
     /** The STOP button of a card (the editor shows a held keyboard clear on it). */
     StopButton* getStopButton (int track) const { return juce::isPositiveAndBelow (track, kNumTracks) ? cardParts[(size_t) track].stop.get() : nullptr; }
     int getNumCards() const noexcept { return numCards; }
+    /** v1.7.1: the round UNDO button of a card (click = undo, Shift + click = redo). */
+    UndoButton* getUndoButton (int track) const { return juce::isPositiveAndBelow (track, kNumTracks) ? cardParts[(size_t) track].undo.get() : nullptr; }
+    /** v1.7.1 fullscreen only: REVERSE / ONE SHOT buttons and the PITCH knob of a card (nullptr outside the range). */
+    LLButton* getReverseButton (int track) const { return juce::isPositiveAndBelow (track, kNumTracks) ? cardParts[(size_t) track].reverse.get() : nullptr; }
+    LLButton* getOneShotButton (int track) const { return juce::isPositiveAndBelow (track, kNumTracks) ? cardParts[(size_t) track].oneShot.get() : nullptr; }
+    Knob* getPitchKnob (int track) const { return juce::isPositiveAndBelow (track, kNumTracks) ? cardParts[(size_t) track].pitch.get() : nullptr; }
+    juce::Rectangle<int> getDisplayArea (int track) const { return juce::isPositiveAndBelow (track, kNumTracks) ? cardParts[(size_t) track].display : juce::Rectangle<int>(); }
+    /** v1.7.1: the fullscreen window's view - smaller displays, REVERSE / ONE SHOT / PITCH per card. */
+    void setFullscreenMode (bool on);
+    bool isFullscreenMode() const noexcept { return fullscreenMode; }
     LLButton& getExitButton() noexcept { return exitBtn; }
     /** v1.7 the loop length pill of a card (shown while the track is empty or recording its first loop). */
     LoopLengthPill* getLengthPill (int track) const { return juce::isPositiveAndBelow (track, kNumTracks) ? cardParts[(size_t) track].length.get() : nullptr; }
     juce::String getBeatFxButtonText() const { return bfxBtn.getButtonText(); }
-    /** v1.7 views: the view switcher in the header (FULL . LIVE . LIVE - FX . PERFORM, host parameter View). */
+    /** v1.7 views: the view switcher in the header (FULL . LIVE . LIVE FX . PERFORM, host parameter View). */
     ChoiceChips& getViewSwitcher() noexcept { return *viewChips; }
 
     /** Horizontal level fader drawn as a meter with a level mark (MIDI learn on right-click). */
@@ -148,10 +158,14 @@ public:
     static juce::String stateWord (LiveLooperProcessor& proc, int track, juce::Colour& colour);
     /** "4 BARS" / "1.5 BARS" / "-" (translated) and whether the track has a finished loop. */
     static juce::String lengthText (LiveLooperProcessor& proc, int track, bool& hasLength);
-    /** The view switcher chips (Full, Live, Live without FX, Performance) - sets the views together. */
+    /** The view switcher chips (Full, Live, Live FX, Performance) - sets the views together. */
     static std::unique_ptr<ChoiceChips> makeViewSwitcher (LiveLooperProcessor& proc);
     /** "livelooper" + badge (brand gradient) at the top left; returns the right edge of the badge. */
     static float drawLogo (juce::Graphics& g, juce::Point<float> topLeft, const juce::String& badge, float size = 30.0f);
+    /** v1.7.1 fullscreen views: a card's REVERSE / ONE SHOT buttons and PITCH knob, bound to the track's parameters. */
+    static void makeTrackExtras (LiveLooperProcessor& proc, int track, std::unique_ptr<LLButton>& reverse, std::unique_ptr<LLButton>& oneShot,
+                                 std::unique_ptr<APVTS::ButtonAttachment>& reverseAtt, std::unique_ptr<APVTS::ButtonAttachment>& oneShotAtt,
+                                 std::unique_ptr<Knob>& pitch);
 
 private:
 
@@ -162,6 +176,11 @@ private:
         std::unique_ptr<LevelBar> level;
         std::unique_ptr<APVTS::SliderAttachment> levelAtt;
         std::unique_ptr<LoopLengthPill> length;     // v1.7: shown while the track is empty / recording
+        std::unique_ptr<UndoButton> undo;           // v1.7.1: round UNDO (Shift + click = redo)
+        // v1.7.1 fullscreen: REVERSE, ONE SHOT and PITCH under the (smaller) display
+        std::unique_ptr<LLButton> reverse, oneShot;
+        std::unique_ptr<APVTS::ButtonAttachment> reverseAtt, oneShotAtt;
+        std::unique_ptr<Knob> pitch;
         juce::Rectangle<int> display, levelCaption;
     };
 
@@ -175,7 +194,7 @@ private:
     std::array<Card, kNumTracks> cardParts;
     std::array<juce::Rectangle<int>, kNumTracks> cards;
     int numCards = 0;
-    bool waveforms = true, fxStrip = true;
+    bool waveforms = true, fxStrip = true, fullscreenMode = false;
     juce::Rectangle<int> headArea, transportArea, footArea, punchBar;
 
     LLButton exitBtn { "EXIT LIVE", colours::cyan }, tapBtn { "TAP", colours::yellow };

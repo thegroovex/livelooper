@@ -276,6 +276,99 @@ public:
             expect (p.getState().getParameter ("t2_clear")->getValue() >= 0.5f);
         }
 
+        beginTest ("Keyboard UNDO (v1.7.1): an undo that empties the track must be held 1.5 s, other undos stay instant");
+        {
+            LiveLooperProcessor p;
+            p.setKeyboardControlAvailable (true);
+            p.prepareToPlay (48000.0, 512);
+            std::unique_ptr<juce::AudioProcessorEditor> ed (p.createEditor());
+            auto* editor = dynamic_cast<LiveLooperEditor*> (ed.get());
+            auto on = [&p] (const juce::String& id) { return p.getState().getParameter (id)->getValue() >= 0.5f; };
+            auto reset = [&p] (const juce::String& id) { p.getState().getParameter (id)->setValueNotifyingHost (0.0f); };
+            // the engine says: track 1's next undo takes back its first recording (it would empty the track)
+            auto& st1 = const_cast<LooperEngine::TrackStatus&> (p.getEngine().getTrackStatus (0));
+            st1.canUndo.store (true);
+            st1.undoEmpties.store (true);
+            auto& st2 = const_cast<LooperEngine::TrackStatus&> (p.getEngine().getTrackStatus (1));
+            st2.canUndo.store (true);           // track 2: undo of an overdub
+            st2.undoEmpties.store (false);
+            const auto hold = LiveLooperEditor::kClearHoldMs;
+
+            // A (undo track 1) tapped: nothing, the hold is cancelled
+            expect (editor->keyPressed (key ('A')));
+            expectEquals (editor->getPendingKeyUndoTrack(), 0);
+            expectEquals (editor->getPendingKeyClearTrack(), -1);
+            expect (! on ("t1_undo"));
+            editor->updateKeyClearHold (juce::Time::getMillisecondCounter() + hold / 2, true);
+            // the red hold fill shows on the UNDO buttons (surface, Live, Performance), not on STOP
+            expect (editor->getStrip (0).getUndoButton().getKeyHoldProgress() > 0.3f);
+            expect (editor->getLiveView()->getUndoButton (0)->getKeyHoldProgress() > 0.3f);
+            expect (editor->getPerformView()->getUndoButton (0)->getKeyHoldProgress() > 0.3f);
+            expect (editor->getLiveView()->getStopButton (0)->getKeyHoldProgress() < 0.001f);
+            expect (editor->getLiveView()->getUndoButton (1)->getKeyHoldProgress() < 0.001f);
+            editor->updateKeyClearHold (juce::Time::getMillisecondCounter() + hold / 2 + 30, false);   // released early
+            expect (! on ("t1_undo"));
+            expect (! editor->isKeyClearPending());
+            expect (editor->getLiveView()->getUndoButton (0)->getKeyHoldProgress() < 0.001f);
+            editor->keyStateChanged (false);
+
+            // held (the auto-repeat does not restart the hold): undone after 1.5 s
+            expect (editor->keyPressed (key ('A')));
+            const auto t0 = juce::Time::getMillisecondCounter();
+            for (int i = 0; i < 30; ++i)
+                expect (editor->keyPressed (key ('A')));
+            expect (! on ("t1_undo"));
+            editor->updateKeyClearHold (t0 + hold + 20, true);
+            expect (on ("t1_undo"));
+            expect (! editor->isKeyClearPending());
+            editor->keyStateChanged (false);
+            reset ("t1_undo");
+
+            // a released key cancels at once (key-up event)
+            expect (editor->keyPressed (key ('A')));
+            editor->keyStateChanged (false);
+            expect (! editor->isKeyClearPending());
+            expect (! on ("t1_undo"));
+
+            // S (undo track 2, an overdub): instant, nothing pending
+            expect (editor->keyPressed (key ('S')));
+            expect (on ("t2_undo"));
+            expect (! editor->isKeyClearPending());
+            editor->keyStateChanged (false);
+
+            // Shift + A (redo track 1): instant, unchanged
+            expect (editor->keyPressed (key ('A', true)));
+            expect (on ("t1_redo"));
+            expect (! editor->isKeyClearPending());
+            editor->keyStateChanged (false);
+
+            // MIDI / host / controller undo: the parameter undoes at once
+            p.pressTrigger ("t1_undo");
+            expect (on ("t1_undo"));
+        }
+
+        beginTest ("Views (v1.7.1): a round UNDO per card - click = undo, Shift + click = redo, MIDI-learnable");
+        {
+            LiveLooperProcessor p;
+            p.prepareToPlay (48000.0, 512);
+            std::unique_ptr<juce::AudioProcessorEditor> ed (p.createEditor());
+            auto* editor = dynamic_cast<LiveLooperEditor*> (ed.get());
+            auto on = [&p] (const juce::String& id) { return p.getState().getParameter (id)->getValue() >= 0.5f; };
+            for (int t = 0; t < kNumTracks; ++t)
+            {
+                expect (editor->getLiveView()->getUndoButton (t) != nullptr);
+                expect (editor->getPerformView()->getUndoButton (t) != nullptr);
+                expectEquals (getParamId (*editor->getLiveView()->getUndoButton (t)), juce::String ("t") + juce::String (t + 1) + "_undo");
+                expectEquals (getParamId (*editor->getPerformView()->getUndoButton (t)), juce::String ("t") + juce::String (t + 1) + "_undo");
+            }
+            editor->getLiveView()->getUndoButton (2)->click (false);
+            expect (on ("t3_undo"));
+            expect (! on ("t3_redo"));
+            editor->getPerformView()->getUndoButton (3)->click (true);
+            expect (on ("t4_redo"));
+            expect (! on ("t4_undo"));
+        }
+
         beginTest ("Tempo can be typed in");
         {
             LiveLooperProcessor p;

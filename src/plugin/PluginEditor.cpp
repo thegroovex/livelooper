@@ -1107,6 +1107,15 @@ bool LiveLooperEditor::keyPressed (const juce::KeyPress& key)
             showStatus (tr ("HOLD KEY TO CLEAR TRACK %1", juce::String (t + 1)));
             return true;
         }
+    // v1.7.1: an UNDO that takes back the first recording empties the track - held 1.5 s like a clear
+    // (undo of an overdub / length change stays instant; redo, MIDI, host and controllers unchanged)
+    for (int t = 0; t < kNumTracks; ++t)
+        if (action == trackId (t, kUndo) && proc.getEngine().getTrackStatus (t).undoEmpties.load())
+        {
+            startKeyClear (t, false, key, true);
+            showStatus (tr ("HOLD KEY TO UNDO TRACK %1 (EMPTIES IT)", juce::String (t + 1)));
+            return true;
+        }
 
     performKeyAction (action);
     if (! KeyMap::isSpecialAction (action) && action != gClearAll)
@@ -1126,12 +1135,13 @@ bool LiveLooperEditor::keyStateChanged (bool isKeyDown)
     return false;
 }
 
-void LiveLooperEditor::startKeyClear (int track, bool all, const juce::KeyPress& key)
+void LiveLooperEditor::startKeyClear (int track, bool all, const juce::KeyPress& key, bool undo)
 {
     if (isKeyClearPending())
         setKeyClearProgress (0.0f);         // another clear key replaces the pending one
     keyClear.track = all ? -1 : track;
     keyClear.all = all;
+    keyClear.undo = undo && ! all;
     keyClear.keyCode = key.getKeyCode();
     keyClear.mods = key.getModifiers().withoutMouseButtons();
     keyClear.start = juce::Time::getMillisecondCounter();
@@ -1154,16 +1164,27 @@ bool LiveLooperEditor::isKeyClearKeyStillDown() const
 void LiveLooperEditor::setKeyClearProgress (float progress)
 {
     auto show = [this, progress] (int t) {
-        const float p = keyClear.all || t == keyClear.track ? progress : 0.0f;
+        const bool mine = keyClear.all || t == keyClear.track;
+        const float p = mine && ! keyClear.undo ? progress : 0.0f;       // clear: the STOP buttons
+        const float u = mine && keyClear.undo ? progress : 0.0f;         // v1.7.1 emptying undo: the UNDO buttons
         strips[(size_t) t]->getStopButton().setKeyHoldProgress (p);
+        strips[(size_t) t]->getUndoButton().setKeyHoldProgress (u);
         for (auto* v : { liveView.get(), fullscreenLive })
             if (v != nullptr)
+            {
                 if (auto* b = v->getStopButton (t))
                     b->setKeyHoldProgress (p);
+                if (auto* b = v->getUndoButton (t))
+                    b->setKeyHoldProgress (u);
+            }
         for (auto* v : { perfView.get(), fullscreenPerf })
             if (v != nullptr)
+            {
                 if (auto* b = v->getStopButton (t))
                     b->setKeyHoldProgress (p);
+                if (auto* b = v->getUndoButton (t))
+                    b->setKeyHoldProgress (u);
+            }
     };
     for (int t = 0; t < kNumTracks; ++t)
         show (t);
@@ -1174,7 +1195,7 @@ void LiveLooperEditor::updateKeyClearHold (juce::uint32 now, bool keyStillDown)
     if (! isKeyClearPending())
         return;
     const int t = keyClear.track;
-    const bool all = keyClear.all;
+    const bool all = keyClear.all, undo = keyClear.undo;
     const auto held = now - keyClear.start;
     // the keyboard was switched off or the tempo field took the keys while the key was held
     if (! proc.isKeyboardControlActive() || tempoEntry.isVisible())
@@ -1183,7 +1204,7 @@ void LiveLooperEditor::updateKeyClearHold (juce::uint32 now, bool keyStillDown)
     {
         setKeyClearProgress (0.0f);
         keyClear = {};
-        showStatus (tr ("CLEAR CANCELLED - HOLD THE KEY 1.5 S"));
+        showStatus (tr (undo ? "UNDO CANCELLED - HOLD THE KEY 1.5 S" : "CLEAR CANCELLED - HOLD THE KEY 1.5 S"));
     }
     else if (held >= kClearHoldMs)
     {
@@ -1193,6 +1214,11 @@ void LiveLooperEditor::updateKeyClearHold (juce::uint32 now, bool keyStillDown)
         {
             proc.pressTrigger (gClearAll);
             showStatus (tr ("ALL TRACKS CLEARED"));
+        }
+        else if (undo)
+        {
+            proc.pressTrigger (trackId (t, kUndo));
+            showStatus (tr ("TRACK %1 UNDONE", juce::String (t + 1)));
         }
         else
         {

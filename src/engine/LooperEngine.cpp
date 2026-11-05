@@ -1170,6 +1170,7 @@ void LooperEngine::updateStatus() noexcept
         st.lengthPpq.store (tr.getSamplesPerPpq() > 0.0 ? tr.getLength() / tr.getSamplesPerPpq() : 0.0);
         st.canUndo.store (tr.canUndo());
         st.canRedo.store (tr.canRedo());
+        st.undoEmpties.store (tr.undoEmptiesTrack());
         st.stopping.store (tr.isStopping());
         st.recordingSpan.store (tr.getRecordingSpan() > 0);
         {

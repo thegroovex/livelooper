@@ -90,7 +90,7 @@ juce::StringArray ctlAudioModeChoices() { return { "Controller only", "Record co
 juce::StringArray holdRampChoices()     { return { "Off", "1 beat", "2 beats", "1 bar" }; }
 juce::StringArray velocityCurveChoices() { return { "Soft", "Normal", "Hard", "Fixed" }; }   // v1.7
 juce::StringArray themeChoices() { return { "Dark", "Light" }; }                                  // v1.7 display
-juce::StringArray viewChoices() { return { "Full", "Live", "Live without FX", "Performance" }; }      // v1.7 views (append-only)
+juce::StringArray viewChoices() { return { "Full", "Live FX", "Live", "Performance" }; }      // v1.7 views (append-only; 1.7.1: index 1 = with FX bar named "Live FX", index 2 = without named "Live")
 
 juce::StringArray grooveChoices()
 {

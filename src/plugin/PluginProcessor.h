@@ -227,7 +227,8 @@ public:
     static juce::String latencySettingsKey (const juce::String& deviceKey);
 
     //============================================================================== v1.7 views
-    /** 0 = Full, 1 = Live, 2 = Live without FX (from live_view + live_fx), 3 = Performance (live_view on + View = Performance). */
+    /** 0 = Full, 1 = Live FX (Live view with the FX bar), 2 = Live (no FX bar) (from live_view + live_fx),
+        3 = Performance (live_view on + View = Performance). Stored values unchanged; the switcher steps Full > Live > Live FX > Performance. */
     int getView() const noexcept;
     /** Sets the view selector, live_view and live_fx together (Push SHIFT + MASTER, tests). */
     void setView (int view);
@@ -595,6 +596,7 @@ private:
     std::atomic<float>* sfxType {}; std::atomic<float>* sfxX {}; std::atomic<float>* sfxY {}; std::atomic<float>* sfxLevel {};
     std::array<std::atomic<float>*, params::kNumPunchHolds> pfxHold {};
     std::atomic<float>* pfxAmount {}; std::atomic<float>* pfxX {}; std::atomic<float>* pfxY {};
+    juce::RangedAudioParameter* viewParam = nullptr;     // v1.7.1: a MIDI note on View steps in the shown order
     std::atomic<float>* pfxTarget {}; std::atomic<float>* pfxLatch {}; std::atomic<float>* ctlAudioMode {};
     std::atomic<float>* pfxHoldRamp {};
     std::array<bool, params::kNumPunchHolds> pfxLast {}, pfxLatched {};
