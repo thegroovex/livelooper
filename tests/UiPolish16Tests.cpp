@@ -206,7 +206,11 @@ public:
             {
                 LangScope l (lang);
                 const auto pages = HelpComponent::guidePages();
-                expectEquals (pages.size(), 16);           // v1.6: + K.O. II, v1.7: + loop length, Live view, Performance view, display, latency, controllers, backup
+                expectEquals (pages.size(), 17);           // v1.6: + K.O. II, v1.7: + loop length, Live view, Performance view, display, latency, controllers, backup; v1.7.1: + keyboard
+                expectEquals (pages[16].title, i18n::tr ("Keyboard"), "v1.7.1 keyboard page last");
+                expectEquals (pages[16].image, juce::String ("help-keymap.png"));
+                expect (getEmbeddedImage ("help-keymap-de.png").isValid(), "German keyboard picture");
+                expect (pages[16].text.contains ("1.5") || pages[16].text.contains ("1,5"), "keyboard page: the hold rule");
                 for (const auto& p : pages)
                 {
                     expect (getEmbeddedImage (p.image).isValid(), "picture " + p.image);

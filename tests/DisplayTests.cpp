@@ -244,7 +244,7 @@ public:
             e->setLiveView (false);
         }
 
-        beginTest ("Push 1: SHIFT + MASTER cycles Full -> Live -> Live without FX -> Performance -> Full, MASTER alone still the meters");
+        beginTest ("Push 1: SHIFT + MASTER cycles Full -> Live -> Live FX -> Performance -> Full (v1.7.1 order as shown), MASTER alone still the meters");
         {
             auto procOwner = std::make_unique<LiveLooperProcessor> (false, false);
             auto& proc = *procOwner;
@@ -254,18 +254,19 @@ public:
             expectEquals (proc.getView(), 0);
             shiftMaster();
             expectEquals (getP (proc, gLiveView), 1.0f);
-            expectEquals (getP (proc, gLiveFx), 1.0f);
-            expectEquals (proc.getView(), 1, "Live");
+            expectEquals (getP (proc, gLiveFx), 0.0f);
+            expectEquals (proc.getView(), kLivePlainView, "Live (no FX bar)");
+            expectEquals (getP (proc, gView), 2.0f / 3.0f);
             expect (! surface.areMetersShown());
             shiftMaster();
             expectEquals (getP (proc, gLiveView), 1.0f);
-            expectEquals (getP (proc, gLiveFx), 0.0f);
-            expectEquals (proc.getView(), 2, "Live without FX");
-            expectEquals (getP (proc, gView), 2.0f / 3.0f);
+            expectEquals (getP (proc, gLiveFx), 1.0f);
+            expectEquals (proc.getView(), kLiveFxView, "Live FX (with the FX bar)");
+            expectEquals (getP (proc, gView), 1.0f / 3.0f);
             shiftMaster();
             expectEquals (proc.getView(), 3, "Performance");
             expectEquals (getP (proc, gLiveView), 1.0f, "the Performance view is a stage view (live_view on)");
-            expectEquals (getP (proc, gLiveFx), 0.0f, "the FX bar choice of the Live view stays");
+            expectEquals (getP (proc, gLiveFx), 1.0f, "the FX bar choice of the Live view stays");
             expectEquals (getP (proc, gView), 1.0f);
             proc.syncViews();
             expectEquals (proc.getView(), 3, "sync keeps the Performance view");
@@ -274,7 +275,7 @@ public:
             expectEquals (proc.getView(), 0, "back to Full");
             expectEquals (getP (proc, gView), 0.0f);
             shiftMaster();
-            expectEquals (getP (proc, gLiveFx), 1.0f, "Live brings the FX bar back");
+            expectEquals (getP (proc, gLiveFx), 0.0f, "Live = no FX bar");
             button (push::cc::master, true);
             button (push::cc::master, false);
             expect (surface.areMetersShown());
@@ -301,7 +302,8 @@ public:
                 expect (! englishName (id).containsIgnoreCase ("push") && ! englishName (id).containsIgnoreCase ("k.o."), "no device names");
             expect (! isTrigger (gLiveFx) && ! isTrigger (gView));
             expectEquals (viewChoices().size(), kNumViews);
-            expect (viewChoices() == juce::StringArray { "Full", "Live", "Live without FX", "Performance" }, "choice order never changes (Performance appended)");
+            // v1.7.1: the indices never change (1 = with the FX bar, 2 = without); the names now say which is which
+            expect (viewChoices() == juce::StringArray { "Full", "Live FX", "Live", "Performance" }, "choice order never changes (Performance appended)");
             if (auto* v = dynamic_cast<juce::AudioParameterChoice*> (proc.getState().getParameter (gView)))
                 expectEquals (v->choices.size(), 4);
             expect (juce::String (i18n::germanFor ("Performance")).isNotEmpty() && juce::String (i18n::germanFor ("Performance view")).isNotEmpty());
@@ -327,9 +329,9 @@ public:
             expectEquals (getP (proc, gView), 0.0f, "FX bar off while Full: still Full");
             setP (proc, gLiveView, 1.0f); proc.syncViews();
             expectEquals (proc.getView(), 2);
-            expectEquals (getP (proc, gView), 2.0f / 3.0f, "LIVE with the FX bar off = Live without FX");
+            expectEquals (getP (proc, gView), 2.0f / 3.0f, "LIVE with the FX bar off = Live");
             setP (proc, gLiveFx, 1.0f); proc.syncViews();
-            expectEquals (getP (proc, gView), 1.0f / 3.0f, "FX bar on = Live");
+            expectEquals (getP (proc, gView), 1.0f / 3.0f, "FX bar on = Live FX");
             setP (proc, gLiveView, 0.0f); proc.syncViews();
             expectEquals (getP (proc, gView), 0.0f, "Esc = Full");
             // Performance: live_view on, the FX bar choice untouched; Esc / LIVE off = Full, the FX bar switch = that Live view
@@ -342,7 +344,7 @@ public:
             expectEquals (getP (proc, gView), 0.0f);
             setView (3);
             setP (proc, gLiveFx, 0.0f); proc.syncViews();
-            expectEquals (proc.getView(), 2, "the FX bar switch in the Performance view = Live without FX");
+            expectEquals (proc.getView(), 2, "the FX bar switch in the Performance view = Live (no FX bar)");
             setView (3);
             {
                 // a saved state in the Performance view comes back in the Performance view
@@ -366,7 +368,7 @@ public:
             };
             proc.getMidiMap().assign ({ 0, true, 20 }, proc.getParamIndex (gView));      // one assignment per function
             proc.getMidiMap().assign ({ 0, true, 21 }, proc.getParamIndex (gLiveFx));
-            // a CC splits into 4 ranges: 0 - 21 Full, 22 - 63 Live, 64 - 105 Live without FX, 106 - 127 Performance
+            // a CC splits into 4 ranges by choice index: 0 - 21 Full, 22 - 63 Live FX, 64 - 105 Live, 106 - 127 Performance
             const std::pair<int, int> ccs[] = { { 127, 3 }, { 106, 3 }, { 105, 2 }, { 64, 2 }, { 63, 1 }, { 22, 1 }, { 21, 0 }, { 0, 0 }, { 40, 1 } };
             for (const auto& [cc, view] : ccs)
             {
@@ -375,16 +377,17 @@ public:
             }
             proc.getMidiMap().assign ({ 0, false, 61 }, proc.getParamIndex (gView));
             auto note = [&] { send (juce::MidiMessage::noteOn (1, 61, (juce::uint8) 100)); send (juce::MidiMessage::noteOff (1, 61)); };
+            // v1.7.1: a note steps in the shown order Full -> Live -> Live FX -> Performance (from Live FX: Performance)
             note();
-            expectEquals (proc.getView(), 2, "note steps");
-            note();
-            expectEquals (proc.getView(), 3, "note steps to Performance");
+            expectEquals (proc.getView(), 3, "note steps from Live FX to Performance");
             note();
             expectEquals (proc.getView(), 0, "and wraps to Full");
             note();
-            expectEquals (proc.getView(), 1);
+            expectEquals (proc.getView(), kLivePlainView, "then Live");
+            note();
+            expectEquals (proc.getView(), kLiveFxView, "then Live FX");
             send (juce::MidiMessage::controllerEvent (1, 21, 127));
-            expectEquals (proc.getView(), 2, "MIDI on the FX bar toggles it");
+            expectEquals (proc.getView(), kLivePlainView, "MIDI on the FX bar toggles it");
             proc.releaseResources();
         }
 
@@ -562,6 +565,255 @@ public:
             expect (found, "SETUP > Display: Open Performance view (fullscreen)");
             e->setLiveView (false);
             proc.setVisibleTracks (kDefaultVisibleTracks);
+        }
+
+        beginTest ("Views (v1.7.1 regression): every view label matches what it shows - LIVE without, LIVE FX with the FX bar");
+        {
+            DisplayTempFolder tmp;
+            auto procOwner = std::make_unique<LiveLooperProcessor> (false, false);
+            auto& proc = *procOwner;
+            std::unique_ptr<juce::AudioProcessorEditor> ed (proc.createEditor());
+            auto* e = dynamic_cast<LiveLooperEditor*> (ed.get());
+            ed->setSize (LiveLooperEditor::kBaseWidth, LiveLooperEditor::kBaseHeight);
+            auto* viewParam = dynamic_cast<juce::AudioParameterChoice*> (proc.getState().getParameter (gView));
+            for (auto* sw : { &e->getViewSwitcher(), &e->getLiveView()->getViewSwitcher(), &e->getPerformView()->getViewSwitcher() })
+            {
+                const juce::StringArray labels { sw->getChipText (0), sw->getChipText (1), sw->getChipText (2), sw->getChipText (3) };
+                expect (labels == juce::StringArray { "FULL", "LIVE", "LIVE FX", "PERFORM" }, labels.joinIntoString (" . "));
+                for (int chip : { 1, 2, 3, 0 })
+                {
+                    sw->selectChip (chip);
+                    proc.syncViews();
+                    e->applyDisplaySettings();
+                    const auto label = sw->getChipText (chip);
+                    expectEquals (sw->getSelectedChip(), chip, label);
+                    const auto choiceName = viewParam->getCurrentChoiceName();
+                    if (label == "LIVE")
+                    {
+                        expect (e->isLiveViewShown() && ! e->isPerformViewShown(), "LIVE: the Live view");
+                        expect (e->getLiveView()->getFxStripArea().isEmpty(), "LIVE: no FX bar");
+                        expectEquals (choiceName, juce::String ("Live"));
+                        expectEquals (getP (proc, gLiveFx), 0.0f);
+                    }
+                    else if (label == "LIVE FX")
+                    {
+                        expect (e->isLiveViewShown() && ! e->isPerformViewShown(), "LIVE FX: the Live view");
+                        expect (! e->getLiveView()->getFxStripArea().isEmpty(), "LIVE FX: with the FX bar");
+                        expectEquals (choiceName, juce::String ("Live FX"));
+                        expectEquals (getP (proc, gLiveFx), 1.0f);
+                    }
+                    else if (label == "PERFORM")
+                    {
+                        expect (e->isPerformViewShown(), "PERFORM");
+                        expectEquals (choiceName, juce::String ("Performance"));
+                    }
+                    else
+                    {
+                        expect (! e->isStageViewShown(), "FULL");
+                        expectEquals (choiceName, juce::String ("Full"));
+                    }
+                }
+            }
+            // the host parameter by choice index (stable since 1.7.0): 1 = with the FX bar, 2 = without
+            for (int v : { kLiveFxView, kLivePlainView })
+            {
+                proc.setView (v);
+                e->applyDisplaySettings();
+                expect (e->getLiveView()->getFxStripArea().isEmpty() == (v == kLivePlainView), "choice " + juce::String (v));
+            }
+            proc.setView (0);
+            e->applyDisplaySettings();
+        }
+
+        beginTest ("Views (v1.7.1): the STOP square sits in the middle of the round Performance STOP, the level value stays clear");
+        {
+            DisplayTempFolder tmp;
+            auto procOwner = std::make_unique<LiveLooperProcessor> (false, false);
+            auto& proc = *procOwner;
+            std::unique_ptr<juce::AudioProcessorEditor> ed (proc.createEditor());
+            auto* e = dynamic_cast<LiveLooperEditor*> (ed.get());
+            ed->setSize (LiveLooperEditor::kBaseWidth, LiveLooperEditor::kBaseHeight);
+            e->setPerformView (true);
+            auto* pv = e->getPerformView();
+            pv->refresh (false);
+            for (int tracks : { 4, 8 })
+            {
+                proc.setVisibleTracks (tracks);
+                pv->refresh (false);
+                for (int t = 0; t < tracks; ++t)
+                {
+                    auto* stop = pv->getStopButton (t);
+                    auto* undo = pv->getUndoButton (t);
+                    const auto caption = pv->getLevelCaptionArea (t);
+                    expect (caption.getRight() + 6 <= stop->getX(), "level value clear of STOP, track " + juce::String (t + 1));
+                    if (undo->getY() > pv->getCardArea (t).getY() + 30)      // UNDO in the bottom row (4 tracks)
+                        expect (caption.getRight() + 6 <= undo->getX(), "level value clear of UNDO");
+                    expect (! undo->getBounds().intersects (stop->getBounds()), "UNDO and STOP apart");
+                    expect (pv->getCardArea (t).contains (undo->getBounds()), "UNDO inside the card");
+                }
+                // the square: centroid of the bright pixels = the middle of the button
+                auto* stop = pv->getStopButton (0);
+                const auto img = stop->createComponentSnapshot (stop->getLocalBounds(), true, 4.0f);
+                double sx = 0, sy = 0, n = 0;
+                for (int y = 0; y < img.getHeight(); ++y)
+                    for (int x = 0; x < img.getWidth(); ++x)
+                        if (img.getPixelAt (x, y).getPerceivedBrightness() > 0.75f)
+                        {
+                            sx += x; sy += y; ++n;
+                        }
+                expect (n > 20, "a square is drawn");
+                if (n > 0)
+                {
+                    const double cx = sx / n / 4.0, cy = sy / n / 4.0;
+                    const auto mid = stop->getLocalBounds().toFloat().getCentre();
+                    expect (std::abs (cx - mid.x) < 0.75 && std::abs (cy - mid.y) < 0.75,
+                            "square centred: " + juce::String (cx, 2) + ", " + juce::String (cy, 2) + " vs " + juce::String (mid.x, 2) + ", " + juce::String (mid.y, 2));
+                }
+            }
+            proc.setVisibleTracks (4);
+            e->setLiveView (false);
+        }
+
+        beginTest ("Performance XY (v1.7.1): long, fading trails; the crosshair and X / Y spring back on release unless LATCH");
+        {
+            DisplayTempFolder tmp;
+            auto procOwner = std::make_unique<LiveLooperProcessor> (false, false);
+            auto& proc = *procOwner;
+            std::unique_ptr<juce::AudioProcessorEditor> ed (proc.createEditor());
+            auto* e = dynamic_cast<LiveLooperEditor*> (ed.get());
+            ed->setSize (LiveLooperEditor::kBaseWidth, LiveLooperEditor::kBaseHeight);
+            e->setPerformView (true);
+            auto* pv = e->getPerformView();
+            const auto pad = pv->getXYPad().getLocalBounds().toFloat();
+            const float nx = proc.getState().getParameter (gPfxX)->getDefaultValue();
+            const float ny = proc.getState().getParameter (gPfxY)->getDefaultValue();
+            expect (PerformView::getXYTrailMs() >= 1000, "trails live at least a second");
+            pv->xyPress ({ pad.getWidth() * 0.85f, pad.getHeight() * 0.2f });
+            for (int i = 0; i < 20; ++i)
+                pv->xyDrag ({ pad.getWidth() * (0.85f - 0.01f * (float) i), pad.getHeight() * (0.2f + 0.01f * (float) i) });
+            expect (getP (proc, gPfxX) > 0.6f && getP (proc, gPfxY) > 0.6f, "the drag moved X / Y");
+            expect (pv->getXYTrailSize() > 10);
+            const auto now = juce::Time::getMillisecondCounter();
+            pv->xyTick (now + 300);
+            expect (pv->getXYTrailSize() > 10, "still there after 0.3 s");
+            pv->xyRelease();
+            expect (pv->isXYSpringing(), "no latch: springs back");
+            pv->xyTick (juce::Time::getMillisecondCounter() + PerformView::getXYSpringMs() / 3);
+            expect (std::abs (getP (proc, gPfxX) - nx) < std::abs (0.66f - nx) + 0.2f, "on the way back");
+            pv->xyTick (juce::Time::getMillisecondCounter() + PerformView::getXYSpringMs() + 20);
+            expect (! pv->isXYSpringing());
+            expectWithinAbsoluteError (getP (proc, gPfxX), nx, 0.001f, "X back to neutral");
+            expectWithinAbsoluteError (getP (proc, gPfxY), ny, 0.001f, "Y back to neutral");
+            pv->xyTick (juce::Time::getMillisecondCounter() + PerformView::getXYTrailMs() + 50);
+            expectEquals (pv->getXYTrailSize(), 0, "the trail has faded out");
+            // LATCH: the position is held after the release
+            setP (proc, gPfxLatch, 1.0f);
+            pv->xyPress ({ pad.getWidth() * 0.2f, pad.getHeight() * 0.8f });
+            const float lx = getP (proc, gPfxX), ly = getP (proc, gPfxY);
+            pv->xyRelease();
+            expect (! pv->isXYSpringing(), "latch: no spring");
+            pv->xyTick (juce::Time::getMillisecondCounter() + 1000);
+            expectWithinAbsoluteError (getP (proc, gPfxX), lx, 0.0001f, "latch holds X");
+            expectWithinAbsoluteError (getP (proc, gPfxY), ly, 0.0001f, "latch holds Y");
+            setP (proc, gPfxLatch, 0.0f);
+            e->setLiveView (false);
+        }
+
+        beginTest ("Waveforms (v1.7.1): a subtle line at every bar");
+        {
+            expect (LoopWaveform::barLines (1.0f).empty(), "one bar: no line");
+            expect (LoopWaveform::barLines (0.0f).empty());
+            const auto four = LoopWaveform::barLines (4.0f);
+            expectEquals ((int) four.size(), 3, "4 bars: 4 segments");
+            if (four.size() == 3)
+            {
+                expectWithinAbsoluteError (four[0], 0.25f, 0.0001f);
+                expectWithinAbsoluteError (four[1], 0.5f, 0.0001f);
+                expectWithinAbsoluteError (four[2], 0.75f, 0.0001f);
+            }
+            expectEquals ((int) LoopWaveform::barLines (2.0f).size(), 1);
+            expectEquals ((int) LoopWaveform::barLines (1.5f).size(), 1, "1.5 bars: the line at bar 2");
+            expectEquals ((int) LoopWaveform::barLines (16.0f).size(), 15);
+            // drawn: the column at 1/4 is lighter than its neighbours (dark LCD in every theme)
+            std::vector<float> peaks (64, 0.0f);
+            LoopWaveform wf;
+            wf.peaks = peaks.data();
+            wf.numBins = 64;
+            wf.valid = true;
+            wf.state = LoopTrack::State::Stopped;
+            wf.colour = juce::Colours::orange;
+            wf.bars = 4.0f;
+            juce::Image img (juce::Image::RGB, 200, 40, true);
+            {
+                juce::Graphics g (img);
+                g.fillAll (juce::Colours::black);
+                wf.draw (g, { 0.0f, 0.0f, 200.0f, 40.0f });
+            }
+            expect (img.getPixelAt (50, 1).getBrightness() > img.getPixelAt (40, 1).getBrightness() + 0.1f, "bar tick at 1/4");
+            expect (img.getPixelAt (50, 10).getBrightness() > img.getPixelAt (40, 10).getBrightness(), "bar line at 1/4");
+        }
+
+        beginTest ("Fullscreen views (v1.7.1): smaller displays, REVERSE / ONE SHOT / PITCH per card, the keyboard works");
+        {
+            DisplayTempFolder tmp;
+            auto procOwner = std::make_unique<LiveLooperProcessor> (false, false);
+            auto& proc = *procOwner;
+            proc.setKeyboardControlAvailable (true);
+            std::unique_ptr<juce::AudioProcessorEditor> ed (proc.createEditor());
+            auto* e = dynamic_cast<LiveLooperEditor*> (ed.get());
+            ed->setSize (LiveLooperEditor::kBaseWidth, LiveLooperEditor::kBaseHeight);
+            e->setLiveView (true);
+            auto* lv = e->getLiveView();
+            const int normalDisplay = lv->getDisplayArea (0).getHeight();
+            expect (! lv->getReverseButton (0)->isVisible() && ! lv->getPitchKnob (0)->isVisible(), "windowed: no extras");
+            lv->setFullscreenMode (true);
+            expect (lv->getDisplayArea (0).getHeight() < normalDisplay, "fullscreen: smaller display");
+            for (int t = 0; t < proc.getVisibleTracks(); ++t)
+            {
+                const auto tp = juce::String ("t") + juce::String (t + 1) + "_";
+                expect (lv->getReverseButton (t)->isVisible() && lv->getOneShotButton (t)->isVisible() && lv->getPitchKnob (t)->isVisible());
+                expectEquals (getParamId (*lv->getReverseButton (t)), tp + "reverse");
+                expectEquals (getParamId (*lv->getOneShotButton (t)), tp + "oneshot");
+                expectEquals (getParamId (lv->getPitchKnob (t)->slider), tp + "pitch");
+                expect (lv->getCardArea (t).contains (lv->getPitchKnob (t)->getBounds()));
+                expect (! lv->getReverseButton (t)->getBounds().intersects (lv->getDisplayArea (t)));
+            }
+            lv->getReverseButton (1)->triggerClick();
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (30);
+            expectEquals (getP (proc, "t2_reverse"), 1.0f, "REVERSE sets the track parameter");
+            lv->getPitchKnob (0)->slider.setValue (5.0, juce::sendNotificationSync);
+            expectWithinAbsoluteError (proc.getState().getRawParameterValue ("t1_pitch")->load(), 5.0f, 0.01f, "PITCH sets the track parameter");
+            lv->setFullscreenMode (false);
+            e->setPerformView (true);
+            auto* pv = e->getPerformView();
+            const int perfDisplay = pv->getDisplayArea (0).getHeight();
+            pv->setFullscreenMode (true);
+            expect (pv->getDisplayArea (0).getHeight() < perfDisplay, "Performance fullscreen: smaller display");
+            expect (pv->getReverseButton (0)->isVisible() && pv->getOneShotButton (0)->isVisible() && pv->getPitchKnob (0)->isVisible());
+            expectEquals (getParamId (pv->getPitchKnob (2)->slider), juce::String ("t3_pitch"));
+            for (auto* c : pv->getChildren())
+                if (c->isVisible())
+                    expect (pv->getLocalBounds().contains (c->getBounds()), "inside the view: " + getParamId (*c));
+            pv->setFullscreenMode (false);
+            e->setLiveView (false);
+
+            // the real fullscreen window: fullscreen mode on, the keys reach the editor
+            proc.setView (0);
+            e->applyDisplaySettings();
+            e->setLiveView (true, true);
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
+            if (auto* fl = e->getFullscreenLiveView())
+            {
+                expect (fl->isFullscreenMode());
+                expect (fl->getParentComponent() != nullptr && fl->getParentComponent()->keyPressed (juce::KeyPress ('2', {}, 0)),
+                        "a key in the fullscreen window goes to the editor");
+                expectEquals (getP (proc, "t2_recplay"), 1.0f, "2 = REC / PLAY track 2");
+                fl->getParentComponent()->keyStateChanged (false);
+            }
+            else
+                expect (false, "fullscreen window");
+            e->setLiveView (false);
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
         }
 
         beginTest ("Waveform peaks: the last overdub layer is read on the message thread, gone after undo");

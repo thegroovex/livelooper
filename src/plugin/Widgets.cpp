@@ -474,6 +474,16 @@ void StopButton::paint (juce::Graphics& g)
         g.fillRoundedRectangle (b, corner);
     }
 
+    // v1.7.1: a small (round) STOP button of the Performance view cards: only the square, exactly in the middle
+    // (the label did not fit, its negative width pushed the square left of the centre)
+    if (b.getWidth() < 64.0f)
+    {
+        const float sq = juce::jmax (6.0f, juce::jmin (b.getWidth(), b.getHeight()) * 0.30f);
+        g.setColour (cleared ? colours::red.brighter (0.4f) : colours::text);
+        g.fillRoundedRectangle (juce::Rectangle<float> (sq, sq).withCentre (b.getCentre()), 1.5f);
+        return;
+    }
+
     const auto label = tr (cleared ? "CLEARED" : "STOP");
     const auto f = LooperLookAndFeel::font (juce::jmin (15.0f, b.getHeight() * 0.40f), true);
     const float s = b.getHeight() * 0.28f;
@@ -483,6 +493,97 @@ void StopButton::paint (juce::Graphics& g)
     g.fillRoundedRectangle (x0, b.getCentreY() - s * 0.5f, s, s, 1.5f);
     g.setFont (f);
     g.drawFittedText (label, juce::Rectangle<float> (x0 + s + 8.0f, b.getY(), tw + 2.0f, b.getHeight()).toNearestInt(), juce::Justification::centredLeft, 1, 0.7f);
+}
+
+//============================================================================== v1.7.1 undo buttons
+void HoldLLButton::paintButton (juce::Graphics& g, bool over, bool down)
+{
+    LLButton::paintButton (g, over, down);
+    if (keyHold > 0.0f)
+    {
+        auto b = getLocalBounds().toFloat().reduced (1.5f);
+        const float corner = juce::jmin (9.0f, b.getHeight() * 0.32f);
+        g.setColour (colours::red.withAlpha (0.4f));
+        g.fillRoundedRectangle (b.withWidth (b.getWidth() * juce::jmin (1.0f, keyHold)), corner);
+    }
+}
+
+UndoButton::UndoButton (LiveLooperProcessor& p, int t) : proc (p), track (t)
+{
+    setParamId (*this, trackId (track, kUndo));
+    setTooltip ("UNDO  (Shift + click: redo, right-click: MIDI learn)");
+}
+
+void UndoButton::click (bool shift)
+{
+    proc.pressTrigger (trackId (track, shift ? kRedo : kUndo));
+}
+
+void UndoButton::mouseDown (const juce::MouseEvent& e)
+{
+    if (handleMidiRightClick (*this, e))
+        return;
+    down = true;
+    click (e.mods.isShiftDown());
+    repaint();
+}
+
+void UndoButton::mouseUp (const juce::MouseEvent&)
+{
+    down = false;
+    repaint();
+}
+
+void UndoButton::refresh()
+{
+    const auto& st = proc.getEngine().getTrackStatus (track);
+    const bool u = st.canUndo.load(), r = st.canRedo.load();
+    if (u != canUndo || r != canRedo)
+    {
+        canUndo = u;
+        canRedo = r;
+        repaint();
+    }
+}
+
+void UndoButton::paint (juce::Graphics& g)
+{
+    auto b = getLocalBounds().toFloat().reduced (2.0f);
+    b = b.withSizeKeepingCentre (juce::jmin (b.getWidth(), b.getHeight()), juce::jmin (b.getWidth(), b.getHeight()));
+    const float corner = b.getHeight() * 0.5f;
+    if (! down)
+        LooperLookAndFeel::drawSoftShadow (g, b, corner, 0.7f, 4.0f, 3.0f);
+    const bool light = theme::isLight();
+    juce::ColourGradient grad (juce::Colour (light ? (down ? 0xffdfe2e7 : 0xffffffff) : (down ? 0xff26272d : 0xff42444d)), b.getX(), b.getY(),
+                               juce::Colour (light ? 0xffe4e6eb : (down ? 0xff2c2d33 : 0xff26272d)), b.getX(), b.getBottom(), false);
+    g.setGradientFill (grad);
+    g.fillEllipse (b);
+    g.setColour (juce::Colours::black.withAlpha (light ? 0.18f : 0.7f));
+    g.drawEllipse (b, 1.0f);
+    if (keyHold > 0.0f)
+    {
+        g.saveState();
+        g.reduceClipRegion (b.withWidth (b.getWidth() * juce::jmin (1.0f, keyHold)).toNearestInt());
+        g.setColour (colours::red.withAlpha (0.4f));
+        g.fillEllipse (b);
+        g.restoreState();
+    }
+
+    // the undo arrow: an open arc with an arrow head on its left end
+    const auto c = b.getCentre();
+    const float r = b.getWidth() * 0.22f;
+    const float th = juce::jmax (1.6f, b.getWidth() * 0.075f);
+    juce::Path arc;
+    arc.addCentredArc (c.x, c.y + r * 0.15f, r, r, 0.0f, -juce::MathConstants<float>::halfPi * 1.05f,
+                       juce::MathConstants<float>::halfPi * 1.25f, true);
+    const auto col = canUndo ? colours::yellow : colours::text.withAlpha (canRedo ? 0.55f : 0.3f);
+    g.setColour (col);
+    g.strokePath (arc, juce::PathStrokeType (th, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+    const auto tip = arc.getPointAlongPath (0.0f);
+    const float hs = r * 0.62f;
+    juce::Path head;
+    head.addTriangle (tip.x, tip.y + hs * 0.95f, tip.x - hs * 0.8f, tip.y - hs * 0.2f, tip.x + hs * 0.8f, tip.y - hs * 0.2f);
+    g.fillPath (head);
 }
 
 //============================================================================== meters
@@ -1027,7 +1128,7 @@ TrackStrip::TrackStrip (LiveLooperProcessor& p, int t)
     settings.setTooltip ("Track settings, clear, import / export");
     undo.setTooltip ("Undo the last recording / overdub");
     redo.setTooltip ("Redo");
-    for (auto* b : { &undo, &redo, &settings })
+    for (auto* b : { (LLButton*) &undo, &redo, &settings })
         addAndMakeVisible (b);
 
     addAndMakeVisible (recPlay);
@@ -1085,7 +1186,7 @@ void TrackStrip::resized()
     redo.setBounds (mix.removeFromTop (bh));
     mix.removeFromTop (gap);
     settings.setBounds (mix.removeFromTop (bh));
-    for (auto* btn : { &undo, &redo, &settings })
+    for (auto* btn : { (LLButton*) &undo, &redo, &settings })
         LooperLookAndFeel::setEmphasis (*btn, 0);
 
     b.removeFromTop (8);
@@ -1174,6 +1275,7 @@ void TrackStrip::paint (juce::Graphics& g)
         wf.ghost = st.ghostProgress.load();
         wf.state = state;
         wf.colour = colours::track (track);
+        wf.bars = LoopWaveform::barsOf (proc, track);
         wf.draw (g, text);
     }
     else
@@ -1338,6 +1440,27 @@ void TrackStrip::refresh (bool blinkPhase)
 }
 
 //============================================================================== LoopWaveform (v1.7)
+float LoopWaveform::barsOf (LiveLooperProcessor& proc, int track)
+{
+    auto& eng = proc.getEngine();
+    const auto& st = eng.getTrackStatus (track);
+    const auto state = (LoopTrack::State) st.state.load();
+    if (state == LoopTrack::State::Empty || state == LoopTrack::State::Recording)
+        return 0.0f;
+    return (float) (st.lengthPpq.load() / juce::jmax (0.25, eng.getMeasurePpq()));
+}
+
+std::vector<float> LoopWaveform::barLines (float bars)
+{
+    std::vector<float> xs;
+    if (! (bars > 1.02f) || bars > 64.0f)
+        return xs;
+    const int n = (int) std::ceil (bars - 0.02f);
+    for (int i = 1; i < n; ++i)
+        xs.push_back ((float) i / bars);
+    return xs;
+}
+
 void LoopWaveform::draw (juce::Graphics& g, juce::Rectangle<float> r) const
 {
     const bool recording = state == LoopTrack::State::Recording;
@@ -1353,6 +1476,17 @@ void LoopWaveform::draw (juce::Graphics& g, juce::Rectangle<float> r) const
     }
     const float bw = r.getWidth() / (float) numBins;
     const float mid = r.getCentreY(), half = r.getHeight() * 0.48f;
+    // v1.7.1: a subtle line at every bar (behind the peaks) with small ticks at the top / bottom edge
+    for (const float bx : barLines (bars))
+    {
+        const float x = std::round (r.getX() + r.getWidth() * bx);
+        g.setColour (juce::Colours::white.withAlpha (0.09f));
+        g.fillRect (x, r.getY(), 1.0f, r.getHeight());
+        g.setColour (juce::Colours::white.withAlpha (0.28f));
+        const float tick = juce::jlimit (2.0f, 5.0f, r.getHeight() * 0.1f);
+        g.fillRect (x, r.getY(), 1.0f, tick);
+        g.fillRect (x, r.getBottom() - tick, 1.0f, tick);
+    }
     const auto layerColour = colour.interpolatedWith (juce::Colours::white, 0.65f);
     for (int i = 0; i < numBins; ++i)
     {

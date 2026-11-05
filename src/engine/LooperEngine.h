@@ -52,6 +52,7 @@ public:
         std::atomic<double> lengthPpq { 0.0 };
         std::atomic<bool>  canUndo { false };
         std::atomic<bool>  canRedo { false };
+        std::atomic<bool>  undoEmpties { false };      // v1.7.1: the next undo empties the track (first recording)
         std::atomic<bool>  stopping { false };
         // meter: input level while recording / overdubbing, output level otherwise
         mutable std::atomic<float> meterL { 0.0f }, meterR { 0.0f };   // UI takes them with exchange()

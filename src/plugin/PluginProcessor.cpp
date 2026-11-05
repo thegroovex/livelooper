@@ -245,6 +245,7 @@ LiveLooperProcessor::LiveLooperProcessor (bool withCueOutput, bool withTrackOutp
     for (int i = 0; i < kNumPunchHolds; ++i)
         pfxHold[(size_t) i] = apvts.getRawParameterValue (punchHoldId (i));
     pfxAmount = apvts.getRawParameterValue (gPfxAmount);
+    viewParam = apvts.getParameter (gView);
     pfxX      = apvts.getRawParameterValue (gPfxX);
     pfxY      = apvts.getRawParameterValue (gPfxY);
     pfxTarget = apvts.getRawParameterValue (gPfxTarget);
@@ -708,6 +709,8 @@ void LiveLooperProcessor::applyMidiAction (const MidiMap::Action& a) noexcept
             const int steps = std::max (2, p->getNumSteps());
             int idx = juce::roundToInt (p->getValue() * (float) (steps - 1)) + 1;
             if (idx >= steps) idx = 0;
+            if (p == viewParam)             // v1.7.1: the views step in the order they are shown (Full, Live, Live FX, Performance)
+                idx = nextViewInOrder (juce::roundToInt (p->getValue() * (float) (steps - 1)));
             p->setValueNotifyingHost ((float) idx / (float) (steps - 1));
             break;
         }

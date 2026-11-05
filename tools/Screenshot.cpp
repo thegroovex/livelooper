@@ -6,6 +6,9 @@
 #include "plugin/PluginProcessor.h"
 #include "plugin/Localisation.h"
 #include "plugin/KeyMapEditor.h"
+#include "plugin/KeyMap.h"
+#include "plugin/LiveView.h"
+#include "plugin/Widgets.h"
 #include "plugin/InfoWindows.h"
 #include "plugin/Parameters.h"
 #include "plugin/PerformanceRecorder.h"
@@ -53,6 +56,268 @@ void press (LiveLooperProcessor& proc, const juce::String& id)
 void save (juce::Component& c, const juce::File& file, float scale = 1.0f)
 {
     auto img = c.createComponentSnapshot (c.getLocalBounds(), true, scale);
+    file.deleteFile();
+    juce::FileOutputStream out (file);
+    juce::PNGImageFormat png;
+    png.writeImageToStream (img, out);
+    std::cout << "wrote " << file.getFullPathName() << std::endl;
+}
+
+//============================================================================== v1.7.1 keyboard map picture
+/** A key cap: the key without its modifiers (arrows drawn), a Shift arrow in front, a red edge = hold 1.5 s. */
+struct KeyCap
+{
+    juce::KeyPress key;
+    bool hold = false;
+
+    static float textW (const juce::String& t, float h) { return juce::GlyphArrangement::getStringWidth (LooperLookAndFeel::font (h * 0.56f, true), t); }
+    juce::String label() const
+    {
+        const int code = key.getKeyCode();
+        if (code == juce::KeyPress::upKey || code == juce::KeyPress::downKey)
+            return {};
+        return KeyMap::describeKey (juce::KeyPress (code));
+    }
+    bool shift() const { return key.getModifiers().isShiftDown(); }
+    float width (float h) const
+    {
+        const auto t = label();
+        float w = t.isEmpty() ? h * 0.55f : textW (t, h);
+        if (shift())
+            w += h * 0.62f;
+        return juce::jmax (h, w + h * 0.62f);
+    }
+    void draw (juce::Graphics& g, juce::Rectangle<float> r) const
+    {
+        const float h = r.getHeight(), corner = h * 0.24f;
+        // shadow, light key cap, brand gradient rim (red rim + bar for a held key)
+        g.setColour (juce::Colours::black.withAlpha (0.45f));
+        g.fillRoundedRectangle (r.translated (0.0f, h * 0.10f).expanded (1.0f), corner);
+        juce::ColourGradient body (juce::Colour (0xffffffff), r.getX(), r.getY(), juce::Colour (0xffdfe2e9), r.getX(), r.getBottom(), false);
+        g.setGradientFill (body);
+        g.fillRoundedRectangle (r, corner);
+        if (hold)
+            g.setColour (colours::red);
+        else
+            g.setGradientFill (LooperLookAndFeel::brandGradient (r));
+        g.drawRoundedRectangle (r.reduced (0.75f), corner, 1.6f);
+        if (hold)
+            g.fillRoundedRectangle (r.withTrimmedTop (h * 0.80f).reduced (h * 0.22f, 0.0f).withHeight (h * 0.09f), h * 0.04f);
+        auto inner = r.reduced (h * 0.31f, 0.0f);
+        const auto ink = juce::Colour (0xff17181d);
+        g.setColour (ink);
+        if (shift())
+        {
+            // Shift: an outlined up arrow
+            const auto a = inner.removeFromLeft (h * 0.5f).withSizeKeepingCentre (h * 0.42f, h * 0.48f);
+            juce::Path p;
+            p.startNewSubPath (a.getCentreX(), a.getY());
+            p.lineTo (a.getRight(), a.getY() + a.getHeight() * 0.5f);
+            p.lineTo (a.getX() + a.getWidth() * 0.72f, a.getY() + a.getHeight() * 0.5f);
+            p.lineTo (a.getX() + a.getWidth() * 0.72f, a.getBottom());
+            p.lineTo (a.getX() + a.getWidth() * 0.28f, a.getBottom());
+            p.lineTo (a.getX() + a.getWidth() * 0.28f, a.getY() + a.getHeight() * 0.5f);
+            p.lineTo (a.getX(), a.getY() + a.getHeight() * 0.5f);
+            p.closeSubPath();
+            g.strokePath (p, juce::PathStrokeType (juce::jmax (1.2f, h * 0.06f), juce::PathStrokeType::mitered));
+            inner.removeFromLeft (h * 0.12f);
+        }
+        const int code = key.getKeyCode();
+        if (code == juce::KeyPress::upKey || code == juce::KeyPress::downKey)
+        {
+            const auto a = inner.withSizeKeepingCentre (h * 0.40f, h * 0.40f);
+            juce::Path p;
+            if (code == juce::KeyPress::upKey)
+                p.addTriangle (a.getCentreX(), a.getY(), a.getRight(), a.getBottom(), a.getX(), a.getBottom());
+            else
+                p.addTriangle (a.getX(), a.getY(), a.getRight(), a.getY(), a.getCentreX(), a.getBottom());
+            g.fillPath (p);
+            return;
+        }
+        g.setFont (LooperLookAndFeel::font (h * 0.56f, true));
+        g.drawText (label(), inner, juce::Justification::centred, false);
+    }
+};
+
+/** The surface with a key cap at every button the default computer keyboard mapping plays, and a legend with all
+    default keys - generated from KeyMap::setDefaults() and the components' parameter ids, so it follows both. */
+void saveKeyMapPicture (LiveLooperEditor& ed, const juce::File& file)
+{
+    using i18n::tr;
+    const KeyMap km;                                    // the defaults
+    const float S = 1.5f;                               // output scale
+    const float m = 34.0f, headH = 92.0f, capH = 24.0f;
+    const auto edArea = juce::Rectangle<float> (m, headH, (float) ed.getWidth(), (float) ed.getHeight());
+
+    // the legend rows: per track function one row with the 8 keys, then every other default key
+    struct Row { std::vector<KeyCap> caps; juce::String text; };
+    std::vector<Row> trackRows, globalRows;
+    juce::StringArray listed;
+    const std::pair<const char*, const char*> trackFns[] = {
+        { kRecPlay, "REC / PLAY / DUB - tracks 1 - 8" }, { kStop, "STOP - tracks 1 - 8" },
+        { kClear, "CLEAR the track - hold 1.5 s" }, { kUndo, "UNDO - hold 1.5 s when it empties the track" }, { kRedo, "REDO" } };
+    for (const auto& [fn, text] : trackFns)
+    {
+        Row row { {}, tr (text) };
+        for (int t = 0; t < kNumTracks; ++t)
+        {
+            const auto k = km.getKeyFor (trackId (t, fn));
+            listed.add (trackId (t, fn));
+            if (k.isValid())
+                row.caps.push_back ({ k, juce::String (fn) == kClear });
+        }
+        if (! row.caps.empty())
+            trackRows.push_back (row);
+    }
+    juce::StringArray globals { gAllStartStop, gClearAll, gTap, KeyMap::actEnterTempo, KeyMap::actTempoUp, KeyMap::actTempoDown,
+                                KeyMap::actTempoUpFine, KeyMap::actTempoDownFine };
+    for (const auto& a : KeyMap::getAvailableActions())
+        if (! listed.contains (a) && ! globals.contains (a))
+            globals.add (a);                            // any other default (rhythm, quantize ...) in the mapping's order
+    for (const auto& a : globals)
+    {
+        const auto k = km.getKeyFor (a);
+        if (! k.isValid() || listed.contains (a))
+            continue;
+        listed.add (a);
+        const bool hold = a == gClearAll;
+        auto text = KeyMap::describeAction (a);
+        if (hold)
+            text << " - " << tr ("hold 1.5 s");
+        globalRows.push_back ({ { { k, hold } }, text });
+    }
+    // the legend sits on the right of the surface (landscape - fits the in-app help page too)
+    const float legendW = 560.0f;
+    const float W = edArea.getRight() + 24.0f + legendW + m, H = edArea.getBottom() + m;
+
+    juce::Image img (juce::Image::ARGB, juce::roundToInt (W * S), juce::roundToInt (H * S), true);
+    juce::Graphics g (img);
+    g.addTransform (juce::AffineTransform::scale (S));
+
+    // brand background: dark with soft gradient glows
+    g.fillAll (juce::Colour (0xff0b0a10));
+    const std::tuple<float, float, juce::Colour, float> glows[] = {
+        { 0.12f, 0.08f, colours::brand0, 0.30f }, { 0.55f, 0.98f, colours::brand1, 0.20f }, { 0.95f, 0.18f, colours::brand2, 0.28f } };
+    for (const auto& [gx, gy, col, op] : glows)
+    {
+        const juce::Point<float> c (W * gx, H * gy);
+        juce::ColourGradient rg (col.withAlpha (op), c, col.withAlpha (0.0f), c.translated (W * 0.45f, 0.0f), true);
+        g.setGradientFill (rg);
+        g.fillRect (0.0f, 0.0f, W, H);
+    }
+
+    // header: logo with badge, title and hints
+    const float badgeRight = LiveView::drawLogo (g, { m, 18.0f }, i18n::upper (tr ("Keys")), 30.0f);
+    g.setColour (juce::Colours::white);
+    g.setFont (LooperLookAndFeel::font (21.0f, true));
+    const float tx = badgeRight + 30.0f;
+    g.drawText (tr ("Computer keyboard - default keys (standalone app)"), juce::Rectangle<float> (tx, 20.0f, W - tx - m, 30.0f), juce::Justification::centredLeft);
+    g.setColour (juce::Colour (0xffb9bcc8));
+    g.setFont (LooperLookAndFeel::font (13.5f, false));
+    g.drawText (tr ("Shift = second function  .  red key = hold 1.5 s  .  change it in SETUP > Keyboard mapping"),
+                juce::Rectangle<float> (tx, 50.0f, W - tx - m, 24.0f), juce::Justification::centredLeft);
+
+    // the surface, slightly dimmed so the caps stand out
+    {
+        const auto shot = ed.createComponentSnapshot (ed.getLocalBounds(), true, S);
+        juce::Path clip;
+        clip.addRoundedRectangle (edArea, 14.0f);
+        g.setColour (juce::Colours::black.withAlpha (0.5f));
+        g.fillRoundedRectangle (edArea.translated (0.0f, 8.0f).expanded (6.0f), 18.0f);
+        g.saveState();
+        g.reduceClipRegion (clip);
+        g.drawImage (shot, edArea);
+        g.setColour (juce::Colours::black.withAlpha (0.28f));
+        g.fillRect (edArea);
+        g.restoreState();
+        g.setColour (juce::Colours::white.withAlpha (0.14f));
+        g.strokePath (clip, juce::PathStrokeType (1.0f));
+    }
+
+    // a cap at every visible button of a mapped function (STOP also carries its hold-to-clear key)
+    juce::StringArray done;
+    std::function<void (juce::Component&)> walk = [&] (juce::Component& parent) {
+        for (auto* c : parent.getChildren())
+        {
+            if (! c->isVisible() || c->getWidth() <= 0)
+                continue;
+            const auto pid = getParamId (*c);
+            if (pid.isNotEmpty() && ! done.contains (pid))
+            {
+                std::vector<KeyCap> caps;
+                if (const auto k = km.getKeyFor (pid); k.isValid())
+                    caps.push_back ({ k, pid == gClearAll });
+                for (int t = 0; t < kNumTracks; ++t)
+                    if (pid == trackId (t, kStop))
+                        if (const auto k = km.getKeyFor (trackId (t, kClear)); k.isValid())
+                            caps.push_back ({ k, true });
+                if (! caps.empty())
+                {
+                    done.add (pid);
+                    const auto r = ed.getLocalArea (c, c->getLocalBounds()).toFloat() + edArea.getPosition();
+                    float x = r.getRight() + 4.0f;
+                    float total = 0.0f;
+                    for (const auto& cap : caps)
+                        total += cap.width (capH) + 4.0f;
+                    x = juce::jmin (r.getRight() - total * 0.5f, edArea.getRight() - total + 8.0f);
+                    const float y = r.getY() - capH * 0.45f;
+                    for (const auto& cap : caps)
+                    {
+                        const float w = cap.width (capH);
+                        cap.draw (g, { x, y, w, capH });
+                        x += w + 4.0f;
+                    }
+                }
+            }
+            walk (*c);
+        }
+    };
+    walk (ed);
+
+    // legend (glass panel, right): each track function with its 8 keys, then the global keys
+    const auto panel = juce::Rectangle<float> (edArea.getRight() + 24.0f, edArea.getY(), legendW, edArea.getHeight());
+    LooperLookAndFeel::drawGlassPanel (g, panel, 16.0f, 1, colours::brand1);
+    auto inner = panel.reduced (22.0f, 16.0f);
+    auto heading = [&g] (juce::Rectangle<float> r, const juce::String& text) {
+        g.setColour (juce::Colour (0xffe6e8ee));
+        g.setFont (LooperLookAndFeel::font (12.5f, true));
+        g.drawText (i18n::upper (text), r, juce::Justification::centredLeft);
+        g.setGradientFill (LooperLookAndFeel::brandGradient (r));
+        g.fillRect (r.getX(), r.getBottom() - 1.0f, 46.0f, 2.0f);
+    };
+    auto drawCaps = [&g] (const std::vector<KeyCap>& caps, float x, float cy, float h) {
+        for (const auto& cap : caps)
+        {
+            const float w = cap.width (h);
+            cap.draw (g, { x, cy - h * 0.5f, w, h });
+            x += w + 5.0f;
+        }
+        return x;
+    };
+    heading (inner.removeFromTop (24.0f), tr ("Tracks 1 - 8 (one keyboard column per track)"));
+    inner.removeFromTop (8.0f);
+    for (const auto& row : trackRows)
+    {
+        auto r = inner.removeFromTop (58.0f);
+        g.setColour (juce::Colour (0xffd4d7e0));
+        g.setFont (LooperLookAndFeel::font (13.5f, false));
+        g.drawFittedText (row.text, r.removeFromTop (22.0f).toNearestInt(), juce::Justification::centredLeft, 1, 0.85f);
+        drawCaps (row.caps, r.getX(), r.getY() + 15.0f, capH * 0.95f);
+    }
+    inner.removeFromTop (8.0f);
+    heading (inner.removeFromTop (24.0f), tr ("Global"));
+    inner.removeFromTop (6.0f);
+    const float rh = juce::jmin (36.0f, inner.getHeight() / (float) juce::jmax ((size_t) 1, globalRows.size()));
+    for (const auto& row : globalRows)
+    {
+        auto r = inner.removeFromTop (rh);
+        const float x = drawCaps (row.caps, r.getX(), r.getCentreY(), capH * 0.95f);
+        g.setColour (juce::Colour (0xffd4d7e0));
+        g.setFont (LooperLookAndFeel::font (13.5f, false));
+        const float tx = juce::jmax (x + 10.0f, r.getX() + 150.0f);
+        g.drawFittedText (row.text, juce::Rectangle<float> (tx, r.getY(), r.getRight() - tx, r.getHeight()).toNearestInt(), juce::Justification::centredLeft, 1, 0.85f);
+    }
+
     file.deleteFile();
     juce::FileOutputStream out (file);
     juce::PNGImageFormat png;
@@ -122,6 +387,8 @@ int main (int argc, char* argv[])
         ed->showStatus ({});
         juce::MessageManager::getInstance()->runDispatchLoopUntil (200);
         save (*editor, outDir.getChildFile ("livelooper" + sfx + ".png"));
+        // v1.7.1: the default computer keyboard keys on the surface (docs + in-app help)
+        saveKeyMapPicture (*ed, outDir.getChildFile ("livelooper-keymap" + sfx + ".png"));
         {
             // v1.7 loop length: the top of the track strips (title row with the loop length pills, displays), 2x
             auto img = editor->createComponentSnapshot ({ 12, 326, 904, 118 }, true, 2.0f);
@@ -506,6 +773,18 @@ int main (int argc, char* argv[])
             setParam (gLiveView, 1.0f);
             frames (6);
             save (*editor, outDir.getChildFile ("livelooper-live" + sfx + ".png"));
+            {
+                // v1.7.1: the cards of the fullscreen window (smaller display, REVERSE / ONE SHOT / PITCH), and LIVE without the FX bar
+                ed->getLiveView()->setFullscreenMode (true);
+                frames (4);
+                save (*editor, outDir.getChildFile ("livelooper-live-fullscreen" + sfx + ".png"));
+                ed->getLiveView()->setFullscreenMode (false);
+                setParam (gLiveFx, 0.0f);
+                frames (4);
+                save (*editor, outDir.getChildFile ("livelooper-live-nofx" + sfx + ".png"));
+                setParam (gLiveFx, 1.0f);
+                frames (4);
+            }
             if (juce::SystemStats::getEnvironmentVariable ("LL_SHOT_CHECKS", {}).isNotEmpty())
             {
                 // review only (not a docs image): MIDI learn frames over the Live view
@@ -532,6 +811,11 @@ int main (int argc, char* argv[])
                 setParam (punchHoldId (4), 1.0f);
                 frames (6);
                 save (*editor, outDir.getChildFile ("livelooper-perform" + sfx + ".png"));
+                ed->getPerformView()->setFullscreenMode (true);
+                frames (4);
+                save (*editor, outDir.getChildFile ("livelooper-perform-fullscreen" + sfx + ".png"));
+                ed->getPerformView()->setFullscreenMode (false);
+                frames (2);
                 if (juce::SystemStats::getEnvironmentVariable ("LL_SHOT_CHECKS", {}).isNotEmpty())
                 {
                     // review only (not docs images): learn frames, light theme, stage mode, waveforms, 75 % / 200 %

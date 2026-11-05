@@ -54,6 +54,16 @@ namespace
             setLookAndFeel (&lf);
             setOpaque (true);
             addAndMakeVisible (view);
+            view.setFullscreenMode (true);      // v1.7.1: smaller displays, REVERSE / ONE SHOT / PITCH per card
+            // a clicked button must not take the keys from the view (Space would press it instead of ALL START / STOP)
+            std::function<void (juce::Component&)> walk = [&walk] (juce::Component& parent) {
+                for (auto* c : parent.getChildren())
+                {
+                    c->setWantsKeyboardFocus (false);
+                    walk (*c);
+                }
+            };
+            walk (view);
             insets = LiveLooperEditor::getFullscreenSafeInsets (display);
             const auto area = display != nullptr ? display->totalArea : juce::Rectangle<int> (0, 0, 1920, 1080);
             setBounds (area);
@@ -73,6 +83,12 @@ namespace
             const bool light = theme::isLight(), stage = theme::isStage();
             g.fillAll (stage && ! light ? juce::Colour (0xff050506) : theme::pick (0xff1b1b21, 0xfff1f2f6));
         }
+        // v1.7.1: the computer keyboard works in the fullscreen views like on the surface (the view only takes Esc;
+        // every other key bubbles up to here and goes to the editor - incl. the held clear / emptying undo keys)
+        bool keyPressed (const juce::KeyPress& key) override { return onKey != nullptr && onKey (key); }
+        bool keyStateChanged (bool isKeyDown) override { return onKeyState != nullptr && onKeyState (isKeyDown); }
+        std::function<bool (const juce::KeyPress&)> onKey;
+        std::function<bool (bool)> onKeyState;
         void showMidiMenuFor (juce::Component& c) override { host.showMidiMenuFor (c); }
         void exportTrack (int t) override { host.exportTrack (t); }
         void importTrack (int t) override { host.importTrack (t); }
@@ -282,6 +298,8 @@ void LiveLooperEditor::openStageWindow (bool performance)
         auto pw = std::make_unique<StageWindow<PerformView>> (proc, strips, lookAndFeel, *this, display);
         fullscreenPerf = &pw->view;
         wireStageView (*fullscreenPerf);
+        pw->onKey = [this] (const juce::KeyPress& k) { return keyPressed (k); };
+        pw->onKeyState = [this] (bool down) { return keyStateChanged (down); };
         focus = fullscreenPerf;
         w = std::move (pw);
     }
@@ -290,6 +308,8 @@ void LiveLooperEditor::openStageWindow (bool performance)
         auto lw = std::make_unique<StageWindow<LiveView>> (proc, strips, lookAndFeel, *this, display);
         fullscreenLive = &lw->view;
         wireStageView (*fullscreenLive);
+        lw->onKey = [this] (const juce::KeyPress& k) { return keyPressed (k); };
+        lw->onKeyState = [this] (bool down) { return keyStateChanged (down); };
         fullscreenLive->setShowWaveforms (liveView->getShowWaveforms());
         fullscreenLive->setShowFxStrip (liveView->getShowFxStrip());
         focus = fullscreenLive;

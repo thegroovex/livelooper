@@ -577,6 +577,7 @@ private:
     std::atomic<float>* sfxType {}; std::atomic<float>* sfxX {}; std::atomic<float>* sfxY {}; std::atomic<float>* sfxLevel {};
     std::array<std::atomic<float>*, params::kNumPunchHolds> pfxHold {};
     std::atomic<float>* pfxAmount {}; std::atomic<float>* pfxX {}; std::atomic<float>* pfxY {};
+    juce::RangedAudioParameter* viewParam = nullptr;     // v1.7.1: a MIDI note on View steps in the shown order
     std::atomic<float>* pfxTarget {}; std::atomic<float>* pfxLatch {}; std::atomic<float>* ctlAudioMode {};
     std::atomic<float>* pfxHoldRamp {};
     std::array<bool, params::kNumPunchHolds> pfxLast {}, pfxLatched {};

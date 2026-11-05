@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""v1.7 in-app help pictures (resources/help/help-{looplen,live,display,latency,controllers,backup}[-de].png).
+"""v1.7 in-app help pictures (resources/help/help-{looplen,live,display,latency,controllers,backup,keymap}[-de].png).
 
 Unlike the drawn v1.6 pages these show the real v1.7 interface: they are composed from the
 documentation screenshots in docs/images (rendered by livelooper_screenshot) on the brand
@@ -64,7 +64,8 @@ def make(sfx):
     place(bg, push.crop((270, 150, 830, 745)), (220, 210, 460, 300))
     out['help-looplen'] = bg
     for key, src in (('help-live', 'livelooper-live'), ('help-perform', 'livelooper-perform'), ('help-display', 'livelooper-setup-display'),
-                     ('help-latency', 'livelooper-setup-audio'), ('help-controllers', 'livelooper-setup-controllers-17')):
+                     ('help-latency', 'livelooper-setup-audio'), ('help-controllers', 'livelooper-setup-controllers-17'),
+                     ('help-keymap', 'livelooper-keymap')):     # v1.7.1: the default keys (generated from KeyMap defaults)
         bg = background()
         place(bg, doc(src, sfx), (30, 22, 840, 481))
         out[key] = bg

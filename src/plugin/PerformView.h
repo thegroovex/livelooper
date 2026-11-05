@@ -43,6 +43,16 @@ public:
     // for tests / screenshots
     /** The STOP button of a card (the editor shows a held keyboard clear on it). */
     StopButton* getStopButton (int track) const { return juce::isPositiveAndBelow (track, kNumTracks) ? cardParts[(size_t) track].stop.get() : nullptr; }
+    /** v1.7.1: the round UNDO button of a card (click = undo, Shift + click = redo). */
+    UndoButton* getUndoButton (int track) const { return juce::isPositiveAndBelow (track, kNumTracks) ? cardParts[(size_t) track].undo.get() : nullptr; }
+    LLButton* getReverseButton (int track) const { return juce::isPositiveAndBelow (track, kNumTracks) ? cardParts[(size_t) track].reverse.get() : nullptr; }
+    LLButton* getOneShotButton (int track) const { return juce::isPositiveAndBelow (track, kNumTracks) ? cardParts[(size_t) track].oneShot.get() : nullptr; }
+    Knob* getPitchKnob (int track) const { return juce::isPositiveAndBelow (track, kNumTracks) ? cardParts[(size_t) track].pitch.get() : nullptr; }
+    juce::Rectangle<int> getDisplayArea (int track) const { return juce::isPositiveAndBelow (track, kNumTracks) ? cardParts[(size_t) track].display : juce::Rectangle<int>(); }
+    juce::Rectangle<int> getLevelCaptionArea (int track) const { return juce::isPositiveAndBelow (track, kNumTracks) ? cardParts[(size_t) track].levelCaption : juce::Rectangle<int>(); }
+    /** v1.7.1: the fullscreen window's view - smaller displays, REVERSE / ONE SHOT / PITCH per card. */
+    void setFullscreenMode (bool on) { if (fullscreenMode != on) { fullscreenMode = on; resized(); repaint(); } }
+    bool isFullscreenMode() const noexcept { return fullscreenMode; }
     int getNumCards() const noexcept { return numCards; }
     juce::Rectangle<int> getCardArea (int track) const { return juce::isPositiveAndBelow (track, kNumTracks) ? cards[(size_t) track] : juce::Rectangle<int>(); }
     juce::Rectangle<int> getFxArea() const noexcept { return fxArea; }
@@ -56,6 +66,16 @@ public:
     StagePad& getBeatFxPad() noexcept { return *bfxPad; }
     StagePad& getExitButton() noexcept { return *exitPad; }
     juce::Component& getXYPad() noexcept;
+    /** v1.7.1 XY gestures (the XY field's mouse / touch handlers; for tests): a release without LATCH springs the
+        crosshair and Punch FX X / Y back to neutral within getXYSpringMs(); trails fade out over getXYTrailMs(). */
+    void xyPress (juce::Point<float> pos);
+    void xyDrag (juce::Point<float> pos);
+    void xyRelease();
+    void xyTick (juce::uint32 now);
+    bool isXYSpringing() const noexcept;
+    int getXYTrailSize() const noexcept;
+    static juce::uint32 getXYTrailMs() noexcept;
+    static juce::uint32 getXYSpringMs() noexcept;
     juce::Button& getCenterButton() noexcept { return centerBtn; }
     /** True when the compact cards draw mini waveforms (only with the global waveforms setting on). */
     bool areWaveformsShown() const noexcept;
@@ -75,6 +95,11 @@ private:
         std::unique_ptr<LiveView::LevelBar> level;
         std::unique_ptr<APVTS::SliderAttachment> levelAtt;
         std::unique_ptr<LoopLengthPill> length;
+        std::unique_ptr<UndoButton> undo;           // v1.7.1: round UNDO (Shift + click = redo)
+        // v1.7.1 fullscreen: REVERSE, ONE SHOT and PITCH under the (smaller) display
+        std::unique_ptr<LLButton> reverse, oneShot;
+        std::unique_ptr<APVTS::ButtonAttachment> reverseAtt, oneShotAtt;
+        std::unique_ptr<Knob> pitch;
         juce::Rectangle<int> display, levelCaption, title;
     };
 
@@ -105,7 +130,7 @@ private:
     std::unique_ptr<Knob> bfxLevelKnob, masterKnob;
     float meterL = 0.0f, meterR = 0.0f;
     int shownTheme = -1;
-    bool shownWaves = false;
+    bool shownWaves = false, fullscreenMode = false;
     juce::String shownMaster, shownDepth;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PerformView)
