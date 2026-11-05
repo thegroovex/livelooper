@@ -240,11 +240,11 @@ Default mapping – one keyboard column per track:
 |---|---|
 | **1 2 3 4 5** (6 7 8) | REC/PLAY of track 1–5 (6–8) |
 | **Q W E R T** (Y U I) | STOP track 1–5 (6–8) |
-| **Shift + Q … T** | CLEAR track 1–5 – hold the key for 1.5 s, like the STOP button (a short tap does nothing) |
+| **Shift + Q … T** | CLEAR track 1–5 – **hold** the keys for 1.5 s, like the STOP button: the STOP button of the track fills red while you hold (also in the Live / Performance views); release earlier and nothing is cleared |
 | **A S D F G** (H J L) | UNDO track 1–5 (6–8) |
 | **Shift + A … G** | REDO track 1–5 |
 | **Space** | ALL START / STOP |
-| **Shift + Backspace** | CLEAR ALL (asks first) |
+| **Shift + Backspace** | CLEAR ALL – **hold** the keys for 1.5 s (all STOP buttons fill red); release earlier and nothing is cleared. *Since 1.7.1: no question any more – the hold is the confirmation (Return / Space used to answer the question by accident)* |
 | **Return** | TAP tempo |
 | **B** | type in the tempo (BPM) |
 | **Arrow Up / Down** | tempo +1 / −1 BPM (Shift: ±0.1) |
@@ -252,7 +252,7 @@ Default mapping – one keyboard column per track:
 | **N** | next rhythm pattern |
 | **K** | next quantize setting |
 
-The display briefly shows which key did what (e.g. `KEY Q > T1 STOP`). Holding a key does not repeat it – except tempo up/down.
+The display briefly shows which key did what (e.g. `KEY Q > T1 STOP`). Holding a key does not repeat it – except tempo up/down. A clear key's auto-repeat only keeps the hold going; releasing the key – or its Shift – before 1.5 s cancels the clear. Clearing by MIDI, Push, controllers or host automation is unchanged; the CLEAR ALL button on the surface still asks first.
 
 **Own key mapping:** *SETUP → Keyboard mapping …* lists every function (all track functions incl. reverse, one shot, loop sync and FX, all global functions, FX slots A–D, tempo). Click a function and press its new key – modifiers (Shift, Ctrl, Option, Cmd) count. A key that was already used moves to the new function. Esc cancels, right-click removes a key, **DEFAULTS** restores the table above, **REMOVE ALL** empties it, **KEYBOARD CONTROL** switches keyboard control on/off (also *SETUP → Computer keyboard control*). The mapping is saved together with the app's state.
 

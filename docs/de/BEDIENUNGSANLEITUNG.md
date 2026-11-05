@@ -242,11 +242,11 @@ Standardbelegung – eine Tastaturspalte pro Spur:
 |---|---|
 | **1 2 3 4 5** (6 7 8) | REC/PLAY Spur 1–5 (6–8) |
 | **Q W E R T** (Y U I) | STOP Spur 1–5 (6–8) |
-| **Shift + Q … T** | Spur 1–5 LÖSCHEN – Taste 1,5 s halten, wie die STOP-Taste (kurzes Antippen löscht nicht) |
+| **Shift + Q … T** | Spur 1–5 LÖSCHEN – Tasten 1,5 s **gedrückt halten**, wie die STOP-Taste: die STOP-Taste der Spur füllt sich beim Halten rot (auch in der Live- und Performance-Ansicht); früher losgelassen wird nichts gelöscht |
 | **A S D F G** (H J L) | UNDO Spur 1–5 (6–8) |
 | **Shift + A … G** | VOR (Redo) Spur 1–5 |
 | **Leertaste** | ALLE START / STOP |
-| **Shift + Rücktaste** | ALLE LÖSCHEN (mit Rückfrage) |
+| **Shift + Rücktaste** | ALLE LÖSCHEN – Tasten 1,5 s **gedrückt halten** (alle STOP-Tasten füllen sich rot); früher losgelassen wird nichts gelöscht. *Seit 1.7.1 ohne Rückfrage – das Halten ist die Bestätigung (Return / Leertaste haben die Rückfrage versehentlich beantwortet)* |
 | **Eingabe (Return)** | TAP-Tempo |
 | **B** | Tempo eintippen (BPM) |
 | **Pfeil hoch / runter** | Tempo +1 / −1 BPM (mit Shift: ±0,1) |
@@ -254,7 +254,7 @@ Standardbelegung – eine Tastaturspalte pro Spur:
 | **N** | nächstes Rhythmus-Pattern |
 | **K** | nächste Quantisierung |
 
-Das Display zeigt kurz, welche Taste was ausgelöst hat (z. B. `TASTE Q > S1 STOP`). Gehaltene Tasten wiederholen nicht – außer Tempo hoch/runter.
+Das Display zeigt kurz, welche Taste was ausgelöst hat (z. B. `TASTE Q > S1 STOP`). Gehaltene Tasten wiederholen nicht – außer Tempo hoch/runter. Bei einer Lösch-Taste hält die Tastenwiederholung nur das Halten aufrecht; wer die Taste – oder Shift – vor 1,5 s loslässt, bricht das Löschen ab. Löschen per MIDI, Push, Controller oder Host-Automation bleibt unverändert; die Taste ALLE LÖSCHEN auf der Oberfläche fragt weiterhin nach.
 
 **Eigene Belegung:** *SETUP → Tastaturbelegung …* listet alle Funktionen (alle Spurfunktionen inkl. Rückwärts, One-Shot, Loop-Sync und FX, alle globalen Funktionen, FX-Slots A–D, Tempo). Funktion anklicken, neue Taste drücken – Shift, Strg, Option und Cmd zählen mit. Eine bereits belegte Taste wandert zur neuen Funktion. Esc bricht ab, Rechtsklick entfernt eine Taste, **STANDARD** stellt die Tabelle oben wieder her, **ALLE ENTFERNEN** leert sie, **TASTATURSTEUERUNG** schaltet die Tastatursteuerung an/aus (auch *SETUP → Steuerung mit der Computertastatur*). Die Belegung wird mit dem Zustand der App gespeichert.
 

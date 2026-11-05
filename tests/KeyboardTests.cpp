@@ -164,6 +164,118 @@ public:
             expectEquals (editor->getPendingKeyClearTrack(), -1);
         }
 
+        beginTest ("Keyboard clear (v1.7.1): auto-repeat keeps the hold, release cancels, progress on every STOP button");
+        {
+            LiveLooperProcessor p;
+            p.setKeyboardControlAvailable (true);
+            p.prepareToPlay (48000.0, 512);
+            std::unique_ptr<juce::AudioProcessorEditor> ed (p.createEditor());
+            auto* editor = dynamic_cast<LiveLooperEditor*> (ed.get());
+            auto cleared = [&p] (int t) { return p.getState().getParameter (juce::String ("t") + juce::String (t) + "_clear")->getValue() >= 0.5f; };
+            const auto hold = LiveLooperEditor::kClearHoldMs;
+
+            // short press: nothing
+            expect (editor->keyPressed (key ('Q', true)));
+            editor->updateKeyClearHold (juce::Time::getMillisecondCounter() + hold / 3, true);
+            expect (! cleared (1));
+            editor->updateKeyClearHold (juce::Time::getMillisecondCounter() + hold / 2, false);   // released before 1.5 s
+            expect (! cleared (1));
+            expect (! editor->isKeyClearPending());
+            editor->keyStateChanged (false);
+
+            // auto-repeat: many key-downs while held do not clear and do not restart the hold
+            expect (editor->keyPressed (key ('R', true)));                  // Shift+R: clear track 4
+            const auto t0 = juce::Time::getMillisecondCounter();
+            for (int i = 0; i < 40; ++i)
+            {
+                expect (editor->keyPressed (key ('R', true)));              // the OS key repeat
+                expect (! cleared (4));
+            }
+            expectEquals (editor->getPendingKeyClearTrack(), 3);
+            editor->updateKeyClearHold (t0 + hold / 2, true);
+            expect (! cleared (4));
+            // the hold fill shows on the STOP button of the surface and of the Live and Performance views
+            auto* liveStop = editor->getLiveView() != nullptr ? editor->getLiveView()->getStopButton (3) : nullptr;
+            auto* perfStop = editor->getPerformView() != nullptr ? editor->getPerformView()->getStopButton (3) : nullptr;
+            expect (liveStop != nullptr && liveStop->getKeyHoldProgress() > 0.3f);
+            expect (perfStop != nullptr && perfStop->getKeyHoldProgress() > 0.3f);
+            expect (editor->getLiveView()->getStopButton (0)->getKeyHoldProgress() < 0.001f);   // other tracks: none
+            editor->updateKeyClearHold (t0 + hold + 20, true);                // held past the threshold (from the first press)
+            expect (cleared (4));
+            expect (! editor->isKeyClearPending());
+            expect (liveStop->getKeyHoldProgress() < 0.001f);
+            // the key is still held: its repeat after the clear starts nothing new
+            expect (editor->keyPressed (key ('R', true)));
+            expect (! editor->isKeyClearPending());
+            editor->keyStateChanged (false);                                 // (xvfb: no key is down) the key is up
+
+            // switching the keyboard off while the key is held cancels
+            expect (editor->keyPressed (key ('T', true)));
+            p.getKeyMap().setEnabled (false);
+            editor->updateKeyClearHold (juce::Time::getMillisecondCounter() + hold + 20, true);
+            expect (! cleared (5));
+            expect (! editor->isKeyClearPending());
+            p.getKeyMap().setEnabled (true);
+            editor->keyStateChanged (false);
+
+            // a key-up event cancels at once (no key is down under the test display)
+            expect (editor->keyPressed (key ('E', true)));
+            expect (editor->isKeyClearPending());
+            editor->keyStateChanged (false);
+            expect (! editor->isKeyClearPending());
+            expect (! cleared (3));
+        }
+
+        beginTest ("Keyboard CLEAR ALL (v1.7.1) must be held too - no question, a tap does nothing");
+        {
+            LiveLooperProcessor p;
+            p.setKeyboardControlAvailable (true);
+            p.prepareToPlay (48000.0, 512);
+            std::unique_ptr<juce::AudioProcessorEditor> ed (p.createEditor());
+            auto* editor = dynamic_cast<LiveLooperEditor*> (ed.get());
+            auto clearedAll = [&p] { return p.getState().getParameter ("clearall")->getValue() >= 0.5f; };
+            const auto hold = LiveLooperEditor::kClearHoldMs;
+            const int modalsBefore = juce::ModalComponentManager::getInstance()->getNumModalComponents();
+
+            expect (editor->keyPressed (key (juce::KeyPress::backspaceKey, true)));
+            expect (editor->isKeyClearAllPending());
+            expectEquals (editor->getPendingKeyClearTrack(), -1);
+            expectEquals (juce::ModalComponentManager::getInstance()->getNumModalComponents(), modalsBefore);   // no question
+            editor->updateKeyClearHold (juce::Time::getMillisecondCounter() + hold / 2, true);
+            for (int t = 0; t < kNumTracks; ++t)
+                expect (editor->getLiveView()->getStopButton (t)->getKeyHoldProgress() > 0.3f);
+            expect (! clearedAll());
+            editor->updateKeyClearHold (juce::Time::getMillisecondCounter() + hold / 2 + 50, false);   // tap / early release
+            expect (! clearedAll());
+            expect (! editor->isKeyClearPending());
+            for (int t = 0; t < kNumTracks; ++t)
+                expect (editor->getLiveView()->getStopButton (t)->getKeyHoldProgress() < 0.001f);
+            editor->keyStateChanged (false);
+
+            // Return (TAP) or Space right after a tap can no longer confirm anything
+            expect (editor->keyPressed (key (juce::KeyPress::backspaceKey, true)));
+            editor->updateKeyClearHold (juce::Time::getMillisecondCounter() + 100, false);
+            editor->keyStateChanged (false);
+            expect (editor->keyPressed (key (juce::KeyPress::returnKey)));
+            editor->keyStateChanged (false);
+            expect (! clearedAll());
+
+            // held: auto-repeat keeps going, past 1.5 s everything is cleared
+            expect (editor->keyPressed (key (juce::KeyPress::backspaceKey, true)));
+            const auto t0 = juce::Time::getMillisecondCounter();
+            for (int i = 0; i < 30; ++i)
+                expect (editor->keyPressed (key (juce::KeyPress::backspaceKey, true)));
+            expect (! clearedAll());
+            editor->updateKeyClearHold (t0 + hold + 20, true);
+            expect (clearedAll());
+            expect (! editor->isKeyClearPending());
+
+            // MIDI / host clear is unchanged: the parameter clears at once
+            p.getState().getParameter ("clearall")->setValueNotifyingHost (0.0f);
+            p.pressTrigger ("t2_clear");
+            expect (p.getState().getParameter ("t2_clear")->getValue() >= 0.5f);
+        }
+
         beginTest ("Tempo can be typed in");
         {
             LiveLooperProcessor p;

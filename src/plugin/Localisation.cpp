@@ -260,6 +260,8 @@ namespace
         { "HOLD KEY TO CLEAR TRACK %1", "TASTE HALTEN: SPUR %1 L\xc3\x96SCHEN" },
         { "CLEAR CANCELLED - HOLD THE KEY 1.5 S", "NICHT GEL\xc3\x96SCHT - TASTE 1,5 S HALTEN" },
         { "TRACK %1 CLEARED", "SPUR %1 GEL\xc3\x96SCHT" },
+        { "HOLD KEY TO CLEAR ALL TRACKS", "TASTE HALTEN: ALLE SPUREN L\xc3\x96SCHEN" },
+        { "ALL TRACKS CLEARED", "ALLE SPUREN GEL\xc3\x96SCHT" },
         { "%1 BAR", "%1 TAKT" },
         { "%1 BARS", "%1 TAKTE" },
         { "LVL %1", "PEG %1" },

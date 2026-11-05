@@ -936,8 +936,8 @@ void LiveLooperEditor::timerCallback()
         perfMeterR = mr;
     }
 
-    if (keyClear.track >= 0)
-        updateKeyClearHold (juce::Time::getMillisecondCounter(), juce::KeyPress::isKeyCurrentlyDown (keyClear.keyCode));
+    if (isKeyClearPending())
+        updateKeyClearHold (juce::Time::getMillisecondCounter(), isKeyClearKeyStillDown());
 
     updateLcd();
 
@@ -1083,16 +1083,27 @@ bool LiveLooperEditor::keyPressed (const juce::KeyPress& key)
     if (action.isEmpty())
         return false;
 
+    // a held clear key: its auto-repeat only keeps the hold going (the hold counts from the first press)
+    if (isKeyClearPending() && key.getKeyCode() == keyClear.keyCode)
+        return true;
+
     // a held key repeats: only tempo up / down follow the repeat
     if (! KeyMap::isRepeatingAction (action) && heldKeys.contains (key.getKeyCode()))
         return true;
     heldKeys.addIfNotAlreadyThere (key.getKeyCode());
 
+    // like the STOP button: hold the key 1.5 s to clear, a short tap does nothing (v1.7.1: CLEAR ALL too -
+    // the hold is its confirmation; the old question was answered by Return = TAP or Space = ALL START / STOP)
+    if (action == gClearAll)
+    {
+        startKeyClear (-1, true, key);
+        showStatus (tr ("HOLD KEY TO CLEAR ALL TRACKS"));
+        return true;
+    }
     for (int t = 0; t < kNumTracks; ++t)
         if (action == trackId (t, kClear))
         {
-            // like the STOP button: hold the key to clear, a short tap does nothing
-            keyClear = { t, key.getKeyCode(), juce::Time::getMillisecondCounter() };
+            startKeyClear (t, false, key);
             showStatus (tr ("HOLD KEY TO CLEAR TRACK %1", juce::String (t + 1)));
             return true;
         }
@@ -1105,6 +1116,9 @@ bool LiveLooperEditor::keyPressed (const juce::KeyPress& key)
 
 bool LiveLooperEditor::keyStateChanged (bool isKeyDown)
 {
+    // a released clear key cancels at once (the timer would catch it within 33 ms too)
+    if (! isKeyDown && isKeyClearPending() && ! isKeyClearKeyStillDown())
+        updateKeyClearHold (juce::Time::getMillisecondCounter(), false);
     if (! isKeyDown)
         for (int i = heldKeys.size(); --i >= 0;)
             if (! juce::KeyPress::isKeyCurrentlyDown (heldKeys[i]))
@@ -1112,28 +1126,82 @@ bool LiveLooperEditor::keyStateChanged (bool isKeyDown)
     return false;
 }
 
+void LiveLooperEditor::startKeyClear (int track, bool all, const juce::KeyPress& key)
+{
+    if (isKeyClearPending())
+        setKeyClearProgress (0.0f);         // another clear key replaces the pending one
+    keyClear.track = all ? -1 : track;
+    keyClear.all = all;
+    keyClear.keyCode = key.getKeyCode();
+    keyClear.mods = key.getModifiers().withoutMouseButtons();
+    keyClear.start = juce::Time::getMillisecondCounter();
+}
+
+bool LiveLooperEditor::isKeyClearKeyStillDown() const
+{
+    if (! isKeyClearPending() || ! juce::KeyPress::isKeyCurrentlyDown (keyClear.keyCode))
+        return false;
+    // the modifiers of the mapping (Shift for Shift + Q) must still be held too: a key-up the plug-in window
+    // never saw (the host took it) leaves the key "down" in JUCE's list on macOS, the modifiers are read live
+    const auto now = juce::ModifierKeys::getCurrentModifiersRealtime();
+    for (auto m : { juce::ModifierKeys::shiftModifier, juce::ModifierKeys::ctrlModifier,
+                    juce::ModifierKeys::altModifier, juce::ModifierKeys::commandModifier })
+        if (keyClear.mods.testFlags (m) && ! now.testFlags (m))
+            return false;
+    return true;
+}
+
+void LiveLooperEditor::setKeyClearProgress (float progress)
+{
+    auto show = [this, progress] (int t) {
+        const float p = keyClear.all || t == keyClear.track ? progress : 0.0f;
+        strips[(size_t) t]->getStopButton().setKeyHoldProgress (p);
+        for (auto* v : { liveView.get(), fullscreenLive })
+            if (v != nullptr)
+                if (auto* b = v->getStopButton (t))
+                    b->setKeyHoldProgress (p);
+        for (auto* v : { perfView.get(), fullscreenPerf })
+            if (v != nullptr)
+                if (auto* b = v->getStopButton (t))
+                    b->setKeyHoldProgress (p);
+    };
+    for (int t = 0; t < kNumTracks; ++t)
+        show (t);
+}
+
 void LiveLooperEditor::updateKeyClearHold (juce::uint32 now, bool keyStillDown)
 {
-    const int t = keyClear.track;
-    if (t < 0)
+    if (! isKeyClearPending())
         return;
-    auto& stop = strips[(size_t) t]->getStopButton();
+    const int t = keyClear.track;
+    const bool all = keyClear.all;
     const auto held = now - keyClear.start;
+    // the keyboard was switched off or the tempo field took the keys while the key was held
+    if (! proc.isKeyboardControlActive() || tempoEntry.isVisible())
+        keyStillDown = false;
     if (! keyStillDown)
     {
-        keyClear.track = -1;
-        stop.setKeyHoldProgress (0.0f);
+        setKeyClearProgress (0.0f);
+        keyClear = {};
         showStatus (tr ("CLEAR CANCELLED - HOLD THE KEY 1.5 S"));
     }
     else if (held >= kClearHoldMs)
     {
-        keyClear.track = -1;
-        stop.setKeyHoldProgress (0.0f);
-        proc.pressTrigger (trackId (t, kClear));
-        showStatus (tr ("TRACK %1 CLEARED", juce::String (t + 1)));
+        setKeyClearProgress (0.0f);
+        keyClear = {};
+        if (all)
+        {
+            proc.pressTrigger (gClearAll);
+            showStatus (tr ("ALL TRACKS CLEARED"));
+        }
+        else
+        {
+            proc.pressTrigger (trackId (t, kClear));
+            showStatus (tr ("TRACK %1 CLEARED", juce::String (t + 1)));
+        }
     }
     else
-        stop.setKeyHoldProgress ((float) held / (float) kClearHoldMs);
+        setKeyClearProgress ((float) held / (float) kClearHoldMs);
 }
 
 void LiveLooperEditor::performKeyAction (const juce::String& action)
