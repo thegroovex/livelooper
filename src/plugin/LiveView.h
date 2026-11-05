@@ -120,6 +120,8 @@ public:
     // for tests / screenshots
     juce::Rectangle<int> getCardArea (int track) const { return juce::isPositiveAndBelow (track, (int) cards.size()) ? cards[(size_t) track] : juce::Rectangle<int>(); }
     juce::Rectangle<int> getFxStripArea() const noexcept { return footArea; }
+    /** The STOP button of a card (the editor shows a held keyboard clear on it). */
+    StopButton* getStopButton (int track) const { return juce::isPositiveAndBelow (track, kNumTracks) ? cardParts[(size_t) track].stop.get() : nullptr; }
     int getNumCards() const noexcept { return numCards; }
     LLButton& getExitButton() noexcept { return exitBtn; }
     /** v1.7 the loop length pill of a card (shown while the track is empty or recording its first loop). */

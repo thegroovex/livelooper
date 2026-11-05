@@ -41,6 +41,8 @@ public:
     std::function<void (float&, float&)> masterMeter;
 
     // for tests / screenshots
+    /** The STOP button of a card (the editor shows a held keyboard clear on it). */
+    StopButton* getStopButton (int track) const { return juce::isPositiveAndBelow (track, kNumTracks) ? cardParts[(size_t) track].stop.get() : nullptr; }
     int getNumCards() const noexcept { return numCards; }
     juce::Rectangle<int> getCardArea (int track) const { return juce::isPositiveAndBelow (track, kNumTracks) ? cards[(size_t) track] : juce::Rectangle<int>(); }
     juce::Rectangle<int> getFxArea() const noexcept { return fxArea; }

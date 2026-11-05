@@ -78,11 +78,18 @@ public:
     void loadSetFile (const juce::File& file);
     bool isTempoEntryVisible() const { return tempoEntry.isVisible(); }
     juce::TextEditor& getTempoEntry() noexcept { return tempoEntry; }
-    /** A track clear on the computer keyboard must be held like the STOP button (1.5 s). */
+    /** A track clear (and, since 1.7.1, CLEAR ALL) on the computer keyboard must be held like the STOP
+        button (1.5 s, the same red fill on the STOP buttons); released earlier nothing happens. A held key's
+        auto-repeat only keeps the hold going. */
     static constexpr juce::uint32 kClearHoldMs = 1500;
-    int getPendingKeyClearTrack() const noexcept { return keyClear.track; }
+    /** The track a held clear key is waiting for, -1 = none (also -1 while CLEAR ALL is held). */
+    int getPendingKeyClearTrack() const noexcept { return keyClear.all ? -1 : keyClear.track; }
+    bool isKeyClearAllPending() const noexcept { return keyClear.all; }
+    bool isKeyClearPending() const noexcept { return keyClear.all || keyClear.track >= 0; }
     /** Checks a held clear key; called from the timer (public for tests). */
     void updateKeyClearHold (juce::uint32 now, bool keyStillDown);
+    /** The key (and the modifiers of its mapping) of the pending clear are still down (the timer's test). */
+    bool isKeyClearKeyStillDown() const;
 
     //============================================================================== v1.6 features (branch v1.6-wip)
     /** Guided tour (5 steps); shown once after the first start, always in the help menu. */
@@ -411,7 +418,10 @@ private:
 
     juce::TextEditor tempoEntry;
     juce::Array<int> heldKeys;
-    struct KeyClear { int track = -1; int keyCode = 0; juce::uint32 start = 0; } keyClear;
+    struct KeyClear { int track = -1; bool all = false; int keyCode = 0; juce::ModifierKeys mods; juce::uint32 start = 0; } keyClear;
+    void startKeyClear (int track, bool all, const juce::KeyPress& key);
+    /** The red hold fill on the STOP buttons of the surface and of the Live / Performance views. */
+    void setKeyClearProgress (float progress);
     int lastRecAction = -1;
 
     std::unique_ptr<juce::FileChooser> chooser;
