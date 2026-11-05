@@ -259,7 +259,11 @@ void saveKeyMapPicture (LiveLooperEditor& ed, const juce::File& file)
                     float total = 0.0f;
                     for (const auto& cap : caps)
                         total += cap.width (capH) + 4.0f;
-                    x = juce::jmin (r.getRight() - total * 0.5f, edArea.getRight() - total + 8.0f);
+                    // at the right edge the caps may hang into the gap before the legend, so wide ones
+                    // (Return on TAP, Shift + Backspace on CLEAR ALL) do not cover the button's label
+                    // a single wide cap starts at the button's right corner instead of centring on it
+                    const float left = caps.size() == 1 ? juce::jmin (total * 0.5f, capH * 0.6f) : total * 0.5f;
+                    x = juce::jmin (r.getRight() - left, edArea.getRight() + 22.0f - total + 4.0f);
                     const float y = r.getY() - capH * 0.45f;
                     for (const auto& cap : caps)
                     {
